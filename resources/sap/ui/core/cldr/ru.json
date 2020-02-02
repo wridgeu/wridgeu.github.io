@@ -1028,7 +1028,7 @@
 		"VA": "Ватикан",
 		"VC": "Сент-Винсент и Гренадины",
 		"VE": "Венесуэла",
-		"VG": "Виргинские о-ва (Велик��британия)",
+		"VG": "Виргинские о-ва (Великобритания)",
 		"VI": "Виргинские о-ва (США)",
 		"VN": "Вьетнам",
 		"VU": "Вануату",
@@ -4830,7 +4830,7 @@
 			"mass-ounce": {
 				"displayName": "унц.",
 				"unitPattern-count-one": "{0} унц.",
-				"unitPattern-count-few": "{0} ун��.",
+				"unitPattern-count-few": "{0} унц.",
 				"unitPattern-count-many": "{0} унц.",
 				"unitPattern-count-other": "{0} унц.",
 				"perUnitPattern": "{0}/унц"
