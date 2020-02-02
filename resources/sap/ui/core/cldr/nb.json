@@ -3564,7 +3564,7 @@
 				"relativeTimePattern-count-other": "+{0} år"
 			},
 			"relativeTime-type-past": {
-				"relativeTimePattern-count-one": "–{0} år",
+				"relativeTimePattern-count-one": "���{0} år",
 				"relativeTimePattern-count-other": "–{0} år"
 			}
 		},

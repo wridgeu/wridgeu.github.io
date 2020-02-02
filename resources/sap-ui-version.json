@@ -1,31 +1,31 @@
 {
 	"name": "projectpages",
 	"version": "0.0.1",
-	"buildTimestamp": "202002021514",
+	"buildTimestamp": "202002021519",
 	"scmRevision": "",
 	"libraries": [
 		{
-			"name": "sap.ui.unified",
+			"name": "sap.ui.layout",
 			"version": "1.74.0",
-			"buildTimestamp": "202002021514",
+			"buildTimestamp": "202002021519",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.core",
 			"version": "1.74.0",
-			"buildTimestamp": "202002021514",
-			"scmRevision": ""
-		},
-		{
-			"name": "sap.ui.layout",
-			"version": "1.74.0",
-			"buildTimestamp": "202002021514",
+			"buildTimestamp": "202002021519",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.m",
 			"version": "1.74.0",
-			"buildTimestamp": "202002021514",
+			"buildTimestamp": "202002021519",
+			"scmRevision": ""
+		},
+		{
+			"name": "sap.ui.unified",
+			"version": "1.74.0",
+			"buildTimestamp": "202002021519",
 			"scmRevision": ""
 		}
 	]
