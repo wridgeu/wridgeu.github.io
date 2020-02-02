@@ -3449,7 +3449,7 @@
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-one": "בעוד שנה",
 				"relativeTimePattern-count-two": "בעוד שנתיים",
-				"relativeTimePattern-count-many": "ב��וד {0} שנה",
+				"relativeTimePattern-count-many": "בעוד {0} שנה",
 				"relativeTimePattern-count-other": "בעוד {0} שנים"
 			},
 			"relativeTime-type-past": {

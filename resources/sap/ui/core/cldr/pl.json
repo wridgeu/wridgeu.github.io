@@ -5009,7 +5009,7 @@
 	},
 	"lenient-scope-number": {
 		"minusSign": "-‒⁻₋−➖﹣－",
-		"commaSign": ",،٫、︐︑﹐﹑，､",
+		"commaSign": ",،٫、︐���﹐﹑，､",
 		"plusSign": "+⁺₊➕﬩﹢＋"
 	},
 	"currencyDigits": {
