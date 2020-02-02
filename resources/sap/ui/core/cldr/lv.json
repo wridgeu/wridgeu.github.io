@@ -3429,7 +3429,7 @@
 		},
 		"year-narrow": {
 			"displayName": "g.",
-			"relative-type--1": "pagājušaj�� gadā",
+			"relative-type--1": "pagājušajā gadā",
 			"relative-type-0": "šajā gadā",
 			"relative-type-1": "nākamajā gadā",
 			"relativeTime-type-future": {
