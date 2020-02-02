@@ -2649,7 +2649,7 @@
 					"y": "M/y – M/y GGGGG"
 				},
 				"GyMd": {
-					"d": "d/M/y ��� d/M/y GGGGG",
+					"d": "d/M/y – d/M/y GGGGG",
 					"G": "d/M/y GGGGG – d/M/y GGGGG",
 					"M": "d/M/y – d/M/y GGGGG",
 					"y": "d/M/y – d/M/y GGGGG"

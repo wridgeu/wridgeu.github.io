@@ -73,7 +73,7 @@
 							</l:BlockLayoutCell>
 						</l:BlockLayoutRow>
 						<l:BlockLayoutRow>
-							<l:BlockLayoutCell class="sapUiNoContentPadding">
+							<l:BlockLayoutCell>
 								<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Row">
 									<Text class="title" text="{i18n>sectionSkills}"/>
 								</FlexBox>
