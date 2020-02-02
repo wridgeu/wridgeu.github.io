@@ -4533,7 +4533,7 @@
 				"unitPattern-count-one": "{0} кДж",
 				"unitPattern-count-few": "{0} кДж",
 				"unitPattern-count-many": "{0} кДж",
-				"unitPattern-count-other": "{0} кДж"
+				"unitPattern-count-other": "{0} к��ж"
 			},
 			"energy-joule": {
 				"displayName": "Дж",
