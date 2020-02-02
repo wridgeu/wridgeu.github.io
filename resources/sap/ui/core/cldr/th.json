@@ -431,7 +431,7 @@
 		"pcm": "พิดจิน",
 		"pdc": "เยอรมันเพนซิลเวเนีย",
 		"pdt": "เพลาท์ดิช",
-		"peo": "เปอร์เซียโบราณ",
+		"peo": "เปอร์เซีย���บราณ",
 		"pfl": "เยอรมันพาลาทิเนต",
 		"phn": "ฟินิเชีย",
 		"pi": "บาลี",
@@ -4386,7 +4386,7 @@
 				"unitPattern-count-other": "{0} ลักซ์"
 			},
 			"light-solar-luminosity": {
-				"displayName": "ความสว่างดวงอาทิตย์",
+				"displayName": "ความสว่างดวงอาทิ���ย์",
 				"unitPattern-count-other": "{0} L☉"
 			},
 			"mass-metric-ton": {
