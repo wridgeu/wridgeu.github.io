@@ -3819,7 +3819,7 @@
 				"relativeTimePattern-count-zero": "قبل {0} ساعة",
 				"relativeTimePattern-count-one": "قبل ساعة واحدة",
 				"relativeTimePattern-count-two": "قبل ساعتين",
-				"relativeTimePattern-count-few": "قبل {0} ��اعات",
+				"relativeTimePattern-count-few": "قبل {0} ساعات",
 				"relativeTimePattern-count-many": "قبل {0} ساعة",
 				"relativeTimePattern-count-other": "قبل {0} ساعة"
 			}

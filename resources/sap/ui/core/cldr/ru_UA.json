@@ -242,7 +242,7 @@
 		"ki": "кикуйю",
 		"kj": "кунама",
 		"kk": "казахский",
-		"kkj": "како",
+		"kkj": "к��ко",
 		"kl": "гренландский",
 		"kln": "календжин",
 		"km": "кхмерский",
@@ -4407,7 +4407,7 @@
 				"unitPattern-count-one": "{0} г.",
 				"unitPattern-count-few": "{0} г.",
 				"unitPattern-count-many": "{0} л.",
-				"unitPattern-count-other": "{0} ��.",
+				"unitPattern-count-other": "{0} г.",
 				"perUnitPattern": "{0}/г"
 			},
 			"duration-month": {
