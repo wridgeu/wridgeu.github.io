@@ -1,0 +1,50 @@
+[
+    {
+        "companie": "SALT Solutions AG",
+        "website": "https://www.salt-solutions.de/",
+        "nodes": [
+            {
+                "description": "Role: ",
+                "position": "SAP ABAP Developer",
+                "nodes": [
+                    {
+                        "textFrom":"From: ",
+                        "textTo":"To: ",
+                        "from": "01.07.2017",
+                        "to": "Now"
+                    }
+                ]
+            },
+            {
+                "description": "Role: ",
+                "position": "Training as Application Developer",
+                "nodes": [
+                    {
+                        "textFrom":"From: ",
+                        "textTo":"To: ",
+                        "from": "01.09.2014",
+                        "to": "01.07.2017"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "companie": "Vogel Business Media GmbH & Co. KG",
+        "website": "https://www.vogel.de/",
+        "nodes": [
+            {
+                "description": "Role: ",
+                "position": "Trainee in Media Design",
+                "nodes": [
+                    {
+                        "textFrom":"From: ",
+                        "textTo":"To: ",
+                        "from": "04.03.2013",
+                        "to": "15.03.2013"
+                    }
+                ]
+            }
+        ]
+    }
+]

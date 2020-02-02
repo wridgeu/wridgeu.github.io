@@ -1,0 +1,48 @@
+/* Enter your custom styles here */
+.headerBar{
+    background-image: url(/resources/img/Logo_UI5.png);
+    background-repeat: space;
+    background-size: contain;
+    background-blend-mode: luminosity;
+}
+.setOpacity {
+    opacity: 60%;
+}
+.setOpacity:hover {
+    opacity: 100%;
+    transition: 1s;
+}
+.setMinSeperator {
+    margin: 0.2vw;
+}
+.toolbar {
+    background-color: #3b61a1 !important 
+}
+.setMiddle {
+    justify-content: center;
+    margin: 0 auto;
+    max-width: 1140px;
+}
+.title {
+    font-weight: bold;
+    font-size: x-large;
+}
+.tileGithub {
+    background-image: url(/resources/img/github-square-brands.svg);
+    background-repeat: no-repeat;
+    background-position: center;
+}
+.cV {
+    background-color: #e0e0e0;
+}
+.bioImage {
+    padding: auto;
+    margin: 1vw;
+}
+.borderRadius{
+    border-radius: 10%;
+}
+.text{
+    font-size: 100%;
+    line-height: 24px;
+}
