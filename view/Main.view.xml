@@ -19,20 +19,24 @@
 										 direction="Column">
 											<Avatar class="Avatar" showBorder="true" displaySize="L" src="./resources/img/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
 								</FlexBox>
-									<FlexBox class="sapUiTinyMarginTop" direction="Row" justifyContent="Center">
-										<html:a class="setOpacity"  href="https://linkedin.com/in/dev-marco-beier" target="_blank">
-											<Image class="setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh"/>
-										</html:a>
-										<html:a class="setOpacity" href="https://xing.com/profile/Marco_Beier8/cv" target="_blank">
-											<Image class="setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
-										</html:a>									
-										<html:a class="setOpacity" href="https://github.com/SAPMarco" target="_blank">
-											<Image class="setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
-										</html:a>									
-										<html:a class="setOpacity" href="https://twitter.com/Wridgeu" target="_blank">
-											<Image class="setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
-										</html:a>
-									</FlexBox>
+							</l:BlockLayoutCell>
+						</l:BlockLayoutRow>
+						<l:BlockLayoutRow>
+							<l:BlockLayoutCell>
+								<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" direction="Row" justifyContent="Center">
+									<html:a class="setOpacity"  href="https://linkedin.com/in/dev-marco-beier" target="_blank">
+										<Image class="setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh"/>
+									</html:a>
+									<html:a class="setOpacity" href="https://xing.com/profile/Marco_Beier8/cv" target="_blank">
+										<Image class="setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
+									</html:a>									
+									<html:a class="setOpacity" href="https://github.com/SAPMarco" target="_blank">
+										<Image class="setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
+									</html:a>									
+									<html:a class="setOpacity" href="https://twitter.com/Wridgeu" target="_blank">
+										<Image class="setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
+									</html:a>
+								</FlexBox>
 							</l:BlockLayoutCell>
 						</l:BlockLayoutRow>
 						<l:BlockLayoutRow>

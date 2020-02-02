@@ -1,10 +1,11 @@
 /* Enter your custom styles here */
+/*
 .headerBar{
     background-image: url(/resources/img/Logo_UI5.png);
     background-repeat: space;
     background-size: contain;
     background-blend-mode: luminosity;
-}
+}*/
 .setOpacity {
     opacity: 60%;
 }
@@ -45,4 +46,7 @@
 .text{
     font-size: 100%;
     line-height: 24px;
+}
+.invertSocials{
+    filter: invert(1);
 }

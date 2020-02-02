@@ -2234,7 +2234,7 @@
 				"hmv": {
 					"a": "h:mm a – h:mm a v",
 					"h": "h:mm–h:mm a v",
-					"m": "h:mm–h:mm a v"
+					"m": "h:mm���h:mm a v"
 				},
 				"Hmv": {
 					"H": "HH:mm–HH:mm v",
