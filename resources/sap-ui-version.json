@@ -5,13 +5,13 @@
 	"scmRevision": "",
 	"libraries": [
 		{
-			"name": "sap.ui.core",
+			"name": "sap.ui.unified",
 			"version": "1.74.0",
 			"buildTimestamp": "202002021532",
 			"scmRevision": ""
 		},
 		{
-			"name": "sap.m",
+			"name": "sap.ui.core",
 			"version": "1.74.0",
 			"buildTimestamp": "202002021532",
 			"scmRevision": ""
@@ -23,7 +23,7 @@
 			"scmRevision": ""
 		},
 		{
-			"name": "sap.ui.unified",
+			"name": "sap.m",
 			"version": "1.74.0",
 			"buildTimestamp": "202002021532",
 			"scmRevision": ""

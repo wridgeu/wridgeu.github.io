@@ -4278,7 +4278,7 @@
 			},
 			"mass-earth-mass": {
 				"displayName": "地球质量",
-				"unitPattern-count-other": "{0}地��质量"
+				"unitPattern-count-other": "{0}地球质量"
 			},
 			"mass-solar-mass": {
 				"displayName": "太阳质量",
