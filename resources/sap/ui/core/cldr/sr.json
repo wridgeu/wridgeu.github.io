@@ -2690,7 +2690,7 @@
 			"format": {
 				"abbreviated": [
 					"Фаравадин",
-					"Ордибехешт",
+					"Ор��ибехешт",
 					"Кордад",
 					"Тир",
 					"Мордад",
@@ -3631,7 +3631,7 @@
 			"relative-type--1": "јуче",
 			"relative-type-0": "данас",
 			"relative-type-1": "сутра",
-			"relative-type-2": "прекосу��ра",
+			"relative-type-2": "прекосутра",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-one": "за {0} д.",
 				"relativeTimePattern-count-few": "за {0} д.",

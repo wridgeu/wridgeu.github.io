@@ -5635,7 +5635,7 @@
 				"unitPattern-count-one": "ربع غالون",
 				"unitPattern-count-two": "{0} ربع غالون",
 				"unitPattern-count-few": "{0} ربع غالون",
-				"unitPattern-count-many": "{0} ربع غالون",
+				"unitPattern-count-many": "{0} رب�� غالون",
 				"unitPattern-count-other": "{0} ربع غالون"
 			},
 			"volume-pint": {
