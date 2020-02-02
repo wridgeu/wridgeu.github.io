@@ -4198,7 +4198,7 @@
 		"100000000000000-one": "‫¤‎‬ 000 ترليون",
 		"100000000000000-two": "‫¤‎‬ 000 ترليون",
 		"100000000000000-few": "‫¤‎‬ 000 ترليون",
-		"100000000000000-many": "‫¤‎‬ 000 ترليون",
+		"100000000000000-many": "‫¤‎‬ 000��ترليون",
 		"100000000000000-other": "‫¤‎‬ 000 ترليون"
 	},
 	"symbols-latn-decimal": ".",
@@ -4659,7 +4659,7 @@
 			"duration-year": {
 				"displayName": "سنة",
 				"unitPattern-count-zero": "{0} سنة",
-				"unitPattern-count-one": "سنة واح��ة",
+				"unitPattern-count-one": "سنة واحدة",
 				"unitPattern-count-two": "سنتان",
 				"unitPattern-count-few": "{0} سنة",
 				"unitPattern-count-many": "{0} سنة",
