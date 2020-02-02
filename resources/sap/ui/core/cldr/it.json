@@ -3135,7 +3135,7 @@
 				"GyMMMd": {
 					"d": "d – d MMM y G",
 					"G": "d MMM y G – d MMM y G",
-					"M": "d MMM – d MMM y G",
+					"M": "d MMM �� d MMM y G",
 					"y": "d MMM y – d MMM y G"
 				},
 				"GyMMMEd": {

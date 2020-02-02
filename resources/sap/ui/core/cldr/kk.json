@@ -4233,7 +4233,7 @@
 			},
 			"light-lux": {
 				"displayName": "люкс",
-				"unitPattern-count-one": "{0} лк",
+				"unitPattern-count-one": "{0} л��",
 				"unitPattern-count-other": "{0} лк"
 			},
 			"light-solar-luminosity": {
