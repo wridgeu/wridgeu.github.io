@@ -3064,7 +3064,7 @@
 				},
 				"GyMMM": {
 					"G": "G y MMM – G y MMM",
-					"M": "G y MMM–MMM",
+					"M": "G y MMM��MMM",
 					"y": "G y MMM – y MMM"
 				},
 				"GyMMMd": {

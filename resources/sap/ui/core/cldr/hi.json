@@ -4199,7 +4199,7 @@
 				"unitPattern-count-other": "{0} kJ"
 			},
 			"energy-joule": {
-				"displayName": "ज��ल",
+				"displayName": "जूल",
 				"unitPattern-count-other": "{0} J"
 			},
 			"energy-kilowatt-hour": {
