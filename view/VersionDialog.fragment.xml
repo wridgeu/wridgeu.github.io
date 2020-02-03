@@ -19,7 +19,7 @@
             </FlexBox>
         </FlexBox>
         <beginButton>
-            <Button text="close" press="onCloseDialog"/>
+            <Button text="{i18n>UI5VerDlgClose}" press="onCloseDialog"/>
         </beginButton>
    </Dialog>
 </core:FragmentDefinition>
