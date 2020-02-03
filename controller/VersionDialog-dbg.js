@@ -5,15 +5,12 @@ sap.ui.define([
 ], function (ManagedObject, Fragment, syncStyleClass) {
 	"use strict";
 	return ManagedObject.extend("sapmarco.projectpages.controller.VersionDialog", {
-
 		constructor : function (oView) {
 			this._oView = oView;
 		},
-
 		exit : function () {
 			delete this._oView;
 		},
-
 		open : function () {
 			var oView = this._oView;
 
@@ -34,12 +31,12 @@ sap.ui.define([
 				}).then(function (oDialog) {
 					// connect dialog to the root view of this component (models, lifecycle)
                     oView.addDependent(oDialog)
-
                     sap.ui.require(['sap/ui/VersionInfo'], function(oVersInfo) {
-                        oVersInfo.load().then(function(oVersion){
-                            var oVersionData = new sap.ui.model.json.JSONModel(oVersion);
-                            oDialog.setModel(oVersionData, "versionInfo");
-                        });
+						oVersInfo.load()
+							.then(function(oVersion){
+								var oVersionData = new sap.ui.model.json.JSONModel(oVersion);
+								oDialog.setModel(oVersionData, "versionInfo");
+							});
                     });                    
 					// forward compact/cozy style into dialog
 					syncStyleClass(oView.getController().getOwnerComponent().getContentDensityClass(), oView, oDialog);
@@ -49,7 +46,5 @@ sap.ui.define([
 				oView.byId("VersionDialog").open();
 			}
 		}
-
 	});
-
 });

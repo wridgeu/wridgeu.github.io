@@ -6,112 +6,110 @@
 	xmlns:core="sap.ui.core"
 	xmlns:mvc="sap.ui.core.mvc">
 	<App id="idAppControl">
-		<pages>
-			<Page showHeader="false">
-				<content>
-					<l:BlockLayout>
-						<l:BlockLayoutRow>
-							<l:BlockLayoutCell class="headerBar" width="100%" backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
-						 		<FlexBox alignItems="Center" 
-								 		 alignContent="Center" 
-										 justifyContent="Center"
-										 backgroundDesign="Transparent"
-										 direction="Column">
-											<Avatar class="Avatar" showBorder="true" displaySize="L" src="./resources/img/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
+		<Page showHeader="false">
+			<content>
+				<l:BlockLayout>
+					<l:BlockLayoutRow>
+						<l:BlockLayoutCell class="headerBar" width="100%" backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
+							<FlexBox alignItems="Center" 
+										alignContent="Center" 
+										justifyContent="Center"
+										backgroundDesign="Transparent"
+										direction="Column">
+										<Avatar class="Avatar" showBorder="true" displaySize="L" src="./resources/img/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
+							</FlexBox>
+						</l:BlockLayoutCell>
+					</l:BlockLayoutRow>
+					<l:BlockLayoutRow>
+						<l:BlockLayoutCell>
+							<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" direction="Row" justifyContent="Center">
+								<html:a class="setOpacity"  href="https://linkedin.com/in/dev-marco-beier" target="_blank">
+									<Image class="setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh"/>
+								</html:a>
+								<html:a class="setOpacity" href="https://xing.com/profile/Marco_Beier8/cv" target="_blank">
+									<Image class="setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
+								</html:a>									
+								<html:a class="setOpacity" href="https://github.com/SAPMarco" target="_blank">
+									<Image class="setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
+								</html:a>									
+								<html:a class="setOpacity" href="https://twitter.com/Wridgeu" target="_blank">
+									<Image class="setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
+								</html:a>
+							</FlexBox>
+						</l:BlockLayoutCell>
+					</l:BlockLayoutRow>
+					<l:BlockLayoutRow>
+						<l:BlockLayoutCell>
+								<FlexBox class="setMiddle" width="100%" direction="Row">
+									<Text class="text" text="{i18n>introText}"/>
 								</FlexBox>
-							</l:BlockLayoutCell>
-						</l:BlockLayoutRow>
-						<l:BlockLayoutRow>
-							<l:BlockLayoutCell>
-								<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" direction="Row" justifyContent="Center">
-									<html:a class="setOpacity"  href="https://linkedin.com/in/dev-marco-beier" target="_blank">
-										<Image class="setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh"/>
-									</html:a>
-									<html:a class="setOpacity" href="https://xing.com/profile/Marco_Beier8/cv" target="_blank">
-										<Image class="setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
-									</html:a>									
-									<html:a class="setOpacity" href="https://github.com/SAPMarco" target="_blank">
-										<Image class="setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
-									</html:a>									
-									<html:a class="setOpacity" href="https://twitter.com/Wridgeu" target="_blank">
-										<Image class="setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
-									</html:a>
+						</l:BlockLayoutCell>
+					</l:BlockLayoutRow>
+					<l:BlockLayoutRow class="cV setMiddle" id="cVRow">
+						<l:BlockLayoutCell>
+								<FlexBox  width="100%" direction="Row">
+									<Text class="text" text="{i18n>mainText}"/>
 								</FlexBox>
-							</l:BlockLayoutCell>
-						</l:BlockLayoutRow>
-						<l:BlockLayoutRow>
-							<l:BlockLayoutCell>
-									<FlexBox class="setMiddle" width="100%" direction="Row">
-										<Text class="text" text="{i18n>introText}"/>
-									</FlexBox>
-							</l:BlockLayoutCell>
-						</l:BlockLayoutRow>
-						<l:BlockLayoutRow class="cV setMiddle" id="cVRow">
-							<l:BlockLayoutCell>
-									<FlexBox  width="100%" direction="Row">
-										<Text class="text" text="{i18n>mainText}"/>
-									</FlexBox>
-							</l:BlockLayoutCell>
-							<l:BlockLayoutCell>
-								<FlexBox direction="Column">
-									<FlexBox justifyContent="Center">
-										<Tree id="cvTree" items="{path: 'cv>/', parameters:{arrayNames: ['nodes']}}">									
-											<CustomTreeItem>
-												<Text renderWhitespace="true" text="{cv>description}"/>
-												<Link href="{cv>website}" text="{cv>companie}" target="_blank"/>
-												<Label text="{cv>position}"/>
-												<FlexBox direction="Column">
-													<FlexBox direction="Row">
-														<Text renderWhitespace="true" text="{cv>textTo}"/>															
-														<Label text="{cv>to}"/>												
-													</FlexBox>			
-													<FlexBox direction="Row">
-														<Text renderWhitespace="true" text="{cv>textFrom}"/>
-														<Label text="{cv>from}"/>												
-													</FlexBox>			
-												</FlexBox>										
-											</CustomTreeItem>
-										</Tree>
-									</FlexBox>
+						</l:BlockLayoutCell>
+						<l:BlockLayoutCell>
+							<FlexBox direction="Column">
+								<FlexBox justifyContent="Center">
+									<Tree id="cvTree" items="{path: 'cv>/', parameters:{arrayNames: ['nodes']}}">									
+										<CustomTreeItem>
+											<Text renderWhitespace="true" text="{cv>description}"/>
+											<Link href="{cv>website}" text="{cv>companie}" target="_blank"/>
+											<Label text="{cv>position}"/>
+											<FlexBox direction="Column">
+												<FlexBox direction="Row">
+													<Text renderWhitespace="true" text="{cv>textTo}"/>															
+													<Label text="{cv>to}"/>												
+												</FlexBox>			
+												<FlexBox direction="Row">
+													<Text renderWhitespace="true" text="{cv>textFrom}"/>
+													<Label text="{cv>from}"/>												
+												</FlexBox>			
+											</FlexBox>										
+										</CustomTreeItem>
+									</Tree>
 								</FlexBox>
-							</l:BlockLayoutCell>
-						</l:BlockLayoutRow>
-						<l:BlockLayoutRow>
-							<l:BlockLayoutCell>
-								<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Row">
-									<Text class="title" text="{i18n>sectionSkills}"/>
-								</FlexBox>
-							</l:BlockLayoutCell>
-						</l:BlockLayoutRow>
-						<l:BlockLayoutRow>
-							<l:BlockLayoutCell>
-								<FlexBox class="sapUiTinyMarginTop" wrap="Wrap" direction="Row" justifyContent="Center" alignItems="Center">
-										<Image class="setOpacity bioImage" width="100px" src="./resources/img/Logo_SAP.svg" alt="SAP Logo" tooltip="SAP EWM, ERP, Solution Manager ..."/>										
-										<Image class="setOpacity bioImage" width="100px" src="./resources/img/Logo_ABAP.svg" alt="ABAP Logo" tooltip="ABAP, CTS, Customizing ..."/>
-										<Image class="setOpacity bioImage" width="100px" src="./resources/img/Logo_UI5.png" alt="UI5 Phoenix Logo" tooltip="SAPUI5 / OpenUI5"/>
-										<Image class="setOpacity bioImage" width="100px" src="./resources/img/Logo_JS.svg" alt="JavaScript Logo" tooltip="Javascript"/>
-										<Image class="setOpacity bioImage borderRadius" width="100px" src="./resources/img/Logo_HTML5.svg" alt="HTML5 Logo" tooltip="HTML5"/>	
-										<Image class="setOpacity bioImage borderRadius" width="100px" height="100px" src="./resources/img/Logo_CSS.svg" alt="CSS Logo" tooltip="CSS"/>	
-										<Image class="setOpacity bioImage borderRadius" width="100px" src="./resources/img/Logo_Github.svg" alt="Github Logo" tooltip="Github / GIT"/>
-								</FlexBox>
-							</l:BlockLayoutCell>
-						</l:BlockLayoutRow>
-					</l:BlockLayout>
-				</content>
-				<footer>
-					<Toolbar class="toolbar" design="Info">
-							<core:Icon src="sap-icon://lightbulb" class="size2"	color="#ffffff"	press=".onThemeSwap('sap_fiori_3_dark')" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
-						<ToolbarSpacer/>
-						<Text text="{i18n>footerText}" >
-							<layoutData>
-									<ToolbarLayoutData shrinkable="true"/>
-							</layoutData>
-						</Text>
-						<ToolbarSpacer/>
-							<core:Icon src="sap-icon://sap-ui5"	class="size2" color="#ffffff" press="onUI5IconPress" alt="UI5 Version" tooltip="{i18n>versionInfoTooltip}"/>
-					</Toolbar>
-				</footer>
-			</Page>
-		</pages>
+							</FlexBox>
+						</l:BlockLayoutCell>
+					</l:BlockLayoutRow>
+					<l:BlockLayoutRow>
+						<l:BlockLayoutCell>
+							<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Row">
+								<Text class="title" text="{i18n>sectionSkills}"/>
+							</FlexBox>
+						</l:BlockLayoutCell>
+					</l:BlockLayoutRow>
+					<l:BlockLayoutRow>
+						<l:BlockLayoutCell>
+							<FlexBox class="sapUiTinyMarginTop" wrap="Wrap" direction="Row" justifyContent="Center" alignItems="Center">
+									<Image class="setOpacity bioImage" width="100px" src="./resources/img/Logo_SAP.svg" alt="SAP Logo" tooltip="SAP EWM, ERP, Solution Manager ..."/>										
+									<Image class="setOpacity bioImage" width="100px" src="./resources/img/Logo_ABAP.svg" alt="ABAP Logo" tooltip="ABAP, CTS, Customizing ..."/>
+									<Image class="setOpacity bioImage" width="100px" src="./resources/img/Logo_UI5.png" alt="UI5 Phoenix Logo" tooltip="SAPUI5 / OpenUI5"/>
+									<Image class="setOpacity bioImage" width="100px" src="./resources/img/Logo_JS.svg" alt="JavaScript Logo" tooltip="Javascript"/>
+									<Image class="setOpacity bioImage borderRadius" width="100px" src="./resources/img/Logo_HTML5.svg" alt="HTML5 Logo" tooltip="HTML5"/>	
+									<Image class="setOpacity bioImage borderRadius" width="100px" height="100px" src="./resources/img/Logo_CSS.svg" alt="CSS Logo" tooltip="CSS"/>	
+									<Image class="setOpacity bioImage borderRadius" width="100px" src="./resources/img/Logo_Github.svg" alt="Github Logo" tooltip="Github / GIT"/>
+							</FlexBox>
+						</l:BlockLayoutCell>
+					</l:BlockLayoutRow>
+				</l:BlockLayout>
+			</content>
+			<footer>
+				<Toolbar id="footerToolbar" class="toolbar" design="Info">
+						<core:Icon src="sap-icon://lightbulb" class="size2"	color="#ffffff"	press=".onThemeSwap('sap_fiori_3_dark')" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
+					<ToolbarSpacer/>
+					<Text class="footerText" text="{i18n>footerText}">
+						<layoutData>
+								<ToolbarLayoutData shrinkable="true"/>
+						</layoutData>
+					</Text>
+					<ToolbarSpacer/>
+						<core:Icon src="sap-icon://sap-ui5"	class="size2" color="#ffffff" press="onUI5IconPress" alt="UI5 Version" tooltip="{i18n>versionInfoTooltip}"/>
+				</Toolbar>
+			</footer>
+		</Page>
 	</App>
 </mvc:View>

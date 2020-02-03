@@ -1,11 +1,4 @@
 /* Enter your custom styles here */
-/*
-.headerBar{
-    background-image: url(/resources/img/Logo_UI5.png);
-    background-repeat: space;
-    background-size: contain;
-    background-blend-mode: luminosity;
-}*/
 .setOpacity {
     opacity: 60%;
 }
@@ -19,6 +12,12 @@
 .toolbar {
     background-color: #3b61a1 !important 
 }
+.setToolbarDarkMode{
+    background-color: #21365a !important;
+}
+.footerText{
+    color: #fff !important;
+}
 .setMiddle {
     justify-content: center;
     margin: 0 auto;
@@ -27,11 +26,6 @@
 .title {
     font-weight: bold;
     font-size: x-large;
-}
-.tileGithub {
-    background-image: url(/resources/img/github-square-brands.svg);
-    background-repeat: no-repeat;
-    background-position: center;
 }
 .cV {
     background-color: #e0e0e0;

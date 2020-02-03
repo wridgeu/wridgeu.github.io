@@ -4262,7 +4262,7 @@
 				"displayName": "л/100 км",
 				"unitPattern-count-one": "{0} л/100 км",
 				"unitPattern-count-few": "{0} л/100 км",
-				"unitPattern-count-many": "{0} л/100 ��м",
+				"unitPattern-count-many": "{0} л/100 км",
 				"unitPattern-count-other": "{0} л/100 км"
 			},
 			"consumption-mile-per-gallon": {

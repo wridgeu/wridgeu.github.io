@@ -2714,7 +2714,7 @@
 					"m": "BK:mm～K:mm"
 				},
 				"d": {
-					"d": "d日～d���"
+					"d": "d日～d日"
 				},
 				"GGGGGyM": {
 					"G": "GGGGGy/MM～GGGGGy/MM",
@@ -4263,7 +4263,7 @@
 			},
 			"electric-ohm": {
 				"displayName": "オーム",
-				"unitPattern-count-other": "{0} Ω"
+				"unitPattern-count-other": "{0} ��"
 			},
 			"electric-volt": {
 				"displayName": "ボルト",
