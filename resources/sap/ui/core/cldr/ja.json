@@ -4263,7 +4263,7 @@
 			},
 			"electric-ohm": {
 				"displayName": "オーム",
-				"unitPattern-count-other": "{0} ��"
+				"unitPattern-count-other": "{0} Ω"
 			},
 			"electric-volt": {
 				"displayName": "ボルト",

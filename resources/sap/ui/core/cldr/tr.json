@@ -2653,7 +2653,7 @@
 				"Bhm": {
 					"B": "B h:mm – B h:mm",
 					"h": "B h:mm–h:mm",
-					"m": "B h:mm–h:mm"
+					"m": "B h:mm��h:mm"
 				},
 				"d": {
 					"d": "d–d"

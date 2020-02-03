@@ -3921,7 +3921,7 @@
 				"relativeTimePattern-count-two": "قبل ثانيتين",
 				"relativeTimePattern-count-few": "قبل {0} ثوانٍ",
 				"relativeTimePattern-count-many": "قبل {0} ثانية",
-				"relativeTimePattern-count-other": "��بل {0} ثانية"
+				"relativeTimePattern-count-other": "قبل {0} ثانية"
 			}
 		},
 		"second-narrow": {
