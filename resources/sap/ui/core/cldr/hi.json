@@ -4520,7 +4520,7 @@
 			},
 			"temperature-fahrenheit": {
 				"displayName": "डिग्री फ़ेरनहाइट",
-				"unitPattern-count-one": "{0}°फ़ेरन",
+				"unitPattern-count-one": "{0}°फ़े���न",
 				"unitPattern-count-other": "{0}°फ़ेरन"
 			},
 			"temperature-kelvin": {

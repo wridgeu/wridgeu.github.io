@@ -1157,7 +1157,7 @@
 				},
 				"GyMEd": {
 					"d": "ccc, dd.MM.y – ccc, dd.MM.y G",
-					"G": "ccc, dd.MM.y G ��� ccc, dd.MM.y G",
+					"G": "ccc, dd.MM.y G – ccc, dd.MM.y G",
 					"M": "ccc, dd.MM.y – ccc, dd.MM.y G",
 					"y": "ccc, dd.MM.y – ccc, dd.MM.y G"
 				},

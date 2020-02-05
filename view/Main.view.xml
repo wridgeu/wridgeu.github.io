@@ -31,9 +31,12 @@
 								</html:a>									
 								<html:a class="setOpacity" href="https://github.com/SAPMarco" target="_blank">
 									<Image class="setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
-								</html:a>									
+								</html:a>															
 								<html:a class="setOpacity" href="https://twitter.com/Wridgeu" target="_blank">
 									<Image class="setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
+								</html:a>
+								<html:a class="setOpacity" href="https://people.sap.com/marcobeier" target="_blank">
+									<Image class="setMinSeperator" src="./resources/img/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh"/>
 								</html:a>
 							</FlexBox>
 						</l:BlockLayoutCell>

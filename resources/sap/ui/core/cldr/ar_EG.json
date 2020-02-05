@@ -5615,7 +5615,7 @@
 				"unitPattern-count-one": "غالون",
 				"unitPattern-count-two": "{0} غالون",
 				"unitPattern-count-few": "{0} غالون",
-				"unitPattern-count-many": "{0} غالون",
+				"unitPattern-count-many": "{0} غال��ن",
 				"unitPattern-count-other": "{0} غالون",
 				"perUnitPattern": "{0}/غالون"
 			},
