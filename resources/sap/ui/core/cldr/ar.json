@@ -5620,7 +5620,7 @@
 				"perUnitPattern": "{0}/غالون"
 			},
 			"volume-gallon-imperial": {
-				"displayName": "غالون إمبراطوري",
+				"displayName": "غالو�� إمبراطوري",
 				"unitPattern-count-zero": "{0} غالون إمبراطوري",
 				"unitPattern-count-one": "{0} غالون إمبراطوري",
 				"unitPattern-count-two": "{0} غالون إمبراطوري",

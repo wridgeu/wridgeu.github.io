@@ -3485,7 +3485,7 @@
 			},
 			"relativeTime-type-past": {
 				"relativeTimePattern-count-one": "{0} квартал тому",
-				"relativeTimePattern-count-few": "{0} квартали тому",
+				"relativeTimePattern-count-few": "{0} кв��ртали тому",
 				"relativeTimePattern-count-many": "{0} кварталів тому",
 				"relativeTimePattern-count-other": "{0} кварталу тому"
 			}
@@ -3800,7 +3800,7 @@
 			"displayName": "секунда",
 			"relative-type-0": "зараз",
 			"relativeTime-type-future": {
-				"relativeTimePattern-count-one": "через {0} секунду",
+				"relativeTimePattern-count-one": "ч��рез {0} секунду",
 				"relativeTimePattern-count-few": "через {0} секунди",
 				"relativeTimePattern-count-many": "через {0} секунд",
 				"relativeTimePattern-count-other": "через {0} секунди"
