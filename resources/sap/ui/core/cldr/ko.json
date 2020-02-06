@@ -4136,7 +4136,7 @@
 			},
 			"duration-hour": {
 				"displayName": "시간",
-				"unitPattern-count-other": "{0}시��",
+				"unitPattern-count-other": "{0}시간",
 				"perUnitPattern": "{0}/h"
 			},
 			"duration-minute": {

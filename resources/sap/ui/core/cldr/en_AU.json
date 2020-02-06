@@ -3184,7 +3184,7 @@
 				},
 				"Hm": {
 					"H": "HH:mm – HH:mm",
-					"m": "HH:mm ��� HH:mm"
+					"m": "HH:mm – HH:mm"
 				},
 				"hmv": {
 					"a": "h:mm a – h:mm a v",
