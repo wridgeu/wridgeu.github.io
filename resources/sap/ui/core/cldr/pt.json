@@ -1171,7 +1171,7 @@
 					"y": "G d 'de' MMM y – d 'de' MMM y"
 				},
 				"GyMMMEd": {
-					"d": "G E, d 'de' MMM y ��� E, d 'de' MMM",
+					"d": "G E, d 'de' MMM y – E, d 'de' MMM",
 					"G": "G E, d 'de' MMM y – G E, d 'de' MMM y",
 					"M": "G E, d 'de' MMM y – E, d 'de' MMM",
 					"y": "G E, d 'de' MMM y – E, d 'de' MMM y"
