@@ -1,5 +1,5 @@
 sap.ui.define([
-	"sap/ui/base/ManagedObject",
+	"sap/ui/base/Object",
 	"sap/ui/core/Fragment",
 	"sap/ui/core/syncStyleClass"
 ], function (ManagedObject, Fragment, syncStyleClass) {
