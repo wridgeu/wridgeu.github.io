@@ -4790,7 +4790,7 @@
 				"unitPattern-count-other": "{0} סטון"
 			},
 			"mass-pound": {
-				"displayName": "פאונד",
+				"displayName": "פא��נד",
 				"unitPattern-count-one": "{0} lb",
 				"unitPattern-count-two": "{0} lbs",
 				"unitPattern-count-many": "{0} lbs",
