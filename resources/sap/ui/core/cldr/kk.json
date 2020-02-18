@@ -4056,7 +4056,7 @@
 			"energy-kilocalorie": {
 				"displayName": "ккал",
 				"unitPattern-count-one": "{0} ккал",
-				"unitPattern-count-other": "{0} ккал"
+				"unitPattern-count-other": "{0} ��кал"
 			},
 			"energy-calorie": {
 				"displayName": "кал",

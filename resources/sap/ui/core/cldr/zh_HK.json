@@ -645,7 +645,7 @@
 		"Medf": "梅德法伊德林文",
 		"Mend": "门迪文",
 		"Merc": "麦罗埃草书",
-		"Mero": "麦若提克文",
+		"Mero": "��若提克文",
 		"Mlym": "马拉雅拉姆文",
 		"Modi": "Modi",
 		"Mong": "蒙古文",
@@ -729,7 +729,7 @@
 		"Zanb": "札那巴札尔方块文字",
 		"Zinh": "遗传学术语",
 		"Zmth": "数学符号",
-		"Zsye": "表���符号",
+		"Zsye": "表情符号",
 		"Zsym": "符号",
 		"Zxxx": "非书面文字",
 		"Zyyy": "通用",
@@ -3852,7 +3852,7 @@
 				"unitPattern-count-other": "{0}G"
 			},
 			"acceleration-meter-per-second-squared": {
-				"displayName": "米/秒²",
+				"displayName": "��/秒²",
 				"unitPattern-count-other": "{0}米/秒²"
 			},
 			"angle-revolution": {
