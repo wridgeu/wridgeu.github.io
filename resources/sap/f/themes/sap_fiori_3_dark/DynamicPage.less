@@ -10,18 +10,14 @@
 
 	// DynamicPageTitle and Toggle Header Visual Indicator hover state
 	&.sapFDynamicPageTitleClickEnabled {
-
-		.sapFDynamicPageTitle:hover,
 		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitle {
 			.title-hover(@sapUiObjectHeaderBackground);
 		}
 
-		.sapFDynamicPageTitleTranslucent:hover,
 		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitleTranslucent {
 			.title-hover(@sapUiObjectHeaderBackground);
 		}
 
-		.sapFDynamicPageTitleTransparent:hover,
 		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitleTransparent {
 			.title-hover(transparent);
 		}
@@ -117,4 +113,8 @@ html[data-sap-ui-browser^="cr"] .sapFDynamicPageHeaderPinButton {
 To be used in Comparison pattern scenario. */
 .sapUiComparisonContainer .sapFDynamicPageTitleSnapped + .sapFDynamicPageContentWrapper .sapUiComparisonContent  {
 	margin-right: 0;
+}
+
+.title-hover(@backgroundColor) {
+	background-color: darken(@backgroundColor, 4);
 }
