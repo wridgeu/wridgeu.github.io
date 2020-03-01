@@ -60,7 +60,7 @@
 									<Tree id="cvTree" items="{path: 'cv>/', parameters:{arrayNames: ['nodes']}}">									
 										<CustomTreeItem>
 											<Text renderWhitespace="true" text="{cv>description}"/>
-											<Link href="{cv>website}" text="{cv>companie}" target="_blank" rel="noopener"/>
+											<Link href="{cv>website}" text="{cv>companie}" target="_blank"/>
 											<Label text="{cv>position}"/>
 											<FlexBox direction="Column">
 												<FlexBox direction="Row">
