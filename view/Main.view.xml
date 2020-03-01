@@ -16,7 +16,7 @@
 										justifyContent="Center"
 										backgroundDesign="Transparent"
 										direction="Column">
-										<Avatar class="Avatar" showBorder="true" displaySize="L" src="./resources/img/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
+										<Avatar class="Avatar" showBorder="true" displaySize="L" src="./resources/img/myself.png" fallbackIcon="sap-icon://person-placeholder"/>
 							</FlexBox>
 						</l:BlockLayoutCell>
 					</l:BlockLayoutRow>
