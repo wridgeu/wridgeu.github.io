@@ -3,4 +3,4 @@
  * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./DateRange","./library"],function(e,a){"use strict";var i=a.CalendarDayType;var p=e.extend("sap.ui.unified.DateTypeRange",{metadata:{library:"sap.ui.unified",properties:{type:{type:"sap.ui.unified.CalendarDayType",group:"Appearance",defaultValue:i.Type01}}}});return p});
+sap.ui.define(["./DateRange","./library"],function(e,a){"use strict";var p=a.CalendarDayType;var r=e.extend("sap.ui.unified.DateTypeRange",{metadata:{library:"sap.ui.unified",properties:{type:{type:"sap.ui.unified.CalendarDayType",group:"Appearance",defaultValue:p.Type01},color:{type:"sap.ui.core.CSSColor",group:"Appearance",defaultValue:null}}}});return r});

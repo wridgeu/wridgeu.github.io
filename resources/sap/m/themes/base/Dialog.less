@@ -9,6 +9,8 @@
 @_sap_m_Dialog_SubHeaderHeight: 3rem;
 @_sap_m_Dialog_SubHeaderCompactHeight: 2rem;
 @_sap_m_Dialog_InfoDesignBarHeight: 2rem;
+@_sap_m_Dialog_InfoDesignBarCompactHeight: 2rem;
+
 @_sap_m_Dialog_Padding: 1rem;
 @_sap_m_Dialog_SuccessHeaderShadow: inset 0 -0.125rem @sapUiSuccessBorder;
 @_sap_m_Dialog_ErrorHeaderShadow: inset 0 -0.125rem @sapUiErrorBorder;
@@ -197,14 +199,6 @@ html.sap-desktop .sapMDialog {
 	visibility: hidden;
 }
 
-.sapMDialogBlockLayer {
-	opacity: 0.6;
-}
-
-.sapMDialogTransparent {
-	opacity: 0;
-}
-
 .sapMDialog.sapUiPopupWithPadding:not(.sapUiNoContentPadding) {
 
 	&.sapMDialogWithScrollCont .sapMDialogScrollCont {
@@ -251,12 +245,6 @@ html.sap-desktop .sapMDialog {
 
 .sapMDialogOpen {
 	opacity: 1;
-}
-
-.sapMDialogBlockLayerAnimation {
-	position: absolute;
-	transition: opacity 0.2s linear;
-	-webkit-transition: opacity 0.2s linear;
 }
 
 /* mixin call for creating container content padding classes (arguments: rootContainer, contentSelector) */
@@ -338,10 +326,10 @@ html.sap-desktop .sapMDialog {
 			padding-top: @_sap_m_Dialog_BarCompactHeight + @_sap_m_Dialog_SubHeaderCompactHeight;
 
 			&.sapMDialogSubHeaderInfoBar {
-				padding-top: @_sap_m_Dialog_BarCompactHeight + @_sap_m_Dialog_InfoDesignBarHeight;
+				padding-top: @_sap_m_Dialog_BarCompactHeight + @_sap_m_Dialog_InfoDesignBarCompactHeight;
 
 				.sapMDialogSubHeader {
-					height: @_sap_m_Dialog_InfoDesignBarHeight;
+					height: @_sap_m_Dialog_InfoDesignBarCompactHeight;
 				}
 			}
 
@@ -521,11 +509,8 @@ html.sap-desktop .sapMDialog {
 }
 
 //remove transition when animation is off
-html[data-sap-ui-animation='off'] {
-	.sapMDialog,
-	.sapMDialogBlockLayerAnimation {
-		transition: none;
-	}
+html[data-sap-ui-animation='off'] .sapMDialog {
+	transition: none;
 }
 
 .sapMDialog > .sapMDialogSection {

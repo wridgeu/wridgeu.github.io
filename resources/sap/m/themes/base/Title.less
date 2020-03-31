@@ -3,8 +3,6 @@
 /* Base theme                   */
 /* ============================ */
 
-@sap_m_Title_TextShadow: @sapUiShadowText;
-
 .sapMTitle {
 	position: relative;
 	display: inline-block;
@@ -20,7 +18,7 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	cursor: text;
-	text-shadow: @sap_m_Title_TextShadow;
+	text-shadow: @sapUiShadowText;
 }
 
 .sapMTitle.sapMTitleWrap {
@@ -43,7 +41,7 @@
 	text-align: start;
 }
 
-html[dir=rtl][data-sap-ui-browser^="ie"] .sapMTitleAlignBegin,// TODO remove after 1.62 version
+html[dir=rtl][data-sap-ui-browser^="ie"] .sapMTitleAlignBegin,// TODO remove after the end of support for Internet Explorer
 html[dir=rtl][data-sap-ui-browser^="ed"] .sapMTitleAlignBegin {
 	text-align: right;
 }
@@ -57,7 +55,7 @@ html[dir=rtl][data-sap-ui-browser^="ed"] .sapMTitleAlignBegin {
 	text-align: end;
 }
 
-html[dir=rtl][data-sap-ui-browser^="ie"] .sapMTitleAlignEnd,// TODO remove after 1.62 version
+html[dir=rtl][data-sap-ui-browser^="ie"] .sapMTitleAlignEnd,// TODO remove after the end of support for Internet Explorer
 html[dir=rtl][data-sap-ui-browser^="ed"] .sapMTitleAlignEnd {
 	text-align: left;
 }
@@ -121,7 +119,7 @@ html[dir=rtl][data-sap-ui-browser^="ed"] .sapMTitleAlignEnd {
 
 .sapMIBar-CTX .sapMTitle {
 	color: @sapUiPageHeaderTextColor;
-	text-shadow: @sap_m_Title_TextShadow;
+	text-shadow: @sapUiShadowText;
 }
 
 .sapMTB-Transparent-CTX .sapMTitle {
@@ -130,7 +128,7 @@ html[dir=rtl][data-sap-ui-browser^="ed"] .sapMTitleAlignEnd {
 
 .sapMIBar-CTX.sapMFooter-CTX .sapMTitle {
 	color: @sapUiPageFooterTextColor;
-	text-shadow: @sap_m_Title_TextShadow;
+	text-shadow: @sapUiShadowText;
 }
 
 /* DynamicPageTitle Heading-CTX */

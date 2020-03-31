@@ -307,7 +307,19 @@
 
 // [Label "Indication Color 5"]
 // [Tags "Base", "SemanticColor", "Color"]
-@sapIndicationColor_5: #0f5d94;
+@sapIndicationColor_5: #6bd3ff;
+
+// [Label "Indication Color 6"]
+// [Tags "Base", "SemanticColor", "Color"]
+@sapIndicationColor_6: @sapAccentColor7;
+
+// [Label "Indication Color 7"]
+// [Tags "Base", "SemanticColor", "Color"]
+@sapIndicationColor_7: @sapAccentColor9;
+
+// [Label "Indication Color 8"]
+// [Tags "Base", "SemanticColor", "Color"]
+@sapIndicationColor_8: @sapAccentColor4;
 
 
 /* ===================================== */
@@ -522,7 +534,7 @@
 
 @sapContent_DragAndDropActiveColor: @sapContent_HelpColor;
 
-@sapContent_Selected_TextColor: contrast(@sapContent_Selected_Background @sapTextColor, @sapContent_ContrastTextColor, @sapContent_ContrastTextThreshold);
+@sapContent_Selected_TextColor: contrast(@sapContent_Selected_Background, @sapTextColor, @sapContent_ContrastTextColor, @sapContent_ContrastTextThreshold);
 
 @sapContent_Selected_Background: @sapSelectedColor;
 
@@ -1214,8 +1226,6 @@
 // [Tags "Base", "Tile", "Color"]
 @sapTile_Background: @sapBackgroundColor;
 
-@sapTile_SeparatorColor: @sapTile_BorderColor;
-
 @sapTile_Hover_Background: @sapHighlightColor;
 
 @sapTile_Active_Background: @sapActiveColor;
@@ -1239,6 +1249,8 @@
 // [Description "The color of icons on tiles."]
 // [Tags "Base", "Content", "Color"]
 @sapTile_IconColor: contrast(@sapTile_Background, @sapContent_IconColor, @sapContent_ContrastIconColor, @sapContent_ContrastTextThreshold);
+
+@sapTile_SeparatorColor: @sapTile_BorderColor;
 
 // [Label "Chart Ordered Color 1"]
 // [Description "This color is used as a ordered color of a sequence of 11 chart colors. It has a defined contrast to its predecessor and successor."]

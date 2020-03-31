@@ -307,7 +307,19 @@
 
 // [Label "Indication Color 5"]
 // [Tags "Base", "SemanticColor", "Color"]
-@sapIndicationColor_5: #8fb5ff;
+@sapIndicationColor_5: #004ccb;
+
+// [Label "Indication Color 6"]
+// [Tags "Base", "SemanticColor", "Color"]
+@sapIndicationColor_6: @sapAccentColor7;
+
+// [Label "Indication Color 7"]
+// [Tags "Base", "SemanticColor", "Color"]
+@sapIndicationColor_7: @sapAccentColor9;
+
+// [Label "Indication Color 8"]
+// [Tags "Base", "SemanticColor", "Color"]
+@sapIndicationColor_8: @sapAccentColor4;
 
 
 /* ===================================== */
@@ -522,7 +534,7 @@
 
 @sapContent_DragAndDropActiveColor: @sapContent_HelpColor;
 
-@sapContent_Selected_TextColor: contrast(@sapContent_Selected_Background @sapTextColor, @sapContent_ContrastTextColor, @sapContent_ContrastTextThreshold);
+@sapContent_Selected_TextColor: contrast(@sapContent_Selected_Background, @sapTextColor, @sapContent_ContrastTextColor, @sapContent_ContrastTextThreshold);
 
 @sapContent_Selected_Background: @sapSelectedColor;
 
@@ -1214,9 +1226,9 @@
 // [Tags "Base", "Tile", "Color"]
 @sapTile_Background: @sapBackgroundColor;
 
-@sapTile_Hover_Background: @sapTile_Background;
+@sapTile_Hover_Background: @sapHighlightColor;
 
-@sapTile_Active_Background: @sapTile_Hover_Background;
+@sapTile_Active_Background: @sapActiveColor;
 
 // [Label "Tile Border Color"]
 // [Description "The border color of tiles."]

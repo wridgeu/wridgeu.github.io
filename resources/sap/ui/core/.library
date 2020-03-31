@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.75.0</version>
+  <version>1.76.0</version>
 
   <documentation>The SAPUI5 Core Runtime.
 
@@ -116,6 +116,7 @@
         <raw-module name="sap/ui/thirdparty/hyphenopoly/hyphenEngine.asm.js" />
         <raw-module name="ui5loader.js" depends="sap/ui/thirdparty/baseuri.js,sap/ui/thirdparty/es6-promise.js,sap/ui/thirdparty/es6-shim-nopromise.js" />
         <raw-module name="ui5loader-autoconfig.js" depends="ui5loader.js" />
+        <raw-module name="sap/ui/test/starter/_configureLoader.js" depends="ui5loader.js" />
         <module-cycle modules="sap/ui/core/Core.js,sap/ui/core/Component.js" />
       </module-infos>
       <all-in-one>
@@ -388,13 +389,22 @@
             <name>CA-UI5-COR</name>
             <modules>
                 <module>jquery.sap.*</module>
+                <module>ui5loader*</module>
+                <module>sap/base/*</module>
                 <module>sap/ui/app/*</module>
                 <module>sap/ui/base/*</module>
                 <module>sap/ui/debug/*</module>
+                <module>sap/ui/dom/*</module>
+                <module>sap/ui/events/*</module>
                 <module>sap/ui/model/*</module>
+                <module>sap/ui/performance/*</module>
                 <module>sap/ui/qunit/*</module>
+                <module>sap/ui/security/*</module>
+                <module>sap/ui/test/starter/*</module>
+                <module>sap/ui/util/*</module>
                 <module>sap/ui/Device</module>
                 <module>sap/ui/Global</module>
+                <module>sap/ui/VersionInfo</module>
             </modules>
         </component>
 
