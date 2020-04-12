@@ -38,7 +38,7 @@
 	},
 	"sap.ui5": {
 		"rootView": {
-			"viewName": "sapmarco.projectpages.view.Main",
+			"viewName": "sapmarco.projectpages.view.Shell",
 			"type": "XML",
 			"async": true,
 			"id": "app"
@@ -86,7 +86,7 @@
 			"routes": [
 				{
 					"name": "RouteMain",
-					"pattern": "RouteMain",
+					"pattern": "",
 					"target": [
 						"TargetMain"
 					]
@@ -95,8 +95,9 @@
 			"targets": {
 				"TargetMain": {
 					"viewType": "XML",
+					"viewId": "Home",
 					"viewLevel": 1,
-					"viewName": "Main"
+					"viewName": "Home"
 				}
 			}
 		}
