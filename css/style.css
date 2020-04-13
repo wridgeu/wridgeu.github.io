@@ -30,10 +30,6 @@
 .cV {
     background-color: #e0e0e0;
 }
-.bioImage {
-    padding: auto;
-    margin: 1vw;
-}
 .borderRadius{
     border-radius: 10%;
 }
@@ -44,3 +40,7 @@
 .invertSocials{
     filter: invert(1);
 }
+/*.bioImage {
+    padding: auto;
+    margin: 1vw;
+}*/
