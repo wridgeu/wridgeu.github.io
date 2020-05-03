@@ -1,8 +1,7 @@
-<mvc:View controllerName="sapmarco.projectpages.controller.Shell"
+<mvc:View controllerName="sapmarco.projectpages.controller.Shell" 
 	xmlns:html="http://www.w3.org/1999/xhtml" 
 	xmlns="sap.m" 
-	xmlns:mvc="sap.ui.core.mvc"
-	displayBlock="true">
+	xmlns:mvc="sap.ui.core.mvc" displayBlock="true">
 	<Shell appWidthLimited="false">
 		<App id="app"/>
 	</Shell>
