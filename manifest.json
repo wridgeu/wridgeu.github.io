@@ -90,6 +90,13 @@
 					"target": [
 						"TargetMain"
 					]
+				},
+				{
+					"name": "RouteWiki",
+					"pattern": "wiki",
+					"target": [
+						"TargetWiki"
+					]
 				}
 			],
 			"targets": {
@@ -98,6 +105,12 @@
 					"viewId": "Home",
 					"viewLevel": 1,
 					"viewName": "Home"
+				},
+				"TargetWiki": {
+					"viewType": "XML",
+					"viewId": "Wiki",
+					"viewLevel": 2,
+					"viewName": "Wiki"
 				}
 			}
 		}

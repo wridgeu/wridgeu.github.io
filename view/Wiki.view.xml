@@ -1,0 +1,50 @@
+<mvc:View controllerName="sapmarco.projectpages.controller.Wiki" displayBlock="true" 
+    xmlns:html="http://www.w3.org/1999/xhtml" 
+    xmlns="sap.m" 
+    xmlns:l="sap.ui.layout" 
+    xmlns:core="sap.ui.core" 
+    xmlns:mvc="sap.ui.core.mvc">
+    <Page showHeader="true" showNavButton="true" navButtonPress="onBackHome">
+        <content>
+            <l:ResponsiveSplitter defaultPane="default">
+                <l:PaneContainer>
+                    <l:PaneContainer orientation="Vertical">
+                        <l:SplitPane requiredParentWidth="500">
+                            <Page titleAlignment="Center" title="Sidebar">
+                                <content>
+                                    <List id="sidebar" />
+                                </content>
+                            </Page>
+                        </l:SplitPane>
+                    </l:PaneContainer>
+                    <l:PaneContainer orientation="Horizontal">
+                        <l:layoutData>
+                            <l:SplitterLayoutData size="80%" />
+                        </l:layoutData>
+                        <l:SplitPane requiredParentWidth="800" id="default">
+                            <Page showHeader="false">
+                                <content>
+                                    <html:div class="container" id="markdownContainer">
+                                        <html:div id="markdownContent" />
+                                    </html:div>
+                                </content>
+                            </Page>
+                        </l:SplitPane>
+                    </l:PaneContainer>
+                </l:PaneContainer>
+            </l:ResponsiveSplitter>
+        </content>
+        <footer>
+            <Toolbar id="footerToolbar" class="toolbar" design="Info">
+                <core:Icon src="sap-icon://lightbulb" class="size2" color="#ffffff" press=".onThemeSwap('sap_fiori_3_dark')" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
+                <ToolbarSpacer/>
+                <Text class="footerText" text="{i18n>footerText}">
+                    <layoutData>
+                        <ToolbarLayoutData shrinkable="true"/>
+                    </layoutData>
+                </Text>
+                <ToolbarSpacer/>
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>

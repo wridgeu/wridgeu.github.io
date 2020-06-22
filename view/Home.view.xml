@@ -17,20 +17,20 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" direction="Row" justifyContent="Center">
-							<html:a class="setOpacity" href="https://linkedin.com/in/dev-marco-beier" target="_blank" rel="noopener">
-								<Image class="setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh"/>
+							<html:a href="https://linkedin.com/in/dev-marco-beier" target="_blank" rel="noopener">
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh"/>
 							</html:a>
-							<html:a class="setOpacity" href="https://xing.com/profile/Marco_Beier8/cv" target="_blank" rel="noopener">
-								<Image class="setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
+							<html:a href="https://xing.com/profile/Marco_Beier8/cv" target="_blank" rel="noopener">
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
 							</html:a>
-							<html:a class="setOpacity" href="https://github.com/SAPMarco" target="_blank" rel="noopener">
-								<Image class="setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
+							<html:a href="https://github.com/SAPMarco" target="_blank" rel="noopener">
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
 							</html:a>
-							<html:a class="setOpacity" href="https://twitter.com/Wridgeu" target="_blank" rel="noopener">
-								<Image class="setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
+							<html:a href="https://twitter.com/Wridgeu" target="_blank" rel="noopener">
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
 							</html:a>
-							<html:a class="setOpacity" href="https://people.sap.com/marcobeier" target="_blank" rel="noopener">
-								<Image class="setMinSeperator" src="./resources/img/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh"/>
+							<html:a href="https://people.sap.com/marcobeier" target="_blank" rel="noopener">
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh"/>
 							</html:a>
 						</FlexBox>
 					</l:BlockLayoutCell>
@@ -139,6 +139,20 @@
 									</GenericTile>
 								</tiles>
 							</SlideTile>
+						</FlexBox>
+					</l:BlockLayoutCell>
+				</l:BlockLayoutRow>
+				<l:BlockLayoutRow>
+					<l:BlockLayoutCell>
+						<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Row">
+							<Text class="title" text="{i18n>wiki}"/>
+						</FlexBox>
+					</l:BlockLayoutCell>
+				</l:BlockLayoutRow>
+				<l:BlockLayoutRow>
+					<l:BlockLayoutCell>
+						<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Row">							
+							<Button text="Go To" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"></Button>
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
