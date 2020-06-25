@@ -151,7 +151,7 @@
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
-						<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Row">							
+						<FlexBox class="sapUiTinyMarginTop setMiddle sapUiLargeMarginBottom" width="100%" direction="Row">							
 							<Button text="Go To" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"></Button>
 						</FlexBox>
 					</l:BlockLayoutCell>

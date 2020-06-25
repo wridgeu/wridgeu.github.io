@@ -5,12 +5,17 @@
     xmlns:core="sap.ui.core" 
     xmlns:mvc="sap.ui.core.mvc">
     <Page showHeader="true" showNavButton="true" navButtonPress="onBackHome">
+    	<headerContent>        
+			<html:a href="https://github.com/SAPMarco/SAPMarco.github.io/wiki" target="_blank" rel="noopener">
+			    <Button icon="sap-icon://action" iconFirst="false" tooltip="{i18n>sourceTooltip}" text="{i18n>source}"  />
+            </html:a>
+		</headerContent>
         <content>
             <l:ResponsiveSplitter defaultPane="default">
                 <l:PaneContainer>
                     <l:PaneContainer orientation="Vertical">
                         <l:SplitPane requiredParentWidth="500">
-                            <Page titleAlignment="Center" title="Sidebar">
+                            <Page titleAlignment="Center" title="{i18n>sidebar}">
                                 <content>
                                     <List id="sidebar" />
                                 </content>
