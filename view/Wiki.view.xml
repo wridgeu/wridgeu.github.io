@@ -17,7 +17,7 @@
                         <l:SplitPane requiredParentWidth="500">
                             <Page titleAlignment="Center" title="{i18n>sidebar}">
                                 <content>
-                                    <List id="sidebar" />
+                                    <List class="sidebar" id="sidebar" />
                                 </content>
                             </Page>
                         </l:SplitPane>
