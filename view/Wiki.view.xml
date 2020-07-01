@@ -24,7 +24,7 @@
                     </l:PaneContainer>
                     <l:PaneContainer orientation="Horizontal">
                         <l:layoutData>
-                            <l:SplitterLayoutData size="80%" />
+                            <l:SplitterLayoutData size="84%" />
                         </l:layoutData>
                         <l:SplitPane requiredParentWidth="800" id="default">
                             <Page showHeader="false">
