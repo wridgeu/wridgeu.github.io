@@ -4,7 +4,7 @@
     xmlns:l="sap.ui.layout" 
     xmlns:core="sap.ui.core" 
     xmlns:mvc="sap.ui.core.mvc">
-    <Page showHeader="true" showNavButton="true" navButtonPress="onBackHome" title="Wiki/Blog" titleAlignment="Center" navButtonTooltip="back to main page">
+    <Page id="wikiPage" showHeader="true" showNavButton="true" navButtonPress="onBackHome" title="Wiki/Blog" titleAlignment="Center" navButtonTooltip="back to main page">
         <headerContent>
                 <html:a href="https://github.com/SAPMarco/SAPMarco.github.io/wiki" target="_blank" rel="noopener">
 			        <Button icon="sap-icon://action" iconFirst="false" tooltip="{i18n>sourceTooltip}" text="{i18n>source}"  />
