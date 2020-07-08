@@ -1,11 +1,11 @@
 {
-	"_version": "1.12.1",
+	"_version": "1.23.0",
 	"sap.app": {
 		"id": "sapmarco.projectpages",
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
-			"version": "1.0.0"
+			"version": "1.2.9"
 		},
 		"title": "{{appTitle}}",
 		"description": "{{appDescription}}",
@@ -33,7 +33,8 @@
 		},
 		"supportedThemes": [
 			"sap_belize",
-			"sap_fiori_3"
+			"sap_fiori_3",
+			"sap_fiori_3_dark"
 		]
 	},
 	"sap.ui5": {
@@ -44,7 +45,7 @@
 			"id": "app"
 		},
 		"dependencies": {
-			"minUI5Version": "1.60.0",
+			"minUI5Version": "1.70.0",
 			"libs": {
 				"sap.ui.core": {},
 				"sap.m": {},

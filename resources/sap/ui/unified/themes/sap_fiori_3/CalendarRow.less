@@ -14,6 +14,11 @@
 	color: @sapUiBaseText;
 }
 
+.sapMListTblRow:not(.sapMLIBSelected) .sapUiCalendarRowAppsNoWork,
+.sapMListTblSubRow:not(.sapMLIBSelected) .sapUiCalendarRowAppsNoWork {
+	background-color: @sapUiLegendNonWorkingBackground;
+}
+
 /* Appointments */
 /* as outlines can't have different offsets on one side (no left border) and don't work in IE just use a inner border */
 html.sap-desktop .sapUiCalendarApp:focus > .sapUiCalendarAppCont:after{
@@ -47,7 +52,7 @@ html.sap-desktop .sapUiCalendarAppSel:focus > .sapUiCalendarAppCont:after{
 
 html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active),
 html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:focus:not(:active){
-	background-color: @sapUiListHoverBackground;
+	background-color: darken(@sapUiListActiveBackground, 10);
 }
 
 .sapUiCalendarApp.sapUiCalendarAppSel > .sapUiCalendarAppCont,

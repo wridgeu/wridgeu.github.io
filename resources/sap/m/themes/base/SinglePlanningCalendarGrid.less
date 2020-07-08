@@ -218,7 +218,7 @@ html.sap-desktop {
 		bottom: 0;
 		border: 0.0625rem dotted @sapUiContentFocusColor;
 		pointer-events: none;
-		z-index: 2;
+		z-index: 3;
 	}
 
 	.sapMSinglePCBlockers,
@@ -427,7 +427,7 @@ html[data-sap-ui-browser^=ie] .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps 
 }
 
 .sapMSinglePCColumnHeader.sapUiCalRow,
-.sapMSinglePCColumnHeader.sapUiCalRow .sapUiCalItem {
+.sapMSinglePCColumnHeader.sapUiCalRow.sapUiCalNoNameLine .sapUiCalItem {
 	height: 2.75rem;
 }
 
@@ -465,6 +465,10 @@ html[data-sap-ui-browser^=ie] .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps 
 
 	.sapMSinglePCRow {
 		height: @_sap_m_SinglePlanningCalendarGrid_CompactRowHeight;
+	}
+
+	.sapMSinglePCColumnHeader .sapUiCalItem:focus > .sapUiCalItemText {
+		outline: none;
 	}
 }
 
