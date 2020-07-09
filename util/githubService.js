@@ -1,0 +1,1 @@
+sap.ui.define([],function(){"use strict";return{getSelectedContent:function(t){return fetch(`https://raw.githubusercontent.com/wiki/SAPMarco/SAPMarco.github.io/${t.replace(/[-*?]/g,"%20")}.md`).then(t=>t.text())},getWikiIndex:function(){return fetch(`https://raw.githubusercontent.com/wiki/SAPMarco/SAPMarco.github.io/_Sidebar.md`).then(t=>t.text())}}});
