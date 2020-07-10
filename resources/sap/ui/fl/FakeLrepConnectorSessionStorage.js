@@ -1,0 +1,6 @@
+/*
+ * ! OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/fl/FakeLrepConnector","sap/ui/fl/apply/_internal/connectors/SessionStorageConnector","sap/ui/fl/write/_internal/connectors/SessionStorageConnector"],function(e,n,o){"use strict";return{enableFakeConnector:function(n){var o=n?n.sInitialComponentJsonPath:undefined;e.setFlexibilityServicesAndClearCache("SessionStorageConnector",o)},disableFakeConnector:function(){e.disableFakeConnector()},forTesting:{spyWrite:function(n,t){return e.forTesting.spyMethod(n,t,o,"write")},getNumberOfChanges:function(o){return e.forTesting.getNumberOfChanges(n,o)},clear:function(n){return e.forTesting.clear(o,n)},setStorage:function(o){e.forTesting.setStorage(n,o)},synchronous:{clearAll:function(){e.forTesting.synchronous.clearAll(window.sessionStorage)},getNumberOfChanges:function(o){return e.forTesting.synchronous.getNumberOfChanges(n.oStorage,o)}}}}},true);

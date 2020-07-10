@@ -1,0 +1,1 @@
+ace.define("ace/snippets/livescript",["require","exports","module"],function(e,t,i){"use strict";t.snippetText="";t.scope="livescript"});(function(){ace.require(["ace/snippets/livescript"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

@@ -1,0 +1,1 @@
+ace.define("ace/snippets/ini",["require","exports","module"],function(e,i,t){"use strict";i.snippetText="";i.scope="ini"});(function(){ace.require(["ace/snippets/ini"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

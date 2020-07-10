@@ -1,0 +1,1 @@
+ace.define("ace/snippets/swift",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="swift"});(function(){ace.require(["ace/snippets/swift"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

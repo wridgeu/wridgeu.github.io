@@ -1,0 +1,1 @@
+ace.define("ace/snippets/jade",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="jade"});(function(){ace.require(["ace/snippets/jade"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

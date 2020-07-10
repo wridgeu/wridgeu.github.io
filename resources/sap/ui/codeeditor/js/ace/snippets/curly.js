@@ -1,0 +1,1 @@
+ace.define("ace/snippets/curly",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="curly"});(function(){ace.require(["ace/snippets/curly"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

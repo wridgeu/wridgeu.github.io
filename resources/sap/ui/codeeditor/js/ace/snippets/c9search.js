@@ -1,0 +1,1 @@
+ace.define("ace/snippets/c9search",["require","exports","module"],function(e,c,t){"use strict";c.snippetText="";c.scope="c9search"});(function(){ace.require(["ace/snippets/c9search"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

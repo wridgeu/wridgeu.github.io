@@ -1,0 +1,1 @@
+ace.define("ace/snippets/svg",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="svg"});(function(){ace.require(["ace/snippets/svg"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

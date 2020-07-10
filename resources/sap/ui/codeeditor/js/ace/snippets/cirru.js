@@ -1,0 +1,1 @@
+ace.define("ace/snippets/cirru",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="cirru"});(function(){ace.require(["ace/snippets/cirru"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

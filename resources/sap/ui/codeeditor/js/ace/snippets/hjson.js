@@ -1,0 +1,1 @@
+ace.define("ace/snippets/hjson",["require","exports","module"],function(e,o,t){"use strict";o.snippetText=undefined;o.scope=""});(function(){ace.require(["ace/snippets/hjson"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

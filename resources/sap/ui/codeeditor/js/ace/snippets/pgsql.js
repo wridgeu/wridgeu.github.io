@@ -1,0 +1,1 @@
+ace.define("ace/snippets/pgsql",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="pgsql"});(function(){ace.require(["ace/snippets/pgsql"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

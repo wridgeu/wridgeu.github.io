@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/testrecorder/codeSnippets/ControlSnippetGenerator","sap/ui/testrecorder/interaction/Commands"],function(t,e){"use strict";var n=t.extend("sap.ui.testrecorder.codeSnippets.OPA5ControlSnippetGenerator",{});n.prototype._generate=function(t){var e=t.controlSelector.interaction&&t.controlSelector.interaction.idSuffix;var n=this._getActionAsString(t.action,e);if(n){t.controlSelector.actions=[]}delete t.controlSelector.interaction;var r=this._getSelectorAsString(t.controlSelector);return"this.waitFor("+this._getSelectorWithAction(r,n)+");"};n.prototype._getActionAsString=function(t,n){n=n?'idSuffix: "'+n+'"':"";var r;switch(t){case e.PRESS:r=n&&"{\n"+this._getIndentation(3)+n+"\n"+this._getIndentation(2)+"}";return"new Press("+r+")";case e.ENTER_TEXT:r="{\n"+this._getIndentation(2)+(n&&n+",\n"+this._getIndentation(2))+'text: "test"'+"\n"+this._getIndentation(1)+"}";return"new EnterText("+r+")";default:return""}};n.prototype._getSelectorWithAction=function(t,e){return t.replace("actions: []","actions: "+e)};return new n});

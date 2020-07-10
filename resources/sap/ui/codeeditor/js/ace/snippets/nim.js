@@ -1,0 +1,1 @@
+define("ace/snippets/nim",["require","exports","module"],function(e,i,n){"use strict";i.snippetText=undefined;i.scope="nim"});(function(){window.require(["ace/snippets/nim"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

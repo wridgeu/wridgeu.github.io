@@ -1,0 +1,1 @@
+ace.define("ace/snippets/cobol",["require","exports","module"],function(e,o,t){"use strict";o.snippetText="";o.scope="cobol"});(function(){ace.require(["ace/snippets/cobol"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

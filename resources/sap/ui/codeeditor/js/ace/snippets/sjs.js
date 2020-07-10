@@ -1,0 +1,1 @@
+ace.define("ace/snippets/sjs",["require","exports","module"],function(e,s,t){"use strict";s.snippetText="";s.scope="sjs"});(function(){ace.require(["ace/snippets/sjs"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

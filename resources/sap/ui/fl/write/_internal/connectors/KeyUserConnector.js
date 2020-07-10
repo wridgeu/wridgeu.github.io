@@ -1,0 +1,6 @@
+/*
+ * ! OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/base/util/merge","sap/ui/fl/write/_internal/connectors/BackendConnector","sap/ui/fl/apply/_internal/connectors/KeyUserConnector","sap/ui/fl/apply/_internal/connectors/Utils"],function(e,n,t,r){"use strict";var a="/flex/keyuser";var s="/v1";function o(e){e.applyConnector=t;e.xsrfToken=t.xsrfToken;e.tokenUrl=u.ROUTES.TOKEN}function i(e){var n={title:e.title};e.payload=JSON.stringify(n);e.dataType="json";e.contentType="application/json; charset=utf-8"}var u=e({},n,{layers:t.layers,ROUTES:{CHANGES:a+s+"/changes/",SETTINGS:a+s+"/settings",TOKEN:a+s+"/settings",VERSIONS:{GET:a+s+"/versions/",ACTIVATE:a+s+"/versions/activate/",DISCARD:a+s+"/versions/draft/"}},isLanguageInfoRequired:true});u.versions={load:function(e){o(e);var n={};r.addLanguageInfo(n);var t=r.getUrl(u.ROUTES.VERSIONS.GET,e,n);return r.sendRequest(t,"GET",e).then(function(e){return e.response})},activate:function(e){o(e);i(e);var n={version:0};r.addLanguageInfo(n);var t=r.getUrl(u.ROUTES.VERSIONS.ACTIVATE,e,n);return r.sendRequest(t,"POST",e).then(function(e){return e.response})},discardDraft:function(e){o(e);var n=r.getUrl(u.ROUTES.VERSIONS.DISCARD,e);return r.sendRequest(n,"DELETE",e)}};u.applyConnector=t;return u},true);

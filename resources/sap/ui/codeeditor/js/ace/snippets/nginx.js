@@ -1,0 +1,1 @@
+define("ace/snippets/nginx",["require","exports","module"],function(e,n,i){"use strict";n.snippetText=undefined;n.scope="nginx"});(function(){window.require(["ace/snippets/nginx"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

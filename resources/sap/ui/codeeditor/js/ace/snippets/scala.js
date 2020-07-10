@@ -1,0 +1,1 @@
+ace.define("ace/snippets/scala",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="scala"});(function(){ace.require(["ace/snippets/scala"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

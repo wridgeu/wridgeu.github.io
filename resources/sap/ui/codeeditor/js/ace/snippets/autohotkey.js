@@ -1,0 +1,1 @@
+ace.define("ace/snippets/autohotkey",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="autohotkey"});(function(){ace.require(["ace/snippets/autohotkey"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

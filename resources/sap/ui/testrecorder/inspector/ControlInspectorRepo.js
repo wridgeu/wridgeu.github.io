@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/base/Object"],function(t){"use strict";var e=null;var n=[];var r=100;var o=t.extend("sap.ui.testrecorder.inspector.ControlInspectorRepo",{constructor:function(){if(!e){Object.apply(this,arguments)}else{return e}}});o.prototype.findSelector=function(t){var e=n.filter(function(e){return e.domElementId===t&&e.selector});return e[0]&&e[0].selector||null};o.prototype.save=function(t,e,o){var i=Object.assign({selector:e,snippet:o},t);var u=-1;n.forEach(function(e,n){if(e.domElementId===t.domElementId){u=n}});if(u>-1){n[u]=i}else{if(n.length===r){n.shift()}n.push(i)}};o.prototype.clear=function(){n=[]};o.prototype.getRequests=function(){return n.map(function(t){return{domElementId:t.domElementId,action:t.action}})};o.prototype.getSelectors=function(){return n.map(function(t){return t.selector})};o.prototype.getSnippets=function(){return n.map(function(t){return t.snippet})};o.prototype.getAll=function(){return n};e=new o;return e});

@@ -5,7 +5,7 @@
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
-			"version": "1.2.9"
+			"version": "1.3.0"
 		},
 		"title": "{{appTitle}}",
 		"description": "{{appDescription}}",
@@ -51,6 +51,18 @@
 				"sap.m": {},
 				"sap.ui.layout": {
 					"lazy": true
+				},
+				"sap.tnt": {
+					"lazy": true
+				},
+				"sap.ui.table":{
+					"lazy": true
+				},
+				"sap.ui.support": {
+					"lazy": true
+				},
+				"sap.ui.testrecorder":{
+					"lazy": true
 				}
 			}
 		},
@@ -62,7 +74,9 @@
 			"i18n": {
 				"type": "sap.ui.model.resource.ResourceModel",
 				"settings": {
-					"bundleName": "sapmarco.projectpages.i18n.i18n"
+					"bundleName": "sapmarco.projectpages.i18n.i18n",
+					"supportedLocales": ["de", "en"],
+					"fallbackLocale": "en"
 				}
 			},
 			"cv": {

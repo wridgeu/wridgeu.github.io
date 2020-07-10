@@ -1,0 +1,1 @@
+ace.define("ace/snippets/praat",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="praat"});(function(){ace.require(["ace/snippets/praat"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

@@ -1,0 +1,1 @@
+ace.define("ace/snippets/sparql",["require","exports","module"],function(e,t,o){"use strict";t.snippetText=undefined;t.scope=""});(function(){ace.require(["ace/snippets/sparql"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

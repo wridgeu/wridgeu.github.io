@@ -1,0 +1,6 @@
+/*
+ * ! OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/fl/ChangePersistenceFactory","sap/base/Log"],function(e,n){"use strict";var t={};function o(e,n,t){if(t.getSelector().name!==n.extensionPointName){return false}return e.changesHavingCorrectViewPrefix(n,t)}t.getChangesForExtensionPoint=function(e,t){if(!t.extensionPointName){n.error("Missing name from extension point info!");return Promise.resolve([])}return e.getChangesForComponent().then(function(n){return n.filter(o.bind(this,e,t))})};t.enhanceExtensionPointChanges=function(n,o){n.extensionPointName=o.name;var i=e.getChangePersistenceForControl(o.targetControl);return t.getChangesForExtensionPoint(i,n).then(function(e){e.forEach(function(e){if(e.isInInitialState()){e.setExtensionPointInfo(o);var t=e.getSelector();t.id=o.targetControl.getId();t.idIsLocal=false;e.setSelector(t);if(i.isChangeMapCreated()){i._addChangeAndUpdateDependencies(n.appComponent,e)}}});return e})};return t},true);

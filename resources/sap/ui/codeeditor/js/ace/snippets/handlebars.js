@@ -1,0 +1,1 @@
+ace.define("ace/snippets/handlebars",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="handlebars"});(function(){ace.require(["ace/snippets/handlebars"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

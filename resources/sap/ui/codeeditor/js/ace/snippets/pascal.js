@@ -1,0 +1,1 @@
+ace.define("ace/snippets/pascal",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="pascal"});(function(){ace.require(["ace/snippets/pascal"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

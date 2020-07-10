@@ -1,0 +1,1 @@
+ace.define("ace/snippets/terraform",["require","exports","module"],function(e,t,o){"use strict";t.snippetText="";t.scope="terraform"});(function(){ace.require(["ace/snippets/terraform"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

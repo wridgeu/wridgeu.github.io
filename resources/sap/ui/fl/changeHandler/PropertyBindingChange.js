@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/base/Log"],function(e){"use strict";var t={};t.applyChange=function(e,t,n){var r=e.getDefinition();var i=r.content.property;var a=r.content.newBinding;var o=n.modifier;var p=o.getPropertyBindingOrProperty(t,i);e.setRevertData({originalValue:p});o.setPropertyBinding(t,i,a)};t.revertChange=function(t,n,r){var i=t.getRevertData();if(i){var a=t.getDefinition();var o=a.content.property;var p=i.originalValue;var u=r.modifier;u.setPropertyBindingOrProperty(n,o,p);t.resetRevertData()}else{e.error("Attempt to revert an unapplied change.");return false}return true};t.completeChangeContent=function(e,t){var n=e.getDefinition();if(!t.content){throw new Error("oSpecificChangeInfo attribute required")}n.content=t.content};t.getCondenserInfo=function(e){return{classificationType:sap.ui.fl.ClassificationType.LastOneWins,uniqueKey:e.getContent().property}};return t},true);

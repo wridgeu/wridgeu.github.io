@@ -1,0 +1,1 @@
+ace.define("ace/snippets/elixir",["require","exports","module"],function(e,i,t){"use strict";i.snippetText=undefined;i.scope=""});(function(){ace.require(["ace/snippets/elixir"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();
