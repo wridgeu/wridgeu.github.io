@@ -8,9 +8,9 @@
 		<content>
 			<l:BlockLayout>
 				<l:BlockLayoutRow>
-					<l:BlockLayoutCell class="headerBar" width="100%" backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
+					<l:BlockLayoutCell width="100%" backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
 						<FlexBox alignItems="Center" alignContent="Center" justifyContent="Center" backgroundDesign="Transparent" direction="Column">
-							<Avatar class="Avatar" showBorder="true" displaySize="L" src="./resources/img/myself.webp" fallbackIcon="sap-icon://person-placeholder"/>
+							<Avatar showBorder="true" displaySize="L" src="./resources/img/myself.webp" fallbackIcon="sap-icon://person-placeholder"/>
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
@@ -42,7 +42,7 @@
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
-				<l:BlockLayoutRow class="introductionTextBackground setMiddle" id="cVRow">
+				<l:BlockLayoutRow class="setMiddle" id="cVRow">
 					<l:BlockLayoutCell>
 						<FlexBox width="100%" direction="Row">
 							<Text class="text" text="{i18n>mainText}"/>
@@ -51,7 +51,7 @@
 					<l:BlockLayoutCell>
 						<FlexBox direction="Column">
 							<FlexBox justifyContent="Center">
-								<Tree id="cvTree" items="{path: 'cv>/', parameters:{arrayNames: ['nodes']}}">
+								<Tree items="{path: 'cv>/', parameters:{arrayNames: ['nodes']}}">
 									<CustomTreeItem>
 										<Text renderWhitespace="true" text="{cv>description}"/>
 										<Link href="{cv>website}" text="{cv>companie}" target="_blank"/>
@@ -159,8 +159,8 @@
 			</l:BlockLayout>
 		</content>
 		<footer>
-			<Toolbar id="footerToolbar" class="toolbar" design="Info">
-				<core:Icon src="sap-icon://lightbulb" class="size2" color="#ffffff" press=".onThemeSwap('sap_fiori_3_dark')" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
+			<Toolbar id="footerToolbar" design="Info">
+				<core:Icon src="sap-icon://lightbulb" class="size2" color="#ffffff" press="onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
 				<ToolbarSpacer/>
 				<Text class="footerText" text="{i18n>footerText}">
 					<layoutData>

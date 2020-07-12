@@ -38,8 +38,8 @@
             </l:ResponsiveSplitter>
         </content>
         <footer>
-            <Toolbar id="footerToolbar" class="toolbar" design="Info">
-                <core:Icon src="sap-icon://lightbulb" class="size2" color="#ffffff" press=".onThemeSwap('sap_fiori_3_dark')" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
+            <Toolbar id="footerToolbar" design="Info">
+                <core:Icon src="sap-icon://lightbulb" class="size2" color="#ffffff" press="onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
                 <ToolbarSpacer/>
                 <Text class="footerText" text="{i18n>footerText}">
                     <layoutData>
