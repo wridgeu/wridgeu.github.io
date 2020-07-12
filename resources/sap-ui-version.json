@@ -1,67 +1,67 @@
 {
 	"name": "projectpages",
-	"version": "1.3.1",
-	"buildTimestamp": "202007121139",
+	"version": "1.3.2",
+	"buildTimestamp": "202007121153",
 	"scmRevision": "",
 	"libraries": [
 		{
-			"name": "sap.ui.table",
-			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
-			"scmRevision": ""
-		},
-		{
 			"name": "sap.ui.core",
 			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
-			"scmRevision": ""
-		},
-		{
-			"name": "sap.ui.layout",
-			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
-			"scmRevision": ""
-		},
-		{
-			"name": "sap.ui.unified",
-			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
-			"scmRevision": ""
-		},
-		{
-			"name": "sap.tnt",
-			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
+			"buildTimestamp": "202007121153",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.m",
 			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
+			"buildTimestamp": "202007121153",
+			"scmRevision": ""
+		},
+		{
+			"name": "sap.ui.layout",
+			"version": "1.79.0",
+			"buildTimestamp": "202007121153",
+			"scmRevision": ""
+		},
+		{
+			"name": "sap.ui.unified",
+			"version": "1.79.0",
+			"buildTimestamp": "202007121153",
+			"scmRevision": ""
+		},
+		{
+			"name": "sap.tnt",
+			"version": "1.79.0",
+			"buildTimestamp": "202007121153",
+			"scmRevision": ""
+		},
+		{
+			"name": "sap.ui.table",
+			"version": "1.79.0",
+			"buildTimestamp": "202007121153",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.support",
 			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
+			"buildTimestamp": "202007121153",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.codeeditor",
 			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
+			"buildTimestamp": "202007121153",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.fl",
 			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
+			"buildTimestamp": "202007121153",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.testrecorder",
 			"version": "1.79.0",
-			"buildTimestamp": "202007121139",
+			"buildTimestamp": "202007121153",
 			"scmRevision": ""
 		}
 	]
