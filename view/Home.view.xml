@@ -42,7 +42,7 @@
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
-				<l:BlockLayoutRow class="cV setMiddle" id="cVRow">
+				<l:BlockLayoutRow class="introductionTextBackground setMiddle" id="cVRow">
 					<l:BlockLayoutCell>
 						<FlexBox width="100%" direction="Row">
 							<Text class="text" text="{i18n>mainText}"/>

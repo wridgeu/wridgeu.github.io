@@ -29,9 +29,7 @@
                         <l:SplitPane requiredParentWidth="800" id="default">
                             <Page showHeader="false">
                                 <content>
-                                    <html:div class="container" id="markdownContainer">
-                                        <html:div id="markdownContent" />
-                                    </html:div>
+                                    <html:div class="container" id="markdownContainer"/>
                                 </content>
                             </Page>
                         </l:SplitPane>
