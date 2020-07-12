@@ -10,7 +10,7 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell class="headerBar" width="100%" backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
 						<FlexBox alignItems="Center" alignContent="Center" justifyContent="Center" backgroundDesign="Transparent" direction="Column">
-							<Avatar class="Avatar" showBorder="true" displaySize="L" src="./resources/img/myself.png" fallbackIcon="sap-icon://person-placeholder"/>
+							<Avatar class="Avatar" showBorder="true" displaySize="L" src="./resources/img/myself.webp" fallbackIcon="sap-icon://person-placeholder"/>
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
@@ -86,17 +86,17 @@
 								<tiles>
 									<GenericTile header="SAP" subheader="ERP, EWM, SolMan">
 										<TileContent>
-											<ImageContent src="./resources/img/saplogo_small.png" />
+											<ImageContent src="./resources/img/saplogo_small.webp" />
 										</TileContent>
 									</GenericTile>
 									<GenericTile header="ABAP">
 										<TileContent>
-											<ImageContent src="./resources/img/abap.png" />
+											<ImageContent src="./resources/img/abap.webp" />
 										</TileContent>
 									</GenericTile>
 									<GenericTile header="UI5" subheader="OpenUI5, SAPUI5">
 										<TileContent>
-											<ImageContent src="./resources/img/Logo_UI5.png" />
+											<ImageContent src="./resources/img/Logo_UI5.webp" />
 										</TileContent>
 									</GenericTile>
 								</tiles>
@@ -124,7 +124,7 @@
 								<tiles>
 									<GenericTile header="Git" subheader="github, gitlab">
 										<TileContent>
-											<ImageContent src="./resources/img/giticon.png"/>
+											<ImageContent src="./resources/img/giticon.webp"/>
 										</TileContent>
 									</GenericTile>
 									<GenericTile header="Github">
@@ -134,7 +134,7 @@
 									</GenericTile>
 									<GenericTile header="Gitlab">
 										<TileContent>
-											<ImageContent src="./resources/img/gitlab.png"/>
+											<ImageContent src="./resources/img/gitlab.webp"/>
 										</TileContent>
 									</GenericTile>
 								</tiles>
