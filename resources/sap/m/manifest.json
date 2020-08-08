@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.79.0"
+      "version": "1.80.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -22,17 +22,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.79",
+      "minUI5Version": "1.80",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.79.0"
+          "minVersion": "1.80.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.79.0",
+          "minVersion": "1.80.0",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.79.0",
+          "minVersion": "1.80.0",
           "lazy": true
         }
       }
@@ -373,6 +373,7 @@
           "sap.m.TileSizeBehavior",
           "sap.m.TimePickerMaskMode",
           "sap.m.TitleAlignment",
+          "sap.m.TokenizerRenderMode",
           "sap.m.ToolbarDesign",
           "sap.m.ToolbarStyle",
           "sap.m.UploadState",
@@ -384,6 +385,7 @@
         ],
         "interfaces": [
           "sap.m.IBar",
+          "sap.m.IBadge",
           "sap.m.IBreadcrumbs",
           "sap.m.IconTab",
           "sap.m.IScale",

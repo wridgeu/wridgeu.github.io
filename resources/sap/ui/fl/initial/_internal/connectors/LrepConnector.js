@@ -1,0 +1,6 @@
+/*
+ * ! OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/fl/initial/_internal/connectors/Utils","sap/ui/fl/Utils","sap/ui/dom/includeScript","sap/base/util/restricted/_pick"],function(e,n,i,t){"use strict";var s={DATA:"/flex/data/",MODULES:"/flex/modules/"};return{layers:["ALL"],xsrfToken:undefined,settings:undefined,_loadModules:function(e){return new Promise(function(n,t){i(e,undefined,n,t)})},_addClientInfo:function(e){var i=n.getUrlParameter("sap-client");if(!e&&i){e={}}if(i){e["sap-client"]=i}},loadFlexData:function(n){if(n.cacheKey==="<NO CHANGES>"){return Promise.resolve()}var i=t(n,["appVersion"]);this._addClientInfo(i);e.addLanguageInfo(i);var a;if(n.appDescriptor&&n.appDescriptor["sap.app"]){a=n.appDescriptor["sap.app"].id}var r=e.getUrl(s.DATA,n,i);return e.sendRequest(r,"GET",{xsrfToken:this.xsrfToken,siteId:n.siteId,sAppDescriptorId:a}).then(function(t){var a=t.response;if(t.xsrfToken){this.xsrfToken=t.xsrfToken}if(t.etag){a.cacheKey=t.etag}else if(n.cacheKey){a.cacheKey=n.cacheKey}a.changes=a.changes.concat(a.compVariants||[]);if(a.settings){this.settings=a.settings}if(!a.loadModules){return a}var r=e.getUrl(s.MODULES,n,i);return this._loadModules(r).then(function(){return a})}.bind(this))}}});
