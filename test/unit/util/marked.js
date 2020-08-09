@@ -1,0 +1,1 @@
+sap.ui.require(["sapmarco/projectpages/util/githubService"],function(i){"use strict";QUnit.module("githubService");QUnit.test("Should retrieve the Wiki-Sidebar",function(i){const t=i.async();e.call(this,i);t()});function e(e){this.sSidebar=i.getWikiIndex();e.ok(this.sSidebar,"Sidebar could be retrieved from Github")}});
