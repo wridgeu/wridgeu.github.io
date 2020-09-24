@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/ui/events/checkMouseEnterOrLeave","sap/ui/dom/containsOrEquals","sap/ui/core/Element","sap/ui/core/CommandExecution"],function(t,e,r,n){"use strict";var o={};var i=Object.create(null);i.mRegisteredControls={};o.register=function(r,u){i.mRegisteredControls[r.getId()]=u;r.addEventDelegate({onfocusin:function(t){var n=r._getShortcutHintRef();if(!e(n,t.target)){return}o.hideAll();r._updateShortcutHintAccLabel();r.showShortcutHint()},onfocusout:function(t){var o=r._getShortcutHintRef();if(!e(o,t.target)){return}var i=n.find(r,u)._getCommandInfo().shortcut;r.hideShortcutHint(i)},onmouseover:function(n){var i=r._getShortcutHintRef();if(!e(i,n.target)){return}if(t(n,i)){o.hideAll();r.showShortcutHint()}},onmouseout:function(o){var i=r._getShortcutHintRef();if(!e(i,o.target)){return}if(t(o,i)){if(e(i,document.activeElement)){return}var c=n.find(r,u)._getCommandInfo().shortcut;r.hideShortcutHint(c)}}},r)};o.hideAll=function(){var t;for(var e in i.mRegisteredControls){t=r.registry.get(e);if(t){t.hideShortcutHint()}}};o.getCommandForControl=function(t){var e=r.registry.get(t),o=i.mRegisteredControls[t];if(!o){return}return{commandName:o,shortcut:n.find(e,o)._getCommandInfo().shortcut}};return o});

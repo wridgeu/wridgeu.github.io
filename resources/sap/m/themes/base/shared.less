@@ -88,10 +88,35 @@
 
 /* Enables sap.m.IBadge implementations where possible */
 
+@keyframes sapMBadgeAppearPulse {
+	0% {transform: scale(.9); opacity:1;}
+	100% {transform: scale(2);opacity: 0;}
+}
+
+@keyframes sapMBadgeAppearBounce {
+	0% {transform: scale(1);}
+	50% {transform: scale(1.4); }
+	100% {transform: scale(1);}
+}
+
+@keyframes sapMBadgeDisappear {
+	0% {transform: scale(1);}
+	100% {transform: scale(0);}
+}
+
+@keyframes sapMBadgeUpdate {
+	0% {transform: scale(1);}
+
+	50% {transform: scale(1.2);}
+
+	100% {transform: scale(1);}
+}
+
 .sapMBadge {
 	overflow: visible;
 	position: relative;
-	.sapMBadgeIndicator {
+
+	.sapMBadgeDefault {
 		position: absolute;
 		top: -0.125rem;
 		right: -0.25rem;
@@ -101,24 +126,54 @@
 		padding-right: 0.125rem;
 		box-sizing: border-box;
 		height: 100%;
+		transform-origin: center center;
+
+		pointer-events: none;
+
 		&:after {
-			content:  attr(data-badge);
-			padding: 0 0.3125rem;
 			border-radius: 1.125rem;
-			height: 1.125rem;
 			display: block;
 
+			padding: 0 0.3125rem;
+			min-width: 0.5rem;
+			height: 1.125rem;
 			line-height: 1.125rem;
-			font-size: 0.6875rem;
+			font-size: @sapMFontSmallSize;
 			font-family: @sapUiFontFamily;
+			text-align: center;
 
-			background-color: @sapAccentColor2;
-			border-color: @sapUiContentBadgeBackground;
-			color: @sapUiShellTextColor;
+			background-color: @sapUiContentBadgeBackground;
+			border: 0.0625rem solid @sapUiContentBadgeBackground;
+			color: @sapUiContentBadgeTextColor;
 
 			text-overflow: ellipsis;
 			white-space: nowrap;
 			overflow: hidden;
+
+			.badgeAccentColorMixin(10);
+		}
+		//We need one more pseudo-element, attached to the badge indicator, in order
+		//to show the pulse animation simultaneously with the bounce one.
+		&:before {
+			position: absolute;
+			border-radius: 1.125rem;
+			display: block;
+
+			padding: 0 0.3125rem;
+			min-width: 0.5rem;
+			height: 1.125rem;
+			line-height: 1.125rem;
+			font-size: @sapMFontSmallSize;
+			font-family: @sapUiFontFamily;
+
+			background-color: @sapUiContentBadgeBackground;
+			border: 0.0625rem solid @sapUiContentBadgeBackground;
+			color: @sapUiContentBadgeTextColor;
+
+			text-overflow: ellipsis;
+			overflow: hidden;
+			opacity:0;
+
 			.badgeAccentColorMixin(10);
 		}
 		.sapMBadgeTopLeft& {
@@ -136,6 +191,55 @@
 			top: 0;
 		}
 	}
+
+	/* The attention badge is a single dot, which does not contain text or icons. */
+	.sapMBadgeAttention {
+		position: absolute;
+		top: -0.25rem;
+		right: -0.25rem;
+		width: 0.5rem;
+		height: 0.5rem;
+
+		border-radius: 1.125rem;
+		background-color: @sapUiContentBadgeBackground;
+		border: 0.125rem solid @sapUiObjectHeaderBackground;
+	}
+}
+
+.sapMBadgeIndicator.sapMBadgeDefault:after {
+	content: attr(data-badge);
+}
+
+html[data-sap-ui-animation='on'] {
+	.sapMBadgeAttention.sapMBadgeAnimationAdd,
+	.sapMBadgeDefault.sapMBadgeAnimationAdd:after {
+		animation: sapMBadgeAppearBounce .1s;
+	}
+
+	.sapMBadgeDefault.sapMBadgeAnimationAdd:before {
+		content: attr(data-badge);
+		animation: sapMBadgeAppearPulse .2s;
+	}
+
+	.sapMBadgeAttention.sapMBadgeAnimationRemove,
+	.sapMBadgeDefault.sapMBadgeAnimationRemove:after {
+		animation: sapMBadgeDisappear .1s;
+		animation-fill-mode: forwards;
+		transform-origin: center;
+	}
+
+	.sapMBadgeDefault.sapMBadgeAnimationUpdate:after {
+		animation: sapMBadgeUpdate .1s;
+		animation-fill-mode: forwards;
+	}
+}
+
+html[data-sap-ui-animation='off'] {
+	.sapMBadgeAttention.sapMBadgeAnimationRemove,
+	.sapMBadgeDefault.sapMBadgeAnimationRemove:after {
+		scale: 0;
+		opacity: 0;
+	}
 }
 
 .badgeAccentColorMixin(@n, @i: 1) when (@i =< @n) {
@@ -143,6 +247,7 @@
 
 	.sapMBadgeAccentColor@{i}& {
 		background-color: @@value;
+		border-color: @@value;
 	}
 	.badgeAccentColorMixin(@n, (@i + 1));
 }
