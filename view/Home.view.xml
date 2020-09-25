@@ -8,7 +8,7 @@
 		<content>
 			<l:BlockLayout>
 				<l:BlockLayoutRow>
-					<l:BlockLayoutCell width="100%" backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
+					<l:BlockLayoutCell backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
 						<FlexBox alignItems="Center" alignContent="Center" justifyContent="Center" backgroundDesign="Transparent" direction="Column">
 							<Avatar showBorder="true" displaySize="L" src="./resources/img/myself.webp" fallbackIcon="sap-icon://person-placeholder"/>
 						</FlexBox>
@@ -81,8 +81,8 @@
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
-						<FlexBox class="sapUiTinyMarginTop" wrap="Wrap" direction="Row" justifyContent="Center" alignItems="Center">
-							<SlideTile class="sapUiTinyMarginBegin sapUiTinyMarginTop">
+						<FlexBox wrap="Wrap" direction="Row" justifyContent="Center" alignItems="Center">
+							<SlideTile class="sapUiTinyMarginTop sapUiMediumMarginBeginEnd">
 								<tiles>
 									<GenericTile header="SAP" subheader="ERP, EWM, SolMan">
 										<TileContent>
@@ -101,7 +101,7 @@
 									</GenericTile>
 								</tiles>
 							</SlideTile>
-							<SlideTile class="sapUiTinyMarginBegin sapUiTinyMarginTop">
+							<SlideTile class="sapUiTinyMarginTop sapUiMediumMarginBeginEnd">
 								<tiles>
 									<GenericTile header="JavaScript">
 										<TileContent>
@@ -120,7 +120,7 @@
 									</GenericTile>
 								</tiles>
 							</SlideTile>
-							<SlideTile class="sapUiTinyMarginBegin sapUiTinyMarginTop">
+							<SlideTile class="sapUiTinyMarginTop sapUiMediumMarginBeginEnd">
 								<tiles>
 									<GenericTile header="Git" subheader="github, gitlab">
 										<TileContent>

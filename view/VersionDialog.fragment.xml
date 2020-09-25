@@ -1,6 +1,6 @@
 <core:FragmentDefinition xmlns="sap.m" 
     xmlns:core="sap.ui.core">
-    <Dialog title="Info" titleAlignment="Center" verticalScrolling="false" horizontalScrolling="false">
+    <Dialog title="{i18n>versionInfoPopUp}" verticalScrolling="false" horizontalScrolling="false">
         <FlexBox direction="Row" justifyContent="Center">
             <FlexBox direction="Column">
                 <FlexBox direction="Row" justifyContent="Start">
