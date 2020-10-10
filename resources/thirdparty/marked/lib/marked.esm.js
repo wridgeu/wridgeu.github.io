@@ -975,9 +975,9 @@ const block = {
   html: '^ {0,3}(?:' // optional indentation
     + '<(script|pre|style)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)' // (1)
     + '|comment[^\\n]*(\\n+|$)' // (2)
-    + '|<\\?[\\s\\S]*?\\?>\\n*' // (3)
-    + '|<![A-Z][\\s\\S]*?>\\n*' // (4)
-    + '|<!\\[CDATA\\[[\\s\\S]*?\\]\\]>\\n*' // (5)
+    + '|<\\?[\\s\\S]*?(?:\\?>\\n*|$)' // (3)
+    + '|<![A-Z][\\s\\S]*?(?:>\\n*|$)' // (4)
+    + '|<!\\[CDATA\\[[\\s\\S]*?(?:\\]\\]>\\n*|$)' // (5)
     + '|</?(tag)(?: +|\\n|/?>)[\\s\\S]*?(?:\\n{2,}|$)' // (6)
     + '|<(?!script|pre|style)([a-z][\\w-]*)(?:attribute)*? */?>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:\\n{2,}|$)' // (7) open tag
     + '|</(?!script|pre|style)[a-z][\\w-]*\\s*>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:\\n{2,}|$)' // (7) closing tag
@@ -1017,7 +1017,7 @@ block._tag = 'address|article|aside|base|basefont|blockquote|body|caption'
   + '|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option'
   + '|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr'
   + '|track|ul';
-block._comment = /<!--(?!-?>)[\s\S]*?-->/;
+block._comment = /<!--(?!-?>)[\s\S]*?(?:-->|$)/;
 block.html = edit$1(block.html, 'i')
   .replace('comment', block._comment)
   .replace('tag', block._tag)
@@ -1051,10 +1051,10 @@ block.normal = merge$1({}, block);
 
 block.gfm = merge$1({}, block.normal, {
   nptable: '^ *([^|\\n ].*\\|.*)\\n' // Header
-    + ' *([-:]+ *\\|[-| :]*)' // Align
+    + ' {0,3}([-:]+ *\\|[-| :]*)' // Align
     + '(?:\\n((?:(?!\\n|hr|heading|blockquote|code|fences|list|html).*(?:\\n|$))*)\\n*|$)', // Cells
   table: '^ *\\|(.+)\\n' // Header
-    + ' *\\|?( *[-:]+[-| :]*)' // Align
+    + ' {0,3}\\|?( *[-:]+[-| :]*)' // Align
     + '(?:\\n *((?:(?!\\n|hr|heading|blockquote|code|fences|list|html).*(?:\\n|$))*)\\n*|$)' // Cells
 });
 
@@ -1129,19 +1129,19 @@ const inline = {
   strong: {
     start: /^(?:(\*\*(?=[*punctuation]))|\*\*)(?![\s])|__/, // (1) returns if starts w/ punctuation
     middle: /^\*\*(?:(?:(?!overlapSkip)(?:[^*]|\\\*)|overlapSkip)|\*(?:(?!overlapSkip)(?:[^*]|\\\*)|overlapSkip)*?\*)+?\*\*$|^__(?![\s])((?:(?:(?!overlapSkip)(?:[^_]|\\_)|overlapSkip)|_(?:(?!overlapSkip)(?:[^_]|\\_)|overlapSkip)*?_)+?)__$/,
-    endAst: /[^punctuation\s]\*\*(?!\*)|[punctuation]\*\*(?!\*)(?:(?=[punctuation\s]|$))/, // last char can't be punct, or final * must also be followed by punct (or endline)
-    endUnd: /[^\s]__(?!_)(?:(?=[punctuation\s])|$)/ // last char can't be a space, and final _ must preceed punct or \s (or endline)
+    endAst: /[^punctuation\s]\*\*(?!\*)|[punctuation]\*\*(?!\*)(?:(?=[punctuation_\s]|$))/, // last char can't be punct, or final * must also be followed by punct (or endline)
+    endUnd: /[^\s]__(?!_)(?:(?=[punctuation*\s])|$)/ // last char can't be a space, and final _ must preceed punct or \s (or endline)
   },
   em: {
     start: /^(?:(\*(?=[punctuation]))|\*)(?![*\s])|_/, // (1) returns if starts w/ punctuation
     middle: /^\*(?:(?:(?!overlapSkip)(?:[^*]|\\\*)|overlapSkip)|\*(?:(?!overlapSkip)(?:[^*]|\\\*)|overlapSkip)*?\*)+?\*$|^_(?![_\s])(?:(?:(?!overlapSkip)(?:[^_]|\\_)|overlapSkip)|_(?:(?!overlapSkip)(?:[^_]|\\_)|overlapSkip)*?_)+?_$/,
-    endAst: /[^punctuation\s]\*(?!\*)|[punctuation]\*(?!\*)(?:(?=[punctuation\s]|$))/, // last char can't be punct, or final * must also be followed by punct (or endline)
-    endUnd: /[^\s]_(?!_)(?:(?=[punctuation\s])|$)/ // last char can't be a space, and final _ must preceed punct or \s (or endline)
+    endAst: /[^punctuation\s]\*(?!\*)|[punctuation]\*(?!\*)(?:(?=[punctuation_\s]|$))/, // last char can't be punct, or final * must also be followed by punct (or endline)
+    endUnd: /[^\s]_(?!_)(?:(?=[punctuation*\s])|$)/ // last char can't be a space, and final _ must preceed punct or \s (or endline)
   },
   code: /^(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/,
   br: /^( {2,}|\\)\n(?!\s*$)/,
   del: noopTest$1,
-  text: /^(`+|[^`])(?:[\s\S]*?(?:(?=[\\<!\[`*]|\b_|$)|[^ ](?= {2,}\n))|(?= {2,}\n))/,
+  text: /^(`+|[^`])(?:(?= {2,}\n)|[\s\S]*?(?:(?=[\\<!\[`*]|\b_|$)|[^ ](?= {2,}\n)))/,
   punctuation: /^([\s*punctuation])/
 };
 
@@ -1153,6 +1153,8 @@ inline.punctuation = edit$1(inline.punctuation).replace(/punctuation/g, inline._
 // sequences em should skip over [title](link), `code`, <html>
 inline._blockSkip = '\\[[^\\]]*?\\]\\([^\\)]*?\\)|`[^`]*?`|<[^>]*?>';
 inline._overlapSkip = '__[^_]*?__|\\*\\*\\[^\\*\\]*?\\*\\*';
+
+inline._comment = edit$1(block._comment).replace('(?:-->|$)', '-->').getRegex();
 
 inline.em.start = edit$1(inline.em.start)
   .replace(/punctuation/g, inline._punctuation)
@@ -1177,7 +1179,7 @@ inline.strong.start = edit$1(inline.strong.start)
 
 inline.strong.middle = edit$1(inline.strong.middle)
   .replace(/punctuation/g, inline._punctuation)
-  .replace(/blockSkip/g, inline._blockSkip)
+  .replace(/overlapSkip/g, inline._overlapSkip)
   .getRegex();
 
 inline.strong.endAst = edit$1(inline.strong.endAst, 'g')
@@ -1206,7 +1208,7 @@ inline.autolink = edit$1(inline.autolink)
 inline._attribute = /\s+[a-zA-Z:_][\w.:-]*(?:\s*=\s*"[^"]*"|\s*=\s*'[^']*'|\s*=\s*[^\s"'=<>`]+)?/;
 
 inline.tag = edit$1(inline.tag)
-  .replace('comment', block._comment)
+  .replace('comment', inline._comment)
   .replace('attribute', inline._attribute)
   .getRegex();
 
@@ -1270,7 +1272,7 @@ inline.gfm = merge$1({}, inline.normal, {
   url: /^((?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9\-]+\.?)+[^\s<]*|^email/,
   _backpedal: /(?:[^?!.,:;*_~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_~)]+(?!$))+/,
   del: /^~+(?=\S)([\s\S]*?\S)~+/,
-  text: /^(`+|[^`])(?:[\s\S]*?(?:(?=[\\<!\[`*~]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))|(?= {2,}\n|[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))/
+  text: /^(`+|[^`])(?:(?= {2,}\n)|[\s\S]*?(?:(?=[\\<!\[`*~]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))/
 });
 
 inline.gfm.url = edit$1(inline.gfm.url, 'i')
@@ -1384,6 +1386,14 @@ var Lexer_1 = class Lexer {
   static lex(src, options) {
     const lexer = new Lexer(options);
     return lexer.lex(src);
+  }
+
+  /**
+   * Static Lex Inline Method
+   */
+  static lexInline(src, options) {
+    const lexer = new Lexer(options);
+    return lexer.inlineTokens(src);
   }
 
   /**
@@ -1961,11 +1971,8 @@ var Slugger_1 = class Slugger {
     this.seen = {};
   }
 
-  /**
-   * Convert string to unique id
-   */
-  slug(value) {
-    let slug = value
+  serialize(value) {
+    return value
       .toLowerCase()
       .trim()
       // remove html tags
@@ -1973,17 +1980,36 @@ var Slugger_1 = class Slugger {
       // remove unwanted chars
       .replace(/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,./:;<=>?@[\]^`{|}~]/g, '')
       .replace(/\s/g, '-');
+  }
 
+  /**
+   * Finds the next safe (unique) slug to use
+   */
+  getNextSafeSlug(originalSlug, isDryRun) {
+    let slug = originalSlug;
+    let occurenceAccumulator = 0;
     if (this.seen.hasOwnProperty(slug)) {
-      const originalSlug = slug;
+      occurenceAccumulator = this.seen[originalSlug];
       do {
-        this.seen[originalSlug]++;
-        slug = originalSlug + '-' + this.seen[originalSlug];
+        occurenceAccumulator++;
+        slug = originalSlug + '-' + occurenceAccumulator;
       } while (this.seen.hasOwnProperty(slug));
     }
-    this.seen[slug] = 0;
-
+    if (!isDryRun) {
+      this.seen[originalSlug] = occurenceAccumulator;
+      this.seen[slug] = 0;
+    }
     return slug;
+  }
+
+  /**
+   * Convert string to unique id
+   * @param {object} options
+   * @param {boolean} options.dryrun Generates the next unique slug without updating the internal accumulator.
+   */
+  slug(value, options = {}) {
+    const slug = this.serialize(value);
+    return this.getNextSafeSlug(slug, options.dryrun);
   }
 };
 
@@ -2011,6 +2037,14 @@ var Parser_1 = class Parser {
   static parse(tokens, options) {
     const parser = new Parser(options);
     return parser.parse(tokens);
+  }
+
+  /**
+   * Static Parse Inline Method
+   */
+  static parseInline(tokens, options) {
+    const parser = new Parser(options);
+    return parser.parseInline(tokens);
   }
 
   /**
@@ -2445,6 +2479,39 @@ marked.walkTokens = function(tokens, callback) {
         }
       }
     }
+  }
+};
+
+/**
+ * Parse Inline
+ */
+marked.parseInline = function(src, opt) {
+  // throw error in case of non string input
+  if (typeof src === 'undefined' || src === null) {
+    throw new Error('marked.parseInline(): input parameter is undefined or null');
+  }
+  if (typeof src !== 'string') {
+    throw new Error('marked.parseInline(): input parameter is of type '
+      + Object.prototype.toString.call(src) + ', string expected');
+  }
+
+  opt = merge$2({}, marked.defaults, opt || {});
+  checkSanitizeDeprecation$1(opt);
+
+  try {
+    const tokens = Lexer_1.lexInline(src, opt);
+    if (opt.walkTokens) {
+      marked.walkTokens(tokens, opt.walkTokens);
+    }
+    return Parser_1.parseInline(tokens, opt);
+  } catch (e) {
+    e.message += '\nPlease report this to https://github.com/markedjs/marked.';
+    if (opt.silent) {
+      return '<p>An error occurred:</p><pre>'
+        + escape$3(e.message + '', true)
+        + '</pre>';
+    }
+    throw e;
   }
 };
 

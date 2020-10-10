@@ -18,9 +18,9 @@ const block = {
   html: '^ {0,3}(?:' // optional indentation
     + '<(script|pre|style)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)' // (1)
     + '|comment[^\\n]*(\\n+|$)' // (2)
-    + '|<\\?[\\s\\S]*?\\?>\\n*' // (3)
-    + '|<![A-Z][\\s\\S]*?>\\n*' // (4)
-    + '|<!\\[CDATA\\[[\\s\\S]*?\\]\\]>\\n*' // (5)
+    + '|<\\?[\\s\\S]*?(?:\\?>\\n*|$)' // (3)
+    + '|<![A-Z][\\s\\S]*?(?:>\\n*|$)' // (4)
+    + '|<!\\[CDATA\\[[\\s\\S]*?(?:\\]\\]>\\n*|$)' // (5)
     + '|</?(tag)(?: +|\\n|/?>)[\\s\\S]*?(?:\\n{2,}|$)' // (6)
     + '|<(?!script|pre|style)([a-z][\\w-]*)(?:attribute)*? */?>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:\\n{2,}|$)' // (7) open tag
     + '|</(?!script|pre|style)[a-z][\\w-]*\\s*>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:\\n{2,}|$)' // (7) closing tag
@@ -60,7 +60,7 @@ block._tag = 'address|article|aside|base|basefont|blockquote|body|caption'
   + '|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option'
   + '|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr'
   + '|track|ul';
-block._comment = /<!--(?!-?>)[\s\S]*?-->/;
+block._comment = /<!--(?!-?>)[\s\S]*?(?:-->|$)/;
 block.html = edit(block.html, 'i')
   .replace('comment', block._comment)
   .replace('tag', block._tag)
@@ -94,10 +94,10 @@ block.normal = merge({}, block);
 
 block.gfm = merge({}, block.normal, {
   nptable: '^ *([^|\\n ].*\\|.*)\\n' // Header
-    + ' *([-:]+ *\\|[-| :]*)' // Align
+    + ' {0,3}([-:]+ *\\|[-| :]*)' // Align
     + '(?:\\n((?:(?!\\n|hr|heading|blockquote|code|fences|list|html).*(?:\\n|$))*)\\n*|$)', // Cells
   table: '^ *\\|(.+)\\n' // Header
-    + ' *\\|?( *[-:]+[-| :]*)' // Align
+    + ' {0,3}\\|?( *[-:]+[-| :]*)' // Align
     + '(?:\\n *((?:(?!\\n|hr|heading|blockquote|code|fences|list|html).*(?:\\n|$))*)\\n*|$)' // Cells
 });
 
@@ -172,19 +172,19 @@ const inline = {
   strong: {
     start: /^(?:(\*\*(?=[*punctuation]))|\*\*)(?![\s])|__/, // (1) returns if starts w/ punctuation
     middle: /^\*\*(?:(?:(?!overlapSkip)(?:[^*]|\\\*)|overlapSkip)|\*(?:(?!overlapSkip)(?:[^*]|\\\*)|overlapSkip)*?\*)+?\*\*$|^__(?![\s])((?:(?:(?!overlapSkip)(?:[^_]|\\_)|overlapSkip)|_(?:(?!overlapSkip)(?:[^_]|\\_)|overlapSkip)*?_)+?)__$/,
-    endAst: /[^punctuation\s]\*\*(?!\*)|[punctuation]\*\*(?!\*)(?:(?=[punctuation\s]|$))/, // last char can't be punct, or final * must also be followed by punct (or endline)
-    endUnd: /[^\s]__(?!_)(?:(?=[punctuation\s])|$)/ // last char can't be a space, and final _ must preceed punct or \s (or endline)
+    endAst: /[^punctuation\s]\*\*(?!\*)|[punctuation]\*\*(?!\*)(?:(?=[punctuation_\s]|$))/, // last char can't be punct, or final * must also be followed by punct (or endline)
+    endUnd: /[^\s]__(?!_)(?:(?=[punctuation*\s])|$)/ // last char can't be a space, and final _ must preceed punct or \s (or endline)
   },
   em: {
     start: /^(?:(\*(?=[punctuation]))|\*)(?![*\s])|_/, // (1) returns if starts w/ punctuation
     middle: /^\*(?:(?:(?!overlapSkip)(?:[^*]|\\\*)|overlapSkip)|\*(?:(?!overlapSkip)(?:[^*]|\\\*)|overlapSkip)*?\*)+?\*$|^_(?![_\s])(?:(?:(?!overlapSkip)(?:[^_]|\\_)|overlapSkip)|_(?:(?!overlapSkip)(?:[^_]|\\_)|overlapSkip)*?_)+?_$/,
-    endAst: /[^punctuation\s]\*(?!\*)|[punctuation]\*(?!\*)(?:(?=[punctuation\s]|$))/, // last char can't be punct, or final * must also be followed by punct (or endline)
-    endUnd: /[^\s]_(?!_)(?:(?=[punctuation\s])|$)/ // last char can't be a space, and final _ must preceed punct or \s (or endline)
+    endAst: /[^punctuation\s]\*(?!\*)|[punctuation]\*(?!\*)(?:(?=[punctuation_\s]|$))/, // last char can't be punct, or final * must also be followed by punct (or endline)
+    endUnd: /[^\s]_(?!_)(?:(?=[punctuation*\s])|$)/ // last char can't be a space, and final _ must preceed punct or \s (or endline)
   },
   code: /^(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/,
   br: /^( {2,}|\\)\n(?!\s*$)/,
   del: noopTest,
-  text: /^(`+|[^`])(?:[\s\S]*?(?:(?=[\\<!\[`*]|\b_|$)|[^ ](?= {2,}\n))|(?= {2,}\n))/,
+  text: /^(`+|[^`])(?:(?= {2,}\n)|[\s\S]*?(?:(?=[\\<!\[`*]|\b_|$)|[^ ](?= {2,}\n)))/,
   punctuation: /^([\s*punctuation])/
 };
 
@@ -196,6 +196,8 @@ inline.punctuation = edit(inline.punctuation).replace(/punctuation/g, inline._pu
 // sequences em should skip over [title](link), `code`, <html>
 inline._blockSkip = '\\[[^\\]]*?\\]\\([^\\)]*?\\)|`[^`]*?`|<[^>]*?>';
 inline._overlapSkip = '__[^_]*?__|\\*\\*\\[^\\*\\]*?\\*\\*';
+
+inline._comment = edit(block._comment).replace('(?:-->|$)', '-->').getRegex();
 
 inline.em.start = edit(inline.em.start)
   .replace(/punctuation/g, inline._punctuation)
@@ -220,7 +222,7 @@ inline.strong.start = edit(inline.strong.start)
 
 inline.strong.middle = edit(inline.strong.middle)
   .replace(/punctuation/g, inline._punctuation)
-  .replace(/blockSkip/g, inline._blockSkip)
+  .replace(/overlapSkip/g, inline._overlapSkip)
   .getRegex();
 
 inline.strong.endAst = edit(inline.strong.endAst, 'g')
@@ -249,7 +251,7 @@ inline.autolink = edit(inline.autolink)
 inline._attribute = /\s+[a-zA-Z:_][\w.:-]*(?:\s*=\s*"[^"]*"|\s*=\s*'[^']*'|\s*=\s*[^\s"'=<>`]+)?/;
 
 inline.tag = edit(inline.tag)
-  .replace('comment', block._comment)
+  .replace('comment', inline._comment)
   .replace('attribute', inline._attribute)
   .getRegex();
 
@@ -313,7 +315,7 @@ inline.gfm = merge({}, inline.normal, {
   url: /^((?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9\-]+\.?)+[^\s<]*|^email/,
   _backpedal: /(?:[^?!.,:;*_~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_~)]+(?!$))+/,
   del: /^~+(?=\S)([\s\S]*?\S)~+/,
-  text: /^(`+|[^`])(?:[\s\S]*?(?:(?=[\\<!\[`*~]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))|(?= {2,}\n|[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))/
+  text: /^(`+|[^`])(?:(?= {2,}\n)|[\s\S]*?(?:(?=[\\<!\[`*~]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))/
 });
 
 inline.gfm.url = edit(inline.gfm.url, 'i')
