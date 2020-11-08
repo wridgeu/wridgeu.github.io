@@ -281,6 +281,22 @@ function checkSanitizeDeprecation(opt) {
   }
 }
 
+// copied from https://stackoverflow.com/a/5450113/806777
+function repeatString(pattern, count) {
+  if (count < 1) {
+    return '';
+  }
+  let result = '';
+  while (count > 1) {
+    if (count & 1) {
+      result += pattern;
+    }
+    count >>= 1;
+    pattern += pattern;
+  }
+  return result + pattern;
+}
+
 var helpers = {
   escape,
   unescape,
@@ -292,7 +308,8 @@ var helpers = {
   splitCells,
   rtrim,
   findClosingBracket,
-  checkSanitizeDeprecation
+  checkSanitizeDeprecation,
+  repeatString
 };
 
 const { defaults: defaults$1 } = defaults;
@@ -492,7 +509,6 @@ var Tokenizer_1 = class Tokenizer {
       let raw = cap[0];
       const bull = cap[2];
       const isordered = bull.length > 1;
-      const isparen = bull[bull.length - 1] === ')';
 
       const list = {
         type: 'list',
@@ -509,21 +525,49 @@ var Tokenizer_1 = class Tokenizer {
       let next = false,
         item,
         space,
-        b,
+        bcurr,
+        bnext,
         addBack,
         loose,
         istask,
         ischecked;
 
-      const l = itemMatch.length;
+      let l = itemMatch.length;
+      bcurr = this.rules.block.listItemStart.exec(itemMatch[0]);
       for (let i = 0; i < l; i++) {
         item = itemMatch[i];
         raw = item;
 
+        // Determine whether the next list item belongs here.
+        // Backpedal if it does not belong in this list.
+        if (i !== l - 1) {
+          bnext = this.rules.block.listItemStart.exec(itemMatch[i + 1]);
+
+          if (bnext[1].length > bcurr[0].length || bnext[1].length > 3) {
+            // nested list
+            itemMatch.splice(i, 2, itemMatch[i] + '\n' + itemMatch[i + 1]);
+            i--;
+            l--;
+            continue;
+          } else {
+            if (
+              // different bullet style
+              !this.options.pedantic || this.options.smartLists
+                ? bnext[2][bnext[2].length - 1] !== bull[bull.length - 1]
+                : isordered === (bnext[2].length === 1)
+            ) {
+              addBack = itemMatch.slice(i + 1).join('\n');
+              list.raw = list.raw.substring(0, list.raw.length - addBack.length);
+              i = l - 1;
+            }
+          }
+          bcurr = bnext;
+        }
+
         // Remove the list item's bullet
         // so it is seen as the next token.
         space = item.length;
-        item = item.replace(/^ *([*+-]|\d+[.)]) */, '');
+        item = item.replace(/^ *([*+-]|\d+[.)]) ?/, '');
 
         // Outdent whatever the
         // list item contains. Hacky.
@@ -532,18 +576,6 @@ var Tokenizer_1 = class Tokenizer {
           item = !this.options.pedantic
             ? item.replace(new RegExp('^ {1,' + space + '}', 'gm'), '')
             : item.replace(/^ {1,4}/gm, '');
-        }
-
-        // Determine whether the next list item belongs here.
-        // Backpedal if it does not belong in this list.
-        if (i !== l - 1) {
-          b = this.rules.block.bullet.exec(itemMatch[i + 1])[0];
-          if (isordered ? b.length === 1 || (!isparen && b[b.length - 1] === ')')
-            : (b.length > 1 || (this.options.smartLists && b !== bull))) {
-            addBack = itemMatch.slice(i + 1).join('\n');
-            list.raw = list.raw.substring(0, list.raw.length - addBack.length);
-            i = l - 1;
-          }
         }
 
         // Determine whether item is loose or not.
@@ -971,7 +1003,7 @@ const block = {
   hr: /^ {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\* *){3,})(?:\n+|$)/,
   heading: /^ {0,3}(#{1,6}) +([^\n]*?)(?: +#+)? *(?:\n+|$)/,
   blockquote: /^( {0,3}> ?(paragraph|[^\n]*)(?:\n|$))+/,
-  list: /^( {0,3})(bull) [\s\S]+?(?:hr|def|\n{2,}(?! )(?!\1bull )\n*|\s*$)/,
+  list: /^( {0,3})(bull) [\s\S]+?(?:hr|def|\n{2,}(?! )(?! {0,3}bull )\n*|\s*$)/,
   html: '^ {0,3}(?:' // optional indentation
     + '<(script|pre|style)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)' // (1)
     + '|comment[^\\n]*(\\n+|$)' // (2)
@@ -1000,9 +1032,13 @@ block.def = edit$1(block.def)
   .getRegex();
 
 block.bullet = /(?:[*+-]|\d{1,9}[.)])/;
-block.item = /^( *)(bull) ?[^\n]*(?:\n(?!\1bull ?)[^\n]*)*/;
+block.item = /^( *)(bull) ?[^\n]*(?:\n(?! *bull ?)[^\n]*)*/;
 block.item = edit$1(block.item, 'gm')
   .replace(/bull/g, block.bullet)
+  .getRegex();
+
+block.listItemStart = edit$1(/^( *)(bull)/)
+  .replace('bull', block.bullet)
   .getRegex();
 
 block.list = edit$1(block.list)
@@ -1297,6 +1333,7 @@ var rules = {
 
 const { defaults: defaults$2 } = defaults;
 const { block: block$1, inline: inline$1 } = rules;
+const { repeatString: repeatString$1 } = helpers;
 
 /**
  * smartypants text replacement
@@ -1633,14 +1670,14 @@ var Lexer_1 = class Lexer {
       if (links.length > 0) {
         while ((match = this.tokenizer.rules.inline.reflinkSearch.exec(maskedSrc)) != null) {
           if (links.includes(match[0].slice(match[0].lastIndexOf('[') + 1, -1))) {
-            maskedSrc = maskedSrc.slice(0, match.index) + '[' + 'a'.repeat(match[0].length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules.inline.reflinkSearch.lastIndex);
+            maskedSrc = maskedSrc.slice(0, match.index) + '[' + repeatString$1('a', match[0].length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules.inline.reflinkSearch.lastIndex);
           }
         }
       }
     }
     // Mask out other blocks
     while ((match = this.tokenizer.rules.inline.blockSkip.exec(maskedSrc)) != null) {
-      maskedSrc = maskedSrc.slice(0, match.index) + '[' + 'a'.repeat(match[0].length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules.inline.blockSkip.lastIndex);
+      maskedSrc = maskedSrc.slice(0, match.index) + '[' + repeatString$1('a', match[0].length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules.inline.blockSkip.lastIndex);
     }
 
     while (src) {

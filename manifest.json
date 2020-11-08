@@ -1,11 +1,11 @@
 {
-	"_version": "1.27.0",
+	"_version": "1.28.0",
 	"sap.app": {
 		"id": "sapmarco.projectpages",
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
-			"version": "1.10.0"
+			"version": "1.11.0"
 		},
 		"title": "{{appTitle}}",
 		"description": "{{appDescription}}",
