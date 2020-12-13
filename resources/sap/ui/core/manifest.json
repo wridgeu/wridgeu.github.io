@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.82.2"
+      "version": "1.84.0"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -25,6 +25,11 @@
       },
       {
         "name": "jquery_mobile",
+        "packagedWithMySelf": true,
+        "version": "0.0.0"
+      },
+      {
+        "name": "jquery.rtl-scroll-type",
         "packagedWithMySelf": true,
         "version": "0.0.0"
       },
@@ -244,7 +249,7 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.82",
+      "minUI5Version": "1.84",
       "libs": {}
     },
     "library": {
@@ -301,6 +306,7 @@
           "sap.ui.core.AbsoluteCSSSize",
           "sap.ui.core.AccessibleRole",
           "sap.ui.core.AccessibleLandmarkRole",
+          "sap.ui.core.aria.HasPopup",
           "sap.ui.core.BarColor",
           "sap.ui.core.BusyIndicatorSize",
           "sap.ui.core.CalendarType",

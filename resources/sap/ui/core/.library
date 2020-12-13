@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.82.2</version>
+  <version>1.84.0</version>
 
   <documentation>The SAPUI5 Core Runtime.
 
@@ -261,6 +261,9 @@
         <lib name="jquery_mobile" displayName="jQuery Mobile" homepage="http://jquerymobile.com">
         	<license url="http://jQuery.org/license" type="MIT License" file="../thirdparty/licenses/jQuery-MIT-LICENSE.txt" />
         </lib>
+        <lib name="jquery.rtl-scroll-type" displayName="jQuery.rtl-scroll-type" homepage="https://github.com/othree/jquery.rtl-scroll-type">
+        	<license url="https://github.com/othree/jquery.rtl-scroll-type/blob/master/LICENSE" type="MIT License" file="../thirdparty/licenses/jQuery.rtl-scroll-type-MIT-LICENSE.txt" />
+        </lib>
         <lib name="qunit-composite" displayName="Qunit Composite" homepage="https://github.com/jquery/qunit-composite">
         	<license url="http://jquery.org/license" type="MIT License" file="../thirdparty/licenses/qunit-composite-MIT-LICENSE.txt" />
         </lib>
@@ -423,6 +426,8 @@
         <component>
             <name>CA-UI5-CTR</name>
             <modules>
+                <module>sap/ui/core/StandardMargins</module>
+                <module>sap/ui/core/ContainerPadding</module>
                 <module>sap/ui/core/InvisibleText</module>
             </modules>
         </component>

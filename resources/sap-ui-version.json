@@ -1,67 +1,67 @@
 {
 	"name": "projectpages",
-	"version": "1.12.0",
-	"buildTimestamp": "202012131053",
+	"version": "1.12.1",
+	"buildTimestamp": "202012131100",
 	"scmRevision": "",
 	"libraries": [
 		{
 			"name": "sap.ui.fl",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.core",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.layout",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.unified",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.tnt",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.table",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.support",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.codeeditor",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.m",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.testrecorder",
-			"version": "1.82.2",
-			"buildTimestamp": "202012131053",
+			"version": "1.84.0",
+			"buildTimestamp": "202012131100",
 			"scmRevision": ""
 		}
 	]

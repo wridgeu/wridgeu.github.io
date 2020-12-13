@@ -193,7 +193,9 @@ html[data-sap-ui-os^="iOS"] .sapMBtnBase:not(.sapMBtn) .sapMBtnContent {
 
 .sapUiSizeCondensed .sapUiTableDataCell {
 	.sapMBtn {
-		height:           1.875rem;
+		height: 1.375rem;
+		padding-top: 0;
+		padding-bottom: 0;
 	}
 	.sapMBtnInner {
 		height:           1.375rem;
@@ -241,6 +243,17 @@ html[data-sap-ui-os^="iOS"] .sapMBtnBase:not(.sapMBtn) .sapMBtnContent {
 	background-image: none;
 	background-color: @sapUiButtonHoverBackground;
 	border-color: @sapUiButtonHoverBorderColor;
+}
+
+.sapMBtn:hover:not(.sapMBtnDisabled) > .sapMBtnHoverable:not(.sapMBtnDisabled):not(.sapMBtnActive):not(.sapMToggleBtnPressed):not(.sapMBtnTransparent) {
+	&.sapMBtnDefault,
+	&.sapMBtnBack,
+	&.sapMBtnGhost {
+		color: @sapUiButtonHoverTextColor;
+		.sapUiIcon {
+			color: @sapUiButtonHoverTextColor;
+		}
+	}
 }
 
 :not(.sapMBtnDisabled) > .sapMBtnInner.sapMBtnActive {
@@ -567,14 +580,17 @@ span.sapMBtnInner.sapMBtnEmphasized {
 	border-color:     @sapUiButtonLiteHoverBorderColor;
 }
 
-.sapMBtn:hover > .sapMBtnTransparent.sapMBtnHoverable:not(.sapMBtnActive) {
+.sapMBtn:hover:not(.sapMBtnDisabled) > .sapMBtnTransparent.sapMBtnHoverable:not(.sapMBtnActive):not(.sapMToggleBtnPressed):not(.sapMBtnEmphasized) {
 	color: @sapUiButtonLiteHoverTextColor;
+	.sapUiIcon {
+		color: @sapUiButtonLiteHoverTextColor;
+	}
 }
 
 .sapMBtn:hover:not(.sapMBtnDisabled) > .sapMBtnHoverable.sapMBtnTransparent:not(.sapMBtnActive):not(.sapMToggleBtnPressed) > .sapMBtnIcon,
 *.sapMBtn:hover:not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnTransparent:not(.sapMBtnActive):not(.sapMToggleBtnPressed) > .sapMBtnIcon,
 :not(.sapMBtnDisabled):not(.sapMSBActive) > span.sapMBtnInner.sapMBtnTransparent:not(.sapMBtnActive):not(.sapMToggleBtnPressed):hover > .sapMBtnIcon {
-	color: @sapUiButtonLiteHoverTextColor;
+	color:@sapUiButtonLiteHoverTextColor;
 }
 
 .sapMBtn:hover > .sapMBtnGhost.sapMBtnHoverable {
@@ -873,3 +889,4 @@ html.sap-desktop .sapMFooter-CTX .sapMBtnInner :not(.sapMBtnDisabled) {
 		}
 	}
 }
+

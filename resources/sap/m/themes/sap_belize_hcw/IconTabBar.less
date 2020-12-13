@@ -3,31 +3,37 @@
 /* Belize High Contrast White theme  */
 /* ================================= */
 
+@_sap_m_IconTabBar_FilterExpandButtonBadgeTop: 1.25rem;
+@_sap_m_IconTabBar_Compact_FilterExpandButtonBadgeTop: 0.5rem;
+
+
 /* Head Container */
 
 .sapMITH .sapMITBHead {
-	margin-top: 1rem;
-	padding: 0.125rem 0 0 0.125rem;
+	padding: 1.125rem 0 0 0.125rem;
 }
 
 .sapMITH.sapMITBTextOnly .sapMITHOverflow {
 	margin-top: 1rem;
 }
 
-.sapMITH.sapUiSizeCompact.sapMITBTextOnly .sapMITHOverflow {
-	margin-top: 0;
-
-	.sapMITBText {
-		padding: 0;
+.sapUiSizeCompact .sapMITH,
+.sapUiSizeCompact.sapMITH {
+	&.sapMITBTextOnly .sapMITHOverflow {
+		margin-top: 0;
+	
+		.sapMITBText {
+			padding: 0;
+		}
+	
+		.sapMITBFilterExpandBtn {
+			padding-bottom: 0.5rem;
+		}
 	}
 
-	.sapMITBFilterExpandBtn {
-		padding-bottom: 0.5rem;
+	&.sapMITBTextOnly.sapMITBInLine .sapMITHOverflow .sapMITBText {
+		padding-bottom: 0.25rem;
 	}
-}
-
-.sapMITH.sapUiSizeCompact.sapMITBTextOnly.sapMITBInLine .sapMITHOverflow .sapMITBText {
-	padding-bottom: 0.25rem;
 }
 
 /* Arrow */
