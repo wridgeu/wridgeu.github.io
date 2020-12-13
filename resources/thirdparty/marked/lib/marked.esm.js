@@ -435,11 +435,24 @@ var Tokenizer_1 = class Tokenizer {
   heading(src) {
     const cap = this.rules.block.heading.exec(src);
     if (cap) {
+      let text = cap[2].trim();
+
+      // remove trailing #s
+      if (text.endsWith('#')) {
+        const trimmed = rtrim$1(text, '#');
+        if (this.options.pedantic) {
+          text = trimmed.trim();
+        } else if (!trimmed || trimmed.endsWith(' ')) {
+          // CommonMark requires space before trailing #s
+          text = trimmed.trim();
+        }
+      }
+
       return {
         type: 'heading',
         raw: cap[0],
         depth: cap[1].length,
-        text: cap[2]
+        text: text
       };
     }
   }
@@ -592,11 +605,13 @@ var Tokenizer_1 = class Tokenizer {
         }
 
         // Check for task list items
-        istask = /^\[[ xX]\] /.test(item);
-        ischecked = undefined;
-        if (istask) {
-          ischecked = item[1] !== ' ';
-          item = item.replace(/^\[[ xX]\] +/, '');
+        if (this.options.gfm) {
+          istask = /^\[[ xX]\] /.test(item);
+          ischecked = undefined;
+          if (istask) {
+            ischecked = item[1] !== ' ';
+            item = item.replace(/^\[[ xX]\] +/, '');
+          }
         }
 
         list.items.push({
@@ -769,34 +784,56 @@ var Tokenizer_1 = class Tokenizer {
   link(src) {
     const cap = this.rules.inline.link.exec(src);
     if (cap) {
-      const lastParenIndex = findClosingBracket$1(cap[2], '()');
-      if (lastParenIndex > -1) {
-        const start = cap[0].indexOf('!') === 0 ? 5 : 4;
-        const linkLen = start + cap[1].length + lastParenIndex;
-        cap[2] = cap[2].substring(0, lastParenIndex);
-        cap[0] = cap[0].substring(0, linkLen).trim();
-        cap[3] = '';
+      const trimmedUrl = cap[2].trim();
+      if (!this.options.pedantic && trimmedUrl.startsWith('<')) {
+        // commonmark requires matching angle brackets
+        if (!trimmedUrl.endsWith('>')) {
+          return;
+        }
+
+        // ending angle bracket cannot be escaped
+        const rtrimSlash = rtrim$1(trimmedUrl.slice(0, -1), '\\');
+        if ((trimmedUrl.length - rtrimSlash.length) % 2 === 0) {
+          return;
+        }
+      } else {
+        // find closing parenthesis
+        const lastParenIndex = findClosingBracket$1(cap[2], '()');
+        if (lastParenIndex > -1) {
+          const start = cap[0].indexOf('!') === 0 ? 5 : 4;
+          const linkLen = start + cap[1].length + lastParenIndex;
+          cap[2] = cap[2].substring(0, lastParenIndex);
+          cap[0] = cap[0].substring(0, linkLen).trim();
+          cap[3] = '';
+        }
       }
       let href = cap[2];
       let title = '';
       if (this.options.pedantic) {
+        // split pedantic href and title
         const link = /^([^'"]*[^\s])\s+(['"])(.*)\2/.exec(href);
 
         if (link) {
           href = link[1];
           title = link[3];
-        } else {
-          title = '';
         }
       } else {
         title = cap[3] ? cap[3].slice(1, -1) : '';
       }
-      href = href.trim().replace(/^<([\s\S]*)>$/, '$1');
-      const token = outputLink(cap, {
+
+      href = href.trim();
+      if (href.startsWith('<')) {
+        if (this.options.pedantic && !trimmedUrl.endsWith('>')) {
+          // pedantic allows starting angle bracket without ending angle bracket
+          href = href.slice(1);
+        } else {
+          href = href.slice(1, -1);
+        }
+      }
+      return outputLink(cap, {
         href: href ? href.replace(this.rules.inline._escapes, '$1') : href,
         title: title ? title.replace(this.rules.inline._escapes, '$1') : title
       }, cap[0]);
-      return token;
     }
   }
 
@@ -814,8 +851,7 @@ var Tokenizer_1 = class Tokenizer {
           text
         };
       }
-      const token = outputLink(cap, link, cap[0]);
-      return token;
+      return outputLink(cap, link, cap[0]);
     }
   }
 
@@ -899,7 +935,7 @@ var Tokenizer_1 = class Tokenizer {
       return {
         type: 'del',
         raw: cap[0],
-        text: cap[1]
+        text: cap[2]
       };
     }
   }
@@ -1001,7 +1037,7 @@ const block = {
   code: /^( {4}[^\n]+\n*)+/,
   fences: /^ {0,3}(`{3,}(?=[^`\n]*\n)|~{3,})([^\n]*)\n(?:|([\s\S]*?)\n)(?: {0,3}\1[~`]* *(?:\n+|$)|$)/,
   hr: /^ {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\* *){3,})(?:\n+|$)/,
-  heading: /^ {0,3}(#{1,6}) +([^\n]*?)(?: +#+)? *(?:\n+|$)/,
+  heading: /^ {0,3}(#{1,6})(?=\s|$)(.*)(?:\n+|$)/,
   blockquote: /^( {0,3}> ?(paragraph|[^\n]*)(?:\n|$))+/,
   list: /^( {0,3})(bull) [\s\S]+?(?:hr|def|\n{2,}(?! )(?! {0,3}bull )\n*|\s*$)/,
   html: '^ {0,3}(?:' // optional indentation
@@ -1132,7 +1168,7 @@ block.pedantic = merge$1({}, block.normal, {
       + '\\b)\\w+(?!:|[^\\w\\s@]*@)\\b')
     .getRegex(),
   def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +(["(][^\n]+[")]))? *(?:\n+|$)/,
-  heading: /^ *(#{1,6}) *([^\n]+?) *(?:#+ *)?(?:\n+|$)/,
+  heading: /^(#{1,6})(.*)(?:\n+|$)/,
   fences: noopTest$1, // fences not supported
   paragraph: edit$1(block.normal._paragraph)
     .replace('hr', block.hr)
@@ -1249,7 +1285,7 @@ inline.tag = edit$1(inline.tag)
   .getRegex();
 
 inline._label = /(?:\[(?:\\.|[^\[\]\\])*\]|\\.|`[^`]*`|[^\[\]\\`])*?/;
-inline._href = /<(?:\\[<>]?|[^\s<>\\])*>|[^\s\x00-\x1f]*/;
+inline._href = /<(?:\\.|[^\n<>\\])+>|[^\s\x00-\x1f]*/;
 inline._title = /"(?:\\"?|[^"\\])*"|'(?:\\'?|[^'\\])*'|\((?:\\\)?|[^)\\])*\)/;
 
 inline.link = edit$1(inline.link)
@@ -1307,8 +1343,8 @@ inline.gfm = merge$1({}, inline.normal, {
   _extended_email: /[A-Za-z0-9._+-]+(@)[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/,
   url: /^((?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9\-]+\.?)+[^\s<]*|^email/,
   _backpedal: /(?:[^?!.,:;*_~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_~)]+(?!$))+/,
-  del: /^~+(?=\S)([\s\S]*?\S)~+/,
-  text: /^(`+|[^`])(?:(?= {2,}\n)|[\s\S]*?(?:(?=[\\<!\[`*~]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))/
+  del: /^(~~?)(?=[^\s~])([\s\S]*?[^\s~])\1(?=[^~]|$)/,
+  text: /^([`~]+|[^`~])(?:(?= {2,}\n)|[\s\S]*?(?:(?=[\\<!\[`*~]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@))/
 });
 
 inline.gfm.url = edit$1(inline.gfm.url, 'i')
@@ -1657,12 +1693,13 @@ var Lexer_1 = class Lexer {
   /**
    * Lexing/Compiling
    */
-  inlineTokens(src, tokens = [], inLink = false, inRawBlock = false, prevChar = '') {
+  inlineTokens(src, tokens = [], inLink = false, inRawBlock = false) {
     let token;
 
     // String with links masked to avoid interference with em and strong
     let maskedSrc = src;
     let match;
+    let keepPrevChar, prevChar;
 
     // Mask out reflinks
     if (this.tokens.links) {
@@ -1681,6 +1718,10 @@ var Lexer_1 = class Lexer {
     }
 
     while (src) {
+      if (!keepPrevChar) {
+        prevChar = '';
+      }
+      keepPrevChar = false;
       // escape
       if (token = this.tokenizer.escape(src)) {
         src = src.substring(token.raw.length);
@@ -1773,6 +1814,7 @@ var Lexer_1 = class Lexer {
       if (token = this.tokenizer.inlineText(src, inRawBlock, smartypants)) {
         src = src.substring(token.raw.length);
         prevChar = token.raw.slice(-1);
+        keepPrevChar = true;
         tokens.push(token);
         continue;
       }

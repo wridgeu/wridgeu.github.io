@@ -121,11 +121,24 @@ module.exports = class Tokenizer {
   heading(src) {
     const cap = this.rules.block.heading.exec(src);
     if (cap) {
+      let text = cap[2].trim();
+
+      // remove trailing #s
+      if (text.endsWith('#')) {
+        const trimmed = rtrim(text, '#');
+        if (this.options.pedantic) {
+          text = trimmed.trim();
+        } else if (!trimmed || trimmed.endsWith(' ')) {
+          // CommonMark requires space before trailing #s
+          text = trimmed.trim();
+        }
+      }
+
       return {
         type: 'heading',
         raw: cap[0],
         depth: cap[1].length,
-        text: cap[2]
+        text: text
       };
     }
   }
@@ -278,11 +291,13 @@ module.exports = class Tokenizer {
         }
 
         // Check for task list items
-        istask = /^\[[ xX]\] /.test(item);
-        ischecked = undefined;
-        if (istask) {
-          ischecked = item[1] !== ' ';
-          item = item.replace(/^\[[ xX]\] +/, '');
+        if (this.options.gfm) {
+          istask = /^\[[ xX]\] /.test(item);
+          ischecked = undefined;
+          if (istask) {
+            ischecked = item[1] !== ' ';
+            item = item.replace(/^\[[ xX]\] +/, '');
+          }
         }
 
         list.items.push({
@@ -455,34 +470,56 @@ module.exports = class Tokenizer {
   link(src) {
     const cap = this.rules.inline.link.exec(src);
     if (cap) {
-      const lastParenIndex = findClosingBracket(cap[2], '()');
-      if (lastParenIndex > -1) {
-        const start = cap[0].indexOf('!') === 0 ? 5 : 4;
-        const linkLen = start + cap[1].length + lastParenIndex;
-        cap[2] = cap[2].substring(0, lastParenIndex);
-        cap[0] = cap[0].substring(0, linkLen).trim();
-        cap[3] = '';
+      const trimmedUrl = cap[2].trim();
+      if (!this.options.pedantic && trimmedUrl.startsWith('<')) {
+        // commonmark requires matching angle brackets
+        if (!trimmedUrl.endsWith('>')) {
+          return;
+        }
+
+        // ending angle bracket cannot be escaped
+        const rtrimSlash = rtrim(trimmedUrl.slice(0, -1), '\\');
+        if ((trimmedUrl.length - rtrimSlash.length) % 2 === 0) {
+          return;
+        }
+      } else {
+        // find closing parenthesis
+        const lastParenIndex = findClosingBracket(cap[2], '()');
+        if (lastParenIndex > -1) {
+          const start = cap[0].indexOf('!') === 0 ? 5 : 4;
+          const linkLen = start + cap[1].length + lastParenIndex;
+          cap[2] = cap[2].substring(0, lastParenIndex);
+          cap[0] = cap[0].substring(0, linkLen).trim();
+          cap[3] = '';
+        }
       }
       let href = cap[2];
       let title = '';
       if (this.options.pedantic) {
+        // split pedantic href and title
         const link = /^([^'"]*[^\s])\s+(['"])(.*)\2/.exec(href);
 
         if (link) {
           href = link[1];
           title = link[3];
-        } else {
-          title = '';
         }
       } else {
         title = cap[3] ? cap[3].slice(1, -1) : '';
       }
-      href = href.trim().replace(/^<([\s\S]*)>$/, '$1');
-      const token = outputLink(cap, {
+
+      href = href.trim();
+      if (href.startsWith('<')) {
+        if (this.options.pedantic && !trimmedUrl.endsWith('>')) {
+          // pedantic allows starting angle bracket without ending angle bracket
+          href = href.slice(1);
+        } else {
+          href = href.slice(1, -1);
+        }
+      }
+      return outputLink(cap, {
         href: href ? href.replace(this.rules.inline._escapes, '$1') : href,
         title: title ? title.replace(this.rules.inline._escapes, '$1') : title
       }, cap[0]);
-      return token;
     }
   }
 
@@ -500,8 +537,7 @@ module.exports = class Tokenizer {
           text
         };
       }
-      const token = outputLink(cap, link, cap[0]);
-      return token;
+      return outputLink(cap, link, cap[0]);
     }
   }
 
@@ -585,7 +621,7 @@ module.exports = class Tokenizer {
       return {
         type: 'del',
         raw: cap[0],
-        text: cap[1]
+        text: cap[2]
       };
     }
   }

@@ -3,10 +3,7 @@
   "sap.app": {
     "id": "sap.ui.fl",
     "type": "library",
-    "embeds": [
-      "support/apps/contentbrowser",
-      "support/apps/uiFlexibilityDiagnostics"
-    ],
+    "embeds": [],
     "applicationVersion": {
       "version": "1.82.2"
     },
