@@ -1,8 +1,8 @@
 {
   "_from": "marked@^1.2.6",
-  "_id": "marked@1.2.6",
+  "_id": "marked@1.2.7",
   "_inBundle": false,
-  "_integrity": "sha512-7vVuSEZ8g/HH3hK/BH/+7u/NJj7x9VY4EHzujLDcqAQLiOUeFJYAsfSAyoWtR17lKrx7b08qyIno4lffwrzTaA==",
+  "_integrity": "sha512-No11hFYcXr/zkBvL6qFmAp1z6BKY3zqLMHny/JN/ey+al7qwCM2+CMBL9BOgqMxZU36fz4cCWfn2poWIf7QRXA==",
   "_location": "/marked",
   "_phantomChildren": {},
   "_requested": {
@@ -18,8 +18,8 @@
   "_requiredBy": [
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/marked/-/marked-1.2.6.tgz",
-  "_shasum": "fa55cf38ab3585005c9fb3c1ebfb3d4590c29fdc",
+  "_resolved": "https://registry.npmjs.org/marked/-/marked-1.2.7.tgz",
+  "_shasum": "6e14b595581d2319cdcf033a24caaf41455a01fb",
   "_spec": "marked@^1.2.6",
   "_where": "/home/runner/work/github_pages/github_pages",
   "author": {
@@ -36,8 +36,8 @@
   "deprecated": false,
   "description": "A markdown parser built for speed",
   "devDependencies": {
-    "@babel/core": "^7.12.9",
-    "@babel/preset-env": "^7.12.7",
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.10",
     "@markedjs/html-differ": "^3.0.4",
     "@semantic-release/commit-analyzer": "^8.0.1",
     "@semantic-release/git": "^9.0.0",
@@ -54,7 +54,7 @@
     "front-matter": "^4.0.2",
     "highlight.js": "^10.4.1",
     "jasmine": "^3.6.3",
-    "markdown-it": "12.0.2",
+    "markdown-it": "12.0.3",
     "node-fetch": "^2.6.1",
     "rollup": "^2.34.2",
     "rollup-plugin-babel": "^4.4.0",
@@ -116,5 +116,5 @@
     "markup",
     "html"
   ],
-  "version": "1.2.6"
+  "version": "1.2.7"
 }
