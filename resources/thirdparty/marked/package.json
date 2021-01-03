@@ -1,5 +1,5 @@
 {
-  "_from": "marked@^1.2.6",
+  "_from": "marked@^1.2.7",
   "_id": "marked@1.2.7",
   "_inBundle": false,
   "_integrity": "sha512-No11hFYcXr/zkBvL6qFmAp1z6BKY3zqLMHny/JN/ey+al7qwCM2+CMBL9BOgqMxZU36fz4cCWfn2poWIf7QRXA==",
@@ -8,19 +8,19 @@
   "_requested": {
     "type": "range",
     "registry": true,
-    "raw": "marked@^1.2.6",
+    "raw": "marked@^1.2.7",
     "name": "marked",
     "escapedName": "marked",
-    "rawSpec": "^1.2.6",
+    "rawSpec": "^1.2.7",
     "saveSpec": null,
-    "fetchSpec": "^1.2.6"
+    "fetchSpec": "^1.2.7"
   },
   "_requiredBy": [
     "/"
   ],
   "_resolved": "https://registry.npmjs.org/marked/-/marked-1.2.7.tgz",
   "_shasum": "6e14b595581d2319cdcf033a24caaf41455a01fb",
-  "_spec": "marked@^1.2.6",
+  "_spec": "marked@^1.2.7",
   "_where": "/home/runner/work/github_pages/github_pages",
   "author": {
     "name": "Christopher Jeffrey"

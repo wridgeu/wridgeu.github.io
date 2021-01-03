@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/m/library","sap/m/Popover"],function(e,t){"use strict";var o=e.PlacementType;return function(){this.createPopover=function(i,n,s){var r=this,u=new t(i.getId()+"-popup",{showArrow:false,placement:o.VerticalPreferredBottom,showHeader:true,initialFocus:i,horizontalScrolling:true,beforeClose:function(){if(r.bMessageValueStateActive){r._getValueStateHeader().removeStyleClass("sapMPseudoFocus");r.bMessageValueStateActive=false}}});return e(u,i)};this.resizePopup=function(e){var t=this.getPopover();if(this._oList&&t){if(this._sPopoverContentWidth){t.setContentWidth(this._sPopoverContentWidth)}else{t.setContentWidth(e.$().outerWidth()+"px")}setTimeout(function(){if(t&&t.isOpen()&&t.$().outerWidth()<e.$().outerWidth()){t.setContentWidth(e.$().outerWidth()+"px")}},0)}};function e(e,t){e.open=function(){this.openBy(t,false,true)};e.oPopup.setAnimations(function(e,t,o){o()},function(e,t,o){o()});return e}}});

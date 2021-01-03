@@ -3,6 +3,15 @@
  * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+/**
+ * This module is overall:
+ * SPDX-FileCopyrightText: 2009-2020 SAP SE or an SAP affiliate company and OpenUI5 contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * but contains code taken from jQuery 2.2.3 (see the respective comment):
+ * SPDX-FileCopyrightText: jQuery Foundation and other contributors
+ * SPDX-License-Identifier: MIT
+ */
 sap.ui.define(["jquery.sap.global","sap/base/util/uid","sap/base/strings/hash","sap/base/util/array/uniqueSort","sap/base/util/deepEqual","sap/base/util/each","sap/base/util/array/diff","sap/base/util/JSTokenizer","sap/base/util/merge","sap/base/util/UriParameters"],function(e,r,a,t,n,i,o,s,l,f){"use strict";e.sap.uid=r;e.sap.hashCode=a;e.sap.unique=t;e.sap.equal=n;e.sap.each=i;e.sap.arraySymbolDiff=o;e.sap._createJSTokenizer=function(){return new s};e.sap.parseJS=s.parseJS;e.sap.extend=function(){var e=arguments,r=false;if(typeof arguments[0]==="boolean"){r=arguments[0];e=Array.prototype.slice.call(arguments,1)}if(r){return l.apply(this,e)}else{
 /*
 			 * The code in this function is taken from jQuery 2.2.3 "jQuery.extend" and got modified.

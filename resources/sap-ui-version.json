@@ -1,67 +1,67 @@
 {
 	"name": "projectpages",
 	"version": "1.12.1",
-	"buildTimestamp": "202012180947",
+	"buildTimestamp": "202101031855",
 	"scmRevision": "",
 	"libraries": [
 		{
-			"name": "sap.m",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"name": "sap.ui.fl",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.core",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.layout",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.unified",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.tnt",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.table",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.support",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.codeeditor",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
-			"name": "sap.ui.fl",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"name": "sap.m",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.testrecorder",
-			"version": "1.84.0",
-			"buildTimestamp": "202012180947",
+			"version": "1.85.0",
+			"buildTimestamp": "202101031855",
 			"scmRevision": ""
 		}
 	]

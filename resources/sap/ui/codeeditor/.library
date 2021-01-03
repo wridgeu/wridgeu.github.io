@@ -6,7 +6,7 @@
 	<copyright>OpenUI5
  * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-	<version>1.84.0</version>
+	<version>1.85.0</version>
 
 	<documentation>UI5 library: sap.ui.codeeditor</documentation>
 
@@ -27,8 +27,10 @@
 		</jscoverage>
 		<!-- Thirdparty references -->
 		<thirdparty xmlns="http://www.sap.com/ui5/buildext/thirdparty" >
-				<lib name="ace" displayName="Ace (Ajax.org Cloud9 Editor)" homepage="https://ace.c9.io/">
-					<license url="https://github.com/ajaxorg/ace/blob/master/LICENSE" type="BSD License" file="js/ace/LICENSE.txt" />
+				<lib name="ace" displayName="Ace (Ajax.org Cloud9 Editor)" version="1.4.4" homepage="https://ace.c9.io/">
+					<license url="https://github.com/ajaxorg/ace/blob/master/LICENSE" type="BSD-3-Clause" />
+					<copyright>2010, Ajax.org B.V.</copyright>
+					<pattern>sap/ui/codeeditor/js/ace/*</pattern>
 				</lib>
 		</thirdparty>
 		<!-- Demokit content -->
