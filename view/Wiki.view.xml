@@ -27,7 +27,7 @@
                             <l:SplitterLayoutData size="84%" />
                         </l:layoutData>
                         <l:SplitPane requiredParentWidth="800" id="default">
-                            <Page showHeader="false">
+                            <Page id="markdownSection" showHeader="false">
                                 <content>
                                     <html:div class="container" id="markdownContainer"/>
                                 </content>
