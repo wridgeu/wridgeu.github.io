@@ -1,67 +1,67 @@
 {
 	"name": "projectpages",
 	"version": "1.12.3",
-	"buildTimestamp": "202101122008",
+	"buildTimestamp": "202101140744",
 	"scmRevision": "",
 	"libraries": [
 		{
-			"name": "sap.tnt",
+			"name": "sap.ui.support",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.core",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.layout",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.unified",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
-			"name": "sap.m",
+			"name": "sap.tnt",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.table",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
-			"name": "sap.ui.support",
+			"name": "sap.m",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.codeeditor",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.fl",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.testrecorder",
 			"version": "1.85.0",
-			"buildTimestamp": "202101122008",
+			"buildTimestamp": "202101140744",
 			"scmRevision": ""
 		}
 	]
