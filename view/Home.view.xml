@@ -23,7 +23,7 @@
 							<html:a href="https://xing.com/profile/Marco_Beier8/cv" target="_blank" rel="noopener">
 								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
 							</html:a>
-							<html:a href="https://github.com/SAPMarco" target="_blank" rel="noopener">
+							<html:a href="https://github.com/wridgeu" target="_blank" rel="noopener">
 								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
 							</html:a>
 							<html:a href="https://twitter.com/Wridgeu" target="_blank" rel="noopener">

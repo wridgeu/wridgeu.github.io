@@ -6,7 +6,7 @@
     xmlns:mvc="sap.ui.core.mvc">
     <Page id="wikiPage" showHeader="true" showNavButton="true" navButtonPress="onBackHome" title="Wiki/Blog" titleAlignment="Center" navButtonTooltip="back to main page">
         <headerContent>
-                <html:a href="https://github.com/SAPMarco/SAPMarco.github.io/wiki" target="_blank" rel="noopener">
+                <html:a href="https://github.com/wridgeu/wridgeu.github.io/wiki" target="_blank" rel="noopener">
 			        <Button icon="sap-icon://action" iconFirst="false" tooltip="{i18n>sourceTooltip}" text="{i18n>source}"  />
                 </html:a>
         </headerContent>
