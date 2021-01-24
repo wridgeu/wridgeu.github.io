@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/integration/library","sap/ui/core/Element"],function(e,t){"use strict";var n=t.extend("sap.ui.integration.Host",{metadata:{library:"sap.ui.integration",properties:{actions:{type:"sap.ui.integration.CardMenuAction[]"},resolveDestination:{type:"function",invalidate:false,parameters:{destinationName:{type:"string"}}}},events:{action:{allowPreventDefault:true,parameters:{card:{type:"sap.ui.core.Control"},actionConfig:{type:"object"},actionSource:{type:"sap.ui.core.Control"},parameters:{type:"object"},type:{type:"sap.ui.integration.CardActionType"}}}}}});n.prototype.getDestination=function(e){var t=this.getResolveDestination(),n;if(typeof t!=="function"){return Promise.reject("Could not resolve destination '"+e+"'. There is no 'resolveDestination' callback function configured in the host.")}n=t(e);if(!n){return Promise.reject("Destination '"+e+"' could not be resolved by the host.")}if(n instanceof Promise){return n}return Promise.resolve(n)};n.prototype.getContextValue=function(e){if(!e){return Promise.resolve(null)}return Promise.resolve(null)};n.prototype.getDestinations=function(){return Promise.resolve([])};n.prototype.getContexts=function(){return Promise.resolve({})};return n});

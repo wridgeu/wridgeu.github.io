@@ -1,0 +1,83 @@
+{
+	"_version": "1.25.0",
+	"sap.app": {
+		"id": "projectpages",
+		"type": "card",
+		"title": "overview of some tools I'm working with",
+		"applicationVersion": {
+			"version": "1.0.0"
+		},
+		"tags": {
+			"keywords": [
+				"Data",
+				"Card",
+				"Sample"
+			]
+		}
+	},
+	"sap.ui": {
+		"deviceTypes":{
+			"desktop": true,
+			"phone": true,
+			"tablet": true
+		},
+		"technology": "UI5",
+		"icons": {
+			"icon": "sap-icon://list"
+		}
+	},
+	"sap.card": {
+		"type": "List",
+		"header": {
+			"title": "Toolbox",
+			"icon": {
+                "shape": "Square",
+				"src": "../../img/toolbox.png"
+			}
+		},
+		"content": {
+			"data": {
+				"json": [
+					{
+						"Name": "Git",
+						"Description": "Github, Gitlab",
+						"Icon": "../../img/giticon.webp",
+						"Initials": "GIT",
+                        "Alt": "Version Control"
+					},
+					{
+						"Name": "Package Managers",
+						"Description": "NPM, Yarn",
+						"Icon": "../../img/yarn_logo.png",
+						"Initials": "NPM",
+                        "Alt": "Node Package Manager"
+					},
+					{
+						"Name": "Docker",
+						"Description": "Docker (incl. WSL)",
+						"Icon": "../../img/docker.png",
+						"Initials": "D",
+                        "Alt": "Containerization"
+					},
+					{
+						"Name": "IDEs",
+						"Description": "VSC, Eclipse, BAS, SE80",
+						"Icon": "../../img/vsc.png",
+						"Initials": "D",
+                        "Alt": "Development Environments"
+					}
+				]
+			},
+			"maxItems": 4,
+			"item": {
+				"title": "{Name}",
+				"description": "{Description}",
+				"icon": {
+					"src": "{Icon}",
+					"shape": "Circle",
+					"alt": "{Alt}"
+				}
+			}
+		}
+	}
+}

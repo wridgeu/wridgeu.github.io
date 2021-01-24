@@ -1,0 +1,6 @@
+/*!
+* OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+*/
+sap.ui.define(["./ListContentItemRenderer","sap/m/Avatar","sap/m/AvatarShape","sap/m/AvatarSize","sap/m/StandardListItem"],function(t,a,e,i,r){"use strict";var s=r.extend("sap.ui.integration.controls.ListContentItem",{metadata:{library:"sap.ui.integration",properties:{iconAlt:{type:"string",defaultValue:""},iconDisplayShape:{type:"sap.m.AvatarShape",defaultValue:e.Square},iconInitials:{type:"string",defaultValue:""},iconSize:{type:"sap.m.AvatarSize",defaultValue:i.XS},iconBackgroundColor:{type:"sap.m.AvatarColor"}},aggregations:{microchart:{type:"sap.ui.integration.controls.Microchart",multiple:false},_avatar:{type:"sap.m.Avatar",multiple:false,visibility:"hidden"}}},renderer:t});s.prototype._getAvatar=function(){var t=this.getAggregation("_avatar");if(!t){t=(new a).addStyleClass("sapFCardIcon");this.setAggregation("_avatar",t)}t.setSrc(this.getIcon()).setDisplayShape(this.getIconDisplayShape()).setTooltip(this.getIconAlt()).setInitials(this.getIconInitials()).setDisplaySize(this.getIconSize()).setBackgroundColor(this.getIconBackgroundColor());return t};return s});

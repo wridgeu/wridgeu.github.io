@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/integration/designtime/editor/fields/BaseField","sap/m/Input","sap/m/Text","sap/m/MultiComboBox","sap/ui/core/ListItem"],function(e,t,i,a,n){"use strict";var s=e.extend("sap.ui.integration.designtime.editor.fields.ListField",{renderer:e.getMetadata().getRenderer()});s.prototype.initVisualization=function(e){var s=e.visualization;if(!s){if(e.editable){if(e.values){var r=new n(e.values.item);s={type:a,settings:{selectedKeys:{path:"currentSettings>value"},editable:{path:"currentSettings>editable"},showSecondaryValues:true,width:"100%",items:{path:"",template:r}}}}else{s={type:t,settings:{value:{path:"currentSettings>value",formatter:function(e){e=e||[];return e.join(",")}},change:function(e){var t=e.getSource();t.getBinding("value").setRawValue(t.getValue().split(","))},editable:e.editable,placeholder:e.placeholder}}}}else{s={type:i,settings:{text:{path:"currentSettings>value"},wrapping:false}}}}this._visualization=s};return s});

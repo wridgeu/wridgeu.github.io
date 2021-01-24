@@ -1,0 +1,79 @@
+{
+	"_version": "1.25.0",
+	"sap.app": {
+		"id": "projectpages",
+		"type": "card",
+		"title": "overview of some things inside the SAP universe I'm working with",
+		"applicationVersion": {
+			"version": "1.0.0"
+		},
+		"tags": {
+			"keywords": [
+                "SAP",
+                "UI5",
+                "Framework",
+                "Environment",
+                "Solutions",
+                "Cloud"
+			]
+		}
+	},
+	"sap.ui": {
+		"deviceTypes":{
+			"desktop": true,
+			"phone": true,
+			"tablet": true
+		},
+		"technology": "UI5",
+		"icons": {
+			"icon": "sap-icon://list"
+		}
+	},
+	"sap.card": {
+		"type": "List",
+		"header": {
+			"title": "SAP",
+			"icon": {
+                "shape": "Square",
+				"src": "../../img/sap_logo_gui.jpg"
+			}
+		},
+		"content": {
+			"data": {
+				"json": [
+					{
+						"Name": "Solutions",
+						"Description": "ERP, EWM, SolMan",
+						"Icon": "../../img/forklift.png",
+						"Initials": "SAP",
+                        "Alt": "SAP Systems"
+					},
+					{
+						"Name": "SAP- OpenUI5",
+						"Description": "UI5, OData, Webc, Fiori",
+                        "Icon": "../../img/blue_ui5.svg",
+						"Initials": "UI",
+                        "Alt": "SAP UI Framework"
+					},
+					{
+						"Name": "Cloud",
+						"Description": "CAP, CDS",
+						"Icon": "../../img/sap_cap.svg",
+						"Initials": "CL",
+                        "Alt": "SAP Cloud"
+					}
+				]
+			},
+			"maxItems": 3,
+			"item": {
+				"title": "{Name}",
+				"description": "{Description}",
+				"icon": {
+					"src": "{Icon}",
+					"shape": "Circle",
+					"alt": "{Alt}"
+				}
+			}
+		}
+	}
+}

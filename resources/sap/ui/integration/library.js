@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/base/DataType","sap/ui/Global","sap/ui/core/library","sap/m/library","sap/f/library"],function(t){"use strict";sap.ui.getCore().initLibrary({name:"sap.ui.integration",version:"1.85.0",dependencies:["sap.ui.core","sap.f","sap.m"],types:["sap.ui.integration.CardActionType","sap.ui.integration.CardDataMode","sap.ui.integration.CardMenuAction"],controls:["sap.ui.integration.widgets.Card","sap.ui.integration.cards.Header","sap.ui.integration.cards.NumericHeader","sap.ui.integration.controls.ListContentItem"],elements:["sap.ui.integration.ActionDefinition","sap.ui.integration.Host"],customElements:{card:"sap/ui/integration/customElements/CustomElementCard"}});var e=sap.ui.integration;e.CardActionType={Navigation:"Navigation",Submit:"Submit",Custom:"Custom"};e.CardDataMode={Active:"Active",Inactive:"Inactive"};e.AreaType={None:"None",ContentItem:"ContentItem",Content:"Content",Header:"Header"};e.CardMenuAction=t.createType("sap.ui.integration.CardMenuAction",{isValid:function(t){var e=["type","text","icon","tooltip","buttonType","enabled","visible","action","parameters","target","url"];return Object.keys(t).every(function(t){return e.indexOf(t)!==-1})}},"object");return e});

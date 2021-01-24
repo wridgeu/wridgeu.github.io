@@ -1,0 +1,83 @@
+{
+	"_version": "1.25.0",
+	"sap.app": {
+		"id": "projectpages",
+		"type": "card",
+		"title": "overview of some programming languages I'm working with",
+		"applicationVersion": {
+			"version": "1.0.0"
+		},
+		"tags": {
+			"keywords": [
+                "JavaScript",
+                "SAP ABAP",
+                "PHP",
+                "Doctrine",
+                "Symfony",
+                "Twig",
+                "Smarty",
+                "Rollup",
+                "HTML",
+                "CSS"
+			]
+		}
+	},
+	"sap.ui": {
+		"deviceTypes":{
+			"desktop": true,
+			"phone": true,
+			"tablet": true
+		},
+		"technology": "UI5",
+		"icons": {
+			"icon": "sap-icon://list"
+		}
+	},
+	"sap.card": {
+		"type": "List",
+		"header": {
+			"title": "Languages",
+			"icon": {
+                "shape": "Square",
+				"src": "../../img/code.png"
+			}
+		},
+		"content": {
+			"data": {
+				"json": [
+					{
+						"Name": "ABAP",
+						"Description": "ABAP OO",
+						"Icon": "../../img/abap_wand.png",
+						"Initials": "ABAP",
+                        "Alt": "Everything around ABAP"
+					},
+					{
+						"Name": "JavaScript",
+						"Description": "WebDev (HTML, CSS)",
+						"Icon": "../../img/Logo_JS.svg",
+						"Initials": "JS",
+                        "Alt": "Web-Development"
+					},
+					{
+						"Name": "PHP",
+						"Description": "Symfony, Doctrine, Twig",
+						"Icon": "../../img/php_logo.png",
+                        "Initials": "PHP",
+                        "Alt": "PHP"
+					}
+				]
+			},
+			"maxItems": 3,
+			"item": {
+				"title": "{Name}",
+				"description": "{Description}",
+				"icon": {
+					"src": "{Icon}",
+					"shape": "Circle",
+                    "alt": "{Alt}"
+				}
+			}
+		}
+	}
+}

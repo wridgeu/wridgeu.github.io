@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/Locale","sap/base/util/isPlainObject","sap/base/Log"],function(e,t,r){"use strict";var n={};n.isJson=function(e){if(typeof e!=="string"){return false}try{JSON.parse(e);return true}catch(e){return false}};n.processFormatArguments=function(r,n){var i=t(r)?r:{},s=typeof r==="string"?new e(r):n&&new e(n);return{formatOptions:i,locale:s}};var i=1,s=2,a=3;n.parseJsonDateTime=function(e){var t=/^\/Date\((-?\d+)(\+|-)?(\d+)?\)\/$/,n;if(typeof e==="string"){n=t.exec(e)}if(n){var o=new Date(parseInt(n[i]));if(n[s]){var u=parseInt(n[a]);if(n[s]==="-"){u=-u}var f=o.getUTCMinutes();o.setUTCMinutes(f-u)}if(isNaN(o.valueOf())){r.error("Invalid JSON Date format - "+e)}else{e=o}}return e};n.DEFAULT_PROMISE_TIMEOUT=5e3;n.timeoutPromise=function(e,t){var r;if(t===undefined){t=n.DEFAULT_PROMISE_TIMEOUT}r=new Promise(function(e,r){setTimeout(function(){r("The promise was not resolved after "+t+" ms so it timed out.")},t)});return Promise.race([e,r])};return n});

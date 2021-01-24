@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/model/json/JSONModel","sap/base/Log","sap/ui/integration/util/Utils"],function(t,e,i){"use strict";var s=t.extend("sap.ui.integration.util.ContextModel",{constructor:function(e,i){t.apply(this,arguments);this._aPendingPromises=[]}});s.prototype.setHost=function(t){this._oHost=t;this._mValues=null};s.prototype.getProperty=function(s,n){if(s&&!s.startsWith("/")&&!n){s="/"+s}var o=this._oHost,r=this.resolve(s,n),u,a=o&&o.getContextValue;if(a){this._mValues=this._mValues||{};if(this._mValues[r]!==undefined){return this._mValues[r]}u=i.timeoutPromise(o.getContextValue(r.substring(1)));u=u.then(function(t){this._mValues[r]=t;this.checkUpdate()}.bind(this)).catch(function(t){this._mValues[r]=null;this.checkUpdate();e.error("Path "+r+" could not be resolved. Reason: "+t)}.bind(this));this._aPendingPromises.push(u);return null}else{return t.prototype.getProperty.apply(this,arguments)}};s.prototype.waitForPendingProperties=function(){var t=Promise.all(this._aPendingPromises);this._aPendingPromises=[];return t};return s},true);

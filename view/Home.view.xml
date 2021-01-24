@@ -3,7 +3,8 @@
 	xmlns="sap.m" 
 	xmlns:l="sap.ui.layout" 
 	xmlns:core="sap.ui.core" 
-	xmlns:mvc="sap.ui.core.mvc">
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:w="sap.ui.integration.widgets">
 	<Page showHeader="false">
 		<content>
 			<l:BlockLayout>
@@ -74,71 +75,18 @@
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
-						<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Row">
+						<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Column" alignItems="Center">
 							<Text class="title" text="{i18n>sectionSkills}"/>
+							<Text text="{i18n>roughOverview}"/>
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<FlexBox wrap="Wrap" direction="Row" justifyContent="Center" alignItems="Center">
-							<SlideTile class="sapUiTinyMarginTop sapUiMediumMarginBeginEnd">
-								<tiles>
-									<GenericTile header="SAP" subheader="ERP, EWM, SolMan">
-										<TileContent>
-											<ImageContent src="./resources/img/saplogo_small.webp" />
-										</TileContent>
-									</GenericTile>
-									<GenericTile header="ABAP">
-										<TileContent>
-											<ImageContent src="./resources/img/abap.webp" />
-										</TileContent>
-									</GenericTile>
-									<GenericTile header="UI5" subheader="OpenUI5, SAPUI5">
-										<TileContent>
-											<ImageContent src="./resources/img/Logo_UI5.webp" />
-										</TileContent>
-									</GenericTile>
-								</tiles>
-							</SlideTile>
-							<SlideTile class="sapUiTinyMarginTop sapUiMediumMarginBeginEnd">
-								<tiles>
-									<GenericTile header="JavaScript">
-										<TileContent>
-											<ImageContent src="./resources/img/Logo_JS.svg" />
-										</TileContent>
-									</GenericTile>
-									<GenericTile header="HTML5">
-										<TileContent>
-											<ImageContent src="./resources/img/Logo_HTML5.svg" />
-										</TileContent>
-									</GenericTile>
-									<GenericTile header="CSS3">
-										<TileContent>
-											<ImageContent src="./resources/img/Logo_CSS.svg" />
-										</TileContent>
-									</GenericTile>
-								</tiles>
-							</SlideTile>
-							<SlideTile class="sapUiTinyMarginTop sapUiMediumMarginBeginEnd">
-								<tiles>
-									<GenericTile header="Git" subheader="github, gitlab">
-										<TileContent>
-											<ImageContent src="./resources/img/giticon.webp"/>
-										</TileContent>
-									</GenericTile>
-									<GenericTile header="Github">
-										<TileContent>
-											<ImageContent src="./resources/img/Logo_Github.svg"/>
-										</TileContent>
-									</GenericTile>
-									<GenericTile header="Gitlab">
-										<TileContent>
-											<ImageContent src="./resources/img/gitlab.webp"/>
-										</TileContent>
-									</GenericTile>
-								</tiles>
-							</SlideTile>
+							<w:Card class="card" manifest="./integrationcards/datacard-sap-manifest.json" width="250px" height="auto"/>
+							<w:Card class="card" manifest="./integrationcards/datacard-tools-manifest.json" width="250px" height="auto"/>
+							<w:Card class="card" manifest="./integrationcards/datacard-lang-manifest.json" width="250px" height="auto"/>
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
