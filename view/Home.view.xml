@@ -25,7 +25,7 @@
 								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
 							</html:a>
 							<html:a href="https://github.com/wridgeu" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Github.svg" alt="Github Logo" width="5vw" height="5vh"/>
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh"/>
 							</html:a>
 							<html:a href="https://twitter.com/Wridgeu" target="_blank" rel="noopener">
 								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
