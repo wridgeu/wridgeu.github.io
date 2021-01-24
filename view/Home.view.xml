@@ -84,9 +84,9 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<FlexBox wrap="Wrap" direction="Row" justifyContent="Center" alignItems="Center">
-							<w:Card class="card" manifest="./integrationcards/datacard-sap-manifest.json" width="250px" height="auto"/>
-							<w:Card class="card" manifest="./integrationcards/datacard-tools-manifest.json" width="250px" height="auto"/>
-							<w:Card class="card" manifest="./integrationcards/datacard-lang-manifest.json" width="250px" height="auto"/>
+							<w:Card class="integrationcard" manifest="./integrationcards/datacard-sap-manifest.json" width="250px" height="auto"/>
+							<w:Card class="integrationcard" manifest="./integrationcards/datacard-tools-manifest.json" width="250px" height="auto"/>
+							<w:Card class="integrationcard" manifest="./integrationcards/datacard-lang-manifest.json" width="250px" height="auto"/>
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
