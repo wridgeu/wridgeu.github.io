@@ -9,9 +9,20 @@
 		},
 		"tags": {
 			"keywords": [
-				"Data",
-				"Card",
-				"Sample"
+				"Visual Studio Code",
+				"VSC",
+				"IDEs",
+				"Git",
+				"Github",
+				"Gitlab",
+				"CTS",
+				"Node",
+				"NPM",
+				"Yarn",
+				"Docker",
+				"SE80",
+				"Business Application Studio",
+				"BAS"
 			]
 		}
 	},
@@ -21,10 +32,7 @@
 			"phone": true,
 			"tablet": true
 		},
-		"technology": "UI5",
-		"icons": {
-			"icon": "sap-icon://list"
-		}
+		"technology": "UI5"
 	},
 	"sap.card": {
 		"type": "List",

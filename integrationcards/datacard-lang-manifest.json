@@ -28,10 +28,7 @@
 			"phone": true,
 			"tablet": true
 		},
-		"technology": "UI5",
-		"icons": {
-			"icon": "sap-icon://list"
-		}
+		"technology": "UI5"
 	},
 	"sap.card": {
 		"type": "List",
