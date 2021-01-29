@@ -99,7 +99,7 @@
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell id="wikiSection">
-						<FlexBox class="sapUiTinyMarginTop setMiddle sapUiLargeMarginBottom" width="100%" direction="Row">
+						<FlexBox class="sapUiTinyMarginTop setMiddle sapUiLargeMarginBottom" width="100%" direction="Row" alignItems="Center">
 							<Image class="bookshelf-wiki-img" src="./resources/img/bookshelf.webp" alt="Wiki Bookshelf Picture" width="20vw" height="30vh"/>
 							<Button type="Accept" text="Visit" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"/>
 						</FlexBox>
