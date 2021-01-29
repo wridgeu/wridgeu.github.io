@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.85.0</version>
+  <version>1.85.2</version>
 
   <documentation>The SAPUI5 Core Runtime.
 
@@ -330,6 +330,7 @@
             <license url="https://github.com/cubiq/iscroll/blob/master/LICENSE" type="MIT" />
             <copyright>2011 Matteo Spinelli</copyright>
             <pattern>sap/ui/thirdparty/iscroll-lite.js</pattern>
+            <!-- not in PPMS because it is a sub-module of iScroll -->
         </lib>
         <lib name="swipeview" displayName="cubiq.org - swipeview" version="1.0" homepage="https://github.com/cubiq/SwipeView/">
             <license url="https://github.com/cubiq/SwipeView/blob/master/license.txt" type="MIT" />

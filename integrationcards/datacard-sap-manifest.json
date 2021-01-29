@@ -47,7 +47,7 @@
 					},
 					{
 						"Name": "SAP- OpenUI5",
-						"Description": "UI5, OData, Webc, Fiori",
+						"Description": "UI5, OData, WebC, Fiori",
                         "Icon": "../../img/blue_ui5.svg",
 						"Initials": "UI",
                         "Alt": "SAP UI Framework"

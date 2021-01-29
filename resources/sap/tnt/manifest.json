@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.85.0"
+      "version": "1.85.2"
     },
     "title": "SAPUI5 library with responsive controls.",
     "description": "SAPUI5 library with responsive controls.",
@@ -25,10 +25,10 @@
       "minUI5Version": "1.85",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.85.0"
+          "minVersion": "1.85.2"
         },
         "sap.m": {
-          "minVersion": "1.85.0"
+          "minVersion": "1.85.2"
         }
       }
     },

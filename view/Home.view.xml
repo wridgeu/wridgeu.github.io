@@ -75,7 +75,7 @@
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
-						<FlexBox class="sapUiTinyMarginTop setMiddle" width="100%" direction="Column" alignItems="Center">
+						<FlexBox class="sapUiLargeMarginTop setMiddle" width="100%" direction="Column" alignItems="Center">
 							<Text class="title" text="{i18n>sectionSkills}"/>
 							<Text text="{i18n>roughOverview}"/>
 						</FlexBox>
@@ -98,9 +98,10 @@
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
-					<l:BlockLayoutCell>
-						<FlexBox class="sapUiTinyMarginTop setMiddle sapUiLargeMarginBottom" width="100%" direction="Row">							
-							<Button text="Go To" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"></Button>
+					<l:BlockLayoutCell id="wikiSection">
+						<FlexBox class="sapUiTinyMarginTop setMiddle sapUiLargeMarginBottom" width="100%" direction="Row">
+							<Image class="bookshelf-wiki-img" src="./resources/img/bookshelf.webp" alt="Wiki Bookshelf Picture" width="20vw" height="30vh"/>
+							<Button type="Accept" text="Visit" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"/>
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
