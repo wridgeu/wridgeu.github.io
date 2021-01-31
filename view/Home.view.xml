@@ -11,7 +11,7 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
 						<FlexBox alignItems="Center" alignContent="Center" justifyContent="Center" backgroundDesign="Transparent" direction="Column">
-							<Avatar showBorder="true" displaySize="L" src="./resources/img/myself.webp" fallbackIcon="sap-icon://person-placeholder"/>
+							<Avatar showBorder="true" displaySize="XL" src="./resources/img/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
