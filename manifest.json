@@ -5,7 +5,7 @@
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
-			"version": "1.15.1"
+			"version": "1.15.2"
 		},
 		"title": "{{appTitle}}",
 		"description": "{{appDescription}}",
@@ -32,7 +32,6 @@
 			"phone": true
 		},
 		"supportedThemes": [
-			"sap_belize",
 			"sap_fiori_3",
 			"sap_fiori_3_dark"
 		]
