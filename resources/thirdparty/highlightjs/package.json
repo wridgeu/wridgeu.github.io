@@ -1,8 +1,8 @@
 {
   "_from": "@highlightjs/cdn-assets@^10.5.0",
-  "_id": "@highlightjs/cdn-assets@10.5.0",
+  "_id": "@highlightjs/cdn-assets@10.6.0",
   "_inBundle": false,
-  "_integrity": "sha512-sNzU7U3+8rG3hw9yZnU5NEVt2DkZOlmEuRtQ/0Ey8jW0hoPKUQuJ9dtiWhqAu6u8ReGHaRd9IjuEnvSpJG5Qzw==",
+  "_integrity": "sha512-u1nkZi2HRsZ3FuvnafUxhv6Bk3tyXboG4F0SE+QQJk+GhAxRQaENPMdZ6zVVQg6Vsv9r23VyWJLo4Vnw72NIxQ==",
   "_location": "/@highlightjs/cdn-assets",
   "_phantomChildren": {},
   "_requested": {
@@ -19,8 +19,8 @@
   "_requiredBy": [
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-10.5.0.tgz",
-  "_shasum": "64f8e05d535ceed753b3c7efa712ac3ee9ea7208",
+  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-10.6.0.tgz",
+  "_shasum": "ec1404662cd20ed3de4e918d952f01af6350d5d0",
   "_spec": "@highlightjs/cdn-assets@^10.5.0",
   "_where": "/home/runner/work/github_pages/github_pages",
   "author": {
@@ -1218,6 +1218,14 @@
     {
       "name": "Martin Dørum",
       "email": "martid0311@gmail.com"
+    },
+    {
+      "name": "John Haugeland",
+      "email": "stonecypher@gmail.com"
+    },
+    {
+      "name": "davidhcefx",
+      "email": "davidhu0903ex3@gmail.com"
     }
   ],
   "deprecated": false,
@@ -1225,13 +1233,13 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.0.0",
     "@rollup/plugin-json": "^4.1.0",
-    "@rollup/plugin-node-resolve": "^11.0.1",
+    "@rollup/plugin-node-resolve": "^11.1.0",
     "@typescript-eslint/eslint-plugin": "^4.6.1",
     "@typescript-eslint/parser": "^4.6.1",
-    "clean-css": "^4.2.3",
+    "clean-css": "^5.0.1",
     "cli-table": "^0.3.1",
     "colors": "^1.1.2",
-    "commander": "^6.2.0",
+    "commander": "^7.0.0",
     "deep-freeze-es6": "^1.4.1",
     "del": "^6.0.0",
     "dependency-resolver": "^2.0.1",
@@ -1240,11 +1248,9 @@
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^5.0.0",
     "glob": "^7.1.6",
-    "glob-promise": "^3.4.0",
+    "glob-promise": "^4.0.1",
     "handlebars": "^4.7.6",
-    "js-beautify": "^1.13.0",
     "jsdom": "^16.4.0",
     "lodash": "^4.17.20",
     "mocha": "^8.2.1",
@@ -1285,5 +1291,5 @@
     "test-parser": "mocha test/parser"
   },
   "types": "./types/index.d.ts",
-  "version": "10.5.0"
+  "version": "10.6.0"
 }
