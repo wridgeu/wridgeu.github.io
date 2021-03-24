@@ -9,6 +9,7 @@
 
 @_sap_m_IconTabBar_TextColor: @sapUiGroupTitleTextColor;
 @_sap_m_IconTabBar_TextShadow: @sapUiShadowText;
+@_sap_m_IconTabBar_DisabledOpacity: @sapUiContentDisabledOpacity;
 
 // ==================== Cozy size ====================
 
@@ -538,11 +539,15 @@
 }
 
 .sapMITBDisabled {
-	opacity: 0.5;
+	opacity: @_sap_m_IconTabBar_DisabledOpacity;
 	cursor: default;
 
 	.sapUiIcon {
 		cursor: default;
+	}
+
+	.sapMITBFilterIcon {
+		border-color: @sapUiGroupTitleTextColor;
 	}
 }
 
@@ -1206,7 +1211,7 @@ html[dir=rtl] {
 			&:hover .sapMITBText {
 				color: @_sap_m_IconTabBar_ShellSelectedTextColor;
 			}
-	
+
 			.sapMITBText {
 				color: @_sap_m_IconTabBar_ShellSelectedTextColor;
 			}
@@ -1302,7 +1307,7 @@ html[dir=rtl] {
 	}
 
 	.sapMBtn.sapMBtnDisabled {
-		opacity: 0.4;
+		opacity: @_sap_m_IconTabBar_DisabledOpacity;
 	}
 
 	html.sap-desktop & {
@@ -1412,5 +1417,14 @@ html[dir=rtl] {
 
 	.sapMITBFilterNegative .sapMBadgeAttention {
 		background-color: @sapUiNegativeElement;
+	}
+}
+
+html[data-sap-ui-animation='off'] {
+	.sapMITH,
+	.sapMITBFilterPopover {
+		.sapMITBFilterBadgeMotion .sapMBadgeAttention.sapMBadgeAnimationAdd {
+			animation: none;
+		}
 	}
 }

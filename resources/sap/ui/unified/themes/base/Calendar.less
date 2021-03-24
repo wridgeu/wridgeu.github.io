@@ -3,6 +3,27 @@
 /* Base theme                               */
 /* ======================================== */
 
+@_sap_ui_unified_Calendar_sapUiCalItemType01: @sapLegendColor1;
+@_sap_ui_unified_Calendar_sapUiCalItemType02: @sapLegendColor2;
+@_sap_ui_unified_Calendar_sapUiCalItemType03: @sapLegendColor3;
+@_sap_ui_unified_Calendar_sapUiCalItemType04: @sapLegendColor4;
+@_sap_ui_unified_Calendar_sapUiCalItemType05: @sapLegendColor5;
+@_sap_ui_unified_Calendar_sapUiCalItemType06: @sapLegendColor6;
+@_sap_ui_unified_Calendar_sapUiCalItemType07: @sapLegendColor7;
+@_sap_ui_unified_Calendar_sapUiCalItemType08: @sapLegendColor8;
+@_sap_ui_unified_Calendar_sapUiCalItemType09: @sapLegendColor9;
+@_sap_ui_unified_Calendar_sapUiCalItemType10: @sapLegendColor10;
+@_sap_ui_unified_Calendar_sapUiCalItemType11: @sapLegendColor11;
+@_sap_ui_unified_Calendar_sapUiCalItemType12: @sapLegendColor12;
+@_sap_ui_unified_Calendar_sapUiCalItemType13: @sapLegendColor13;
+@_sap_ui_unified_Calendar_sapUiCalItemType14: @sapLegendColor14;
+@_sap_ui_unified_Calendar_sapUiCalItemType15: @sapLegendColor15;
+@_sap_ui_unified_Calendar_sapUiCalItemType16: @sapLegendColor16;
+@_sap_ui_unified_Calendar_sapUiCalItemType17: @sapLegendColor17;
+@_sap_ui_unified_Calendar_sapUiCalItemType18: @sapLegendColor18;
+@_sap_ui_unified_Calendar_sapUiCalItemType19: @sapLegendColor19;
+@_sap_ui_unified_Calendar_sapUiCalItemType20: @sapLegendColor20;
+
 .sapUiCal {
 	background: none repeat scroll 0 0 @sapUiListBackground;
 	overflow: hidden;
@@ -143,7 +164,7 @@ html.sap-desktop .sapUiCalHead > button.sapUiCalDsbl:focus,
 .sapUiCalYearPicker {
 	width: 14em;
 	display: inline-block;
-	width: 18rem; /* +1rem padding left and right = 320 px*/
+	width: 19rem; /* +1rem padding left and right = 320 px*/
 }
 
 .sapUiCalMonthView,
@@ -163,7 +184,7 @@ html.sap-desktop .sapUiCalHead > button.sapUiCalDsbl:focus,
 
 .sapUiCalInt > .sapUiCalContent > .sapUiCalMonthPicker,
 .sapUiCalInt > .sapUiCalContent > .sapUiCalYearPicker {
-	width: auto;
+	width: 100%;
 }
 
 .sapUiCalHeadText {
@@ -292,9 +313,14 @@ html.sap-desktop .sapUiCalHead > button.sapUiCalDsbl:focus,
 	background-color: @sapUiSelected;
 }
 
-.sapUiCalContent{
+.sapUiCalContent {
 	position: relative;
 	text-align: center;
+	min-height: 17rem;
+}
+
+.sapUiCalInt .sapUiCalContent {
+	min-height: 8.875rem;
 }
 
 .sapUiCalContentOver{
@@ -486,10 +512,8 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 .sapUiCalContent > .sapUiCalMonthPicker,
 .sapUiCalContent > .sapUiCalYearPicker{
 	top: 0;
-	padding: 2rem 0.5rem 1rem 0.5rem;
+	padding: 2rem 0 1rem 0;
 	background-color: @sapUiListBackground;
-	left: 50%;
-	margin-left: -9.5rem; /* to position in the middle (for multi-month) */
 }
 
 .sapUiCalInt > .sapUiCalContent > .sapUiCalMonthPicker,
@@ -531,14 +555,6 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	bottom: auto;
 	padding: 1rem;
 	margin-left: -10rem;
-}
-
-.sapUiCalContent > .sapUiCalYearPicker.sapUiCalYearNoTop{
-	padding-top: 0;
-}
-
-.sapUiCalWidth:not(.sapUiCalInt) > .sapUiCalContent > .sapUiCalYearPicker.sapUiCalYearNoTop{
-	top: 0;
 }
 
 /* Day names inside day */
@@ -745,7 +761,6 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 .sapUiSizeCompact .sapUiCalContent > .sapUiCalYearPicker{
 	top: 0;
 	padding: 2rem 0.25rem 0.5rem 0.25rem;
-	margin-left: -8.25rem; /* to position in the middle (for multi-month) */
 }
 
 .sapUiSizeCompact .sapUiCalTimeInt > .sapUiCalContent > .sapUiCalDatesRow{
@@ -832,6 +847,14 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	height: 2rem;
 }
 
+.sapUiSizeCompact .sapUiCal:not(.sapUiCalInt) .sapUiCalContent {
+	min-height: 13rem;
+}
+
+.sapUiSizeCompact .sapUiCalInt .sapUiCalContent {
+	min-height: 6.5rem;
+}
+
 /*** Phone ***/
 /* make calendar full-screen if on popup (DatePicker), but not if stand alone */
 html.sap-phone [data-sap-ui-popup] .sapUiCal > .sapUiCalContent > .sapUiCalMonthPicker,
@@ -869,6 +892,15 @@ html.sap-phone [data-sap-ui-popup] .sapUiCal > .sapUiCalContent > .sapUiCalYearP
 		width: 12rem;
 		margin-left: calc(~"25% - 6rem");
 	}
+
+	.sapUiCalContent > .sapUiCalMonthPicker, .sapUiCalContent > .sapUiCalYearPicker {
+		left: 50%;
+	}
+}
+
+.sapUiCal.sapUiCalMulti .sapUiCalContent > .sapUiCalMonthPicker,
+.sapUiCal.sapUiCalMulti .sapUiCalContent > .sapUiCalYearPicker {
+	left: 50%;
 }
 
 .sapUiSizeCompact {
@@ -881,4 +913,3 @@ html.sap-phone [data-sap-ui-popup] .sapUiCal > .sapUiCalContent > .sapUiCalYearP
 		}
 	}
 }
-

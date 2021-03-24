@@ -1,16 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-/**
- * This module is overall:
- * SPDX-FileCopyrightText: 2009-2020 SAP SE or an SAP affiliate company and OpenUI5 contributors
- * SPDX-License-Identifier: Apache-2.0
- *
- * but contains a modified implementation of jQuery.isPlainObject taken from jQuery 3.5.1, which is:
- * SPDX-FileCopyrightText: JS Foundation and other contributors
- * SPDX-License-Identifier: MIT
  */
 sap.ui.define([],function(){"use strict";var t={};var r=t.hasOwnProperty;var e=t.toString;var c=r.toString;var n=c.call(Object);var a=function(t){
 /*

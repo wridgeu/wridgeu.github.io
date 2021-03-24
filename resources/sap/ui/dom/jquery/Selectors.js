@@ -1,16 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-/**
- * This module is overall:
- * SPDX-FileCopyrightText: 2009-2020 SAP SE or an SAP affiliate company and OpenUI5 contributors
- * SPDX-License-Identifier: Apache-2.0
- *
- * but contains code taken from jQuery UI (see the respective comments):
- * SPDX-FileCopyrightText: 2014 jQuery Foundation and other contributors
- * SPDX-License-Identifier: MIT
  */
 sap.ui.define(["sap/ui/thirdparty/jquery"],function(e){"use strict";function t(e,t){var r=Object.getOwnPropertyDescriptor(e,t);return r&&r.value}
 /*!

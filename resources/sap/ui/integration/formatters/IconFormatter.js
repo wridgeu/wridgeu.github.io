@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/base/Object","sap/ui/core/IconPool"],function(t,i){"use strict";var s=t.extend("sap.ui.integration.util.Destinations",{constructor:function(i){t.call(this);this._oDestinations=i}});s.prototype.formatSrc=function(t,s){var r=0;if(!t||!s){return t}if(t.startsWith("data:")){return t}if(this._oDestinations.hasDestination(t)){return this._oDestinations.processString(t)}if(i.isIconURI(t)||t.startsWith("http://")||t.startsWith("https://")||t.startsWith("//")){return t}if(t.startsWith("..")){r=2}else if(t.startsWith(".")){r=1}return sap.ui.require.toUrl(s.replace(/\./g,"/")+t.slice(r,t.length))};return s});
+sap.ui.define(["sap/ui/base/ManagedObject","sap/ui/core/Core","sap/ui/core/IconPool"],function(t,e,i){"use strict";var r=t.extend("sap.ui.integration.formatters.IconFormatter",{metadata:{library:"sap.ui.integration",properties:{destinations:{type:"object"}},associations:{card:{type:"sap.ui.integration.widgets.Card",multiple:false}}}});r.prototype.formatSrc=function(t){if(!t){return t}if(t.startsWith("data:")||i.isIconURI(t)){return t}if(this.getDestinations().hasDestination(t)){return this.getDestinations().processString(t).then(function(t){return this._format(t)}.bind(this))}return this._format(t)};r.prototype._format=function(t){return this._getCardInstance().getRuntimeUrl(t)};r.prototype._getCardInstance=function(){return e.byId(this.getCard())};return r});

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/util/merge","sap/ui/model/json/JSONModel"],function(e,a){"use strict";var r={layers:{admin:0,content:5,translation:10,all:20},mergeManifestPathChanges:function(e,a){Object.keys(a).forEach(function(r){if(r.charAt(0)==="/"){e.setProperty(r,a[r])}})},mergeCardDelta:function(t,n){var o=e({},t),i="sap.card";if(Array.isArray(n)&&n.length>0){var s;n.forEach(function(t){if(t.content){e(o[i],t.content)}else{s=s||new a(o);r.mergeManifestPathChanges(s,t)}})}return o},mergeCardDesigntimeMetadata:function(a,r){var t=e({},a);r.forEach(function(e){var a=e.content.entityPropertyChange||[];a.forEach(function(e){var a=e.propertyPath;switch(e.operation){case"UPDATE":if(t.hasOwnProperty(a)){t[a]=e.propertyValue}break;case"DELETE":delete t[a];break;case"INSERT":if(!t.hasOwnProperty(a)){t[a]=e.propertyValue}break;default:break}})});return t}};return r});

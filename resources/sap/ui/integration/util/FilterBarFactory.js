@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/base/Object","sap/m/library","sap/m/HBox","sap/ui/integration/cards/Filter"],function(a,t,e,r){"use strict";var n=t.FlexWrap;var i=t.FlexRendertype;var o=a.extend("sap.ui.integration.util.FilterBarFactory",{metadata:{library:"sap.ui.integration"},constructor:function(t){a.call(this);this._oCard=t}});o.prototype.create=function(a,t){var o=[],s=[],u,l,c,p;for(l in a){u=a[l];c=new r({card:this._oCard,key:l,config:u,value:t[l]?t[l].value:u.value});this._awaitEvent(s,c,"_ready");c._setDataConfiguration(u.data);o.push(c)}if(!o.length){return null}for(var d=0;d<o.length-1;d++){o[d].addStyleClass("sapUiTinyMarginEnd")}p=new e({wrap:n.Wrap,renderType:i.Bare,items:o});Promise.all(s).then(function(){p.fireEvent("_filterBarDataReady")});return p};o.prototype._awaitEvent=function(a,t,e){a.push(new Promise(function(a){t.attachEventOnce(e,function(){a()})}))};return o});

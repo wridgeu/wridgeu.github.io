@@ -3,18 +3,10 @@
 /* Fiori 3 theme                       */
 /* =================================== */
 
-@_sap_m_ObjectStatus_TextShadowColor: none;
-
 .sapMObjStatusInverted .sapMObjStatusText,
 .sapMObjStatusInverted .sapMObjStatusIcon {
-	line-height: 1rem;
 	min-height: 1rem;
 	max-height: 1rem;
-}
-
-.sapMObjStatus .sapMObjStatusText,
-.sapMObjStatus .sapMObjStatusIcon {
-	text-shadow: @_sap_m_ObjectStatus_TextShadowColor;
 }
 
 .sapMObjectStatusLarge {
@@ -33,7 +25,7 @@
 
 .sapMObjectStatusLarge.sapMObjStatusInverted {
 	.sapMObjStatusIcon > .sapUiIcon {
-		vertical-align: baseline;
+		vertical-align: bottom;
 		font-size: 1.25rem;
 		padding-left: 0;
 		padding-right: 0;
@@ -41,9 +33,6 @@
 	.sapMObjStatusIcon:not(.sapMObjStatusIconOnly) {
 		padding-left: 0;
 		padding-right: 0;
-	}
-	.sapMObjStatusText {
-		padding-left: 0;
 	}
 }
 

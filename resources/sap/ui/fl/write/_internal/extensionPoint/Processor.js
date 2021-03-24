@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
-sap.ui.define(["sap/ui/fl/apply/_internal/extensionPoint/Processor","sap/base/util/merge"],function(n,t){"use strict";var e={applyExtensionPoint:function(e){var i=t({defaultContent:[]},e);return n.registerExtensionPoint(i).then(n.createDefaultContent.bind(this,e,[])).then(n.addDefaultContentToExtensionPointInfo.bind(this,i))}};return e});
+sap.ui.define(["sap/ui/fl/apply/_internal/extensionPoint/Processor","sap/base/util/merge"],function(n,t){"use strict";function e(i,o){var r=t({defaultContent:[]},i);return n.registerExtensionPoint(r).then(n.createDefaultContent.bind(this,i,o,e,[])).then(n.addDefaultContentToExtensionPointInfo.bind(this,r,o))}var i={applyExtensionPoint:function(n){return e(n,false)}};return i});

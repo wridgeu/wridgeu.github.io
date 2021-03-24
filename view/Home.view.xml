@@ -19,19 +19,19 @@
 					<l:BlockLayoutCell>
 						<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" direction="Row" justifyContent="Center">
 							<html:a href="https://linkedin.com/in/dev-marco-beier" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh"/>
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh" lazyLoading="true"/>
 							</html:a>
 							<html:a href="https://xing.com/profile/Marco_Beier8/cv" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh"/>
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh" lazyLoading="true"/>
 							</html:a>
 							<html:a href="https://github.com/wridgeu" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh"/>
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh" lazyLoading="true"/>
 							</html:a>
 							<html:a href="https://twitter.com/Wridgeu" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh"/>
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh" lazyLoading="true"/>
 							</html:a>
 							<html:a href="https://people.sap.com/marcobeier" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh"/>
+								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh" lazyLoading="true"/>
 							</html:a>
 						</FlexBox>
 					</l:BlockLayoutCell>
@@ -100,7 +100,7 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<html:div class="wiki-wrapper">
-							<Image class="bookshelf-wiki-img" src="./resources/img/bookshelf.webp" alt="Wiki Bookshelf Picture"/>
+							<Image class="bookshelf-wiki-img" src="./resources/img/bookshelf.webp" alt="Wiki Bookshelf Picture" lazyLoading="true"/>
 							<Button class="visit-wiki-button" type="Accept" text="Visit" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"/>
 						</html:div>
 					</l:BlockLayoutCell>

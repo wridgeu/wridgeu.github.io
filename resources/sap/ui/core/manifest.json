@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.85.2"
+      "version": "1.88.0"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -17,11 +17,6 @@
         "name": "jquery-3",
         "packagedWithMySelf": true,
         "version": "3.5.1"
-      },
-      {
-        "name": "jquery-2",
-        "packagedWithMySelf": true,
-        "version": "2.2.3"
       },
       {
         "name": "jquery-1",
@@ -211,7 +206,7 @@
       {
         "name": "json-in-js",
         "packagedWithMySelf": true,
-        "version": "unknown"
+        "version": "ff55d8d451"
       },
       {
         "name": "tdop",
@@ -309,7 +304,7 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.85",
+      "minUI5Version": "1.88",
       "libs": {}
     },
     "library": {
@@ -321,6 +316,7 @@
           "bg",
           "ca",
           "cs",
+          "cy",
           "da",
           "de",
           "el",
@@ -334,9 +330,11 @@
           "et",
           "fi",
           "fr",
+          "fr-CA",
           "hi",
           "hr",
           "hu",
+          "id",
           "it",
           "iw",
           "ja",
@@ -349,6 +347,7 @@
           "no",
           "pl",
           "pt",
+          "pt-PT",
           "ro",
           "ru",
           "sh",
@@ -462,7 +461,8 @@
           "sap.ui.core.IFormContent",
           "sap.ui.core.dnd.IDragInfo",
           "sap.ui.core.dnd.IDropInfo",
-          "sap.ui.core.IDScope"
+          "sap.ui.core.IDScope",
+          "sap.ui.core.ITitleContent"
         ]
       }
     }

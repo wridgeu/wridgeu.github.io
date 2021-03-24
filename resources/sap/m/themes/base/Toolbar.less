@@ -67,7 +67,7 @@
 	cursor: pointer;
 }
 
-.sapMTBShrinkItem {
+.sapMTBShrinkItem:not(.sapMSF) {
 	min-width: 2.5rem; /* default min-width value for the shrinkable items */
 }
 
@@ -109,6 +109,7 @@
 .sapMTB-Info-CTX.sapMTB {
 	background: @sapUiInfobarBackground;
 	color: contrast(@sapUiInfobarBackground, @sapUiListActiveTextColor, @sapUiListTextColor, @sapUiContentContrastTextThreshold);
+	height: 2rem;
 
 	.sapMText {
 		white-space: nowrap;
@@ -145,7 +146,7 @@
 }
 
 /* default min-width value for the shrinkable items */
-.sapUiSizeCompact .sapMTBShrinkItem,
+.sapUiSizeCompact .sapMTBShrinkItem:not(.sapMSF),
 .sapUiSizeCondensed .sapUiTableCell .sapMTBShrinkItem{
 	min-width: 2rem;
 }

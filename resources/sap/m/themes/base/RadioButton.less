@@ -8,20 +8,22 @@
 	float: left;
 	clear: left;
 	outline: none;
+	overflow: hidden;
 	text-overflow: ellipsis;
 	position: relative;
 	white-space: nowrap;
 	max-width: 100%;
 
-	> .sapMLabel {
-		max-width: calc(~"100% - 3rem");
-		// some browsers [ie] calcs rems different than the others 0.0625 is caled as 1.04 px in IE
-		padding-right: 1px;
+	> .sapMRbBLabel {
+		padding-right: 0.125rem;
 	}
 }
 
 .sapMILI-CTX .sapMRb {
 	float: right;
+}
+.sapMListTblCell > .sapMRb {
+	float: inherit;
 }
 
 .sapMRb .sapMRbB {
@@ -138,10 +140,6 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 .sapUiSizeCompact{
 	.sapMRb {
 		height: 2rem;
-
-		> .sapMLabel {
-			max-width: calc(~"100% - 2rem + 1px");
-		}
 	}
 
 	.sapMRbSvg {

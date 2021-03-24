@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/model/json/JSONModel","sap/ui/model/ClientPropertyBinding","sap/base/util/deepEqual","sap/base/util/deepClone"],function(e,i,t,n){"use strict";var a=e.extend("sap.ui.integration.model.ObservableModel",{constructor:function(t,n){e.apply(this,arguments);this._observedBinding=new i(this,"/",this.getContext("/"));this._observedBinding.attachChange(this._handleChange.bind(this));this._fireChangeBound=this._fireChange.bind(this)}});a.prototype.destroy=function(){this._observedBinding.destroy();this._observedBinding=null;clearTimeout(this._iFireChangeCallId)};a.prototype._handleChange=function(){this._scheduleFireChange()};a.prototype._scheduleFireChange=function(){if(this._iFireChangeCallId){clearTimeout(this._iFireChangeCallId)}this._iFireChangeCallId=setTimeout(this._fireChangeBound,0)};a.prototype._fireChange=function(){var e;if(!this._oOldData){e=true}else{e=!t(this.oData,this._oOldData,100)}this._oOldData=n(this.oData);if(e){this.fireEvent("change")}};return a});

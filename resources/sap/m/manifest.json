@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.85.2"
+      "version": "1.88.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -22,17 +22,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.85",
+      "minUI5Version": "1.88",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.85.2"
+          "minVersion": "1.88.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.85.2",
+          "minVersion": "1.88.0",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.85.2",
+          "minVersion": "1.88.0",
           "lazy": true
         }
       }
@@ -46,6 +46,7 @@
           "bg",
           "ca",
           "cs",
+          "cy",
           "da",
           "de",
           "el",
@@ -59,9 +60,11 @@
           "et",
           "fi",
           "fr",
+          "fr-CA",
           "hi",
           "hr",
           "hu",
+          "id",
           "it",
           "iw",
           "ja",
@@ -74,6 +77,7 @@
           "no",
           "pl",
           "pt",
+          "pt-PT",
           "ro",
           "ru",
           "sh",
@@ -120,6 +124,7 @@
           "sap.m.Dialog",
           "sap.m.DisplayListItem",
           "sap.m.DraftIndicator",
+          "sap.m.ExpandableText",
           "sap.m.FacetFilter",
           "sap.m.FacetFilterItem",
           "sap.m.FacetFilterList",
@@ -311,6 +316,7 @@
           "sap.m.ViewSettingsCustomTab",
           "sap.m.ViewSettingsFilterItem",
           "sap.m.ViewSettingsItem",
+          "sap.m.plugins.ColumnResizer",
           "sap.m.plugins.DataStateIndicator",
           "sap.m.plugins.PluginBase",
           "sap.m.semantic.AddAction",
@@ -351,6 +357,7 @@
           "sap.m.AvatarColor",
           "sap.m.BackgroundDesign",
           "sap.m.BadgeState",
+          "sap.m.BadgeAnimationType",
           "sap.m.BarDesign",
           "sap.m.BreadcrumbsSeparatorStyle",
           "sap.m.ButtonType",
@@ -410,6 +417,7 @@
           "sap.m.QuickViewGroupElementType",
           "sap.m.RatingIndicatorVisualMode",
           "sap.m.ScreenSize",
+          "sap.m.SelectColumnRatio",
           "sap.m.SelectionDetailsActionLevel",
           "sap.m.SelectListKeyboardNavigationMode",
           "sap.m.SelectType",

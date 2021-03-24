@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/fl/write/_internal/condenser/Utils"],function(e){"use strict";return{addToReconstructionMap:function(t,n){var r=e.getContainerElementIds(n.sourceContainer,n.sourceAggregation);var a=e.getContainerElementIds(n.targetContainer,n.targetAggregation);var i;var o;if(n.targetContainer===n.sourceContainer&&n.targetAggregation===n.sourceAggregation){i=e.getInitialUIContainerElementIds(t,n.targetContainer,n.targetAggregation,a);o=i.indexOf(n.affectedControl);e.shiftElement(i,o,n.sourceIndex)}else{i=e.getInitialUIContainerElementIds(t,n.targetContainer,n.targetAggregation,a);o=i.indexOf(n.affectedControl);i.splice(o,1);i=e.getInitialUIContainerElementIds(t,n.sourceContainer,n.sourceAggregation,r);i.splice(n.sourceIndex,0,n.affectedControl)}},simulate:function(t,n,r){var a=n.affectedControl;var i=r.indexOf(a);e.extendElementsArray(t,i,undefined,a)}}});
