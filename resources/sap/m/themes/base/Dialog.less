@@ -9,7 +9,6 @@
 @_sap_m_Dialog_SubHeaderHeight: 3rem;
 @_sap_m_Dialog_SubHeaderCompactHeight: 2rem;
 @_sap_m_Dialog_InfoDesignBarHeight: 2rem;
-@_sap_m_Dialog_InfoDesignBarCompactHeight: 2rem;
 
 @_sap_m_Dialog_Padding: 1rem;
 @_sap_m_Dialog_NoStateHeaderShadow: inset 0 -0.0625rem @sapUiPageHeaderBorderColor;
@@ -33,6 +32,8 @@
 	outline: none;
 	overflow: hidden;
 	position: fixed !important;
+	display: flex !important;
+	flex-direction: column;
 	opacity: 0;
 	-webkit-transition: opacity .15s, left 0.2s, top 0.2s;
 	transition: opacity .15s, left 0.2s, top 0.2s;
@@ -201,11 +202,6 @@ html.sap-desktop .sapMDialog {
 }
 
 .sapMDialog.sapUiPopupWithPadding:not(.sapUiNoContentPadding) {
-
-	&.sapMDialogWithScrollCont .sapMDialogScrollCont {
-		height: 100%;
-	}
-
 	.sapMDialogScrollCont {
 		padding: @_sap_m_Dialog_Padding;
 
@@ -223,21 +219,6 @@ html.sap-desktop .sapMDialog {
 .sapMMessageDialog .sapMDialogScrollCont {
 	box-sizing: border-box;
 	padding: 1rem;
-}
-
-.sapMDialogWithScrollCont .sapMDialogScroll {
-	/*
-	  This property together with the position: absolute in sapMDialogScrollCont fixes the browser bug stated here:
-	  http://stackoverflow.com/questions/8468066/child-inside-parent-with-min-height-100-not-inheriting-height
-  */
-	position: relative;
-}
-
-.sapMDialogWithScrollCont .sapMDialogScrollCont {
-	height: 100%;
-	padding: 0;
-	position: absolute;
-	width: 100%;
 }
 
 .sapMActionSheetDialog .sapMDialogScrollCont {
@@ -303,17 +284,6 @@ html.sap-desktop .sapMDialog {
 	border-bottom: none;
 }
 
-.sapMDialog > footer {
-
-	#dialogWithManyButtons-footer-overflowButton-inner {
-		padding-left: 0;
-	}
-
-	#dialogWithManyButtons-footer-overflowButton-img {
-		position: static;
-	}
-}
-
 /* Compact size */
 .sapUiSizeCompact {
 
@@ -327,11 +297,7 @@ html.sap-desktop .sapMDialog {
 			padding-top: @_sap_m_Dialog_BarCompactHeight + @_sap_m_Dialog_SubHeaderCompactHeight;
 
 			&.sapMDialogSubHeaderInfoBar {
-				padding-top: @_sap_m_Dialog_BarCompactHeight + @_sap_m_Dialog_InfoDesignBarCompactHeight;
-
-				.sapMDialogSubHeader {
-					height: @_sap_m_Dialog_InfoDesignBarCompactHeight;
-				}
+				padding-top: @_sap_m_Dialog_BarCompactHeight + @_sap_m_Dialog_InfoDesignBarHeight;
 			}
 
 			&.sapMDialog-NoHeader {
@@ -501,7 +467,7 @@ html.sap-desktop .sapMDialog {
 	}
 
 	& > .sapMDialogSection {
-		height: 100%;
+		flex: 1 1 100%;
 		min-height: @_sap_m_Dialog_BarHeight;
 	}
 

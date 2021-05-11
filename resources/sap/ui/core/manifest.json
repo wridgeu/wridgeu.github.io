@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.88.0"
+      "version": "1.89.0"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -16,7 +16,7 @@
       {
         "name": "jquery-3",
         "packagedWithMySelf": true,
-        "version": "3.5.1"
+        "version": "3.6.0"
       },
       {
         "name": "jquery-1",
@@ -159,11 +159,6 @@
         "version": "1.4.0"
       },
       {
-        "name": "flexie.js",
-        "packagedWithMySelf": true,
-        "version": "1.0.3"
-      },
-      {
         "name": "handlebars",
         "packagedWithMySelf": true,
         "version": "4.7.6"
@@ -194,16 +189,6 @@
         "version": "1.1.5"
       },
       {
-        "name": "object-assign-polyfill",
-        "packagedWithMySelf": true,
-        "version": "20180202"
-      },
-      {
-        "name": "unorm",
-        "packagedWithMySelf": true,
-        "version": "1.3.3"
-      },
-      {
         "name": "json-in-js",
         "packagedWithMySelf": true,
         "version": "ff55d8d451"
@@ -212,36 +197,6 @@
         "name": "tdop",
         "packagedWithMySelf": true,
         "version": "unknown"
-      },
-      {
-        "name": "es6-promise",
-        "packagedWithMySelf": true,
-        "version": "4.2.4"
-      },
-      {
-        "name": "es6-string-method-startsWith",
-        "packagedWithMySelf": true,
-        "version": "0.2.0"
-      },
-      {
-        "name": "es6-string-methods-endsWith",
-        "packagedWithMySelf": true,
-        "version": "0.2.0"
-      },
-      {
-        "name": "es6-string-methods-includes",
-        "packagedWithMySelf": true,
-        "version": "1.0.0"
-      },
-      {
-        "name": "es6-string-methods-repeat",
-        "packagedWithMySelf": true,
-        "version": "0.2.0"
-      },
-      {
-        "name": "es6-string-methods-pad",
-        "packagedWithMySelf": true,
-        "version": "1.0.1"
       },
       {
         "name": "klayjs",
@@ -256,17 +211,12 @@
       {
         "name": "lodash",
         "packagedWithMySelf": true,
-        "version": "4.17.15"
+        "version": "4.17.21"
       },
       {
         "name": "hyphenopoly",
         "packagedWithMySelf": true,
         "version": "2.4.0"
-      },
-      {
-        "name": "es6-shim-nopromise",
-        "packagedWithMySelf": true,
-        "version": "0.35.4"
       },
       {
         "name": "p-cancelable",
@@ -304,7 +254,7 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.88",
+      "minUI5Version": "1.89",
       "libs": {}
     },
     "library": {
@@ -462,7 +412,8 @@
           "sap.ui.core.dnd.IDragInfo",
           "sap.ui.core.dnd.IDropInfo",
           "sap.ui.core.IDScope",
-          "sap.ui.core.ITitleContent"
+          "sap.ui.core.ITitleContent",
+          "sap.ui.core.IAsyncContentCreation"
         ]
       }
     }

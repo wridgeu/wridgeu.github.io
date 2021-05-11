@@ -3,23 +3,14 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-/**
- * This module is overall:
- * SPDX-FileCopyrightText: 2009-2021 SAP SE or an SAP affiliate company and OpenUI5 contributors
- * SPDX-License-Identifier: Apache-2.0
- *
- * but contains code taken from jQuery 3.5.1 (see the respective comment):
- * SPDX-FileCopyrightText: JS Foundation and other contributors
- * SPDX-License-Identifier: MIT
- */
 sap.ui.define(["./isPlainObject"],function(e){"use strict";var r=Object.create(null);var i=function(){
 /*
-		 * The code in this function is taken from jQuery 3.5.1 "jQuery.extend" and got modified.
+		 * The code in this function is taken from jQuery 3.6.0 "jQuery.extend" and got modified.
 		 *
-		 * jQuery JavaScript Library v3.5.1
+		 * jQuery JavaScript Library v3.6.0
 		 * https://jquery.com/
 		 *
-		 * Copyright JS Foundation and other contributors
+		 * Copyright OpenJS Foundation and other contributors
 		 * Released under the MIT license
 		 * https://jquery.org/license
 		 */

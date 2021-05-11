@@ -7,6 +7,23 @@
 		"applicationVersion": {
 			"version": "1.15.3"
 		},
+		"serviceWorker": {
+            "file" : "sw.js",
+            "config": [
+				{
+					"url": "http://localhost:8080",
+					"type": "application"
+				},				
+                {
+                    "url": "https://wridgeu.github.io",
+                    "type": "application"
+                },
+                {
+                    "url": "https://raw.githubusercontent.com/wiki/wridgeu",
+                    "type": "static"
+                }
+            ]
+        },
 		"title": "{{appTitle}}",
 		"description": "{{appDescription}}",
 		"dataSources": {

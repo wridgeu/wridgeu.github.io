@@ -3,15 +3,6 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-/**
- * This module is overall:
- * SPDX-FileCopyrightText: 2009-2021 SAP SE or an SAP affiliate company and OpenUI5 contributors
- * SPDX-License-Identifier: Apache-2.0
- *
- * but contains code taken from or inspired by TDOP by Douglas Crockford (see the respective comment):
- * SPDX-FileCopyrightText: 2010 Douglas Crockford
- * SPDX-License-Identifier: Apache-2.0
- */
 sap.ui.define(["sap/base/Log","sap/base/strings/escapeRegExp","sap/base/util/deepEqual","sap/base/util/JSTokenizer","sap/ui/performance/Measurement","sap/ui/thirdparty/URI"],function(n,e,t,r,u,i){"use strict";
 //License granted by Douglas Crockford to SAP, Apache License 2.0
 //    (http://www.apache.org/licenses/LICENSE-2.0)

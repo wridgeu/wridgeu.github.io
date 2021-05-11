@@ -1,27 +1,27 @@
 {
-  "_from": "@highlightjs/cdn-assets@^10.7.1",
-  "_id": "@highlightjs/cdn-assets@10.7.1",
+  "_from": "@highlightjs/cdn-assets@^10.7.2",
+  "_id": "@highlightjs/cdn-assets@10.7.2",
   "_inBundle": false,
-  "_integrity": "sha512-4pSKDJXtlcrR/t5/vYZMXit0uOhI10R/A5vgE9ZdFXJefsEH1cisqr8ccvmCbGhWGefYjtULgXkKOO6qrQOxvQ==",
+  "_integrity": "sha512-PjHGgAQOa/mGzRdp5J/3LWUYcpUCMVUJK1GrvxkfwX7P65QczOFLBE8di9Xqw65sDaDIr0Nj8fuLbWYemHhFKA==",
   "_location": "/@highlightjs/cdn-assets",
   "_phantomChildren": {},
   "_requested": {
     "type": "range",
     "registry": true,
-    "raw": "@highlightjs/cdn-assets@^10.7.1",
+    "raw": "@highlightjs/cdn-assets@^10.7.2",
     "name": "@highlightjs/cdn-assets",
     "escapedName": "@highlightjs%2fcdn-assets",
     "scope": "@highlightjs",
-    "rawSpec": "^10.7.1",
+    "rawSpec": "^10.7.2",
     "saveSpec": null,
-    "fetchSpec": "^10.7.1"
+    "fetchSpec": "^10.7.2"
   },
   "_requiredBy": [
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-10.7.1.tgz",
-  "_shasum": "01d1fbd8486aa148de45cdee1fb9f1c2a4b9c20d",
-  "_spec": "@highlightjs/cdn-assets@^10.7.1",
+  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-10.7.2.tgz",
+  "_shasum": "6629a8d97290dc6d330b82d10f25e46a87979e55",
+  "_spec": "@highlightjs/cdn-assets@^10.7.2",
   "_where": "/home/runner/work/github_pages/github_pages",
   "author": {
     "name": "Ivan Sagalaev",
@@ -141,5 +141,5 @@
     "test-parser": "mocha test/parser"
   },
   "types": "./types/index.d.ts",
-  "version": "10.7.1"
+  "version": "10.7.2"
 }
