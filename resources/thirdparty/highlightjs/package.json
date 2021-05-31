@@ -1,27 +1,27 @@
 {
-  "_from": "@highlightjs/cdn-assets@^10.7.2",
-  "_id": "@highlightjs/cdn-assets@10.7.2",
+  "_from": "@highlightjs/cdn-assets@^11.0.0",
+  "_id": "@highlightjs/cdn-assets@11.0.0",
   "_inBundle": false,
-  "_integrity": "sha512-PjHGgAQOa/mGzRdp5J/3LWUYcpUCMVUJK1GrvxkfwX7P65QczOFLBE8di9Xqw65sDaDIr0Nj8fuLbWYemHhFKA==",
+  "_integrity": "sha512-ZQ2iM7oPoUnMDRPyW4wjaWGgLy72bp54rEJ1NdJHzpRIJo4jX9Qe6Nz37bZ3+lRJjFTAH1WXVbEhIkXnCBWRmQ==",
   "_location": "/@highlightjs/cdn-assets",
   "_phantomChildren": {},
   "_requested": {
     "type": "range",
     "registry": true,
-    "raw": "@highlightjs/cdn-assets@^10.7.2",
+    "raw": "@highlightjs/cdn-assets@^11.0.0",
     "name": "@highlightjs/cdn-assets",
     "escapedName": "@highlightjs%2fcdn-assets",
     "scope": "@highlightjs",
-    "rawSpec": "^10.7.2",
+    "rawSpec": "^11.0.0",
     "saveSpec": null,
-    "fetchSpec": "^10.7.2"
+    "fetchSpec": "^11.0.0"
   },
   "_requiredBy": [
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-10.7.2.tgz",
-  "_shasum": "6629a8d97290dc6d330b82d10f25e46a87979e55",
-  "_spec": "@highlightjs/cdn-assets@^10.7.2",
+  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-11.0.0.tgz",
+  "_shasum": "2393992938aa7779f4c822b4f8e44eb5d20d912a",
+  "_spec": "@highlightjs/cdn-assets@^11.0.0",
   "_where": "/home/runner/work/github_pages/github_pages",
   "author": {
     "name": "Ivan Sagalaev",
@@ -80,39 +80,62 @@
   "deprecated": false,
   "description": "Syntax highlighting with language autodetection. (pre-compiled CDN assets)",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^17.0.0",
+    "@rollup/plugin-commonjs": "^19.0.0",
     "@rollup/plugin-json": "^4.1.0",
-    "@rollup/plugin-node-resolve": "^11.1.0",
+    "@rollup/plugin-node-resolve": "^13.0.0",
     "@types/mocha": "^8.2.2",
-    "@typescript-eslint/eslint-plugin": "^4.6.1",
-    "@typescript-eslint/parser": "^4.6.1",
+    "@typescript-eslint/eslint-plugin": "^4.23.0",
+    "@typescript-eslint/parser": "^4.23.0",
     "clean-css": "^5.0.1",
     "cli-table": "^0.3.1",
     "colors": "^1.1.2",
     "commander": "^7.0.0",
+    "css": "^3.0.0",
     "deep-freeze-es6": "^1.4.1",
     "del": "^6.0.0",
     "dependency-resolver": "^2.0.1",
-    "eslint": "^7.12.1",
+    "eslint": "^7.26.0",
     "eslint-config-standard": "^16.0.1",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^4.2.1",
-    "glob": "^7.1.6",
+    "eslint-plugin-promise": "^5.1.0",
+    "glob": "^7.1.7",
     "glob-promise": "^4.0.1",
     "handlebars": "^4.7.6",
-    "jsdom": "^16.4.0",
+    "jsdom": "^16.6.0",
     "lodash": "^4.17.20",
-    "mocha": "^8.2.1",
+    "mocha": "^8.4.0",
     "refa": "^0.4.1",
-    "rollup": "^2.33.1",
+    "rollup": "^2.47.0",
     "should": "^13.2.3",
-    "terser": "^5.3.8",
+    "terser": "^5.7.0",
     "tiny-worker": "^2.3.0",
     "typescript": "^4.0.5"
   },
   "engines": {
-    "node": "*"
+    "node": ">=12.0.0"
+  },
+  "exports": {
+    ".": {
+      "require": "./lib/index.js",
+      "import": "./es/index.js"
+    },
+    "./package.json": "./package.json",
+    "./lib/common": {
+      "require": "./lib/common.js",
+      "import": "./es/common.js"
+    },
+    "./lib/core": {
+      "require": "./lib/core.js",
+      "import": "./es/core.js"
+    },
+    "./lib/languages/*": {
+      "require": "./lib/languages/*.js",
+      "import": "./es/languages/*.js"
+    },
+    "./scss/*": "./scss/*",
+    "./styles/*": "./styles/*",
+    "./types/*": "./types/*"
   },
   "homepage": "https://highlightjs.org/",
   "keywords": [
@@ -131,7 +154,8 @@
     "build-browser": "node ./tools/build.js -t browser :common",
     "build-cdn": "node ./tools/build.js -t cdn",
     "build_and_test": "npm run build && npm run test",
-    "lint": "eslint src/*.js src/lib/*.js src/plugins/*.js demo/*.js",
+    "build_and_test_browser": "npm run build-browser && npm run test-browser",
+    "lint": "eslint src/*.js src/lib/*.js demo/*.js",
     "lint-languages": "eslint --no-eslintrc -c .eslintrc.lang.js src/languages/**/*.js",
     "mocha": "mocha",
     "test": "mocha test",
@@ -140,6 +164,7 @@
     "test-markup": "mocha test/markup",
     "test-parser": "mocha test/parser"
   },
+  "type": "commonjs",
   "types": "./types/index.d.ts",
-  "version": "10.7.2"
+  "version": "11.0.0"
 }
