@@ -1,8 +1,8 @@
 {
   "_from": "@highlightjs/cdn-assets@^11.0.0",
-  "_id": "@highlightjs/cdn-assets@11.0.0",
+  "_id": "@highlightjs/cdn-assets@11.2.0",
   "_inBundle": false,
-  "_integrity": "sha512-ZQ2iM7oPoUnMDRPyW4wjaWGgLy72bp54rEJ1NdJHzpRIJo4jX9Qe6Nz37bZ3+lRJjFTAH1WXVbEhIkXnCBWRmQ==",
+  "_integrity": "sha512-W3BKP49Fs7+e+QJEIylbaOUtKWVgABVRdDj6GUtScYMC7U3CFFoHD2rWl4S6RXYJX6+dKAYkCL4lxmZJZpP2yQ==",
   "_location": "/@highlightjs/cdn-assets",
   "_phantomChildren": {},
   "_requested": {
@@ -19,8 +19,8 @@
   "_requiredBy": [
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-11.0.0.tgz",
-  "_shasum": "2393992938aa7779f4c822b4f8e44eb5d20d912a",
+  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-11.2.0.tgz",
+  "_shasum": "e571e554266de64e9f2e11f1aa491e1b0346a97b",
   "_spec": "@highlightjs/cdn-assets@^11.0.0",
   "_where": "/home/runner/work/github_pages/github_pages",
   "author": {
@@ -115,35 +115,12 @@
   "engines": {
     "node": ">=12.0.0"
   },
-  "exports": {
-    ".": {
-      "require": "./lib/index.js",
-      "import": "./es/index.js"
-    },
-    "./package.json": "./package.json",
-    "./lib/common": {
-      "require": "./lib/common.js",
-      "import": "./es/common.js"
-    },
-    "./lib/core": {
-      "require": "./lib/core.js",
-      "import": "./es/core.js"
-    },
-    "./lib/languages/*": {
-      "require": "./lib/languages/*.js",
-      "import": "./es/languages/*.js"
-    },
-    "./scss/*": "./scss/*",
-    "./styles/*": "./styles/*",
-    "./types/*": "./types/*"
-  },
   "homepage": "https://highlightjs.org/",
   "keywords": [
     "highlight",
     "syntax"
   ],
   "license": "BSD-3-Clause",
-  "main": "./lib/index.js",
   "name": "@highlightjs/cdn-assets",
   "repository": {
     "type": "git",
@@ -164,7 +141,5 @@
     "test-markup": "mocha test/markup",
     "test-parser": "mocha test/parser"
   },
-  "type": "commonjs",
-  "types": "./types/index.d.ts",
-  "version": "11.0.0"
+  "version": "11.2.0"
 }
