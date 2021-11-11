@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/ui/integration/editor/fields/BaseField","sap/m/Select","sap/ui/core/ListItem"],function(t,e,i){"use strict";var a=t.extend("sap.ui.integration.editor.fields.DestinationField",{metadata:{library:"sap.ui.integration"},renderer:t.getMetadata().getRenderer()});a.prototype.initVisualization=function(t){var a=t.visualization;if(!a){a={type:e,settings:{busy:{path:"currentSettings>_loading"},selectedKey:{path:"currentSettings>value"},forceSelection:false,width:"100%",items:{path:"currentSettings>_values",template:new i({text:"{currentSettings>name}",key:"{currentSettings>name}"})}}}}this._visualization=a;this.attachAfterInit(this._afterInit)};a.prototype._afterInit=function(){var t=this.getAggregation("_field");if(t instanceof e){t.open=this.onOpen}};a.prototype.onOpen=function(){e.prototype.open.apply(this,arguments);var t=this.getPicker();if(t._oCalcedPos==="Bottom"&&!t.hasStyleClass("sapUiIntegrationEditorPopupBottom")){t.addStyleClass("sapUiIntegrationEditorPopupBottom")}else if(t._oCalcedPos!=="Bottom"&&t.hasStyleClass("sapUiIntegrationEditorPopupBottom")){t.removeStyleClass("sapUiIntegrationEditorPopupBottom")}};return a});

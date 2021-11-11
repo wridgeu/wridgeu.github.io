@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"],function(e){"use strict";function t(){e.NumberInput.apply(this,arguments)}t.prototype=Object.create(e.NumberInput.prototype);t.prototype.internalRender=function(){this._numberInputElement=document.createElement("ui5-input");this._numberInputElement.type="Number";this._numberInputElement.id=this.id;this._numberInputElement.placeholder=this.placeholder||"";this._numberInputElement.value=this.defaultValue||"";this._numberInputElement.addEventListener("change",function(e){if(e.target.value>this.max){e.target.value=this.max}if(e.target.value<this.min){e.target.value=this.min}this.valueChanged()}.bind(this));return this._numberInputElement};Object.defineProperty(t.prototype,"value",{get:function(){return this._numberInputElement?this._numberInputElement.value:undefined}});return t});

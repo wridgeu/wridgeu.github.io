@@ -1,6 +1,0 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/ui/fl/write/_internal/fieldExtensibility/ABAPAccess","sap/ui/fl/write/_internal/fieldExtensibility/cap/CAPAccess","sap/base/util/UriParameters"],function(e,t,n){"use strict";var i={};var r;function a(){if(!r){var i=n.fromQuery(window.location.search);if(i.get("sap-ui-fl-xx-capScenario")==="true"){r=t}else{r=e}}return r}function s(){var e=Array.from(arguments);var t=e.shift();var n=a();return Promise.resolve(n[t].apply(null,e))}i.onControlSelected=function(e){return s("onControlSelected",e)};i.isExtensibilityEnabled=function(e){return s("isExtensibilityEnabled",e)};i.isServiceOutdated=function(e){return s("isServiceOutdated",e)};i.setServiceValid=function(e){return s("setServiceValid",e)};i.getTexts=function(){return s("getTexts")};i.getExtensionData=function(){return s("getExtensionData")};i.onTriggerCreateExtensionData=function(e,t){return s("onTriggerCreateExtensionData",e,t)};i._resetCurrentScenario=function(){r=null};return i});

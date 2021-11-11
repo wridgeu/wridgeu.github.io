@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/ui/core/UIComponent","sap/ui/fl/Layer"],function(e,s){"use strict";var o=e.extend("sap.ui.fl.support.apps.contentbrowser.Component",{init:function(){var o=this;e.prototype.init.apply(this,arguments);var n=new sap.ui.model.resource.ResourceModel({bundleUrl:"sap.ui.fl.support.apps.contentbrowser.i18n.i18n.properties"});this.setModel("i18n",n);var a=[];var i=new sap.ui.model.json.JSONModel(a);this.setModel(i,"messages");sap.ui.require(["sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils"],function(e){e.setMessagesModel(o,i)});var t={};var p=new sap.ui.model.json.JSONModel(t);this.setModel(p,"content");var r=[{name:"All",icon:"sap-icon://world"},{name:s.VENDOR,icon:"sap-icon://sap-logo-shape"},{name:"VENDOR_LOAD",icon:"sap-icon://share-2"},{name:s.PARTNER,icon:"sap-icon://supplier"},{name:s.CUSTOMER_BASE,icon:"sap-icon://customer-and-supplier"},{name:s.CUSTOMER,icon:"sap-icon://customer"},{name:"LOAD",icon:"sap-icon://database"},{name:s.USER,icon:"sap-icon://person-placeholder"}];var l=new sap.ui.model.json.JSONModel(r);this.setModel(l,"layers");this.getRouter().initialize()},metadata:{manifest:"json"}});return o});
