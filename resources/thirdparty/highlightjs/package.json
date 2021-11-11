@@ -1,84 +1,55 @@
 {
-  "_from": "@highlightjs/cdn-assets@^11.0.0",
-  "_id": "@highlightjs/cdn-assets@11.3.1",
-  "_inBundle": false,
-  "_integrity": "sha512-XG9IMULYciF77X7PTKBfcUUnZgO6ltFoUhYKiw4Xy9A5XHGGUxX47ZEPNBpWCnxnafaFPTAJjM3/Trh8xb9gOw==",
-  "_location": "/@highlightjs/cdn-assets",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "range",
-    "registry": true,
-    "raw": "@highlightjs/cdn-assets@^11.0.0",
-    "name": "@highlightjs/cdn-assets",
-    "escapedName": "@highlightjs%2fcdn-assets",
-    "scope": "@highlightjs",
-    "rawSpec": "^11.0.0",
-    "saveSpec": null,
-    "fetchSpec": "^11.0.0"
-  },
-  "_requiredBy": [
-    "/"
+  "name": "@highlightjs/cdn-assets",
+  "description": "Syntax highlighting with language autodetection. (pre-compiled CDN assets)",
+  "keywords": [
+    "highlight",
+    "syntax"
   ],
-  "_resolved": "https://registry.npmjs.org/@highlightjs/cdn-assets/-/cdn-assets-11.3.1.tgz",
-  "_shasum": "6ddbbd5323bf19d4fe083819012cd0300815210e",
-  "_spec": "@highlightjs/cdn-assets@^11.0.0",
-  "_where": "/home/runner/work/github_pages/github_pages",
+  "homepage": "https://highlightjs.org/",
+  "version": "11.3.1",
   "author": {
     "name": "Ivan Sagalaev",
     "email": "maniac@softwaremaniacs.org"
   },
+  "contributors": [
+    "Josh Goebel <hello@joshgoebel.com>",
+    "Egor Rogov <e.rogov@postgrespro.ru>",
+    "Vladimir Jimenez <me@allejo.io>",
+    "Ivan Sagalaev <maniac@softwaremaniacs.org>",
+    "Jeremy Hull <sourdrums@gmail.com>",
+    "Oleg Efimov <efimovov@gmail.com>",
+    "Gidi Meir Morris <gidi@gidi.io>",
+    "Jan T. Sott <git@idleberg.com>",
+    "Li Xuanji <xuanji@gmail.com>",
+    "Marcos Cáceres <marcos@marcosc.com>",
+    "Sang Dang <sang.dang@polku.io>"
+  ],
   "bugs": {
     "url": "https://github.com/highlightjs/highlight.js/issues"
   },
-  "bundleDependencies": false,
-  "contributors": [
-    {
-      "name": "Josh Goebel",
-      "email": "hello@joshgoebel.com"
-    },
-    {
-      "name": "Egor Rogov",
-      "email": "e.rogov@postgrespro.ru"
-    },
-    {
-      "name": "Vladimir Jimenez",
-      "email": "me@allejo.io"
-    },
-    {
-      "name": "Ivan Sagalaev",
-      "email": "maniac@softwaremaniacs.org"
-    },
-    {
-      "name": "Jeremy Hull",
-      "email": "sourdrums@gmail.com"
-    },
-    {
-      "name": "Oleg Efimov",
-      "email": "efimovov@gmail.com"
-    },
-    {
-      "name": "Gidi Meir Morris",
-      "email": "gidi@gidi.io"
-    },
-    {
-      "name": "Jan T. Sott",
-      "email": "git@idleberg.com"
-    },
-    {
-      "name": "Li Xuanji",
-      "email": "xuanji@gmail.com"
-    },
-    {
-      "name": "Marcos Cáceres",
-      "email": "marcos@marcosc.com"
-    },
-    {
-      "name": "Sang Dang",
-      "email": "sang.dang@polku.io"
-    }
-  ],
-  "deprecated": false,
-  "description": "Syntax highlighting with language autodetection. (pre-compiled CDN assets)",
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/highlightjs/highlight.js.git"
+  },
+  "scripts": {
+    "mocha": "mocha",
+    "lint": "eslint src/*.js src/lib/*.js demo/*.js",
+    "lint-languages": "eslint --no-eslintrc -c .eslintrc.lang.js src/languages/**/*.js",
+    "build_and_test": "npm run build && npm run test",
+    "build_and_test_browser": "npm run build-browser && npm run test-browser",
+    "build": "node ./tools/build.js -t node",
+    "build-cdn": "node ./tools/build.js -t cdn",
+    "build-browser": "node ./tools/build.js -t browser :common",
+    "test": "mocha test",
+    "test-markup": "mocha test/markup",
+    "test-detect": "mocha test/detect",
+    "test-browser": "mocha test/browser",
+    "test-parser": "mocha test/parser"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^21.0.0",
     "@rollup/plugin-json": "^4.1.0",
@@ -111,35 +82,5 @@
     "terser": "^5.7.0",
     "tiny-worker": "^2.3.0",
     "typescript": "^4.4.4"
-  },
-  "engines": {
-    "node": ">=12.0.0"
-  },
-  "homepage": "https://highlightjs.org/",
-  "keywords": [
-    "highlight",
-    "syntax"
-  ],
-  "license": "BSD-3-Clause",
-  "name": "@highlightjs/cdn-assets",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/highlightjs/highlight.js.git"
-  },
-  "scripts": {
-    "build": "node ./tools/build.js -t node",
-    "build-browser": "node ./tools/build.js -t browser :common",
-    "build-cdn": "node ./tools/build.js -t cdn",
-    "build_and_test": "npm run build && npm run test",
-    "build_and_test_browser": "npm run build-browser && npm run test-browser",
-    "lint": "eslint src/*.js src/lib/*.js demo/*.js",
-    "lint-languages": "eslint --no-eslintrc -c .eslintrc.lang.js src/languages/**/*.js",
-    "mocha": "mocha",
-    "test": "mocha test",
-    "test-browser": "mocha test/browser",
-    "test-detect": "mocha test/detect",
-    "test-markup": "mocha test/markup",
-    "test-parser": "mocha test/parser"
-  },
-  "version": "11.3.1"
+  }
 }

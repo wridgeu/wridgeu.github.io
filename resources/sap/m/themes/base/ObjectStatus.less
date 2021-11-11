@@ -32,6 +32,13 @@
 	}
 }
 
+.sapMLIBActive {
+	.sapMObjStatus:not(.sapMObjStatusInverted) .sapMObjStatusText,
+	.sapMObjStatus:not(.sapMObjStatusInverted) .sapMObjStatusIcon {
+		text-shadow: none;
+	}
+}
+
 .sapMObjStatusLink {
 	min-height: 1rem;
 	vertical-align: top;
@@ -296,8 +303,26 @@
 	line-height: 1rem;
 }
 
-.sapUiTableCell .sapMObjStatusIcon > .sapUiIcon {
-	line-height: normal;
+.sapUiTableCell {
+	.sapMObjStatus {
+		line-height: inherit;
+	}
+	.sapMObjStatusIcon {
+		line-height: inherit;
+		vertical-align: text-bottom;
+		& > .sapUiIcon {
+			vertical-align: bottom;
+		}
+
+	}
+	.sapMObjStatusText {
+		line-height: inherit;
+		vertical-align: middle;
+	}
+	.sapMObjStatusText,
+	.sapMObjStatusTitle {
+		display: inline;
+	}
 }
 
 .sapMObjectStatusLarge .sapMObjStatusIcon > .sapUiIcon {
@@ -327,7 +352,6 @@
 	display: inline-block;
 	line-height: normal;
 	-webkit-user-select: text;
-	-ms-user-select: text;
 	user-select: text;
 }
 
@@ -338,11 +362,13 @@
 */
 .sapUiForm.sapUiFormEdit .sapMObjStatus {
 	padding-top: 0.875rem;
+	padding-bottom: 0.875rem;
 	line-height: normal;
 }
 
 .sapUiSizeCompact .sapUiForm.sapUiFormEdit .sapMObjStatus {
 	padding-top: 0.5rem;
+	padding-bottom: 0.5rem;
 	line-height: normal;
 }
 
@@ -363,6 +389,12 @@
 		}
 
 	}
+}
+
+.sapUxAPObjectPageHeaderContent .sapUxAPObjectPageHeaderContentItem{
+	.sapMObjStatus {
+		vertical-align: text-bottom;
+	} 
 }
 
 /* ============================================= */
@@ -593,9 +625,9 @@ html.sap-desktop .sapMObjStatusActive:focus {
 		display: block;
 		content: "";
 		position: absolute;
-		top: -1px;
+		top: 1px;
 		left: 1px;
-		bottom: -1px;
+		bottom: 1px;
 		right: 1px;
 		outline: 1px dotted @sapUiContentFocusColor;
 	}
@@ -623,15 +655,6 @@ html.sap-desktop .sapMObjStatusActive:focus {
 
 	}
 
-}
-
-html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
-	.sapMObjStatusActive:focus .sapMObjStatusLink::after {
-		outline-style: dashed;
-	}
-	.sapMObjStatusInverted .sapMObjStatusText {
-		margin-left: -1px;
-	}
 }
 
 .sapMObjStatus .sapUiPseudoInvisibleText {

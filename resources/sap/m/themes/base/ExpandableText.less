@@ -1,7 +1,7 @@
-/* =========================== */
+/* ===================================== */
 /* CSS for control sap.m/ExpandableText  */
-/* Base theme                  */
-/* =========================== */
+/* Base theme                            */
+/* ===================================== */
 
 .sapMExText {
 	box-sizing: border-box;
@@ -40,4 +40,42 @@
 /*Necessary to align vertically to labels */
 .sapUiForm .sapMExText {
 	overflow: hidden;
+}
+
+.sapUiFormEdit .sapMExText {
+	display: block;
+	line-height: 1.375rem;
+	min-height: 2.75rem; /* for empty text */
+	padding-top: 0.6875rem;
+	padding-bottom: 0.6875rem;
+
+	& > a.sapMLnk {
+		line-height: 1.375rem;
+		padding: 0;
+		margin: 0;
+	}
+}
+
+.sapUiForm:not(.sapUiFormEdit) .sapMExText {
+	min-height: 1rem; /* for empty text */
+}
+
+.sapMExTextEllipsis {
+	white-space: pre-line;
+	word-spacing: 0.125rem;
+}
+
+/* Compact size */
+.sapUiSizeCompact .sapUiFormEdit .sapMExText {
+	min-height: 2rem; /* for empty text */
+	padding-top: 0.3125rem;
+	padding-bottom: 0.3125rem;
+}
+
+.sapMExText .sapMEmptyIndicator.sapMEmptyIndicatorAuto {
+	display: none;
+}
+
+.sapMShowEmpty-CTX .sapMExText .sapMEmptyIndicator.sapMEmptyIndicatorAuto {
+	display: inline-block;
 }

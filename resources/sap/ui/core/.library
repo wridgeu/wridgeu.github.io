@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.89.0</version>
+  <version>1.95.0</version>
 
   <documentation>The SAPUI5 Core Runtime.
 
@@ -112,7 +112,7 @@
         <raw-module name="sap/ui/thirdparty/URITemplate.js" depends="sap/ui/thirdparty/URI.js"/>
         <raw-module name="sap/ui/thirdparty/vkbeautify.js" />
         <raw-module name="sap/ui/thirdparty/zyngascroll.js" requiresTopLevelScope="false" />
-        <raw-module name="sap/ui/thirdparty/hyphenopoly/hyphenopoly.bundle.js" depends="sap/ui/thirdparty/hyphenopoly/hyphenEngine.asm.js" />
+        <raw-module name="sap/ui/thirdparty/hyphenopoly/Hyphenopoly.js" depends="sap/ui/thirdparty/hyphenopoly/hyphenEngine.asm.js" />
         <raw-module name="sap/ui/thirdparty/hyphenopoly/hyphenEngine.asm.js" requiresTopLevelScope="false" />
         <raw-module name="ui5loader.js" />
         <raw-module name="ui5loader-autoconfig.js" depends="ui5loader.js" />
@@ -234,6 +234,8 @@
         <exclude name="sap.ui.test.starter.runTest" />
         <exclude name="sap.ui.qunit." />
         <exclude name="sap.ui.thirdparty." />
+        <exclude name="sap.ui.model.odata.datajs" /> <!-- legacy redirect, only part of internal core overlay -->
+        <exclude name="sap.ui.core.designtime.mvc.ControllerExtensionTemplate" /> <!-- template file with partially unexpected content -->
     </jsdoc>
     <!-- excludes for the JSCoverage -->
     <jscoverage xmlns="http://www.sap.com/ui5/buildext/jscoverage" >
@@ -398,7 +400,7 @@
             <copyright>2010-2011, Christian Johansen</copyright>
             <pattern>sap/ui/thirdparty/sinon-qunit.js</pattern>
         </lib>
-        <lib name="urijs" displayName="URI.js" version="1.19.1" homepage="http://medialize.github.com/URI.js/">
+        <lib name="urijs" displayName="URI.js" version="1.19.6" homepage="http://medialize.github.com/URI.js/">
             <license url="http://opensource.org/licenses/mit-license" type="MIT" />
             <copyright>Rodney Rehm</copyright>
             <pattern>sap/ui/thirdparty/URI.js</pattern>
@@ -411,8 +413,8 @@
             <copyright>Mathias Bynens</copyright>
             <pattern>sap/ui/thirdparty/punycode.js</pattern>
         </lib>
-        <lib name="handlebars" displayName="handlebars" version="4.7.6" homepage="http://handlebarsjs.com/">
-            <license url="https://github.com/wycats/handlebars.js/" type="MIT" />
+        <lib name="handlebars" displayName="handlebars" version="4.7.7" homepage="http://handlebarsjs.com/">
+            <license url="https://github.com/handlebars-lang/handlebars.js/" type="MIT" />
             <copyright>2011-2019 by Yehuda Katz</copyright>
             <pattern>sap/ui/thirdparty/handlebars.js</pattern>
         </lib>
@@ -468,9 +470,9 @@
             <copyright>OpenJS Foundation and other contributors</copyright>
             <pattern>sap/ui/base/util/restricted/_/lodash.custom.js</pattern>
         </lib>
-        <lib name="hyphenopoly" displayName="Hyphenopoly" version="2.4.0" homepage="https://github.com/mnater/Hyphenopoly">
+        <lib name="hyphenopoly" displayName="Hyphenopoly" version="3.4.0" homepage="https://github.com/mnater/Hyphenopoly">
             <license url="https://github.com/mnater/Hyphenopoly/blob/master/LICENSE" type="MIT" />
-            <copyright>2018 Mathias Nater</copyright>
+            <copyright>2021 Mathias Nater</copyright>
             <pattern>sap/ui/thirdparty/hyphenopoly/*</pattern>
         </lib>
         <lib name="p-cancelable" displayName="p-cancelable" version="2.0.0" homepage="https://github.com/sindresorhus/p-cancelable/tree/v2.0.0">

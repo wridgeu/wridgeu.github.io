@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.89.0"
+      "version": "1.95.0"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -151,7 +151,7 @@
       {
         "name": "urijs",
         "packagedWithMySelf": true,
-        "version": "1.19.1"
+        "version": "1.19.6"
       },
       {
         "name": "punycodejs",
@@ -161,7 +161,7 @@
       {
         "name": "handlebars",
         "packagedWithMySelf": true,
-        "version": "4.7.6"
+        "version": "4.7.7"
       },
       {
         "name": "requirejs",
@@ -216,7 +216,7 @@
       {
         "name": "hyphenopoly",
         "packagedWithMySelf": true,
-        "version": "2.4.0"
+        "version": "3.4.0"
       },
       {
         "name": "p-cancelable",
@@ -254,7 +254,7 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.89",
+      "minUI5Version": "1.95",
       "libs": {}
     },
     "library": {
@@ -413,7 +413,8 @@
           "sap.ui.core.dnd.IDropInfo",
           "sap.ui.core.IDScope",
           "sap.ui.core.ITitleContent",
-          "sap.ui.core.IAsyncContentCreation"
+          "sap.ui.core.IAsyncContentCreation",
+          "sap.ui.core.IPlaceholderSupport"
         ]
       }
     }

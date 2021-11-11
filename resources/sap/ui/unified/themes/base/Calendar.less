@@ -93,18 +93,53 @@
 	font-size: 0.625rem;
 }
 
-.sapUiCalHeadPrev,
-.sapUiCalHeadNext {
-	position: absolute;
-	width: 2.5rem;
+.sapUiCalHead {
+	.sapUiCalHeadPrev,
+	.sapUiCalHeadNext,
+	 .sapUiCalHeadToday {
+		position: absolute;
+		width: 2.5rem;
+	}
+	.sapUiCalHeadNext {
+		right: 0.5rem;
+	}
+}
+
+.sapUiCalHead.sapUiCalHeaderWithTodayButton {
+	.sapUiCalHeadPrev,
+	.sapUiCalHeadNext,
+	.sapUiCalHeadToday {
+		position: initial;
+		width: 2rem;
+	}
+}
+
+.sapUiSizeCompact .sapUiCalHead {
+	.sapUiCalHeadPrev,
+	.sapUiCalHeadNext,
+	.sapUiCalHeadToday {
+		width: 2rem;
+	}
+	.sapUiCalHeadNext {
+		right: 0.25rem;
+	}
+}
+
+.sapUiSizeCompact .sapUiCalHead.sapUiCalHeaderWithTodayButton {
+	.sapUiCalHeadPrev,
+	.sapUiCalHeadNext,
+	.sapUiCalHeadToday {
+		width: 1.5rem;
+	}
 }
 
 .sapUiCalHeadPrev {
 	left: 0.5rem;
 }
 
-.sapUiCalHeadNext {
-	right: 0.5rem;
+.sapUiCalHead.sapUiCalHeaderWithTodayButton {
+	display: flex;
+	justify-content: space-evenly;
 }
 
 /* no default (browser) outline, if device needs focus visualization its defined later */
@@ -184,7 +219,7 @@ html.sap-desktop .sapUiCalHead > button.sapUiCalDsbl:focus,
 
 .sapUiCalInt > .sapUiCalContent > .sapUiCalMonthPicker,
 .sapUiCalInt > .sapUiCalContent > .sapUiCalYearPicker {
-	width: 100%;
+	width: inherit;
 }
 
 .sapUiCalHeadText {
@@ -480,6 +515,16 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 			width: 5.75rem;
 		}
 	}
+	.sapUiCalHead.sapUiCalHeaderWithTodayButton {
+		.sapUiCalHeadB2.sapUiCalSingleYearButton,
+		.sapUiCalHeadB4.sapUiCalSingleYearButton {
+			width: 11.5rem;
+		}
+
+		.sapUiCalHeadBPlaceholder {
+			width: 12rem;
+		}
+	}
 
 	&.sapUiCalTwoMonthsTwoColumns,
 	&.sapUiCalTwoMonthsTwoColumnsJaZh {
@@ -491,6 +536,10 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 			margin-left: 6.25rem;
 		}
 	}
+}
+
+.sapUiCalHeadBPlaceholder {
+	width: inherit;
 }
 
 .sapUiCalTwoMonthsTwoColumnsJaZh .sapUiCalHeadB2,
@@ -547,8 +596,6 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	padding-top: 2rem;
 }
 
-.sapUiCalWidth:not(.sapUiCalInt) > .sapUiCalContent > .sapUiCalMonthPicker,
-.sapUiCalWidth:not(.sapUiCalInt) > .sapUiCalContent > .sapUiCalYearPicker,
 .sapUiCalMulti > .sapUiCalContent > .sapUiCalMonthPicker,
 .sapUiCalMulti > .sapUiCalContent > .sapUiCalYearPicker{
 	top: 1rem;
@@ -557,10 +604,30 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	margin-left: -10rem;
 }
 
+.sapUiCalWidth:not(.sapUiCalInt):not(.sapUiCalMulti) > .sapUiCalContent > .sapUiCalMonthPicker,
+.sapUiCalWidth:not(.sapUiCalInt):not(.sapUiCalMulti) > .sapUiCalContent > .sapUiCalYearPicker,
+.sapUiSizeCompact .sapUiCalWidth:not(.sapUiCalInt):not(.sapUiCalMulti) > .sapUiCalContent > .sapUiCalMonthPicker,
+.sapUiSizeCompact.sapUiCalWidth:not(.sapUiCalInt):not(.sapUiCalMulti) > .sapUiCalContent > .sapUiCalMonthPicker,
+.sapUiSizeCompact .sapUiCalWidth:not(.sapUiCalInt):not(.sapUiCalMulti) > .sapUiCalContent > .sapUiCalYearPicker,
+.sapUiSizeCompact.sapUiCalWidth:not(.sapUiCalInt):not(.sapUiCalMulti) > .sapUiCalContent > .sapUiCalYearPicker {
+	box-sizing: border-box;
+	width: 100%;
+	margin-left: 0;
+}
+
 /* Day names inside day */
 .sapUiCalNoNameLine .sapUiCalItem > .sapUiCalItemText{
 	padding-top: 1rem;
 	line-height: 2rem;
+}
+
+.sapUiCalNoNameLine .sapUiCalItem.sapUiRelativeCalItem > .sapUiCalItemText {
+	line-height: 3rem;
+	padding-top: 0;
+}
+
+.sapUiSizeCompact .sapMPlanCal .sapUiCalNoNameLine .sapUiCalItem.sapUiRelativeCalItem > .sapUiCalItemText {
+    padding-left: 25%;
 }
 
 .sapUiCalNoNameLine .sapUiCalItem.sapUiCalItemNow > .sapUiCalItemText{
@@ -602,6 +669,10 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	color: @sapUiContentContrastTextColor;
 }
 
+.sapPCRelative .sapUiCalRowWeekNumbers {
+	margin-top: 0;
+}
+
 .sapUiCalRowWeekNumbers {
 	clear: left;
 	font-size: 0.875rem;
@@ -621,6 +692,10 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	overflow: hidden;
 	user-select: none;
 	cursor: default;
+}
+
+.sapPCRelative .sapUiCalRowWeekNumber {
+	border-bottom-width: 0;
 }
 
 .sapUiCalHeadSecondMonth {
@@ -677,19 +752,9 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	padding-bottom: 0.5rem;
 }
 
-.sapUiSizeCompact .sapUiCalHeadPrev,
-.sapUiSizeCompact .sapUiCalHeadNext{
-	width: 2rem;
-}
-
 .sapUiSizeCompact .sapUiCal .sapUiCalHeadPrev,
 .sapUiSizeCompact.sapUiCal .sapUiCalHeadPrev{
 	left: 0.25rem;
-}
-
-.sapUiSizeCompact .sapUiCal .sapUiCalHeadNext,
-.sapUiSizeCompact.sapUiCal .sapUiCalHeadNext{
-	right: 0.25rem;
 }
 
 .sapUiSizeCompact .sapUiCalHeadB{
@@ -709,10 +774,6 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	width: 6.25rem;
 }
 
-.sapUiSizeCompact .sapUiCalMulti .sapUiCalHeadB1,
-.sapUiSizeCompact.sapUiCalMulti .sapUiCalHeadB1,
-.sapUiSizeCompact .sapUiCalMonthInt .sapUiCalHeadB2,
-.sapUiSizeCompact.sapUiCalMonthInt .sapUiCalHeadB2,
 .sapUiSizeCompact .sapUiCalMulti .sapUiCalHeadB3,
 .sapUiSizeCompact.sapUiCalMulti .sapUiCalHeadB3,
 .sapUiSizeCompact .sapUiCalIntLarge .sapUiCalHeadB3,
@@ -778,10 +839,6 @@ html.sapUiMedia-Std-Phone .sapUiCalHeadB0{
 	margin-left: 0;
 }
 
-.sapUiSizeCompact .sapUiCalWidth:not(.sapUiCalInt) > .sapUiCalContent > .sapUiCalMonthPicker,
-.sapUiSizeCompact.sapUiCalWidth:not(.sapUiCalInt) > .sapUiCalContent > .sapUiCalMonthPicker,
-.sapUiSizeCompact .sapUiCalWidth:not(.sapUiCalInt) > .sapUiCalContent > .sapUiCalYearPicker,
-.sapUiSizeCompact.sapUiCalWidth:not(.sapUiCalInt) > .sapUiCalContent > .sapUiCalYearPicker,
 .sapUiSizeCompact .sapUiCalMulti > .sapUiCalContent > .sapUiCalMonthPicker,
 .sapUiSizeCompact.sapUiCalMulti > .sapUiCalContent > .sapUiCalMonthPicker,
 .sapUiSizeCompact .sapUiCalMulti > .sapUiCalContent > .sapUiCalYearPicker,
@@ -873,6 +930,12 @@ html.sap-phone [data-sap-ui-popup] .sapUiCal > .sapUiCalContent > .sapUiCalYearP
 }
 
 .sapUiCal.sapUiCalMulti.sapUiCalTwoMonthsTwoColumns {
+	.sapUiCalHead.sapUiCalHeaderWithTodayButton {
+		justify-content: space-evenly;
+	}
+	.sapUiCalHead.sapUiCalHeaderWithTodayButton .sapUiCalHeadBPlaceholder {
+		width:100%;
+	}
 	& .sapUiCalHeadB.sapUiCalHeadB1 {
 		margin-right: 0.25rem;
 	}
@@ -908,6 +971,15 @@ html.sap-phone [data-sap-ui-popup] .sapUiCal > .sapUiCalContent > .sapUiCalYearP
 		.sapUiCalHead {
 			.sapUiCalHeadB2.sapUiCalSingleYearButton,
 			.sapUiCalHeadB4.sapUiCalSingleYearButton {
+				width: 11rem;
+			}
+		}
+		.sapUiCalHead.sapUiCalHeaderWithTodayButton {
+			.sapUiCalHeadB2.sapUiCalSingleYearButton,
+			.sapUiCalHeadB4.sapUiCalSingleYearButton {
+				width: 10.5rem;
+			}
+			.sapUiCalHeadBPlaceholder {
 				width: 11rem;
 			}
 		}

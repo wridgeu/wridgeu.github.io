@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.89.0"
+      "version": "1.95.0"
     },
     "title": "SAPUI5 library with integration-related controls.",
     "description": "SAPUI5 library with integration-related controls.",
@@ -29,14 +29,9 @@
         "version": "unknown"
       },
       {
-        "name": "custom-event-polyfill",
-        "packagedWithMySelf": true,
-        "version": "20190614"
-      },
-      {
         "name": "adaptive-cards",
         "packagedWithMySelf": true,
-        "version": "1.2.3"
+        "version": "2.9.0"
       },
       {
         "name": "adaptive-cards-templating",
@@ -47,11 +42,6 @@
         "name": "markdown-it",
         "packagedWithMySelf": true,
         "version": "10.0.0"
-      },
-      {
-        "name": "ajv",
-        "packagedWithMySelf": true,
-        "version": "6.10.2"
       }
     ]
   },
@@ -64,13 +54,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.89",
+      "minUI5Version": "1.95",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.89.0"
+          "minVersion": "1.95.0"
         },
         "sap.f": {
-          "minVersion": "1.89.0"
+          "minVersion": "1.95.0"
         }
       }
     },

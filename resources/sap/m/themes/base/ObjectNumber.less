@@ -3,6 +3,8 @@
 /* Base theme                          */
 /* =================================== */
 
+@sapMONInformativeElement: @sapUiInformativeElement;
+
 .sapMObjectNumber {
 	display: block;
 	white-space: normal;
@@ -17,7 +19,6 @@
 	&.sapMObjectNumberLarge {
 		vertical-align: middle;
 		height: 2rem;
-		font-size: 1.5rem;
 		&.sapMObjectNumberInverted .sapMObjectNumberInner{
 			padding: 0 0.25rem;
 		}
@@ -78,23 +79,19 @@ html[data-sap-ui-os^="Android"] {
 }
 
 .sapUiForm.sapUiFormEdit .sapMObjectNumber {
-	line-height: 3rem;
-}
-
-.sapUiForm.sapUiFormEdit .sapMObjectNumber .sapMObjectNumberUnit {
-	line-height: 2.875rem;
+	line-height: 2rem;
 }
 
 .sapUiSizeCompact .sapUiForm.sapUiFormEdit .sapMObjectNumber {
 	line-height: 2rem;
 }
 
-.sapUiSizeCompact .sapUiForm.sapUiFormEdit .sapMObjectNumber .sapMObjectNumberUnit {
-	line-height: 1.875rem;
-}
-
-.sapMLIBActive .sapMObjectNumber {
-	color: @sapUiListActiveTextColor;
+.sapMLIBActive {
+	.sapMObjectNumberText,
+	.sapMObjectNumberUnit {
+		color: @sapUiListActiveTextColor;
+		text-shadow: none;
+	}
 }
 
 .sapMObjectNumberStatusNone {
@@ -192,13 +189,6 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 	}
 }
 
-/* doesn't work on IE */
-html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
-	.sapMObjectNumberActive:focus .sapMObjectNumberInner::after {
-		outline-style: dashed;
-	}
-}
-
 // inverted classes
 
 .sapMObjectNumberInverted {
@@ -279,5 +269,5 @@ html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
 .objectNumberStatusMixIn(sapMObjectNumberStatusError, @sapUiButtonNegativeBackground, @sapUiButtonNegativeTextColor, @sapUiButtonNegativeHoverBackground, @sapUiButtonNegativeHoverTextColor, @sapUiButtonNegativeActiveBackground);
 .objectNumberStatusMixIn(sapMObjectNumberStatusWarning, @sapUiButtonCriticalBackground, @sapUiButtonCriticalTextColor, @sapUiButtonCriticalHoverBackground, @sapUiButtonCriticalHoverTextColor, @sapUiButtonCriticalActiveBackground);
 .objectNumberStatusMixIn(sapMObjectNumberStatusSuccess, @sapUiButtonSuccessBackground, @sapUiButtonSuccessTextColor, @sapUiButtonSuccessHoverBackground, @sapUiButtonSuccessHoverTextColor, @sapUiButtonSuccessActiveBackground);
-.objectNumberStatusMixIn(sapMObjectNumberStatusInformation, @sapUiInformativeElement, @sapUiButtonInformationTextColor, @sapUiButtonInformationHoverBackground, @sapUiButtonInformationHoverTextColor, @sapUiButtonInformationActiveBackground);
+.objectNumberStatusMixIn(sapMObjectNumberStatusInformation, @sapMONInformativeElement, @sapUiButtonInformationTextColor, @sapUiButtonInformationHoverBackground, @sapUiButtonInformationHoverTextColor, @sapUiButtonInformationActiveBackground);
 .objectNumberStatusMixIn(sapMObjectNumberStatusNone, @sapUiButtonNeutralBackground, @sapUiButtonNeutralTextColor, @sapUiButtonNeutralHoverBackground, @sapUiButtonNeutralHoverTextColor, @sapUiButtonNeutralActiveBackground);

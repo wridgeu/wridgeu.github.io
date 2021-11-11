@@ -1,1 +1,0 @@
-ace.define("ace/snippets/bro",["require","exports","module"],function(e,o,t){"use strict";o.snippetText=undefined;o.scope=""});(function(){ace.require(["ace/snippets/bro"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();

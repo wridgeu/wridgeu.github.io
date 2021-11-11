@@ -98,8 +98,21 @@
 }
 
 .sapUiFlVarMngmtFavColor {
-	color: @sapUiButtonIconColor;
+	color: @sapUiContentMarkerIconColor;
 }
+
+.sapUiFlVarMngmtFavNonInteractiveColor {
+	color: @sapUiContentNonInteractiveIconColor;
+}
+
+.sapUiFlVarMngmtFavNonInteractiveColor:hover {
+	cursor: default;
+}
+
+.sapUiFlVarMngmtSaveDialog  .sapUiRespGrid.sapUiRespGridVSpace1 > div {
+	margin-bottom: 0rem;
+	margin: 0rem;
+ }
 
 .sapUiFlVarMngmtSaveDialog .sapUiFlVarMngmtSaveDialogLabel.sapMLabel::after {
 	content: ":";

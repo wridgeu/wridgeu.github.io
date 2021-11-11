@@ -27,7 +27,9 @@
         "1.15.0",
         "1.16.0",
         "1.17.0",
-        "1.18.0"
+        "1.18.0",
+        "1.19.0",
+        "1.20.0"
       ]
     },
     "designtime": {
@@ -81,15 +83,16 @@
       "description": "Represents the type of the card's content",
       "type": "string",
       "enum": [
-        "List",
+        "AdaptiveCard",
         "Analytical",
         "AnalyticsCloud",
-        "Table",
-        "Object",
-        "Timeline",
-        "Component",
         "Calendar",
-        "AdaptiveCard"
+        "Component",
+        "List",
+        "Object",
+        "Table",
+        "Timeline",
+        "WebPage"
       ]
     },
     "data": {
@@ -121,188 +124,182 @@
     "extension": {
       "description": "A path to an Extension implementation. It is resolved relatively to the manifest",
       "type": "string"
+    },
+    "footer": {
+      "descirption": "Represent card footer attributes",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actionsStrip": {
+          "description": "[Experimental] Describes actions strip",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionsStripItem"
+          }
+        }
+      }
     }
   },
-  "oneOf": [
+  "allOf": [
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "List"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.List"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "List"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.List"
+          }
+        }
+      }
     },
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "Analytical"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.Analytical"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "Analytical"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.Analytical"
+          }
+        }
+      }
     },
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "AnalyticsCloud"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.AnalyticsCloud"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "AnalyticsCloud"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.AnalyticsCloud"
+          }
+        }
+      }
     },
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "Timeline"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.Timeline"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "Timeline"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.Timeline"
+          }
+        }
+      }
     },
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "Table"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.Table"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "Table"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.Table"
+          }
+        }
+      }
     },
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "Object"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.Object"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "Object"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.Object"
+          }
+        }
+      }
     },
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "Component"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.Component"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "Component"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.Component"
+          }
+        }
+      }
     },
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "Calendar"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.Calendar"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "Calendar"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.Calendar"
+          }
+        }
+      }
     },
     {
-      "allOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "AdaptiveCard"
-              ]
-            }
-          }
-        },
-        {
-          "properties": {
-            "content": {
-              "$ref": "#/definitions/ContentType.AdaptiveCard"
-            }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "AdaptiveCard"
           }
         }
-      ]
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.AdaptiveCard"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "WebPage"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "content": {
+            "$ref": "#/definitions/ContentType.WebPage"
+          }
+        }
+      }
     }
   ],
   "definitions": {
@@ -475,6 +472,19 @@
         "unit": {
           "description": "Represents unit of measurement of the side indicator",
           "type": "string"
+        },
+        "state": {
+          "description": "The state color of the side indicator",
+          "type": "string",
+          "oneOf": [
+            {
+              "description": "The state color of the side indicator",
+              "$ref": "#/definitions/Enums.ValueColor"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
         }
       }
     },
@@ -583,6 +593,13 @@
         },
         "chart": {
           "$ref": "#/definitions/Microchart"
+        },
+        "actionsStrip": {
+          "description": "[Experimental] Describes actions strip",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionsStripItem"
+          }
         }
       }
     },
@@ -595,16 +612,22 @@
           "$ref": "#/definitions/data"
         },
         "chartType": {
-          "description": "Describes the type of the chart",
+          "description": "The type of the chart",
           "type": "string",
           "oneOf": [
             {
-              "enum": [
-                "Line",
-                "StackedColumn",
-                "StackedBar",
-                "Donut"
-              ]
+             "type": "string"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "chartProperties": {
+          "description": "[Experimental] Chart configuration",
+          "oneOf": [
+            {
+              "type": "object"
             },
             {
               "$ref": "#/definitions/simpleBinding"
@@ -618,7 +641,7 @@
           "$ref": "#/definitions/ContentType.Analytical.Legend"
         },
         "plotArea": {
-          "description": "Describes the plotArea properties",
+          "description": "[Deprecated] Describes the plotArea properties",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -634,7 +657,7 @@
           }
         },
         "title": {
-          "description": "Represents title attributes",
+          "description": "[Deprecated] Represents title attributes",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -673,23 +696,30 @@
           }
         },
         "measureAxis": {
-          "description": "Represents the value set for measure axis",
+          "description": "[Deprecated] Represents the value set for measure axis",
           "type": "string"
         },
         "dimensionAxis": {
-          "description": "Represents the value set for dimension axis",
+          "description": "[Deprecated] Represents the value set for dimension axis",
           "type": "string"
         },
         "dimensions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/field"
+            "$ref": "#/definitions/ContentType.Analytical.MeasureAndDimension"
           }
         },
         "measures": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/field"
+            "$ref": "#/definitions/ContentType.Analytical.MeasureAndDimension"
+          }
+        },
+        "feeds": {
+          "description": "Feeds for the chart.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentType.Analytical.Field"
           }
         },
         "actions": {
@@ -697,6 +727,39 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/action"
+          }
+        },
+        "actionableArea": {
+          "oneOf": [
+            {
+              "enum": [
+                "Full",
+                "Chart"
+              ],
+              "default": "Full"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "popover": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Configuration for a popover, which will open while pressing chart points",
+          "properties": {
+            "active": {
+              "description": "Whether the popover is connected to the chart. If it's not it won't open",
+              "oneOf": [
+                {
+                  "type": "boolean",
+                  "default": false
+                },
+                {
+                  "$ref": "#/definitions/simpleBinding"
+                }
+              ]
+            }
           }
         }
       }
@@ -707,11 +770,11 @@
       "additionalProperties": false,
       "properties": {
         "visible": {
-          "description": "Represents the visibility state of the dataLabel",
+          "description": "Visibility of the data labels",
           "$ref": "#/definitions/visibility"
         },
         "showTotal": {
-          "description": "Represents the visibility state of 'show total' indicator",
+          "description": "Visibility of data label for total value in some charts",
           "$ref": "#/definitions/visibility"
         }
       }
@@ -728,16 +791,16 @@
       }
     },
     "ContentType.Analytical.Legend": {
-      "description": "Represents chart legend attributes",
+      "description": "[Deprecated] Represents chart legend attributes",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "visible": {
-          "description": "Represent the visibility state of the legend",
+          "description": "Defines whether the legend will be visible",
           "$ref": "#/definitions/visibility"
         },
         "position": {
-          "description": "Representation of where the legend will be positioned",
+          "description": "Defines where the legend will be positioned",
           "type": "string",
           "oneOf": [
             {
@@ -755,7 +818,7 @@
           ]
         },
         "alignment": {
-          "description": "Representation of how the legend will be aligned",
+          "description": "Defines how the legend will be aligned",
           "type": "string",
           "oneOf": [
             {
@@ -769,6 +832,56 @@
               "$ref": "#/definitions/simpleBinding"
             }
           ]
+        }
+      }
+    },
+    "ContentType.Analytical.Field": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "description": "The type of the feed",
+          "oneOf": [
+            {
+              "enum": [
+                "Measure",
+                "Dimension"
+              ]
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "uid": {
+          "description": "The uid of the feed",
+          "type": "string"
+        },
+        "values": {
+          "description": "The names of the measures or dimensions that are used for this feed",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ContentType.Analytical.MeasureAndDimension": {
+      "description": "Measure/dimension for the dataset",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "The name of the measure/dimension",
+          "type": "string"
+        },
+        "label": {
+          "description": "[Deprecated] Label for the measure/dimension",
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "description": "Binding path to the data"
         }
       }
     },
@@ -1391,6 +1504,27 @@
       "description": "Represents AdaptiveCard content",
       "$ref": "https://adaptivecards.io/schemas/adaptive-card.json#/definitions/AdaptiveCard"
     },
+    "ContentType.WebPage": {
+      "description": "WebPage content is used to embed HTML page",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/data"
+        },
+        "minHeight": {
+          "$ref": "#/definitions/minHeight"
+        },
+        "src": {
+          "description": "URL of the web page to be embedded",
+          "type": "string"
+        },
+        "sandbox": {
+          "description": "Sandbox attribute of the iframe",
+          "type": "string"
+        }
+      }
+    },
     "progressIndicator": {
       "description": "Represents progress indicator attributes",
       "type": "object",
@@ -1684,6 +1818,17 @@
           "type": "object",
           "additionalProperties": true
         },
+        "retryAfter": {
+          "description": "Number of seconds before the request is retried if it failed the previous time.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
         "withCredentials": {
           "description": "Indicates whether cross-site requests should be made using credentials",
           "oneOf": [
@@ -1695,6 +1840,79 @@
               "$ref": "#/definitions/simpleBinding"
             }
           ]
+        },
+        "batch": {
+          "description": "Map of requests to be batched",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/batchRequest"
+          }
+        },
+        "cache": {
+          "description": "Cache control settings",
+          "$ref" :"#/definitions/cache"
+        }
+      }
+    },
+    "batchRequest": {
+      "description": "Represents a request which is a part of a batch request.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "method"
+      ],
+      "properties": {
+        "url": {
+          "description": "The URL to make the request to",
+          "type": "string"
+        },
+        "method": {
+          "description": "The HTTP method",
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "headers": {
+          "description": "Represents HTTP headers",
+          "type": "object",
+          "additionalProperties": true
+        },
+        "body": {
+          "description": "Represents the request body",
+          "additionalProperties": true
+        }
+      }
+    },
+    "cache": {
+      "description": "Cache control settings",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxAge": {
+          "description": "The maximum age for which the cache is considered fresh.",
+          "type": "number",
+          "default": 0
+        },
+        "staleWhileRevalidate": {
+          "description": "Should we show stale cache while revalidating.",
+          "type": "boolean",
+          "default": false
+        },
+        "noStore": {
+          "description": "[Deprecated] Set to true to disable caching for this card.",
+          "type": "boolean",
+          "default": false
+        },
+        "enabled": {
+          "description": "Set to false to disable caching for this card.",
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -1752,6 +1970,7 @@
           "oneOf": [
             {
               "enum": [
+                "Custom",
                 "Navigation",
                 "Submit"
               ]
@@ -2242,6 +2461,122 @@
           "$ref": "#/definitions/simpleBinding"
         }
       ]
+    },
+    "actionsStripItem": {
+      "description": "[Experimental] Attributes of actions strip item",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "description": "Action(s) which will be executed when button is pressed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/action"
+          }
+        },
+        "type": {
+          "description": "The type of the item",
+          "oneOf": [
+            {
+              "enum": [
+                "Button",
+                "ToolbarSpacer"
+              ],
+              "default": "Button"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "overflowPriority": {
+          "description": "Defines items priority",
+          "oneOf": [
+            {
+              "enum": [
+                "AlwaysOverflow",
+                "Disappear",
+                "High",
+                "Low",
+                "NeverOverflow"
+              ],
+              "default": "High"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "icon": {
+          "description": "The icon of the item",
+          "type": "string"
+        },
+        "text": {
+          "description": "The text of the item",
+          "type": "string"
+        },
+        "tooltip": {
+          "description": "The tooltip of the item",
+          "type": "string"
+        },
+        "buttonType": {
+          "description": "The type of the button",
+          "oneOf": [
+            {
+              "enum": [
+                "Accept",
+                "Attention",
+                "Back",
+                "Critical",
+                "Default",
+                "Emphasized",
+                "Ghost",
+                "Negative",
+                "Neutral",
+                "Reject",
+                "Success",
+                "Transparent",
+                "Unstyled",
+                "Up"
+              ],
+              "default": "Default"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "ariaHasPopup": {
+          "description": "Use this property only when the item is related to a popover/popup",
+          "oneOf": [
+            {
+              "enum": [
+                "Dialog",
+                "Grid",
+                "ListBox",
+                "Menu",
+                "None",
+                "Tree"
+              ],
+              "default": "None"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "visible": {
+          "description": "Determines whether the item is visible",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        }
+      }
     }
   }
 }

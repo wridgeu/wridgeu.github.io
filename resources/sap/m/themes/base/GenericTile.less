@@ -16,6 +16,131 @@
 	box-shadow: @sapUiShadowLevel0;
 	vertical-align: top;
 }
+.sapMGTContentPlaceholder {
+	outline: none;
+	width: 300px;
+    height: 100px;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.10);
+    border-radius: 4px;
+}
+
+.sapMGTContentPlaceholder:focus::before {
+	content: '';
+	display: block;
+	position: absolute;
+	left: 1px;
+	bottom: 1px;
+	right: 1px;
+	top: 1px;
+	border: 1px dotted @sapUiContentFocusColor;
+	pointer-events: none;
+}
+
+
+.sapMGTContentShimmerPlaceholderItem {
+	padding: 1rem 1rem 0 1rem;
+	box-sizing: border-box;
+	display: flex;
+	position: relative;
+	align-items: center;
+	flex: 1 1 auto;
+
+	&.sapMGTContentShimmerPlaceholderWithChart.sapMGTContentShimmerPlaceholderWithDescription {
+		height: 6rem;
+	}
+
+	.sapMGTContentShimmerPlaceholderImg {
+		margin: 0rem 0.75rem 0rem 0rem;
+		height: 2rem;
+		width: 2rem;
+		display: inline-block;
+	}
+
+	.sapMGTContentShimmerPlaceholderRows {
+		flex-grow: 1;
+
+		.sapMGTContentShimmerPlaceholderItemText {
+			height: 0.5rem;
+			margin-bottom: 0.5rem;
+			width: 80%;
+		}
+		.sapMGTContentShimmerPlaceholderItemTextFooter {
+			height: 0.5rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+			width: 80%;
+			top: 3rem;
+		}
+		.sapMGTContentShimmerPlaceholderItemBox {
+			height: 2rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+			width: 20%;
+			top: 3rem;
+		}
+		.sapMGTContentShimmerPlaceholderItemBoxSmall {
+			height: 3.75rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+		}
+		.sapMGTContentShimmerPlaceholderItemHeader {
+			height: 1rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+		}
+	}
+}
+
+
+.sapMGTLoadingShimmer {
+.sapMGTLoadingShimmerMixin();
+}
+
+.sapMGTLoadingShimmerMixin() {
+background-color: @sapUiContentPlaceholderloadingBackground;
+background-image: @sapUiContentPlaceholderloadingGradient;
+background-repeat: no-repeat;
+background-size: 800px 144px;
+position: relative;
+border-radius: 0.25rem;
+
+[data-sap-ui-animation-mode="full"] & {
+	animation-duration: 2.5s;
+	animation-fill-mode: forwards;
+	animation-iteration-count: infinite;
+	animation-name: placeHolderShimmer;
+	animation-timing-function: linear;
+}
+
+[data-sap-ui-animation-mode="basic"] &,
+[data-sap-ui-animation-mode="minimal"] & {
+	animation-duration: 8s;
+	animation-fill-mode: forwards;
+	animation-iteration-count: infinite;
+	animation-name: placeHolderShimmer;
+	animation-timing-function: linear;
+}
+}
+
+@keyframes placeHolderShimmer {
+0% {
+	background-position: -468px 0;
+}
+
+100% {
+	background-position: 468px 0;
+}
+}
+
+@keyframes placeHolderShimmer{
+    0% {
+      background-position: -468px 0;
+    }
+    100% {
+      background-position: 468px 0;
+    }
+}
+
 
 .sapMGTBackgroundImage {
 	background-clip: padding-box;
@@ -52,11 +177,89 @@
 	height: 5.25rem;
 }
 
+
+ .OneByOne.tileWithAppInfo {
+	.sapMGTContent.appInfoWithFooter {
+		height: 3.5rem;
+		.sapMTileCnt {
+			.sapMTileCntContent {
+				height: 1.75rem;
+				.sapMNC {
+					height: 1.75rem;
+					.sapMNCLargeFontSize {
+						font-size: 1.75rem;
+						height: 1.75rem;
+					}
+					.sapMNCIndScale {
+						padding: 0rem;
+						padding-left: 0.5rem;
+					}
+				}
+				.sapMImageContent {
+					height: 1.75rem;
+					.sapMImageContentImageIcon {
+						padding-bottom: 0rem;
+					}
+				}
+			}
+			.sapMTileCntFtrTxt {
+				position: static;
+			}
+		}
+	}
+	.sapMGTContent.appInfoWithoutFooter {
+		height: 3.5rem;
+		.sapMTileCnt {
+			height: 3.5rem;
+			.sapMTileCntContent {
+				height: 3.5rem;
+				.sapMImageContent {
+					height: 3.5rem;
+					.sapMImg{
+						padding-bottom: 0.2rem;
+					}
+				}
+			}
+		}
+	}
+	.sapMGTTInfoContainer {
+		height: 2rem;
+		margin-top: 0.25rem;
+		.sapMGTTInfo {
+			padding: 0.25rem 1rem 0.25rem 0.25rem;
+			text-transform: uppercase;
+			margin-bottom: 0.5rem;
+			border-radius: 0.25rem 0 0 0.25rem;
+			background-color: @sapUiTileHoverBackground;
+			width: fit-content;
+			float: right;
+			bottom: 0;
+			position: absolute;
+			right: 0;
+			.sapMText{
+				font-size: @sapMFontSmallSize ;
+			}
+			.sapMGTSystemInfoText{
+				display: flex;
+				justify-content: flex-end;
+				.sapMText {
+					color: @sapUiTileTitleTextColor;
+				}
+			}
+			.sapMGTAppShortcutText {
+				display: flex;
+				justify-content: flex-end;
+				.sapMText {
+					color: @sapUiTileTextColor;
+				}
+			}
+		}
+	}
+}
 .OneByHalf {
 	.sapMGTHdrContent {
 		height: 1.25rem;
 			.sapMGTHdrTxt {
-				
 				.sapMText {
 					display: block;
 				}
@@ -135,7 +338,6 @@
 	user-select: none;
 	-webkit-user-select: none;
 	-moz-user-select: -moz-none;
-	-ms-user-select: none;
 }
 
 .sapMGTHdrTxt > .sapMGTTitle,
@@ -428,15 +630,17 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 }
 
 .sapMGTLineMode .sapMGTActionsContainer:not(.sapMGTScopeSingleActionContainer) {
-	width: 4rem;
+	width: 2rem;
 
 	.sapMGTMoreIcon {
 		position: static;
+		padding-right: 0.5rem;
 	}
 
 	.sapMGTRemoveButton {
-		position: static;
-		left: 2rem;
+		position: absolute;
+		top: -1rem;
+		left: 1.5rem;
 	}
 }
 
@@ -446,7 +650,9 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 	}
 
 	.sapMGTRemoveButton {
-		position: static;
+		position: absolute;
+		top: -1rem;
+		left: 1.5rem;
 	}
 }
 
@@ -471,7 +677,7 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 
 	.sapMGTMoreIcon {
 		display: block;
-		right: 0;
+		right: -1.5rem;
 		bottom: 0.25rem;
 		width: 2rem;
 	}
@@ -479,8 +685,8 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 	.sapMGTRemoveButton {
 		display: block;
 		margin: 0 0.3125rem;
-		top: 0;
-		right: 0;
+		top: -1rem;
+		left: -0.5rem;
 		z-index: 0; // Remark: If increased, this will break FLP footer visualization.
 
 		&:before {
@@ -506,20 +712,10 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 	}
 }
 
-/* Fix for IE not displaying items in line */
-html[data-sap-ui-browser*='ie'] .sapMGTLineMode .sapMGTTouchArea {
-	margin-bottom: 0px;
-	margin-top: 0px;
-}
-html[data-sap-ui-browser*='ie'] .sapUiSizeCompact .sapMGTLineMode .sapMGTTouchArea {
-	margin-top: 2px;
-	margin-bottom: 0px;
+.sapMGTLineMode .sapMGTLineModeFailedIcon {
+	text-align: start;
 }
 
-/* IE does not support text-align: start, this is a workaround:*/
-html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
-	text-align: right;
-}
 /* COMPACT */
 .sapUiMedia-GenericTileDeviceSet-small {
 	&.sapUiSizeCompact, .sapUiSizeCompact {
@@ -556,7 +752,6 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 		user-select: none;
 		-webkit-user-select: none;
 		-moz-user-select: -moz-none;
-		-ms-user-select: none;
 		-webkit-text-size-adjust:100%;
 	}
 
@@ -629,13 +824,13 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 	
 	.sapMGTLineMode.sapMGTScopeSingleAction {
 		.sapMGTHdrTxt:last-of-type, .sapMGTSubHdrTxt {
-			padding-right: 2.25rem;
+			padding-right: 1rem;
 		}
 	}
 
 	.sapMGTLineMode.sapMGTScopeActions {
 		.sapMGTHdrTxt:last-of-type, .sapMGTSubHdrTxt {
-			padding-right: 4.25rem;
+			padding-right: 3rem;
 		}
 	}
 
@@ -657,7 +852,7 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 		display: inline-block;
 		position: relative;
 		top: 0.5rem;
-		z-index: 3; // Remark: If increased, this will break FLP footer visualization.
+		z-index: 2; // Remark: If increased, this will break FLP footer visualization. Changed from 3 to 2 as it was breaking FLP footer visualization
 	}
 
 	.sapMGTStyleHelper {
@@ -785,7 +980,7 @@ html[dir=rtl] .sapMGenericTileFtrFldTxt {
 
 /* the max-height is calculated the same as webkit-line-clamping and supported to work when
 the screen size changes between small and large (e.g. mobile devices auto rotation) without rerendering*/
-html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-ui-browser*='ff'] {
+html[data-sap-ui-browser*='ff'] {
 	.sapMGT.sapMGTHeaderMode .sapMGTHdrContent .sapMTextMaxLine {
 		max-height: 6.85rem !important;
 	}
@@ -801,13 +996,13 @@ html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-
 		max-height: 2.36rem;
 	}
 
-	html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-ui-browser*='ff'] {
+	html[data-sap-ui-browser*='ff'] {
 		&.sapMGT.sapMGTHeaderMode > .sapMGTHdrContent .sapMTextMaxLine {
 			max-height: 5.9rem !important;
 		}
 	}
 
-	html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-ui-browser*='ff'] {
+	html[data-sap-ui-browser*='ff'] {
 		&.sapMGT:not(.sapMGTHeaderMode) > .sapMGTHdrContent .sapMTextMaxLine {
 			max-height: 3.54rem !important;
 		}

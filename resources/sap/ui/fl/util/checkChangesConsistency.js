@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/base/util/includes"],function(r){"use strict";function e(r,e,o){if(Array.isArray(r)){r.forEach(function(r){t(r,e,o)})}else{t(r,e,o)}}function t(e,t,o){if(!e.propertyPath){throw new Error("Invalid change format: The mandatory 'propertyPath' is not defined. Please define the mandatory property 'propertyPath'")}if(!e.operation){throw new Error("Invalid change format: The mandatory 'operation' is not defined. Please define the mandatory property 'operation'")}if(!e.propertyValue){throw new Error("Invalid change format: The mandatory 'propertyValue' is not defined. Please define the mandatory property 'propertyValue'")}if(!r(t,e.propertyPath)){throw new Error("Changing "+e.propertyPath+" is not supported. The supported 'propertyPath' is: "+t.join("|"))}if(!r(o,e.operation)){throw new Error("Operation "+e.operation+" is not supported. The supported 'operation' is "+o.join("|"))}}return function(r,t,o){var n=Object.keys(r).filter(function(r){return r.endsWith("Id")}).shift();if(!r[n]){throw new Error('Mandatory "'+n+'" parameter is not provided.')}if(!r.entityPropertyChange){throw new Error('Changes for "'+r[n]+'" are not provided.')}e(r.entityPropertyChange,t,o)}});

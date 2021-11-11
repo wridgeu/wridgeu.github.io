@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.89.0"
+      "version": "1.95.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -22,17 +22,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.89",
+      "minUI5Version": "1.95",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.89.0"
+          "minVersion": "1.95.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.89.0",
+          "minVersion": "1.95.0",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.89.0",
+          "minVersion": "1.95.0",
           "lazy": true
         }
       }
@@ -124,6 +124,7 @@
           "sap.m.Dialog",
           "sap.m.DisplayListItem",
           "sap.m.DraftIndicator",
+          "sap.m.DynamicDateRange",
           "sap.m.ExpandableText",
           "sap.m.FacetFilter",
           "sap.m.FacetFilterItem",
@@ -167,6 +168,7 @@
           "sap.m.NavContainer",
           "sap.m.NewsContent",
           "sap.m.NumericContent",
+          "sap.m.NotificationList",
           "sap.m.NotificationListBase",
           "sap.m.NotificationListItem",
           "sap.m.NotificationListGroup",
@@ -213,6 +215,7 @@
           "sap.m.SegmentedButton",
           "sap.m.Select",
           "sap.m.SelectDialog",
+          "sap.m.SelectDialogBase",
           "sap.m.SelectList",
           "sap.m.SelectionDetails",
           "sap.m.Shell",
@@ -242,6 +245,9 @@
           "sap.m.TileContainer",
           "sap.m.TileContent",
           "sap.m.TimePicker",
+          "sap.m.TimePickerInputs",
+          "sap.m.TimePickerClock",
+          "sap.m.TimePickerClocks",
           "sap.m.TimePickerSliders",
           "sap.m.Title",
           "sap.m.ToggleButton",
@@ -274,6 +280,9 @@
           "sap.m.ColumnPopoverCustomItem",
           "sap.m.ColumnPopoverItem",
           "sap.m.ColumnPopoverSortItem",
+          "sap.m.CustomDynamicDateOption",
+          "sap.m.DynamicDateOption",
+          "sap.m.DynamicDateValueHelpUIType",
           "sap.m.FlexItemData",
           "sap.m.FeedListItemAction",
           "sap.m.IconTabFilter",
@@ -304,6 +313,7 @@
           "sap.m.SinglePlanningCalendarWeekView",
           "sap.m.SinglePlanningCalendarWorkWeekView",
           "sap.m.SinglePlanningCalendarView",
+          "sap.m.StandardDynamicDateOption",
           "sap.m.SuggestionItem",
           "sap.m.TabContainerItem",
           "sap.m.TabStripItem",
@@ -318,6 +328,7 @@
           "sap.m.ViewSettingsItem",
           "sap.m.plugins.ColumnResizer",
           "sap.m.plugins.DataStateIndicator",
+          "sap.m.plugins.PasteProvider",
           "sap.m.plugins.PluginBase",
           "sap.m.semantic.AddAction",
           "sap.m.semantic.CancelAction",
@@ -400,6 +411,7 @@
           "sap.m.ListType",
           "sap.m.LoadState",
           "sap.m.MenuButtonMode",
+          "sap.m.MultiSelectMode",
           "sap.m.ObjectHeaderPictureShape",
           "sap.m.ObjectMarkerType",
           "sap.m.ObjectMarkerVisibility",
@@ -423,6 +435,7 @@
           "sap.m.SelectType",
           "sap.m.Size",
           "sap.m.SplitAppMode",
+          "sap.m.StandardDynamicDateRangeKeys",
           "sap.m.StandardTileType",
           "sap.m.StepInputStepModeType",
           "sap.m.StepInputValidationMode",
@@ -430,6 +443,7 @@
           "sap.m.StringFilterOperator",
           "sap.m.SwipeDirection",
           "sap.m.SwitchType",
+          "sap.m.TabsOverflowMode",
           "sap.m.TileSizeBehavior",
           "sap.m.TimePickerMaskMode",
           "sap.m.TitleAlignment",
@@ -442,7 +456,8 @@
           "sap.m.VerticalPlacementType",
           "sap.m.WrappingType",
           "sap.m.WizardRenderMode",
-          "sap.m.semantic.SemanticRuleSetType"
+          "sap.m.semantic.SemanticRuleSetType",
+          "sap.m.upload.UploaderHttpRequestMethod"
         ],
         "interfaces": [
           "sap.m.IBar",

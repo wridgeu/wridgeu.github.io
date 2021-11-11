@@ -17,6 +17,10 @@
 	}
 }
 
+.sapMRb:focus {
+	outline: none;
+}
+
 .sapMRb .sapMRbB {
 	height: 2.75rem;
 	line-height: 2.75rem;
@@ -41,6 +45,13 @@
 
 .sapMRbHasLabel .sapMRbB {
 	width: 2.75rem;
+}
+
+/* Align RadioButton in Form with other controls */
+.sapUiForm.sapUiFormEdit-CTX{
+	.sapMRb > .sapMRbB {
+		width: 2.1875rem;
+	}
 }
 
 .sapUiSizeCompact {

@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/ui/fl/changeHandler/HideControl","sap/ui/fl/changeHandler/UnhideControl","sap/ui/fl/changeHandler/StashControl","sap/ui/fl/changeHandler/UnstashControl","sap/ui/fl/changeHandler/MoveElements","sap/ui/fl/changeHandler/MoveControls","sap/ui/fl/changeHandler/PropertyChange","sap/ui/fl/changeHandler/PropertyBindingChange"],function(e,n,a,r,o,l,h,t){"use strict";var g={hideControl:{changeType:"hideControl",changeHandler:e},unhideControl:{changeType:"unhideControl",changeHandler:n},stashControl:{changeType:"stashControl",changeHandler:a},unstashControl:{changeType:"unstashControl",changeHandler:r},moveElements:{changeType:"moveElements",changeHandler:o},moveControls:{changeType:"moveControls",changeHandler:l},propertyChange:{changeType:"propertyChange",changeHandler:h},propertyBindingChange:{changeType:"propertyBindingChange",changeHandler:t}};return g},true);

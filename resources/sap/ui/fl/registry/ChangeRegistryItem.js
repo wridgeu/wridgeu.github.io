@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/base/Log"],function(e){"use strict";var t=function(t){if(!t.changeTypeMetadata){e.error("sap.ui.fl.registry.ChangeRegistryItem: ChangeTypeMetadata required")}if(!t.controlType){e.error("sap.ui.fl.registry.ChangeRegistryItem: ControlType required")}this._changeTypeMetadata=t.changeTypeMetadata;this._controlType=t.controlType;if(t.permittedRoles){this._permittedRoles=t.permittedRoles}if(t.dragTargets){this._dragTargets=t.dragTargets}};t.prototype._changeTypeMetadata=undefined;t.prototype._controlType=undefined;t.prototype._permittedRoles={};t.prototype._dragTargets=[];t.prototype.getChangeTypeMetadata=function(){return this._changeTypeMetadata};t.prototype.getChangeTypeName=function(){return this._changeTypeMetadata.getName()};t.prototype.getControlType=function(){return this._controlType};t.prototype.getPermittedRoles=function(){return this._permittedRoles};t.prototype.getDragTargets=function(){return this._dragTargets};return t},true);
