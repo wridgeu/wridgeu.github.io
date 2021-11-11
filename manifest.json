@@ -5,15 +5,11 @@
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
-			"version": "1.16.1"
+			"version": "1.16.2"
 		},
 		"serviceWorker": {
             "file" : "sw.js",
             "config": [
-				{
-					"url": "http://localhost:8080",
-					"type": "application"
-				},				
                 {
                     "url": "https://wridgeu.github.io",
                     "type": "application"
