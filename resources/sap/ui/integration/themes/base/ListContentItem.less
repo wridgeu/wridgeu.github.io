@@ -1,0 +1,131 @@
+/* =========================================================== */
+/* CSS for control sap.ui.integration.controls/ListContentItem */
+/* Base theme                                                  */
+/* =========================================================== */
+
+@_sap_ui_integration_controls_ListContentItem_ChartHeight: 1rem;
+
+.sapUiIntCard {
+	.sapMLIB.sapMSLI.sapUiIntLCI {
+		height: auto;
+	}
+
+	.sapMLIB.sapUiIntLCI {
+		flex-direction: column;
+		align-items: stretch;
+
+		.sapMLIBContent {
+			height: ~"calc(3rem - 1px)";
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+
+			.sapFCardIcon {
+				flex-shrink: 0;
+			}
+		}
+
+		.sapUiIntActionsStrip {
+			margin-bottom: 0.5rem;
+		}
+
+		&.sapMLIBActive {
+			.sapFCardIcon.sapFAvatar .sapUiIcon {
+				color: @sapUiListActiveTextColor;
+			}
+
+			.sapMBtnTransparent,
+			.sapMBtnTransparent .sapMBtnIcon {
+				color: @sapUiContentContrastTextColor;
+			}
+		}
+	}
+
+	&:not(.sapUiIntCardWithFooter) {
+		.sapMListItems li:last-child {
+			border-bottom: 1px solid transparent;
+		}
+	}
+
+	.sapMSLI.sapUiIntLCI {
+		&.sapMSLIThumbnail,
+		&.sapMSLINoIconInset,
+		&.sapMSLIWithDescription,
+		&.sapMSLINoTitleAdapt {
+			.sapMLIBContent {
+				height: ~"calc(5rem - 1px)";
+			}
+
+			&.sapUiIntLCIWithChart .sapMLIBContent {
+				height: ~"calc(4rem - 1px)";
+			}
+		}
+	}
+
+	/* Wrapping */
+	.sapMSLI.sapUiIntLCI.sapMSLIWrapping .sapMLIBContent {
+		height: auto;
+		min-height: ~"calc(3rem - 1px)";
+	}
+
+	.sapMSLIWithDescription,
+	.sapMSLINoIconInset,
+	.sapMSLINoTitleAdapt {
+		&.sapUiIntLCI.sapMSLIWrapping {
+			.sapMLIBContent {
+				min-height: ~"calc(5rem - 1px)";
+			}
+		}
+	}
+
+	.sapUiIntLCI:not(.sapMSLIThumbnail):not(.sapMSLIWithDescription).sapUiIntLCIIconSize {
+		&XS .sapMLIBContent {
+			height: ~"calc(2.5625rem - 1px)";
+		}
+
+		&S .sapMLIBContent {
+			height: ~"calc(3.5625rem - 1px)";
+		}
+
+		&M .sapMLIBContent {
+			height: ~"calc(4.5625rem - 1px)";
+		}
+	}
+}
+
+.sapUiSizeCompact.sapUiIntCard,
+.sapUiSizeCompact .sapUiIntCard {
+	.sapMSLI.sapUiIntLCI {
+		.sapMLIBContent {
+			height: ~"calc(2rem - 1px)";
+		}
+
+		&.sapMSLIThumbnail,
+		&.sapMSLINoIconInset,
+		&.sapMSLIWithDescription,
+		&.sapMSLINoTitleAdapt {
+			.sapMLIBContent {
+				height: ~"calc(5rem - 1px)";
+			}
+
+			&.sapUiIntLCIWithChart .sapMLIBContent {
+				height: ~"calc(4rem - 1px)";
+			}
+		}
+
+		&.sapMSLIWrapping {
+			&.sapMSLIWithDescription,
+			&.sapMSLINoIconInset,
+			&.sapMSLINoTitleAdapt {
+				.sapMLIBContent {
+					min-height: ~"calc(5rem - 1px)";
+				}
+			}
+
+			.sapMLIBContent {
+				height: auto;
+				min-height: ~"calc(2rem - 1px)";
+			}
+		}
+	}
+}

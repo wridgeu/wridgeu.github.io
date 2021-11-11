@@ -1,0 +1,6 @@
+/*
+ * ! OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/fl/initial/_internal/connectors/Utils"],function(n){"use strict";function t(t){return n.sendRequest(t.tokenUrl,"HEAD").then(function(n){if(n&&n.xsrfToken){if(t.initialConnector){t.initialConnector.xsrfToken=n.xsrfToken}t.xsrfToken=n.xsrfToken;return t}})}function e(e,r,i){return t(e).then(n.sendRequest.bind(undefined,r,i))}function r(n,t,e){if(!t[e]){t[e]=n[e];return}if(Array.isArray(t[e])){t[e]=t[e].concat(n[e]);return}if(typeof t[e]==="object"){Object.keys(n[e]).forEach(function(i){r(n[e],t[e],i)})}t[e]=n[e]}return{getRequestOptions:function(n,t,e,r,i){var o={xsrfToken:n.xsrfToken,tokenUrl:t,initialConnector:n};if(e){o.payload=JSON.stringify(e)}if(r){o.contentType=r}if(i){o.dataType=i}return o},sendRequest:function(t,r,i){if(!i.initialConnector||!i.initialConnector.xsrfToken&&!(r==="GET")&&!(r==="HEAD")){return e(i,t,r)}return n.sendRequest(t,r,i).then(function(n){return n}).catch(function(n){if(n.status===403){return e(i,t,r)}throw n})},mergeResults:function(n){var t={};n.forEach(function(n){Object.keys(n).forEach(function(e){r(n,t,e)})});return t}}});

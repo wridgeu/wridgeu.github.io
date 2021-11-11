@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/thirdparty/jquery","sap/ui/thirdparty/URI"],function(i,r){"use strict";var t="_unnamed_frame_-_use_message_origin_";var n=function(i){this._sModulePath=i.modulePath;this._sReceivingWindow=i.receivingWindow;if(i.uriParams){this._sURIOrigin=i.uriParams&&i.uriParams.origin;this._sURIFrameId=i.uriParams&&i.uriParams.frameId;this._sOrigin=this.getOriginURIParameter(i.uriParams.origin)}return this};n.prototype.getOrigin=function(){if(this._sOrigin){return this._sOrigin}var i=new r(sap.ui.require.toUrl(this._sModulePath));var t=i.protocol()||window.location.protocol.replace(":","");var n=i.host()||window.location.host;this._sOrigin=t+"://"+n;return this._sOrigin};n.prototype.getFrameId=function(){return i.sap.getUriParameters().get(this._sURIFrameId)||t};n.prototype.getOriginURIParameter=function(){return i.sap.getUriParameters().get(this._sURIOrigin)};n.prototype.getReceivingWindow=function(){if(window.communicationWindows&&window.communicationWindows.hasOwnProperty(this._sReceivingWindow)){return window.communicationWindows[this._sReceivingWindow]}return window.opener||window.parent};return n},true);

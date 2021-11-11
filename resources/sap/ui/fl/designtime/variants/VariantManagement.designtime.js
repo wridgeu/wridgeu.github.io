@@ -1,0 +1,6 @@
+/*
+ * ! OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/fl/Utils"],function(e){"use strict";var t=function(t,r){var o=e.getAppComponentForControl(t);var a=t.getId();var n=o.getModel(e.VARIANT_MODEL_NAME);var i=o.getLocalId(a)||a;if(!n){return}n.setModelPropertiesForControl(i,r,t);n.checkUpdate(true)};return{annotations:{},properties:{showExecuteOnSelection:{ignore:false},showSetAsDefault:{ignore:false},manualVariantKey:{ignore:false},inErrorState:{ignore:false},editable:{ignore:false},modelName:{ignore:false},updateVariantInURL:{ignore:false}},variantRenameDomRef:function(e){return e.getTitle().getDomRef("inner")},customData:{},tool:{start:function(e){var r=true;t(e,r)},stop:function(e){var r=false;t(e,r)}},actions:{controlVariant:function(t){var r=e.getAppComponentForControl(t);var o=t.getId();var a=r.getModel(e.VARIANT_MODEL_NAME);var n=r.getLocalId(o)||o;return{validators:["noEmptyText",{validatorFunction:function(e){var t=a._getVariantTitleCount(e,n)||0;return t===0},errorMessage:sap.ui.getCore().getLibraryResourceBundle("sap.ui.fl").getText("VARIANT_MANAGEMENT_ERROR_DUPLICATE")}]}}}}});

@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/Component","sap/ui/fl/apply/_internal/flexState/FlexState","sap/ui/fl/ChangePersistence","sap/ui/fl/Utils","sap/ui/fl/apply/_internal/changes/descriptor/ApplyStrategyFactory","sap/ui/fl/apply/_internal/changes/descriptor/Applier"],function(n,e,t,a,i,o){"use strict";var s={};s._instanceCache={};s.getChangePersistenceForComponent=function(n){var e=s._instanceCache[n];if(!e){var a={name:n};e=new t(a);s._instanceCache[n]=e}return e};s.getChangePersistenceForControl=function(n){var e;e=a.getComponentClassName(n);return s.getChangePersistenceForComponent(e)};s.registerLoadComponentEventHandler=function(){n._fnLoadComponentCallback=this._onLoadComponent.bind(this)};s._onLoadComponent=function(n,t){if(!a.isApplication(t)||!n.id){return Promise.resolve()}e.initialize({componentData:n.componentData||n.settings&&n.settings.componentData,asyncHints:n.asyncHints,manifest:t,componentId:n.id});return o.applyChangesIncludedInManifest(t,i.getRuntimeStrategy())};return s},true);

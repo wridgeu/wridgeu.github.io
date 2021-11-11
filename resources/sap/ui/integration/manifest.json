@@ -1,0 +1,142 @@
+{
+  "_version": "1.21.0",
+  "sap.app": {
+    "id": "sap.ui.integration",
+    "type": "library",
+    "embeds": [],
+    "applicationVersion": {
+      "version": "1.95.0"
+    },
+    "title": "SAPUI5 library with integration-related controls.",
+    "description": "SAPUI5 library with integration-related controls.",
+    "ach": "CA-UI5-CTR",
+    "resources": "resources.json",
+    "offline": true,
+    "openSourceComponents": [
+      {
+        "name": "ui5-web-components",
+        "packagedWithMySelf": true,
+        "version": "1.0.0-rc.8"
+      },
+      {
+        "name": "webcomponentsjs",
+        "packagedWithMySelf": true,
+        "version": "1.0.2"
+      },
+      {
+        "name": "cldr",
+        "packagedWithMySelf": true,
+        "version": "unknown"
+      },
+      {
+        "name": "adaptive-cards",
+        "packagedWithMySelf": true,
+        "version": "2.9.0"
+      },
+      {
+        "name": "adaptive-cards-templating",
+        "packagedWithMySelf": true,
+        "version": "0.1.1-alpha.0"
+      },
+      {
+        "name": "markdown-it",
+        "packagedWithMySelf": true,
+        "version": "10.0.0"
+      }
+    ]
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "supportedThemes": [
+      "base",
+      "sap_hcb"
+    ]
+  },
+  "sap.ui5": {
+    "dependencies": {
+      "minUI5Version": "1.95",
+      "libs": {
+        "sap.ui.core": {
+          "minVersion": "1.95.0"
+        },
+        "sap.f": {
+          "minVersion": "1.95.0"
+        }
+      }
+    },
+    "library": {
+      "i18n": {
+        "bundleUrl": "messagebundle.properties",
+        "supportedLocales": [
+          "",
+          "ar",
+          "bg",
+          "ca",
+          "cs",
+          "cy",
+          "da",
+          "de",
+          "el",
+          "en",
+          "en-GB",
+          "en-US-sappsd",
+          "en-US-saprigi",
+          "en-US-saptrc",
+          "es",
+          "es-MX",
+          "et",
+          "fi",
+          "fr",
+          "fr-CA",
+          "hi",
+          "hr",
+          "hu",
+          "id",
+          "it",
+          "iw",
+          "ja",
+          "kk",
+          "ko",
+          "lt",
+          "lv",
+          "ms",
+          "nl",
+          "no",
+          "pl",
+          "pt",
+          "pt-PT",
+          "ro",
+          "ru",
+          "sh",
+          "sk",
+          "sl",
+          "sv",
+          "th",
+          "tr",
+          "uk",
+          "vi",
+          "zh-CN",
+          "zh-TW"
+        ]
+      },
+      "content": {
+        "controls": [
+          "sap.ui.integration.widgets.Card",
+          "sap.ui.integration.cards.Header",
+          "sap.ui.integration.cards.NumericHeader",
+          "sap.ui.integration.controls.ListContentItem"
+        ],
+        "elements": [
+          "sap.ui.integration.ActionDefinition",
+          "sap.ui.integration.Host"
+        ],
+        "types": [
+          "sap.ui.integration.CardActionType",
+          "sap.ui.integration.CardDataMode",
+          "sap.ui.integration.CardMenuAction"
+        ],
+        "interfaces": []
+      }
+    }
+  }
+}

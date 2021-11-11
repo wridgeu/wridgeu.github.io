@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/m/MessagePopoverItem","sap/m/MessagePopover"],function(e,s){"use strict";var o={};o._masterComponent=undefined;o._messagesModel=undefined;o._emptyModel=new sap.ui.model.json.JSONModel([]);o._messageTemplate=new e({type:"{messages>type}",title:"{messages>title}",description:"{messages>description}"});o._messagePopover=new s({items:{path:"messages>/",template:o._messageTemplate}});o.setMessagesModel=function(e,s){o._masterComponent=e;o._messagesModel=s;o._messagePopover.setModel(o._messagesModel,"messages")};o.handleMessagePopoverPress=function(e){o._messagePopover.openBy(e)};o.displayError=function(e,s,t){if(o._messagesModel){var a=o._messagesModel.getData();a.push({type:e||"Information",title:s||"",description:t||""});o._messagesModel.setData(a);o._masterComponent.setModel(o._emptyModel,"messages");o._masterComponent.setModel(o._messagesModel,"messages")}};return o});

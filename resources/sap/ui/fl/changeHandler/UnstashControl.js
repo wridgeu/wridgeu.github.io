@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define([],function(){"use strict";var e={};e.applyChange=function(e,n,t){var r=e.getContent();var a=t.modifier;var i=false;var o;return Promise.resolve().then(a.getStashed.bind(a,n)).then(function(s){e.setRevertData({originalValue:s});o=a.setStashed(n,i,t.appComponent)||n;if(r.parentAggregationName){var g=r.parentAggregationName;var f=a.getParent(o);return Promise.resolve().then(a.removeAggregation.bind(a,f,g,o)).then(a.insertAggregation.bind(a,f,g,o,r.index,t.view))}return undefined}).then(function(){return o})};e.revertChange=function(e,n,t){var r=e.getRevertData();t.modifier.setStashed(n,r.originalValue);e.resetRevertData()};e.completeChangeContent=function(e,n){var t=e.getDefinition();if(n.content){t.content=n.content}};e.getCondenserInfo=function(e){return{affectedControl:e.getSelector(),classification:sap.ui.fl.condenser.Classification.Reverse,uniqueKey:"stashed"}};return e});

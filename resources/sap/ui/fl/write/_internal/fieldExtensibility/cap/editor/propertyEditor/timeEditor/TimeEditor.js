@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor","sap/ui/integration/designtime/baseEditor/propertyEditor/dateEditor/DateEditor","sap/ui/core/format/DateFormat"],function(t,e,r){"use strict";var i=e.extend("sap.ui.fl.write._internal.fieldExtensibility.cap.editor.propertyEditor.timeEditor.TimeEditor",{xmlFragment:"sap.ui.fl.write._internal.fieldExtensibility.cap.editor.propertyEditor.timeEditor.TimeEditor",metadata:{library:"sap.ui.fl"},renderer:t.getMetadata().getRenderer().render});i.prototype.getDefaultValidators=function(){return Object.assign({},t.prototype.getDefaultValidators.call(this))};i.prototype.formatValue=function(t){return t};i.prototype._parse=function(t){if(t===""){return undefined}var e=r.getTimeInstance({pattern:"HH:mm:ss"});var i=e.parse(t);return this._isValidDate(i)?e.format(i):t};i.prototype.getFormatterInstance=function(){return r.getTimeInstance()};return i});

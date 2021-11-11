@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+
+  <name>sap.ui.integration</name>
+  <vendor>SAP SE</vendor>
+  <copyright>OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
+  <version>1.95.0</version>
+
+  <documentation>SAPUI5 library with integration-related controls.</documentation>
+
+  <dependencies>
+    <dependency>
+      <libraryName>sap.ui.core</libraryName>
+    </dependency>
+    <dependency>
+      <libraryName>sap.f</libraryName>
+    </dependency>
+  </dependencies>
+
+  <appData>
+    <!-- excludes for the JSDoc -->
+    <jsdoc xmlns="http://www.sap.com/ui5/buildext/jsdoc" >
+        <exclude name="sap.ui.integration.js." />
+        <exclude name="sap.ui.integration.thirdparty." />
+    </jsdoc>
+    <!-- excludes for the JSCoverage -->
+    <jscoverage xmlns="http://www.sap.com/ui5/buildext/jscoverage" >
+        <exclude name="sap.ui.integration.js." />
+        <exclude name="sap.ui.integration.thirdparty." />
+    </jscoverage>
+
+    <packaging xmlns="http://www.sap.com/ui5/buildext/packaging" version="2.0" >
+      <module-infos>
+        <raw-module name="sap/ui/integration/sap-ui-integration-config.js" />
+        <raw-module name="sap/ui/integration/sap-ui-integration-define-nojQuery.js" depends="ui5loader-autoconfig.js" />
+      </module-infos>
+      <all-in-one>
+        <!-- ===========================================================================
+             !! ATTENTION !!
+             The following excludes must be kept in sync with those configured for the
+             'preload-and-merge' plugin execution in the pom.xml of the wrapper library.
+             =========================================================================== -->
+        <exclude name="sap/ui/integration/thirdparty/" />
+        <exclude name="sap/ui/integration/designtime/thirdparty/" />
+      </all-in-one>
+    </packaging>
+
+    <!-- Thirdparty references -->
+    <thirdparty xmlns="http://www.sap.com/ui5/buildext/thirdparty" >
+        <lib name="ui5-web-components" displayName="UI5 Web Components" version="1.0.0-rc.8" homepage="https://sap.github.io/ui5-webcomponents/">
+            <license url="https://github.com/SAP/ui5-webcomponents/blob/master/LICENSE.txt" type="Apache-2.0"></license>
+            <copyright>SAP</copyright>
+            <pattern>sap/ui/integration/thirdparty/webcomponents/*.*.json</pattern>
+            <pattern>sap/ui/integration/thirdparty/webcomponents/bundle*</pattern>
+        </lib>
+        <lib name="webcomponentsjs" displayName="Webcomponentsjs" version="1.0.2" homepage="https://github.com/webcomponents/webcomponentsjs">
+            <license url="https://github.com/webcomponents/webcomponentsjs/blob/master/LICENSE.md" type="BSD-3-Clause"></license>
+            <copyright>2015 The Polymer Authors</copyright>
+            <pattern>sap/ui/integration/thirdparty/webcomponents/webcomponentsjs/*</pattern>
+        </lib>
+        <lib name="cldr" displayName="Unicode Common Locale Data Repository" version="unknown" homepage="http://cldr.unicode.org/">
+            <license url="http://www.unicode.org/copyright.html" type="Unicode-DFS-2015" />
+            <copyright>1991-2014 Unicode, Inc.</copyright>
+            <pattern>sap/ui/integration/thirdparty/webcomponents/Unicode-Data-Files-LICENSE.txt</pattern>
+        </lib>
+        <lib name="adaptive-cards" displayName="Adaptive Cards" version="2.9.0" homepage="https://adaptivecards.io/">
+            <license url="https://github.com/microsoft/AdaptiveCards/blob/master/LICENSE" type="MIT"></license>
+            <copyright>2017 Microsoft</copyright>
+            <pattern>sap/ui/integration/thirdparty/adaptivecards.js</pattern>
+            <pattern>sap/ui/integration/schemas/adaptive-card.json</pattern>
+        </lib>
+        <lib name="adaptive-cards-templating" displayName="Adaptive Cards Templating" version="0.1.1-alpha.0" homepage="https://adaptivecards.io/">
+            <license url="https://github.com/microsoft/AdaptiveCards/blob/master/LICENSE" type="MIT"></license>
+            <copyright>2017 Microsoft</copyright>
+            <pattern>sap/ui/integration/thirdparty/adaptivecards-templating.js</pattern>
+        </lib>
+        <lib name="markdown-it" displayName="Markdown-it" version="10.0.0" homepage="https://github.com/markdown-it/markdown-it">
+            <license url="https://github.com/markdown-it/markdown-it/blob/master/LICENSE" type="MIT"></license>
+            <copyright>2014 Vitaly Puzrin, Alex Kocharin</copyright>
+            <pattern>sap/ui/integration/thirdparty/markdown-it.js</pattern>
+        </lib>
+    </thirdparty>
+
+    <documentation xmlns="http://www.sap.com/ui5/buildext/documentation"
+        indexUrl="../../../../test-resources/sap/ui/integration/demokit/docuindex.json"
+        resolve="lib" />
+    <releasenotes xmlns="http://www.sap.com/ui5/buildext/releasenotes"
+        url="../../../../test-resources/sap/ui/integration/relnotes/changes-{major}.{minor}.json"
+        resolve="lib" />
+
+    <ownership xmlns="http://www.sap.com/ui5/buildext/ownership">
+        <component>CA-UI5-CTR</component><!-- default component for library, embedded text as a shortcut for <name>text</name> -->
+    </ownership>
+
+  </appData>
+
+</library>
