@@ -1,1 +1,1 @@
-importScripts("util/ui5swlib.js");self.worker.initFromManifest({manifestUrl:"https://wridgeu.github.io/manifest.json"});
+importScripts("util/serviceworker/ui5swlib.js");self.worker.initFromManifest({manifestUrl:"https://wridgeu.github.io/manifest.json"});
