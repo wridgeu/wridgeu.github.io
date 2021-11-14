@@ -11,10 +11,10 @@
                 </html:a>
         </headerContent>
         <content>
-            <l:ResponsiveSplitter defaultPane="default">
+            <l:ResponsiveSplitter id="responsiveSplitter" defaultPane="defaultPaneSidebar">
                 <l:PaneContainer>
                     <l:PaneContainer orientation="Vertical">
-                        <l:SplitPane requiredParentWidth="500">
+                        <l:SplitPane id="defaultPaneSidebar" requiredParentWidth="500">
                             <Page titleAlignment="Center" title="{i18n>sidebar}">
                                 <content>
                                     <List class="sidebar" id="sidebar" />
@@ -26,10 +26,10 @@
                         <l:layoutData>
                             <l:SplitterLayoutData size="84%" />
                         </l:layoutData>
-                        <l:SplitPane requiredParentWidth="800" id="default">
+                        <l:SplitPane requiredParentWidth="800">
                             <Page id="markdownSection" showHeader="false">
                                 <content>
-                                    <html:div class="container" id="markdownContainer"/>
+                                    <core:HTML preferDOM="false" content='{convertedmarkdown>/markdown}'></core:HTML>
                                 </content>
                             </Page>
                         </l:SplitPane>

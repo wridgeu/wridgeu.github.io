@@ -40,7 +40,7 @@
 				"json": [
 					{
 						"Name": "Solutions",
-						"Description": "ERP, EWM, SolMan",
+						"Description": "ERP, EWM, TM, SolMan",
 						"Icon": "../resources/img/forklift.png",
 						"Initials": "SAP",
                         "Alt": "SAP Systems"
@@ -53,8 +53,8 @@
                         "Alt": "SAP UI Framework"
 					},
 					{
-						"Name": "Cloud",
-						"Description": "CAP, CDS",
+						"Name": "Cloud (&on-prem)",
+						"Description": "RAP, CAP, CDS",
 						"Icon": "../resources/img/sap_cap.svg",
 						"Initials": "CL",
                         "Alt": "SAP Cloud"

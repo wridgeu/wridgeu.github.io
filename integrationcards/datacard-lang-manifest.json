@@ -44,13 +44,13 @@
 				"json": [
 					{
 						"Name": "ABAP",
-						"Description": "ABAP OO",
+						"Description": "ABAP OO, BOPF, RAP",
 						"Icon": "../resources/img/abap_wand.png",
 						"Initials": "ABAP",
                         "Alt": "Everything around ABAP"
 					},
 					{
-						"Name": "JavaScript",
+						"Name": "JavaScript/TS",
 						"Description": "WebDev (HTML, CSS)",
 						"Icon": "../resources/img/Logo_JS.svg",
 						"Initials": "JS",
