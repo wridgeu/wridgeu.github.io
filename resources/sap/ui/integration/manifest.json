@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.95.0"
+      "version": "1.96.0"
     },
     "title": "SAPUI5 library with integration-related controls.",
     "description": "SAPUI5 library with integration-related controls.",
@@ -42,6 +42,11 @@
         "name": "markdown-it",
         "packagedWithMySelf": true,
         "version": "10.0.0"
+      },
+      {
+        "name": "ajv",
+        "packagedWithMySelf": true,
+        "version": "6.12.3"
       }
     ]
   },
@@ -54,13 +59,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.95",
+      "minUI5Version": "1.96",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.95.0"
+          "minVersion": "1.96.0"
         },
         "sap.f": {
-          "minVersion": "1.95.0"
+          "minVersion": "1.96.0"
         }
       }
     },

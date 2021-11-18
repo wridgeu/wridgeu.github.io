@@ -63,7 +63,7 @@
 	border-left: @_sap_ui_table_BaseBorderWidth solid @sapUiListVerticalBorderColor;
 	border-right: @_sap_ui_table_BaseBorderWidth solid @sapUiListVerticalBorderColor;
 	border-top: @_sap_ui_table_BaseBorderWidth solid @sapUiListBorderColor;
-	background-color: @sapUiListBackground;
+	background-color: @sapBackgroundColor;
 	._sap_ui_table_Table_Table();
 }
 
@@ -183,7 +183,7 @@
 .sapUiTableCtrlEmpty:focus,
 .sapUiTableCnt > .sapUiLocalBusyIndicator:focus {
 	outline-width: @_sap_ui_table_FocusOutlineWidth;
-	outline-style: dotted;
+	outline-style: @sapUiContentFocusStyle;
 	outline-offset: -3px;
 	outline-color: @sapUiContentFocusColor;
 }

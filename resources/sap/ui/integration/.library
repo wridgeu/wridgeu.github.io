@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.95.0</version>
+  <version>1.96.0</version>
 
   <documentation>SAPUI5 library with integration-related controls.</documentation>
 
@@ -80,6 +80,11 @@
             <license url="https://github.com/markdown-it/markdown-it/blob/master/LICENSE" type="MIT"></license>
             <copyright>2014 Vitaly Puzrin, Alex Kocharin</copyright>
             <pattern>sap/ui/integration/thirdparty/markdown-it.js</pattern>
+        </lib>
+        <lib name="ajv" displayName="ajv" version="6.12.3" homepage="https://ajv.js.org/">
+            <license url="https://ajv.js.org/license.html" type="MIT"></license>
+            <copyright>2015-2017 Evgeny Poberezkin</copyright>
+            <pattern>../test/sap/ui/integration/demokit/cardExplorer/webapp/thirdparty/ajv/ajv.min.js</pattern>
         </lib>
     </thirdparty>
 
