@@ -536,7 +536,7 @@ sap.ui.define((function () { 'use strict';
 	    var cap = this.rules.block.list.exec(src);
 
 	    if (cap) {
-	      var raw, istask, ischecked, indent, i, blankLine, endsWithBlankLine, line, lines, itemContents;
+	      var raw, istask, ischecked, indent, i, blankLine, endsWithBlankLine, line, nextLine, rawLine, itemContents, endEarly;
 	      var bull = cap[1].trim();
 	      var isordered = bull.length > 1;
 	      var list = {
@@ -554,82 +554,80 @@ sap.ui.define((function () { 'use strict';
 	      } // Get next list item
 
 
-	      var itemRegex = new RegExp("^( {0,3}" + bull + ")((?: [^\\n]*| *)(?:\\n[^\\n]*)*(?:\\n|$))"); // Get each top-level item
+	      var itemRegex = new RegExp("^( {0,3}" + bull + ")((?: [^\\n]*)?(?:\\n|$))"); // Check if current bullet point can start a new List Item
 
 	      while (src) {
-	        if (this.rules.block.hr.test(src)) {
-	          // End list if we encounter an HR (possibly move into itemRegex?)
-	          break;
-	        }
+	        endEarly = false;
 
 	        if (!(cap = itemRegex.exec(src))) {
 	          break;
 	        }
 
-	        lines = cap[2].split('\n');
+	        if (this.rules.block.hr.test(src)) {
+	          // End list if bullet was actually HR (possibly move into itemRegex?)
+	          break;
+	        }
+
+	        raw = cap[0];
+	        src = src.substring(raw.length);
+	        line = cap[2].split('\n', 1)[0];
+	        nextLine = src.split('\n', 1)[0];
 
 	        if (this.options.pedantic) {
 	          indent = 2;
-	          itemContents = lines[0].trimLeft();
+	          itemContents = line.trimLeft();
 	        } else {
 	          indent = cap[2].search(/[^ ]/); // Find first non-space char
 
-	          indent = cap[1].length + (indent > 4 ? 1 : indent); // intented code blocks after 4 spaces; indent is always 1
+	          indent = indent > 4 ? 1 : indent; // Treat indented code blocks (> 4 spaces) as having only 1 indent
 
-	          itemContents = lines[0].slice(indent - cap[1].length);
+	          itemContents = line.slice(indent);
+	          indent += cap[1].length;
 	        }
 
 	        blankLine = false;
-	        raw = cap[0];
 
-	        if (!lines[0] && /^ *$/.test(lines[1])) {
-	          // items begin with at most one blank line
-	          raw = cap[1] + lines.slice(0, 2).join('\n') + '\n';
-	          list.loose = true;
-	          lines = [];
+	        if (!line && /^ *$/.test(nextLine)) {
+	          // Items begin with at most one blank line
+	          raw += nextLine + '\n';
+	          src = src.substring(nextLine.length + 1);
+	          endEarly = true;
 	        }
 
-	        var nextBulletRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}(?:[*+-]|\\d{1,9}[.)])");
+	        if (!endEarly) {
+	          var nextBulletRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}(?:[*+-]|\\d{1,9}[.)])"); // Check if following lines should be included in List Item
 
-	        for (i = 1; i < lines.length; i++) {
-	          line = lines[i];
+	          while (src) {
+	            rawLine = src.split('\n', 1)[0];
+	            line = rawLine; // Re-align to follow commonmark nesting rules
 
-	          if (this.options.pedantic) {
-	            // Re-align to follow commonmark nesting rules
-	            line = line.replace(/^ {1,4}(?=( {4})*[^ ])/g, '  ');
-	          } // End list item if found start of new bullet
-
-
-	          if (nextBulletRegex.test(line)) {
-	            raw = cap[1] + lines.slice(0, i).join('\n') + '\n';
-	            break;
-	          } // Until we encounter a blank line, item contents do not need indentation
+	            if (this.options.pedantic) {
+	              line = line.replace(/^ {1,4}(?=( {4})*[^ ])/g, '  ');
+	            } // End list item if found start of new bullet
 
 
-	          if (!blankLine) {
-	            if (!line.trim()) {
-	              // Check if current line is empty
-	              blankLine = true;
-	            } // Dedent if possible
-
-
-	            if (line.search(/[^ ]/) >= indent) {
-	              itemContents += '\n' + line.slice(indent);
-	            } else {
-	              itemContents += '\n' + line;
+	            if (nextBulletRegex.test(line)) {
+	              break;
 	            }
 
-	            continue;
-	          } // Dedent this line
+	            if (line.search(/[^ ]/) >= indent || !line.trim()) {
+	              // Dedent if possible
+	              itemContents += '\n' + line.slice(indent);
+	            } else if (!blankLine) {
+	              // Until blank line, item doesn't need indentation
+	              itemContents += '\n' + line;
+	            } else {
+	              // Otherwise, improper indentation ends this item
+	              break;
+	            }
 
+	            if (!blankLine && !line.trim()) {
+	              // Check if current line is blank
+	              blankLine = true;
+	            }
 
-	          if (line.search(/[^ ]/) >= indent || !line.trim()) {
-	            itemContents += '\n' + line.slice(indent);
-	            continue;
-	          } else {
-	            // Line was not properly indented; end of this item
-	            raw = cap[1] + lines.slice(0, i).join('\n') + '\n';
-	            break;
+	            raw += rawLine + '\n';
+	            src = src.substring(rawLine.length + 1);
 	          }
 	        }
 
@@ -661,7 +659,6 @@ sap.ui.define((function () { 'use strict';
 	          text: itemContents
 	        });
 	        list.raw += raw;
-	        src = src.slice(raw.length);
 	      } // Do not consume newlines at end of final item. Alternatively, make itemRegex *start* with any newlines to simplify/speed up endsWithBlankLine logic
 
 
@@ -674,7 +671,7 @@ sap.ui.define((function () { 'use strict';
 	        this.lexer.state.top = false;
 	        list.items[i].tokens = this.lexer.blockTokens(list.items[i].text, []);
 
-	        if (list.items[i].tokens.some(function (t) {
+	        if (!list.loose && list.items[i].tokens.some(function (t) {
 	          return t.type === 'space';
 	        })) {
 	          list.loose = true;
@@ -736,7 +733,7 @@ sap.ui.define((function () { 'use strict';
 	          };
 	        }),
 	        align: cap[2].replace(/^ *|\| *$/g, '').split(/ *\| */),
-	        rows: cap[3] ? cap[3].replace(/\n$/, '').split('\n') : []
+	        rows: cap[3] ? cap[3].replace(/\n[ \t]*$/, '').split('\n') : []
 	      };
 
 	      if (item.header.length === item.align.length) {
