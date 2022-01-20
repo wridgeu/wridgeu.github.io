@@ -367,7 +367,7 @@ sap.ui.define((function () { 'use strict';
    * @param {RegExp | string } re
    * @returns {string}
    */
-  function source$3(re) {
+  function source$2(re) {
     if (!re) return null;
     if (typeof re === "string") return re;
 
@@ -379,7 +379,7 @@ sap.ui.define((function () { 'use strict';
    * @returns {string}
    */
   function lookahead$2(re) {
-    return concat$3('(?=', re, ')');
+    return concat$2('(?=', re, ')');
   }
 
   /**
@@ -387,7 +387,7 @@ sap.ui.define((function () { 'use strict';
    * @returns {string}
    */
   function anyNumberOfTimes(re) {
-    return concat$3('(?:', re, ')*');
+    return concat$2('(?:', re, ')*');
   }
 
   /**
@@ -395,15 +395,15 @@ sap.ui.define((function () { 'use strict';
    * @returns {string}
    */
   function optional(re) {
-    return concat$3('(?:', re, ')?');
+    return concat$2('(?:', re, ')?');
   }
 
   /**
    * @param {...(RegExp | string) } args
    * @returns {string}
    */
-  function concat$3(...args) {
-    const joined = args.map((x) => source$3(x)).join("");
+  function concat$2(...args) {
+    const joined = args.map((x) => source$2(x)).join("");
     return joined;
   }
 
@@ -411,7 +411,7 @@ sap.ui.define((function () { 'use strict';
    * @param { Array<string | RegExp | Object> } args
    * @returns {object}
    */
-  function stripOptionsFromArgs$3(args) {
+  function stripOptionsFromArgs$2(args) {
     const opts = args[args.length - 1];
 
     if (typeof opts === 'object' && opts.constructor === Object) {
@@ -422,19 +422,21 @@ sap.ui.define((function () { 'use strict';
     }
   }
 
+  /** @typedef { {capture?: boolean} } RegexEitherOptions */
+
   /**
    * Any of the passed expresssions may match
    *
    * Creates a huge this | this | that | that match
-   * @param {(RegExp | string)[] } args
+   * @param {(RegExp | string)[] | [...(RegExp | string)[], RegexEitherOptions]} args
    * @returns {string}
    */
-  function either$3(...args) {
+  function either$2(...args) {
     /** @type { object & {capture?: boolean} }  */
-    const opts = stripOptionsFromArgs$3(args);
+    const opts = stripOptionsFromArgs$2(args);
     const joined = '('
       + (opts.capture ? "" : "?:")
-      + args.map((x) => source$3(x)).join("|") + ")";
+      + args.map((x) => source$2(x)).join("|") + ")";
     return joined;
   }
 
@@ -482,7 +484,7 @@ sap.ui.define((function () { 'use strict';
     return regexps.map((regex) => {
       numCaptures += 1;
       const offset = numCaptures;
-      let re = source$3(regex);
+      let re = source$2(regex);
       let out = '';
 
       while (re.length > 0) {
@@ -525,7 +527,7 @@ sap.ui.define((function () { 'use strict';
   const SHEBANG = (opts = {}) => {
     const beginShebang = /^#![ ]*\//;
     if (opts.binary) {
-      opts.begin = concat$3(
+      opts.begin = concat$2(
         beginShebang,
         /.*\b/,
         opts.binary,
@@ -591,7 +593,7 @@ sap.ui.define((function () { 'use strict';
       excludeBegin: true,
       relevance: 0
     });
-    const ENGLISH_WORD = either$3(
+    const ENGLISH_WORD = either$2(
       // list of common 1 and 2 letter words in English
       "I",
       "a",
@@ -627,7 +629,7 @@ sap.ui.define((function () { 'use strict';
         // for a visual example please see:
         // https://github.com/highlightjs/highlight.js/issues/2827
 
-        begin: concat$3(
+        begin: concat$2(
           /[ ]+/, // necessary to prevent us gobbling up doctags like /* @author Bob Mcgill */
           '(',
           ENGLISH_WORD,
@@ -819,7 +821,7 @@ sap.ui.define((function () { 'use strict';
   function compileIllegal(mode, _parent) {
     if (!Array.isArray(mode.illegal)) return;
 
-    mode.illegal = either$3(...mode.illegal);
+    mode.illegal = either$2(...mode.illegal);
   }
 
   /**
@@ -855,7 +857,7 @@ sap.ui.define((function () { 'use strict';
     Object.keys(mode).forEach((key) => { delete mode[key]; });
 
     mode.keywords = originalMode.keywords;
-    mode.begin = concat$3(originalMode.beforeMatch, lookahead$2(originalMode.begin));
+    mode.begin = concat$2(originalMode.beforeMatch, lookahead$2(originalMode.begin));
     mode.starts = {
       relevance: 0,
       contains: [
@@ -1154,7 +1156,7 @@ sap.ui.define((function () { 'use strict';
      */
     function langRe(value, global) {
       return new RegExp(
-        source$3(value),
+        source$2(value),
         'm'
         + (language.case_insensitive ? 'i' : '')
         + (language.unicodeRegex ? 'u' : '')
@@ -1459,7 +1461,7 @@ sap.ui.define((function () { 'use strict';
         cmode.beginRe = langRe(cmode.begin);
         if (!mode.end && !mode.endsWithParent) mode.end = /\B|\b/;
         if (mode.end) cmode.endRe = langRe(cmode.end);
-        cmode.terminatorEnd = source$3(cmode.end) || '';
+        cmode.terminatorEnd = source$2(cmode.end) || '';
         if (mode.endsWithParent && parent.terminatorEnd) {
           cmode.terminatorEnd += (mode.end ? '|' : '') + parent.terminatorEnd;
         }
@@ -1550,7 +1552,7 @@ sap.ui.define((function () { 'use strict';
     return mode;
   }
 
-  var version = "11.3.1";
+  var version = "11.4.0";
 
   class HTMLInjectionError extends Error {
     constructor(reason, html) {
@@ -1587,7 +1589,7 @@ sap.ui.define((function () { 'use strict';
   */
 
 
-  const escape = escapeHTML;
+  const escape$1 = escapeHTML;
   const inherit = inherit$1;
   const NO_MATCH = Symbol("nomatch");
   const MAX_KEYWORD_HITS = 7;
@@ -2147,7 +2149,7 @@ sap.ui.define((function () { 'use strict';
         if (err.message && err.message.includes('Illegal')) {
           return {
             language: languageName,
-            value: escape(codeToHighlight),
+            value: escape$1(codeToHighlight),
             illegal: true,
             relevance: 0,
             _illegalBy: {
@@ -2162,7 +2164,7 @@ sap.ui.define((function () { 'use strict';
         } else if (SAFE_MODE) {
           return {
             language: languageName,
-            value: escape(codeToHighlight),
+            value: escape$1(codeToHighlight),
             illegal: false,
             relevance: 0,
             errorRaised: err,
@@ -2184,7 +2186,7 @@ sap.ui.define((function () { 'use strict';
      */
     function justTextHighlightResult(code) {
       const result = {
-        value: escape(code),
+        value: escape$1(code),
         illegal: false,
         relevance: 0,
         _top: PLAINTEXT_LANGUAGE,
@@ -2284,7 +2286,8 @@ sap.ui.define((function () { 'use strict';
       if (element.children.length > 0) {
         if (!options.ignoreUnescapedHTML) {
           console.warn("One of your code blocks includes unescaped HTML. This is a potentially serious security risk.");
-          console.warn("https://github.com/highlightjs/highlight.js/issues/2886");
+          console.warn("https://github.com/highlightjs/highlight.js/wiki/security");
+          console.warn("The element with unescaped HTML:");
           console.warn(element);
         }
         if (options.throwUnescapedHTML) {
@@ -2528,9 +2531,9 @@ sap.ui.define((function () { 'use strict';
     hljs.versionString = version;
 
     hljs.regex = {
-      concat: concat$3,
+      concat: concat$2,
       lookahead: lookahead$2,
-      either: either$3,
+      either: either$2,
       optional: optional,
       anyNumberOfTimes: anyNumberOfTimes
     };
@@ -4121,22 +4124,223 @@ sap.ui.define((function () { 'use strict';
   function arcade(hljs) {
     const IDENT_RE = '[A-Za-z_][0-9A-Za-z_]*';
     const KEYWORDS = {
-      keyword:
-        'if for while var new function do return void else break',
-      literal:
-        'BackSlash DoubleQuote false ForwardSlash Infinity NaN NewLine null PI SingleQuote Tab TextFormatting true undefined',
-      built_in:
-        'Abs Acos Angle Attachments Area AreaGeodetic Asin Atan Atan2 Average Bearing Boolean Buffer BufferGeodetic ' +
-        'Ceil Centroid Clip Console Constrain Contains Cos Count Crosses Cut Date DateAdd ' +
-        'DateDiff Day Decode DefaultValue Dictionary Difference Disjoint Distance DistanceGeodetic Distinct ' +
-        'DomainCode DomainName Equals Exp Extent Feature FeatureSet FeatureSetByAssociation FeatureSetById FeatureSetByPortalItem ' +
-        'FeatureSetByRelationshipName FeatureSetByTitle FeatureSetByUrl Filter First Floor Geometry GroupBy Guid HasKey Hour IIf IndexOf ' +
-        'Intersection Intersects IsEmpty IsNan IsSelfIntersecting Length LengthGeodetic Log Max Mean Millisecond Min Minute Month ' +
-        'MultiPartToSinglePart Multipoint NextSequenceValue Now Number OrderBy Overlaps Point Polygon ' +
-        'Polyline Portal Pow Random Relate Reverse RingIsClockWise Round Second SetGeometry Sin Sort Sqrt Stdev Sum ' +
-        'SymmetricDifference Tan Text Timestamp Today ToLocal Top Touches ToUTC TrackCurrentTime ' +
-        'TrackGeometryWindow TrackIndex TrackStartTime TrackWindow TypeOf Union UrlEncode Variance ' +
-        'Weekday When Within Year '
+      keyword: [
+        "if",
+        "for",
+        "while",
+        "var",
+        "new",
+        "function",
+        "do",
+        "return",
+        "void",
+        "else",
+        "break"
+      ],
+      literal: [
+        "BackSlash",
+        "DoubleQuote",
+        "false",
+        "ForwardSlash",
+        "Infinity",
+        "NaN",
+        "NewLine",
+        "null",
+        "PI",
+        "SingleQuote",
+        "Tab",
+        "TextFormatting",
+        "true",
+        "undefined"
+      ],
+      built_in: [
+        "Abs",
+        "Acos",
+        "All",
+        "Angle",
+        "Any",
+        "Area",
+        "AreaGeodetic",
+        "Array",
+        "Asin",
+        "Atan",
+        "Atan2",
+        "Attachments",
+        "Average",
+        "Back",
+        "Bearing",
+        "Boolean",
+        "Buffer",
+        "BufferGeodetic",
+        "Ceil",
+        "Centroid",
+        "Clip",
+        "Concatenate",
+        "Console",
+        "Constrain",
+        "Contains",
+        "ConvertDirection",
+        "Cos",
+        "Count",
+        "Crosses",
+        "Cut",
+        "Date",
+        "DateAdd",
+        "DateDiff",
+        "Day",
+        "Decode",
+        "DefaultValue",
+        "Densify",
+        "DensifyGeodetic",
+        "Dictionary",
+        "Difference",
+        "Disjoint",
+        "Distance",
+        "DistanceGeodetic",
+        "Distinct",
+        "Domain",
+        "DomainCode",
+        "DomainName",
+        "EnvelopeIntersects",
+        "Equals",
+        "Erase",
+        "Exp",
+        "Expects",
+        "Extent",
+        "Feature",
+        "FeatureSet",
+        "FeatureSetByAssociation",
+        "FeatureSetById",
+        "FeatureSetByName",
+        "FeatureSetByPortalItem",
+        "FeatureSetByRelationshipName",
+        "Filter",
+        "Find",
+        "First",
+        "Floor",
+        "FromCharCode",
+        "FromCodePoint",
+        "FromJSON",
+        "GdbVersion",
+        "Generalize",
+        "Geometry",
+        "GetFeatureSet",
+        "GetUser",
+        "GroupBy",
+        "Guid",
+        "Hash",
+        "HasKey",
+        "Hour",
+        "IIf",
+        "Includes",
+        "IndexOf",
+        "Insert",
+        "Intersection",
+        "Intersects",
+        "IsEmpty",
+        "IsNan",
+        "ISOMonth",
+        "ISOWeek",
+        "ISOWeekday",
+        "ISOYear",
+        "IsSelfIntersecting",
+        "IsSimple",
+        "Left|0",
+        "Length",
+        "Length3D",
+        "LengthGeodetic",
+        "Log",
+        "Lower",
+        "Map",
+        "Max",
+        "Mean",
+        "Mid",
+        "Millisecond",
+        "Min",
+        "Minute",
+        "Month",
+        "MultiPartToSinglePart",
+        "Multipoint",
+        "NextSequenceValue",
+        "None",
+        "Now",
+        "Number",
+        "Offset|0",
+        "OrderBy",
+        "Overlaps",
+        "Point",
+        "Polygon",
+        "Polyline",
+        "Pop",
+        "Portal",
+        "Pow",
+        "Proper",
+        "Push",
+        "Random",
+        "Reduce",
+        "Relate",
+        "Replace",
+        "Resize",
+        "Reverse",
+        "Right|0",
+        "RingIsClockwise",
+        "Rotate",
+        "Round",
+        "Schema",
+        "Second",
+        "SetGeometry",
+        "Simplify",
+        "Sin",
+        "Slice",
+        "Sort",
+        "Splice",
+        "Split",
+        "Sqrt",
+        "Stdev",
+        "SubtypeCode",
+        "SubtypeName",
+        "Subtypes",
+        "Sum",
+        "SymmetricDifference",
+        "Tan",
+        "Text",
+        "Timestamp",
+        "ToCharCode",
+        "ToCodePoint",
+        "Today",
+        "ToHex",
+        "ToLocal",
+        "Top|0",
+        "Touches",
+        "ToUTC",
+        "TrackAccelerationAt",
+        "TrackAccelerationWindow",
+        "TrackCurrentAcceleration",
+        "TrackCurrentDistance",
+        "TrackCurrentSpeed",
+        "TrackCurrentTime",
+        "TrackDistanceAt",
+        "TrackDistanceWindow",
+        "TrackDuration",
+        "TrackFieldWindow",
+        "TrackGeometryWindow",
+        "TrackIndex",
+        "TrackSpeedAt",
+        "TrackSpeedWindow",
+        "TrackStartTime",
+        "TrackWindow",
+        "Trim",
+        "TypeOf",
+        "Union",
+        "Upper",
+        "UrlEncode",
+        "Variance",
+        "Week",
+        "Weekday",
+        "When",
+        "Within",
+        "Year"
+      ]
     };
     const SYMBOL = {
       className: 'symbol',
@@ -4145,15 +4349,9 @@ sap.ui.define((function () { 'use strict';
     const NUMBER = {
       className: 'number',
       variants: [
-        {
-          begin: '\\b(0[bB][01]+)'
-        },
-        {
-          begin: '\\b(0[oO][0-7]+)'
-        },
-        {
-          begin: hljs.C_NUMBER_RE
-        }
+        { begin: '\\b(0[bB][01]+)' },
+        { begin: '\\b(0[oO][0-7]+)' },
+        { begin: hljs.C_NUMBER_RE }
       ],
       relevance: 0
     };
@@ -4187,6 +4385,7 @@ sap.ui.define((function () { 'use strict';
 
     return {
       name: 'ArcGIS Arcade',
+      case_insensitive: true,
       keywords: KEYWORDS,
       contains: [
         hljs.APOS_STRING_MODE,
@@ -4199,16 +4398,20 @@ sap.ui.define((function () { 'use strict';
         { // object attr container
           begin: /[{,]\s*/,
           relevance: 0,
-          contains: [{
-            begin: IDENT_RE + '\\s*:',
-            returnBegin: true,
-            relevance: 0,
-            contains: [{
-              className: 'attr',
-              begin: IDENT_RE,
-              relevance: 0
-            }]
-          }]
+          contains: [
+            {
+              begin: IDENT_RE + '\\s*:',
+              returnBegin: true,
+              relevance: 0,
+              contains: [
+                {
+                  className: 'attr',
+                  begin: IDENT_RE,
+                  relevance: 0
+                }
+              ]
+            }
+          ]
         },
         { // "value" container
           begin: '(' + hljs.RE_STARTERS_RE + '|\\b(return)\\b)\\s*',
@@ -4222,25 +4425,23 @@ sap.ui.define((function () { 'use strict';
               begin: '(\\(.*?\\)|' + IDENT_RE + ')\\s*=>',
               returnBegin: true,
               end: '\\s*=>',
-              contains: [{
-                className: 'params',
-                variants: [
-                  {
-                    begin: IDENT_RE
-                  },
-                  {
-                    begin: /\(\s*\)/
-                  },
-                  {
-                    begin: /\(/,
-                    end: /\)/,
-                    excludeBegin: true,
-                    excludeEnd: true,
-                    keywords: KEYWORDS,
-                    contains: PARAMS_CONTAINS
-                  }
-                ]
-              }]
+              contains: [
+                {
+                  className: 'params',
+                  variants: [
+                    { begin: IDENT_RE },
+                    { begin: /\(\s*\)/ },
+                    {
+                      begin: /\(/,
+                      end: /\)/,
+                      excludeBegin: true,
+                      excludeEnd: true,
+                      keywords: KEYWORDS,
+                      contains: PARAMS_CONTAINS
+                    }
+                  ]
+                }
+              ]
             }
           ],
           relevance: 0
@@ -4265,9 +4466,7 @@ sap.ui.define((function () { 'use strict';
           ],
           illegal: /\[|%/
         },
-        {
-          begin: /\$[(.]/
-        }
+        { begin: /\$[(.]/ }
       ],
       illegal: /#(?!!)/
     };
@@ -4835,7 +5034,7 @@ sap.ui.define((function () { 'use strict';
         [
           PREPROCESSOR,
           { // containers: ie, `vector <int> rooms (9);`
-            begin: '\\b(deque|list|queue|priority_queue|pair|stack|vector|map|set|bitset|multiset|multimap|unordered_map|unordered_set|unordered_multiset|unordered_multimap|array|tuple|optional|variant|function)\\s*<',
+            begin: '\\b(deque|list|queue|priority_queue|pair|stack|vector|map|set|bitset|multiset|multimap|unordered_map|unordered_set|unordered_multiset|unordered_multimap|array|tuple|optional|variant|function)\\s*<(?!<)',
             end: '>',
             keywords: CPP_KEYWORDS,
             contains: [
@@ -6572,6 +6771,7 @@ sap.ui.define((function () { 'use strict';
 
   /** @type LanguageFn */
   function axapta(hljs) {
+    const IDENT_RE = hljs.UNDERSCORE_IDENT_RE;
     const BUILT_IN_KEYWORDS = [
       'anytype',
       'boolean',
@@ -6708,6 +6908,30 @@ sap.ui.define((function () { 'use strict';
       literal: LITERAL_KEYWORDS
     };
 
+    const CLASS_DEFINITION = {
+      variants: [
+        {
+          match: [
+            /(class|interface)\s+/,
+            IDENT_RE,
+            /\s+(extends|implements)\s+/,
+            IDENT_RE
+          ]
+        },
+        {
+          match: [
+            /class\s+/,
+            IDENT_RE
+          ]
+        }
+      ],
+      scope: {
+        2: "title.class",
+        4: "title.class.inherited"
+      },
+      keywords: KEYWORDS
+    };
+
     return {
       name: 'X++',
       aliases: ['x++'],
@@ -6723,19 +6947,7 @@ sap.ui.define((function () { 'use strict';
           begin: '#',
           end: '$'
         },
-        {
-          className: 'class',
-          beginKeywords: 'class interface',
-          end: /\{/,
-          excludeEnd: true,
-          illegal: ':',
-          contains: [
-            {
-              beginKeywords: 'extends implements'
-            },
-            hljs.UNDERSCORE_TITLE_MODE
-          ]
-        }
+        CLASS_DEFINITION
       ]
     };
   }
@@ -7798,9 +8010,35 @@ sap.ui.define((function () { 'use strict';
 
   /** @type LanguageFn */
   function cal(hljs) {
-    const KEYWORDS =
-      'div mod in and or not xor asserterror begin case do downto else end exit for if of repeat then to ' +
-      'until while with var';
+    const regex = hljs.regex;
+    const KEYWORDS = [
+      "div",
+      "mod",
+      "in",
+      "and",
+      "or",
+      "not",
+      "xor",
+      "asserterror",
+      "begin",
+      "case",
+      "do",
+      "downto",
+      "else",
+      "end",
+      "exit",
+      "for",
+      "local",
+      "if",
+      "of",
+      "repeat",
+      "then",
+      "to",
+      "until",
+      "while",
+      "with",
+      "var"
+    ];
     const LITERALS = 'false true';
     const COMMENT_MODES = [
       hljs.C_LINE_COMMENT_MODE,
@@ -7843,12 +8081,17 @@ sap.ui.define((function () { 'use strict';
     };
 
     const PROCEDURE = {
-      className: 'function',
-      beginKeywords: 'procedure',
-      end: /[:;]/,
-      keywords: 'procedure|10',
+      match: [
+        /procedure/,
+        /\s+/,
+        /[a-zA-Z_][\w@]*/,
+        /\s*/
+      ],
+      scope: {
+        1: "keyword",
+        3: "title.function"
+      },
       contains: [
-        hljs.TITLE_MODE,
         {
           className: 'params',
           begin: /\(/,
@@ -7856,20 +8099,49 @@ sap.ui.define((function () { 'use strict';
           keywords: KEYWORDS,
           contains: [
             STRING,
-            CHAR_STRING
+            CHAR_STRING,
+            hljs.NUMBER_MODE
           ]
-        }
-      ].concat(COMMENT_MODES)
+        },
+        ...COMMENT_MODES
+      ]
     };
 
+    const OBJECT_TYPES = [
+      "Table",
+      "Form",
+      "Report",
+      "Dataport",
+      "Codeunit",
+      "XMLport",
+      "MenuSuite",
+      "Page",
+      "Query"
+    ];
     const OBJECT = {
-      className: 'class',
-      begin: 'OBJECT (Table|Form|Report|Dataport|Codeunit|XMLport|MenuSuite|Page|Query) (\\d+) ([^\\r\\n]+)',
-      returnBegin: true,
-      contains: [
-        hljs.TITLE_MODE,
-        PROCEDURE
-      ]
+      match: [
+        /OBJECT/,
+        /\s+/,
+        regex.either(...OBJECT_TYPES),
+        /\s+/,
+        /\d+/,
+        /\s+(?=[^\s])/,
+        /.*/,
+        /$/
+      ],
+      relevance: 3,
+      scope: {
+        1: "keyword",
+        3: "type",
+        5: "number",
+        7: "title"
+      }
+    };
+
+    const PROPERTY = {
+      match: /[\w]+(?=\=)/,
+      scope: "attribute",
+      relevance: 0
     };
 
     return {
@@ -7881,6 +8153,7 @@ sap.ui.define((function () { 'use strict';
       },
       illegal: /\/\*/,
       contains: [
+        PROPERTY,
         STRING,
         CHAR_STRING,
         DATE,
@@ -7923,7 +8196,7 @@ sap.ui.define((function () { 'use strict';
       "from",
       "fixed"
     ];
-    const BUILT_INS = [
+    const TYPES = [
       "Void",
       "Bool",
       "Int8",
@@ -7947,12 +8220,33 @@ sap.ui.define((function () { 'use strict';
       "true",
       "false"
     ];
+    const CLASS_DEFINITION = {
+      variants: [
+        {
+          match: [
+            /(struct|enum|interface)/, /\s+/,
+            hljs.IDENT_RE
+          ]
+        },
+        {
+          match: [
+            /extends/, /\s*\(/,
+            hljs.IDENT_RE,
+            /\s*\)/
+          ]
+        }
+      ],
+      scope: {
+        1: "keyword",
+        3: "title.class"
+      }
+    };
     return {
       name: 'Cap’n Proto',
       aliases: ['capnp'],
       keywords: {
         keyword: KEYWORDS,
-        built_in: BUILT_INS,
+        type: TYPES,
         literal: LITERALS
       },
       contains: [
@@ -7968,30 +8262,7 @@ sap.ui.define((function () { 'use strict';
           className: 'symbol',
           begin: /@\d+\b/
         },
-        {
-          className: 'class',
-          beginKeywords: 'struct enum',
-          end: /\{/,
-          illegal: /\n/,
-          contains: [hljs.inherit(hljs.TITLE_MODE, {
-            starts: {
-              endsWithParent: true,
-              excludeEnd: true
-            } // hack: eating everything after the first title
-          })]
-        },
-        {
-          className: 'class',
-          beginKeywords: 'interface',
-          end: /\{/,
-          illegal: /\n/,
-          contains: [hljs.inherit(hljs.TITLE_MODE, {
-            starts: {
-              endsWithParent: true,
-              excludeEnd: true
-            } // hack: eating everything after the first title
-          })]
-        }
+        CLASS_DEFINITION
       ]
     };
   }
@@ -8219,8 +8490,8 @@ sap.ui.define((function () { 'use strict';
 
   /** @type LanguageFn */
   function clojure(hljs) {
-    const SYMBOLSTART = 'a-zA-Z_\\-!.?+*=<>&#\'';
-    const SYMBOL_RE = '[' + SYMBOLSTART + '][' + SYMBOLSTART + '0-9/;:]*';
+    const SYMBOLSTART = 'a-zA-Z_\\-!.?+*=<>&\'';
+    const SYMBOL_RE = '[#]?[' + SYMBOLSTART + '][' + SYMBOLSTART + '0-9/;:$#]*';
     const globals = 'def defonce defprotocol defstruct defmulti defmethod defn- defn defmacro deftype defrecord';
     const keywords = {
       $pattern: SYMBOL_RE,
@@ -8256,20 +8527,45 @@ sap.ui.define((function () { 'use strict';
         'lazy-seq spread list* str find-keyword keyword symbol gensym force rationalize'
     };
 
-    const SIMPLE_NUMBER_RE = '[-+]?\\d+(\\.\\d+)?';
-
     const SYMBOL = {
       begin: SYMBOL_RE,
       relevance: 0
     };
     const NUMBER = {
-      className: 'number',
-      begin: SIMPLE_NUMBER_RE,
-      relevance: 0
+      scope: 'number',
+      relevance: 0,
+      variants: [
+        {match: /[-+]?0[xX][0-9a-fA-F]+N?/},                           // hexadecimal                 // 0x2a
+        {match: /[-+]?0[0-7]+N?/},                                     // octal                       // 052
+        {match: /[-+]?[1-9][0-9]?[rR][0-9a-zA-Z]+N?/},                 // variable radix from 2 to 36 // 2r101010, 8r52, 36r16
+        {match: /[-+]?[0-9]+\/[0-9]+N?/},                              // ratio                       // 1/2
+        {match: /[-+]?[0-9]+((\.[0-9]*([eE][+-]?[0-9]+)?M?)|([eE][+-]?[0-9]+M?|M))/}, // float        // 0.42 4.2E-1M 42E1 42M
+        {match: /[-+]?([1-9][0-9]*|0)N?/},                             // int (don't match leading 0) // 42 42N
+      ]
+    };
+    const CHARACTER = {
+      scope: 'character',
+      variants: [
+        {match: /\\o[0-3]?[0-7]{1,2}/},                             // Unicode Octal 0 - 377
+        {match: /\\u[0-9a-fA-F]{4}/},                               // Unicode Hex 0000 - FFFF
+        {match: /\\(newline|space|tab|formfeed|backspace|return)/}, // special characters
+        {match: /\\\S/, relevance: 0}                               // any non-whitespace char
+      ]
+    };
+    const REGEX = {
+      scope: 'regex',
+      begin: /#"/,
+      end: /"/,
+      contains: [hljs.BACKSLASH_ESCAPE]
     };
     const STRING = hljs.inherit(hljs.QUOTE_STRING_MODE, {
       illegal: null
     });
+    const COMMA = {
+      scope: 'punctuation',
+      match: /,/,
+      relevance: 0
+    };
     const COMMENT = hljs.COMMENT(
       ';',
       '$',
@@ -8282,15 +8578,10 @@ sap.ui.define((function () { 'use strict';
       begin: /\b(true|false|nil)\b/
     };
     const COLLECTION = {
-      begin: '[\\[\\{]',
+      begin: "\\[|(#::?" + SYMBOL_RE + ")?\\{",
       end: '[\\]\\}]',
       relevance: 0
     };
-    const HINT = {
-      className: 'comment',
-      begin: '\\^' + SYMBOL_RE
-    };
-    const HINT_COL = hljs.COMMENT('\\^\\{', '\\}');
     const KEY = {
       className: 'symbol',
       begin: '[:]{1,2}' + SYMBOL_RE
@@ -8311,10 +8602,11 @@ sap.ui.define((function () { 'use strict';
       starts: BODY
     };
     const DEFAULT_CONTAINS = [
+      COMMA,
       LIST,
+      CHARACTER,
+      REGEX,
       STRING,
-      HINT,
-      HINT_COL,
       COMMENT,
       KEY,
       COLLECTION,
@@ -8343,24 +8635,23 @@ sap.ui.define((function () { 'use strict';
     };
 
     LIST.contains = [
-      hljs.COMMENT('comment', ''),
       GLOBAL,
       NAME,
       BODY
     ];
     BODY.contains = DEFAULT_CONTAINS;
     COLLECTION.contains = DEFAULT_CONTAINS;
-    HINT_COL.contains = [ COLLECTION ];
 
     return {
       name: 'Clojure',
       aliases: [ 'clj', 'edn' ],
       illegal: /\S/,
       contains: [
+        COMMA,
         LIST,
+        CHARACTER,
+        REGEX,
         STRING,
-        HINT,
-        HINT_COL,
         COMMENT,
         KEY,
         COLLECTION,
@@ -8764,6 +9055,30 @@ sap.ui.define((function () { 'use strict';
       }]
     };
 
+    const CLASS_DEFINITION = {
+      variants: [
+        {
+          match: [
+            /class\s+/,
+            JS_IDENT_RE,
+            /\s+extends\s+/,
+            JS_IDENT_RE
+          ]
+        },
+        {
+          match: [
+            /class\s+/,
+            JS_IDENT_RE
+          ]
+        }
+      ],
+      scope: {
+        2: "title.class",
+        4: "title.class.inherited"
+      },
+      keywords: KEYWORDS$1
+    };
+
     return {
       name: 'CoffeeScript',
       aliases: [
@@ -8799,21 +9114,7 @@ sap.ui.define((function () { 'use strict';
             contains: [PARAMS]
           }]
         },
-        {
-          className: 'class',
-          beginKeywords: 'class',
-          end: '$',
-          illegal: /[:="\[\]]/,
-          contains: [
-            {
-              beginKeywords: 'extends',
-              endsWithParent: true,
-              illegal: /[:="\[\]]/,
-              contains: [TITLE]
-            },
-            TITLE
-          ]
-        },
+        CLASS_DEFINITION,
         {
           begin: JS_IDENT_RE + ':',
           end: ':',
@@ -9973,7 +10274,7 @@ sap.ui.define((function () { 'use strict';
         [
           PREPROCESSOR,
           { // containers: ie, `vector <int> rooms (9);`
-            begin: '\\b(deque|list|queue|priority_queue|pair|stack|vector|map|set|bitset|multiset|multimap|unordered_map|unordered_set|unordered_multiset|unordered_multimap|array|tuple|optional|variant|function)\\s*<',
+            begin: '\\b(deque|list|queue|priority_queue|pair|stack|vector|map|set|bitset|multiset|multimap|unordered_map|unordered_set|unordered_multiset|unordered_multimap|array|tuple|optional|variant|function)\\s*<(?!<)',
             end: '>',
             keywords: CPP_KEYWORDS,
             contains: [
@@ -13703,10 +14004,8 @@ sap.ui.define((function () { 'use strict';
       {
         className: 'variable',
         begin: '(\\$\\W)|((\\$|@@?)(\\w+))'
-      },
-      {
-        begin: '->'
       }
+      // -> has been removed, capnproto always uses this grammar construct
     ];
     SUBST.contains = ELIXIR_DEFAULT_CONTAINS;
 
@@ -15776,11 +16075,15 @@ sap.ui.define((function () { 'use strict';
    * @returns {RegExp}
    * */
 
+  function escape(value) {
+    return new RegExp(value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'm');
+  }
+
   /**
    * @param {RegExp | string } re
    * @returns {string}
    */
-  function source$2(re) {
+  function source$1(re) {
     if (!re) return null;
     if (typeof re === "string") return re;
 
@@ -15792,15 +16095,15 @@ sap.ui.define((function () { 'use strict';
    * @returns {string}
    */
   function lookahead$1(re) {
-    return concat$2('(?=', re, ')');
+    return concat$1('(?=', re, ')');
   }
 
   /**
    * @param {...(RegExp | string) } args
    * @returns {string}
    */
-  function concat$2(...args) {
-    const joined = args.map((x) => source$2(x)).join("");
+  function concat$1(...args) {
+    const joined = args.map((x) => source$1(x)).join("");
     return joined;
   }
 
@@ -15808,7 +16111,7 @@ sap.ui.define((function () { 'use strict';
    * @param { Array<string | RegExp | Object> } args
    * @returns {object}
    */
-  function stripOptionsFromArgs$2(args) {
+  function stripOptionsFromArgs$1(args) {
     const opts = args[args.length - 1];
 
     if (typeof opts === 'object' && opts.constructor === Object) {
@@ -15819,19 +16122,21 @@ sap.ui.define((function () { 'use strict';
     }
   }
 
+  /** @typedef { {capture?: boolean} } RegexEitherOptions */
+
   /**
    * Any of the passed expresssions may match
    *
    * Creates a huge this | this | that | that match
-   * @param {(RegExp | string)[] } args
+   * @param {(RegExp | string)[] | [...(RegExp | string)[], RegexEitherOptions]} args
    * @returns {string}
    */
-  function either$2(...args) {
+  function either$1(...args) {
     /** @type { object & {capture?: boolean} }  */
-    const opts = stripOptionsFromArgs$2(args);
+    const opts = stripOptionsFromArgs$1(args);
     const joined = '('
       + (opts.capture ? "" : "?:")
-      + args.map((x) => source$2(x)).join("|") + ")";
+      + args.map((x) => source$1(x)).join("|") + ")";
     return joined;
   }
 
@@ -15954,7 +16259,9 @@ sap.ui.define((function () { 'use strict';
       "__SOURCE_FILE__"
     ];
 
-    const TYPES = [
+    // Since it's possible to re-bind/shadow names (e.g. let char = 'c'),
+    // these builtin types should only be matched when a type name is expected.
+    const KNOWN_TYPES = [
       // basic types
       "bool",
       "byte",
@@ -15992,7 +16299,9 @@ sap.ui.define((function () { 'use strict';
       "nativeptr",
       "obj",
       "outref",
-      "voidptr"
+      "voidptr",
+      // other important FSharp types
+      "Result"
     ];
 
     const BUILTINS = [
@@ -16007,6 +16316,7 @@ sap.ui.define((function () { 'use strict';
       "dict",
       "readOnlyDict",
       "set",
+      "get",
       "enum",
       "sizeof",
       "typeof",
@@ -16036,7 +16346,6 @@ sap.ui.define((function () { 'use strict';
     ];
 
     const ALL_KEYWORDS = {
-      type: TYPES,
       keyword: KEYWORDS,
       literal: LITERALS,
       built_in: BUILTINS,
@@ -16056,16 +16365,138 @@ sap.ui.define((function () { 'use strict';
       ]
     };
 
-    // 'a or ^a
+    // Most identifiers can contain apostrophes
+    const IDENTIFIER_RE = /[a-zA-Z_](\w|')*/;
+
+    const QUOTED_IDENTIFIER = {
+      scope: 'variable',
+      begin: /``/,
+      end: /``/
+    };
+
+    // 'a or ^a where a can be a ``quoted identifier``
+    const BEGIN_GENERIC_TYPE_SYMBOL_RE = /\B('|\^)/;
     const GENERIC_TYPE_SYMBOL = {
-      match: concat$2(/('|\^)/, hljs.UNDERSCORE_IDENT_RE),
       scope: 'symbol',
+      variants: [
+        // the type name is a quoted identifier:
+        { match: concat$1(BEGIN_GENERIC_TYPE_SYMBOL_RE, /``.*?``/) },
+        // the type name is a normal identifier (we don't use IDENTIFIER_RE because there cannot be another apostrophe here):
+        { match: concat$1(BEGIN_GENERIC_TYPE_SYMBOL_RE, hljs.UNDERSCORE_IDENT_RE) }
+      ],
       relevance: 0
+    };
+
+    const makeOperatorMode = function({ includeEqual }) {
+      // List or symbolic operator characters from the FSharp Spec 4.1, minus the dot, and with `?` added, used for nullable operators.
+      let allOperatorChars;
+      if (includeEqual)
+        allOperatorChars = "!%&*+-/<=>@^|~?";
+      else
+        allOperatorChars = "!%&*+-/<>@^|~?";
+      const OPERATOR_CHARS = Array.from(allOperatorChars);
+      const OPERATOR_CHAR_RE = concat$1('[', ...OPERATOR_CHARS.map(escape), ']');
+      // The lone dot operator is special. It cannot be redefined, and we don't want to highlight it. It can be used as part of a multi-chars operator though.
+      const OPERATOR_CHAR_OR_DOT_RE = either$1(OPERATOR_CHAR_RE, /\./);
+      // When a dot is present, it must be followed by another operator char:
+      const OPERATOR_FIRST_CHAR_OF_MULTIPLE_RE = concat$1(OPERATOR_CHAR_OR_DOT_RE, lookahead$1(OPERATOR_CHAR_OR_DOT_RE));
+      const SYMBOLIC_OPERATOR_RE = either$1(
+        concat$1(OPERATOR_FIRST_CHAR_OF_MULTIPLE_RE, OPERATOR_CHAR_OR_DOT_RE, '*'), // Matches at least 2 chars operators
+        concat$1(OPERATOR_CHAR_RE, '+'), // Matches at least one char operators
+      );
+      return {
+        scope: 'operator',
+        match: either$1(
+          // symbolic operators:
+          SYMBOLIC_OPERATOR_RE,
+          // other symbolic keywords:
+          // Type casting and conversion operators:
+          /:\?>/,
+          /:\?/,
+          /:>/,
+          /:=/, // Reference cell assignment
+          /::?/, // : or ::
+          /\$/), // A single $ can be used as an operator
+        relevance: 0
+      };
+    };
+
+    const OPERATOR = makeOperatorMode({ includeEqual: true });
+    // This variant is used when matching '=' should end a parent mode:
+    const OPERATOR_WITHOUT_EQUAL = makeOperatorMode({ includeEqual: false });
+
+    const makeTypeAnnotationMode = function(prefix, prefixScope) {
+      return {
+        begin: concat$1( // a type annotation is a
+          prefix,            // should be a colon or the 'of' keyword
+          lookahead$1(   // that has to be followed by
+            concat$1(
+              /\s*/,         // optional space
+              either$1(  // then either of:
+                /\w/,        // word
+                /'/,         // generic type name
+                /\^/,        // generic type name
+                /#/,         // flexible type name
+                /``/,        // quoted type name
+                /\(/,        // parens type expression
+                /{\|/,       // anonymous type annotation
+        )))),
+        beginScope: prefixScope,
+        // BUG: because ending with \n is necessary for some cases, multi-line type annotations are not properly supported.
+        // Examples where \n is required at the end:
+        // - abstract member definitions in classes: abstract Property : int * string
+        // - return type annotations: let f f' = f' () : returnTypeAnnotation
+        // - record fields definitions: { A : int \n B : string }
+        end: lookahead$1(
+          either$1(
+            /\n/,
+            /=/)),
+        relevance: 0,
+        // we need the known types, and we need the type constraint keywords and literals. e.g.: when 'a : null
+        keywords: hljs.inherit(ALL_KEYWORDS, { type: KNOWN_TYPES }),
+        contains: [
+          COMMENT,
+          GENERIC_TYPE_SYMBOL,
+          hljs.inherit(QUOTED_IDENTIFIER, { scope: null }), // match to avoid strange patterns inside that may break the parsing
+          OPERATOR_WITHOUT_EQUAL
+        ]
+      };
+    };
+
+    const TYPE_ANNOTATION = makeTypeAnnotationMode(/:/, 'operator');
+    const DISCRIMINATED_UNION_TYPE_ANNOTATION = makeTypeAnnotationMode(/\bof\b/, 'keyword');
+
+    // type MyType<'a> = ...
+    const TYPE_DECLARATION = {
+      begin: [
+        /(^|\s+)/, // prevents matching the following: `match s.stype with`
+        /type/,
+        /\s+/,
+        IDENTIFIER_RE
+      ],
+      beginScope: {
+        2: 'keyword',
+        4: 'title.class'
+      },
+      end: lookahead$1(/\(|=|$/),
+      keywords: ALL_KEYWORDS, // match keywords in type constraints. e.g.: when 'a : null
+      contains: [
+        COMMENT,
+        hljs.inherit(QUOTED_IDENTIFIER, { scope: null }), // match to avoid strange patterns inside that may break the parsing
+        GENERIC_TYPE_SYMBOL,
+        {
+          // For visual consistency, highlight type brackets as operators.
+          scope: 'operator',
+          match: /<|>/
+        },
+        TYPE_ANNOTATION // generic types can have constraints, which are type annotations. e.g. type MyType<'T when 'T : delegate<obj * string>> =
+      ]
     };
 
     const COMPUTATION_EXPRESSION = {
       // computation expressions:
       scope: 'computation-expression',
+      // BUG: might conflict with record deconstruction. e.g. let f { Name = name } = name // will highlight f
       match: /\b[_a-z]\w*(?=\s*\{)/
     };
 
@@ -16073,7 +16504,7 @@ sap.ui.define((function () { 'use strict';
       // preprocessor directives and fsi commands:
       begin: [
         /^\s*/,
-        concat$2(/#/, either$2(...PREPROCESSOR_KEYWORDS)),
+        concat$1(/#/, either$1(...PREPROCESSOR_KEYWORDS)),
         /\b/
       ],
       beginScope: { 2: 'meta' },
@@ -16180,9 +16611,9 @@ sap.ui.define((function () { 'use strict';
     // '.'
     const CHAR_LITERAL = {
       scope: 'string',
-      match: concat$2(
+      match: concat$1(
         /'/,
-        either$2(
+        either$1(
           /[^\\']/, // either a single non escaped char...
           /\\(?:.|\d{3}|x[a-fA-F\d]{2}|u[a-fA-F\d]{4}|U[a-fA-F\d]{8})/ // ...or an escape sequence
         ),
@@ -16200,10 +16631,13 @@ sap.ui.define((function () { 'use strict';
       CHAR_LITERAL,
       BANG_KEYWORD_MODE,
       COMMENT,
+      QUOTED_IDENTIFIER,
+      TYPE_ANNOTATION,
       COMPUTATION_EXPRESSION,
       PREPROCESSOR,
       NUMBER,
-      GENERIC_TYPE_SYMBOL
+      GENERIC_TYPE_SYMBOL,
+      OPERATOR
     ];
     const STRING = {
       variants: [
@@ -16232,42 +16666,32 @@ sap.ui.define((function () { 'use strict';
         BANG_KEYWORD_MODE,
         STRING,
         COMMENT,
+        QUOTED_IDENTIFIER,
+        TYPE_DECLARATION,
         {
-          // type MyType<'a> = ...
-          begin: [
-            /type/,
-            /\s+/,
-            hljs.UNDERSCORE_IDENT_RE
-          ],
-          beginScope: {
-            1: 'keyword',
-            3: 'title.class'
-          },
-          end: lookahead$1(/\(|=|$/),
-          contains: [
-            GENERIC_TYPE_SYMBOL
-          ]
-        },
-        {
-          // [<Attributes("")>]
+          // e.g. [<Attributes("")>] or [<``module``: MyCustomAttributeThatWorksOnModules>]
+          // or [<Sealed; NoEquality; NoComparison; CompiledName("FSharpAsync`1")>]
           scope: 'meta',
-          begin: /^\s*\[</,
-          excludeBegin: true,
-          end: lookahead$1(/>\]/),
+          begin: /\[</,
+          end: />\]/,
           relevance: 2,
           contains: [
-            {
-              scope: 'string',
-              begin: /"/,
-              end: /"/
-            },
+            QUOTED_IDENTIFIER,
+            // can contain any constant value
+            TRIPLE_QUOTED_STRING,
+            VERBATIM_STRING,
+            QUOTED_STRING,
+            CHAR_LITERAL,
             NUMBER
           ]
         },
+        DISCRIMINATED_UNION_TYPE_ANNOTATION,
+        TYPE_ANNOTATION,
         COMPUTATION_EXPRESSION,
         PREPROCESSOR,
         NUMBER,
-        GENERIC_TYPE_SYMBOL
+        GENERIC_TYPE_SYMBOL,
+        OPERATOR
       ]
     };
   }
@@ -20334,19 +20758,78 @@ sap.ui.define((function () { 'use strict';
     }
     );
 
+    const CLASS_DEFINITION = {
+      match: [
+        /(class|interface|trait|enum|extends|implements)/,
+        /\s+/,
+        hljs.UNDERSCORE_IDENT_RE
+      ],
+      scope: {
+        1: "keyword",
+        3: "title.class",
+      }
+    };
+    const TYPES = [
+      "byte",
+      "short",
+      "char",
+      "int",
+      "long",
+      "boolean",
+      "float",
+      "double",
+      "void"
+    ];
+    const KEYWORDS = [
+      // groovy specific keywords
+      "def",
+      "as",
+      "in",
+      "assert",
+      "trait",
+      // common keywords with Java
+      "abstract",
+      "static",
+      "volatile",
+      "transient",
+      "public",
+      "private",
+      "protected",
+      "synchronized",
+      "final",
+      "class",
+      "interface",
+      "enum",
+      "if",
+      "else",
+      "for",
+      "while",
+      "switch",
+      "case",
+      "break",
+      "default",
+      "continue",
+      "throw",
+      "throws",
+      "try",
+      "catch",
+      "finally",
+      "implements",
+      "extends",
+      "new",
+      "import",
+      "package",
+      "return",
+      "instanceof"
+    ];
+
     return {
       name: 'Groovy',
       keywords: {
-        built_in: 'this super',
+        "variable.language": 'this super',
         literal: 'true false null',
-        keyword:
-              'byte short char int long boolean float double void ' +
-              // groovy specific keywords
-              'def as in assert trait ' +
-              // common keywords with Java
-              'abstract static volatile transient public private protected synchronized final ' +
-              'class interface enum if else for while switch case break default continue ' +
-              'throw throws try catch finally implements extends new import package return instanceof'
+        type: TYPES,
+        keyword: KEYWORDS
       },
       contains: [
         hljs.SHEBANG({
@@ -20357,18 +20840,7 @@ sap.ui.define((function () { 'use strict';
         STRING,
         REGEXP,
         NUMBER,
-        {
-          className: 'class',
-          beginKeywords: 'class interface trait enum',
-          end: /\{/,
-          illegal: ':',
-          contains: [
-            {
-              beginKeywords: 'extends implements'
-            },
-            hljs.UNDERSCORE_TITLE_MODE
-          ]
-        },
+        CLASS_DEFINITION,
         {
           className: 'meta',
           begin: '@[A-Za-z]+',
@@ -25106,7 +25578,8 @@ sap.ui.define((function () { 'use strict';
       'module',
       'requires',
       'exports',
-      'do'
+      'do',
+      'sealed'
     ];
 
     const BUILT_INS = [
@@ -25211,6 +25684,11 @@ sap.ui.define((function () { 'use strict';
             1: "keyword",
             3: "title.class"
           }
+        },
+        {
+          // Exceptions for hyphenated keywords
+          match: /non-sealed/,
+          scope: "keyword"
         },
         {
           begin: [
@@ -25732,10 +26210,14 @@ sap.ui.define((function () { 'use strict';
       regex.either(
         // Hard coded exceptions
         /\bJSON/,
-        // Float32Array
-        /\b[A-Z][a-z]+([A-Z][a-z]+|\d)*/,
-        // CSSFactory
-        /\b[A-Z]{2,}([A-Z][a-z]+|\d)+/,
+        // Float32Array, OutT
+        /\b[A-Z][a-z]+([A-Z][a-z]*|\d)*/,
+        // CSSFactory, CSSFactoryT
+        /\b[A-Z]{2,}([A-Z][a-z]+|\d)+([A-Z][a-z]*)*/,
+        // FPs, FPsT
+        /\b[A-Z]{2,}[a-z]+([A-Z][a-z]+|\d)*([A-Z][a-z]*)*/,
+        // P
+        // single letters are not highlighted
         // BLAH
         // this will be flagged as a UPPER_CASE_CONSTANT instead
       ),
@@ -25848,8 +26330,10 @@ sap.ui.define((function () { 'use strict';
         /const|var|let/, /\s+/,
         IDENT_RE$1$1, /\s*/,
         /=\s*/,
+        /(async\s*)?/, // async is optional
         regex.lookahead(FUNC_LEAD_IN_RE)
       ],
+      keywords: "async",
       className: {
         1: "keyword",
         3: "title.function"
@@ -26582,15 +27066,15 @@ sap.ui.define((function () { 'use strict';
             // least six spaces in the beginning
             end: /^(?![ ]{6})/,
             subLanguage: 'julia'
+          },
         },
-        // jldoctest Markdown blocks are used in the Julia manual and package docs indicate
-        // code snippets that should be verified when the documentation is built. They can be
-        // either REPL-like or script-like, but are usually REPL-like and therefore we apply
-        // julia-repl highlighting to them. More information can be found in Documenter's
-        // manual: https://juliadocs.github.io/Documenter.jl/latest/man/doctests.html
-        aliases: ['jldoctest']
-        }
-      ]
+      ],
+      // jldoctest Markdown blocks are used in the Julia manual and package docs indicate
+      // code snippets that should be verified when the documentation is built. They can be
+      // either REPL-like or script-like, but are usually REPL-like and therefore we apply
+      // julia-repl highlighting to them. More information can be found in Documenter's
+      // manual: https://juliadocs.github.io/Documenter.jl/latest/man/doctests.html
+      aliases: ['jldoctest'],
     }
   }
 
@@ -28821,6 +29305,30 @@ sap.ui.define((function () { 'use strict';
       begin: '(#=>|=>|\\|>>|-?->|!->)'
     };
 
+    const CLASS_DEFINITION = {
+      variants: [
+        {
+          match: [
+            /class\s+/,
+            JS_IDENT_RE,
+            /\s+extends\s+/,
+            JS_IDENT_RE
+          ]
+        },
+        {
+          match: [
+            /class\s+/,
+            JS_IDENT_RE
+          ]
+        }
+      ],
+      scope: {
+        2: "title.class",
+        4: "title.class.inherited"
+      },
+      keywords: KEYWORDS$1$1
+    };
+
     return {
       name: 'LiveScript',
       aliases: ['ls'],
@@ -28852,21 +29360,7 @@ sap.ui.define((function () { 'use strict';
             }
           ]
         },
-        {
-          className: 'class',
-          beginKeywords: 'class',
-          end: '$',
-          illegal: /[:="\[\]]/,
-          contains: [
-            {
-              beginKeywords: 'extends',
-              endsWithParent: true,
-              illegal: /[:="\[\]]/,
-              contains: [TITLE]
-            },
-            TITLE
-          ]
-        },
+        CLASS_DEFINITION,
         {
           begin: JS_IDENT_RE + ':',
           end: ':',
@@ -36119,7 +36613,6 @@ sap.ui.define((function () { 'use strict';
           className: 'string',
           begin: '\'', end: '\'',
           contains: [
-            hljs.BACKSLASH_ESCAPE,
             {begin: '\'\''}]
         },
         {
@@ -36131,7 +36624,6 @@ sap.ui.define((function () { 'use strict';
           className: 'string',
           begin: '"', end: '"',
           contains: [
-            hljs.BACKSLASH_ESCAPE,
             {begin: '""'}
           ],
           starts: TRANSPOSE
@@ -37597,20 +38089,137 @@ sap.ui.define((function () { 'use strict';
         hljs.NUMBER_MODE
       ]
     };
+    const FUNC_DEFINITION = {
+      variants: [
+        {
+          match: [
+            /(function|method)/,
+            /\s+/,
+            hljs.UNDERSCORE_IDENT_RE,
+          ]
+        },
+      ],
+      scope: {
+        1: "keyword",
+        3: "title.function"
+      }
+    };
+    const CLASS_DEFINITION = {
+      variants: [
+        {
+          match: [
+            /(class|interface|extends|implements)/,
+            /\s+/,
+            hljs.UNDERSCORE_IDENT_RE,
+          ]
+        },
+      ],
+      scope: {
+        1: "keyword",
+        3: "title.class"
+      }
+    };
+    const BUILT_INS = [
+      "DebugLog",
+      "DebugStop",
+      "Error",
+      "Print",
+      "ACos",
+      "ACosr",
+      "ASin",
+      "ASinr",
+      "ATan",
+      "ATan2",
+      "ATan2r",
+      "ATanr",
+      "Abs",
+      "Abs",
+      "Ceil",
+      "Clamp",
+      "Clamp",
+      "Cos",
+      "Cosr",
+      "Exp",
+      "Floor",
+      "Log",
+      "Max",
+      "Max",
+      "Min",
+      "Min",
+      "Pow",
+      "Sgn",
+      "Sgn",
+      "Sin",
+      "Sinr",
+      "Sqrt",
+      "Tan",
+      "Tanr",
+      "Seed",
+      "PI",
+      "HALFPI",
+      "TWOPI"
+    ];
+    const LITERALS = [
+      "true",
+      "false",
+      "null"
+    ];
+    const KEYWORDS = [
+      "public",
+      "private",
+      "property",
+      "continue",
+      "exit",
+      "extern",
+      "new",
+      "try",
+      "catch",
+      "eachin",
+      "not",
+      "abstract",
+      "final",
+      "select",
+      "case",
+      "default",
+      "const",
+      "local",
+      "global",
+      "field",
+      "end",
+      "if",
+      "then",
+      "else",
+      "elseif",
+      "endif",
+      "while",
+      "wend",
+      "repeat",
+      "until",
+      "forever",
+      "for",
+      "to",
+      "step",
+      "next",
+      "return",
+      "module",
+      "inline",
+      "throw",
+      "import",
+      // not positive, but these are not literals
+      "and",
+      "or",
+      "shl",
+      "shr",
+      "mod"
+    ];
 
     return {
       name: 'Monkey',
       case_insensitive: true,
       keywords: {
-        keyword: 'public private property continue exit extern new try catch ' +
-          'eachin not abstract final select case default const local global field ' +
-          'end if then else elseif endif while wend repeat until forever for ' +
-          'to step next return module inline throw import',
-
-        built_in: 'DebugLog DebugStop Error Print ACos ACosr ASin ASinr ATan ATan2 ATan2r ATanr Abs Abs Ceil ' +
-          'Clamp Clamp Cos Cosr Exp Floor Log Max Max Min Min Pow Sgn Sgn Sin Sinr Sqrt Tan Tanr Seed PI HALFPI TWOPI',
-
-        literal: 'true false null and or shl shr mod'
+        keyword: KEYWORDS,
+        built_in: BUILT_INS,
+        literal: LITERALS
       },
       illegal: /\/\*/,
       contains: [
@@ -37622,39 +38231,26 @@ sap.ui.define((function () { 'use strict';
             relevance: 0
           }
         ),
+        FUNC_DEFINITION,
+        CLASS_DEFINITION,
         {
-          className: 'function',
-          beginKeywords: 'function method',
-          end: '[(=:]|$',
-          illegal: /\n/,
-          contains: [ hljs.UNDERSCORE_TITLE_MODE ]
-        },
-        {
-          className: 'class',
-          beginKeywords: 'class interface',
-          end: '$',
-          contains: [
-            {
-              beginKeywords: 'extends implements'
-            },
-            hljs.UNDERSCORE_TITLE_MODE
-          ]
-        },
-        {
-          className: 'built_in',
-          begin: '\\b(self|super)\\b'
+          className: 'variable.language',
+          begin: /\b(self|super)\b/
         },
         {
           className: 'meta',
-          begin: '\\s*#',
+          begin: /\s*#/,
           end: '$',
           keywords: {
             keyword: 'if else elseif endif end then'
           }
         },
         {
-          className: 'meta',
-          begin: '^\\s*strict\\b'
+          match: [
+            /^\s*/,
+            /strict\b/
+          ],
+          scope: { 2: "meta" }
         },
         {
           beginKeywords: 'alias',
@@ -38762,62 +39358,6 @@ sap.ui.define((function () { 'use strict';
 
   var nodeRepl_1 = nodeRepl;
 
-  /**
-   * @param {string} value
-   * @returns {RegExp}
-   * */
-
-  /**
-   * @param {RegExp | string } re
-   * @returns {string}
-   */
-  function source$1(re) {
-    if (!re) return null;
-    if (typeof re === "string") return re;
-
-    return re.source;
-  }
-
-  /**
-   * @param {...(RegExp | string) } args
-   * @returns {string}
-   */
-  function concat$1(...args) {
-    const joined = args.map((x) => source$1(x)).join("");
-    return joined;
-  }
-
-  /**
-   * @param { Array<string | RegExp | Object> } args
-   * @returns {object}
-   */
-  function stripOptionsFromArgs$1(args) {
-    const opts = args[args.length - 1];
-
-    if (typeof opts === 'object' && opts.constructor === Object) {
-      args.splice(args.length - 1, 1);
-      return opts;
-    } else {
-      return {};
-    }
-  }
-
-  /**
-   * Any of the passed expresssions may match
-   *
-   * Creates a huge this | this | that | that match
-   * @param {(RegExp | string)[] } args
-   * @returns {string}
-   */
-  function either$1(...args) {
-    /** @type { object & {capture?: boolean} }  */
-    const opts = stripOptionsFromArgs$1(args);
-    const joined = '('
-      + (opts.capture ? "" : "?:")
-      + args.map((x) => source$1(x)).join("|") + ")";
-    return joined;
-  }
-
   /*
   Language: NSIS
   Description: Nullsoft Scriptable Install System
@@ -38826,6 +39366,7 @@ sap.ui.define((function () { 'use strict';
   */
 
   function nsis(hljs) {
+    const regex = hljs.regex;
     const LANGUAGE_CONSTANTS = [
       "ADMINTOOLS",
       "APPDATA",
@@ -38965,46 +39506,46 @@ sap.ui.define((function () { 'use strict';
 
     const CONSTANTS = {
       className: 'variable.constant',
-      begin: concat$1(/\$/, either$1(...LANGUAGE_CONSTANTS))
+      begin: regex.concat(/\$/, regex.either(...LANGUAGE_CONSTANTS))
     };
 
     const DEFINES = {
       // ${defines}
       className: 'variable',
-      begin: /\$+\{[\w.:-]+\}/
+      begin: /\$+\{[\!\w.:-]+\}/
     };
 
     const VARIABLES = {
       // $variables
       className: 'variable',
-      begin: /\$+\w+/,
+      begin: /\$+\w[\w\.]*/,
       illegal: /\(\)\{\}/
     };
 
     const LANGUAGES = {
       // $(language_strings)
       className: 'variable',
-      begin: /\$+\([\w^.:-]+\)/
+      begin: /\$+\([\w^.:!-]+\)/
     };
 
     const PARAMETERS = {
       // command parameters
       className: 'params',
-      begin: either$1(...PARAM_NAMES)
+      begin: regex.either(...PARAM_NAMES)
     };
 
     const COMPILER = {
       // !compiler_flags
       className: 'keyword',
-      begin: concat$1(
+      begin: regex.concat(
         /!/,
-        either$1(...COMPILER_FLAGS)
+        regex.either(...COMPILER_FLAGS)
       )
     };
 
-    const METACHARS = {
+    const ESCAPE_CHARS = {
       // $\n, $\r, $\t, $$
-      className: 'meta',
+      className: 'char.escape',
       begin: /\$(\\[nrt]|\$)/
     };
 
@@ -39032,7 +39573,7 @@ sap.ui.define((function () { 'use strict';
       ],
       illegal: /\n/,
       contains: [
-        METACHARS,
+        ESCAPE_CHARS,
         CONSTANTS,
         DEFINES,
         VARIABLES,
@@ -39311,15 +39852,32 @@ sap.ui.define((function () { 'use strict';
       "zlib"
     ];
 
-    const FUNCTION_DEF = {
+    const FUNCTION_DEFINITION = {
       match: [
         /Function/,
         /\s+/,
-        concat$1(/(\.)?/, hljs.IDENT_RE)
+        regex.concat(/(\.)?/, hljs.IDENT_RE)
       ],
       scope: {
         1: "keyword",
         3: "title.function"
+      }
+    };
+
+    // Var Custom.Variable.Name.Item
+    // Var /GLOBAL Custom.Variable.Name.Item
+    const VARIABLE_NAME_RE = /[A-Za-z][\w.]*/;
+    const VARIABLE_DEFINITION = {
+      match: [
+        /Var/,
+        /\s+/,
+        /(?:\/GLOBAL\s+)?/,
+        VARIABLE_NAME_RE
+      ],
+      scope: {
+        1: "keyword",
+        3: "params",
+        4: "variable"
       }
     };
 
@@ -39340,7 +39898,8 @@ sap.ui.define((function () { 'use strict';
             relevance: 0
           }
         ),
-        FUNCTION_DEF,
+        VARIABLE_DEFINITION,
+        FUNCTION_DEFINITION,
         {
           beginKeywords: 'Function PageEx Section SectionGroup FunctionEnd SectionEnd',
         },
@@ -39823,12 +40382,11 @@ sap.ui.define((function () { 'use strict';
       begin: '(#\\d+)+'
     };
     const FUNCTION = {
-      className: 'function',
       beginKeywords: 'function constructor destructor procedure method',
       end: '[:;]',
       keywords: 'function constructor|10 destructor|10 procedure|10 method|10',
       contains: [
-        hljs.TITLE_MODE,
+        hljs.inherit(hljs.TITLE_MODE, {scope: "title.function" }),
         {
           className: 'params',
           begin: '\\(',
@@ -39843,6 +40401,13 @@ sap.ui.define((function () { 'use strict';
         PAREN_COMMENT
       ]
     };
+
+    const SEMICOLON = {
+      scope: "punctuation",
+      match: /;/,
+      relevance: 0
+    };
+
     return {
       name: 'Oxygene',
       case_insensitive: true,
@@ -39856,20 +40421,7 @@ sap.ui.define((function () { 'use strict';
         CHAR_STRING,
         hljs.NUMBER_MODE,
         FUNCTION,
-        {
-          className: 'class',
-          begin: '=\\bclass\\b',
-          end: 'end;',
-          keywords: OXYGENE_KEYWORDS,
-          contains: [
-            STRING,
-            CHAR_STRING,
-            CURLY_COMMENT,
-            PAREN_COMMENT,
-            hljs.C_LINE_COMMENT_MODE,
-            FUNCTION
-          ]
-        }
+        SEMICOLON
       ]
     };
   }
@@ -40639,15 +41191,20 @@ sap.ui.define((function () { 'use strict';
    * @returns {LanguageDetail}
    * */
   function php(hljs) {
+    const regex = hljs.regex;
+    const IDENT_RE_CORE = '[a-zA-Z0-9_\x7f-\xff]*' +
+      // negative look-ahead tries to avoid matching patterns that are not
+      // Perl at all like $ident$, @ident@, etc.
+      '(?![A-Za-z0-9])(?![$]))';
+    const IDENT_RE = regex.concat("([a-zA-Z_\\x7f-\\xff]", IDENT_RE_CORE);
+    // Will not detect camelCase classes
+    const PASCAL_CASE_CLASS_NAME_RE = regex.concat("([A-Z]", IDENT_RE_CORE);
     const VARIABLE = {
-      className: 'variable',
-      begin: '\\$+[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*' +
-        // negative look-ahead tries to avoid matching patterns that are not
-        // Perl at all like $ident$, @ident@, etc.
-        `(?![A-Za-z0-9])(?![$])`
+      scope: 'variable',
+      match: '\\$+' + IDENT_RE,
     };
     const PREPROCESSOR = {
-      className: 'meta',
+      scope: 'meta',
       variants: [
         { begin: /<\?php/, relevance: 10 }, // boost for obvious PHP
         { begin: /<\?[=]?/ },
@@ -40655,7 +41212,7 @@ sap.ui.define((function () { 'use strict';
       ]
     };
     const SUBST = {
-      className: 'subst',
+      scope: 'subst',
       variants: [
         { begin: /\$\w+/ },
         { begin: /\{\$/, end: /\}/ }
@@ -40673,100 +41230,406 @@ sap.ui.define((function () { 'use strict';
       end: /[ \t]*(\w+)\b/,
       contains: hljs.QUOTE_STRING_MODE.contains.concat(SUBST),
     });
+    // list of valid whitespaces because non-breaking space might be part of a IDENT_RE
+    const WHITESPACE = '[ \t\n]';
     const STRING = {
-      className: 'string',
-      contains: [hljs.BACKSLASH_ESCAPE, PREPROCESSOR],
+      scope: 'string',
       variants: [
-        hljs.inherit(SINGLE_QUOTED, {
-          begin: "b'", end: "'",
-        }),
-        hljs.inherit(DOUBLE_QUOTED, {
-          begin: 'b"', end: '"',
-        }),
         DOUBLE_QUOTED,
         SINGLE_QUOTED,
         HEREDOC
       ]
     };
     const NUMBER = {
-      className: 'number',
+      scope: 'number',
       variants: [
-        { begin: `\\b0b[01]+(?:_[01]+)*\\b` }, // Binary w/ underscore support
-        { begin: `\\b0o[0-7]+(?:_[0-7]+)*\\b` }, // Octals w/ underscore support
-        { begin: `\\b0x[\\da-f]+(?:_[\\da-f]+)*\\b` }, // Hex w/ underscore support
+        { begin: `\\b0[bB][01]+(?:_[01]+)*\\b` }, // Binary w/ underscore support
+        { begin: `\\b0[oO][0-7]+(?:_[0-7]+)*\\b` }, // Octals w/ underscore support
+        { begin: `\\b0[xX][\\da-fA-F]+(?:_[\\da-fA-F]+)*\\b` }, // Hex w/ underscore support
         // Decimals w/ underscore support, with optional fragments and scientific exponent (e) suffix.
-        { begin: `(?:\\b\\d+(?:_\\d+)*(\\.(?:\\d+(?:_\\d+)*))?|\\B\\.\\d+)(?:e[+-]?\\d+)?` }
+        { begin: `(?:\\b\\d+(?:_\\d+)*(\\.(?:\\d+(?:_\\d+)*))?|\\B\\.\\d+)(?:[eE][+-]?\\d+)?` }
       ],
       relevance: 0
     };
-    const KEYWORDS = {
-      keyword:
+    const LITERALS = [
+      "false",
+      "null",
+      "true"
+    ];
+    const KWS = [
       // Magic constants:
       // <https://www.php.net/manual/en/language.constants.predefined.php>
-      '__CLASS__ __DIR__ __FILE__ __FUNCTION__ __LINE__ __METHOD__ __NAMESPACE__ __TRAIT__ ' +
+      "__CLASS__",
+      "__DIR__",
+      "__FILE__",
+      "__FUNCTION__",
+      "__COMPILER_HALT_OFFSET__",
+      "__LINE__",
+      "__METHOD__",
+      "__NAMESPACE__",
+      "__TRAIT__",
       // Function that look like language construct or language construct that look like function:
       // List of keywords that may not require parenthesis
-      'die echo exit include include_once print require require_once ' +
+      "die",
+      "echo",
+      "exit",
+      "include",
+      "include_once",
+      "print",
+      "require",
+      "require_once",
       // These are not language construct (function) but operate on the currently-executing function and can access the current symbol table
       // 'compact extract func_get_arg func_get_args func_num_args get_called_class get_parent_class ' +
       // Other keywords:
       // <https://www.php.net/manual/en/reserved.php>
       // <https://www.php.net/manual/en/language.types.type-juggling.php>
-      'array abstract and as binary bool boolean break callable case catch class clone const continue declare ' +
-      'default do double else elseif empty enddeclare endfor endforeach endif endswitch endwhile enum eval extends ' +
-      'final finally float for foreach from global goto if implements instanceof insteadof int integer interface ' +
-      'isset iterable list match|0 mixed new object or private protected public real return string switch throw trait ' +
-      'try unset use var void while xor yield',
-      literal: 'false null true',
-      built_in:
+      "array",
+      "abstract",
+      "and",
+      "as",
+      "binary",
+      "bool",
+      "boolean",
+      "break",
+      "callable",
+      "case",
+      "catch",
+      "class",
+      "clone",
+      "const",
+      "continue",
+      "declare",
+      "default",
+      "do",
+      "double",
+      "else",
+      "elseif",
+      "empty",
+      "enddeclare",
+      "endfor",
+      "endforeach",
+      "endif",
+      "endswitch",
+      "endwhile",
+      "enum",
+      "eval",
+      "extends",
+      "final",
+      "finally",
+      "float",
+      "for",
+      "foreach",
+      "from",
+      "global",
+      "goto",
+      "if",
+      "implements",
+      "instanceof",
+      "insteadof",
+      "int",
+      "integer",
+      "interface",
+      "isset",
+      "iterable",
+      "list",
+      "match|0",
+      "mixed",
+      "new",
+      "never",
+      "object",
+      "or",
+      "private",
+      "protected",
+      "public",
+      "readonly",
+      "real",
+      "return",
+      "string",
+      "switch",
+      "throw",
+      "trait",
+      "try",
+      "unset",
+      "use",
+      "var",
+      "void",
+      "while",
+      "xor",
+      "yield"
+    ];
+
+    const BUILT_INS = [
       // Standard PHP library:
       // <https://www.php.net/manual/en/book.spl.php>
-      'Error|0 ' + // error is too common a name esp since PHP is case in-sensitive
-      'AppendIterator ArgumentCountError ArithmeticError ArrayIterator ArrayObject AssertionError BadFunctionCallException BadMethodCallException CachingIterator CallbackFilterIterator CompileError Countable DirectoryIterator DivisionByZeroError DomainException EmptyIterator ErrorException Exception FilesystemIterator FilterIterator GlobIterator InfiniteIterator InvalidArgumentException IteratorIterator LengthException LimitIterator LogicException MultipleIterator NoRewindIterator OutOfBoundsException OutOfRangeException OuterIterator OverflowException ParentIterator ParseError RangeException RecursiveArrayIterator RecursiveCachingIterator RecursiveCallbackFilterIterator RecursiveDirectoryIterator RecursiveFilterIterator RecursiveIterator RecursiveIteratorIterator RecursiveRegexIterator RecursiveTreeIterator RegexIterator RuntimeException SeekableIterator SplDoublyLinkedList SplFileInfo SplFileObject SplFixedArray SplHeap SplMaxHeap SplMinHeap SplObjectStorage SplObserver SplObserver SplPriorityQueue SplQueue SplStack SplSubject SplSubject SplTempFileObject TypeError UnderflowException UnexpectedValueException UnhandledMatchError ' +
+      "Error|0",
+      "AppendIterator",
+      "ArgumentCountError",
+      "ArithmeticError",
+      "ArrayIterator",
+      "ArrayObject",
+      "AssertionError",
+      "BadFunctionCallException",
+      "BadMethodCallException",
+      "CachingIterator",
+      "CallbackFilterIterator",
+      "CompileError",
+      "Countable",
+      "DirectoryIterator",
+      "DivisionByZeroError",
+      "DomainException",
+      "EmptyIterator",
+      "ErrorException",
+      "Exception",
+      "FilesystemIterator",
+      "FilterIterator",
+      "GlobIterator",
+      "InfiniteIterator",
+      "InvalidArgumentException",
+      "IteratorIterator",
+      "LengthException",
+      "LimitIterator",
+      "LogicException",
+      "MultipleIterator",
+      "NoRewindIterator",
+      "OutOfBoundsException",
+      "OutOfRangeException",
+      "OuterIterator",
+      "OverflowException",
+      "ParentIterator",
+      "ParseError",
+      "RangeException",
+      "RecursiveArrayIterator",
+      "RecursiveCachingIterator",
+      "RecursiveCallbackFilterIterator",
+      "RecursiveDirectoryIterator",
+      "RecursiveFilterIterator",
+      "RecursiveIterator",
+      "RecursiveIteratorIterator",
+      "RecursiveRegexIterator",
+      "RecursiveTreeIterator",
+      "RegexIterator",
+      "RuntimeException",
+      "SeekableIterator",
+      "SplDoublyLinkedList",
+      "SplFileInfo",
+      "SplFileObject",
+      "SplFixedArray",
+      "SplHeap",
+      "SplMaxHeap",
+      "SplMinHeap",
+      "SplObjectStorage",
+      "SplObserver",
+      "SplPriorityQueue",
+      "SplQueue",
+      "SplStack",
+      "SplSubject",
+      "SplTempFileObject",
+      "TypeError",
+      "UnderflowException",
+      "UnexpectedValueException",
+      "UnhandledMatchError",
       // Reserved interfaces:
       // <https://www.php.net/manual/en/reserved.interfaces.php>
-      'ArrayAccess Closure Generator Iterator IteratorAggregate Serializable Stringable Throwable Traversable WeakReference WeakMap ' +
+      "ArrayAccess",
+      "BackedEnum",
+      "Closure",
+      "Fiber",
+      "Generator",
+      "Iterator",
+      "IteratorAggregate",
+      "Serializable",
+      "Stringable",
+      "Throwable",
+      "Traversable",
+      "UnitEnum",
+      "WeakReference",
+      "WeakMap",
       // Reserved classes:
       // <https://www.php.net/manual/en/reserved.classes.php>
-      'Directory __PHP_Incomplete_Class parent php_user_filter self static stdClass'
+      "Directory",
+      "__PHP_Incomplete_Class",
+      "parent",
+      "php_user_filter",
+      "self",
+      "static",
+      "stdClass"
+    ];
+
+    /** Dual-case keywords
+     *
+     * ["then","FILE"] =>
+     *     ["then", "THEN", "FILE", "file"]
+     *
+     * @param {string[]} items */
+    const dualCase = (items) => {
+      /** @type string[] */
+      const result = [];
+      items.forEach(item => {
+        result.push(item);
+        if (item.toLowerCase() === item) {
+          result.push(item.toUpperCase());
+        } else {
+          result.push(item.toLowerCase());
+        }
+      });
+      return result;
     };
+
+    const KEYWORDS = {
+      keyword: KWS,
+      literal: dualCase(LITERALS),
+      built_in: BUILT_INS,
+    };
+
+    /**
+     * @param {string[]} items */
+    const normalizeKeywords = (items) => {
+      return items.map(item => {
+        return item.replace(/\|\d+$/, "");
+      });
+    };
+
+    const CONSTRUCTOR_CALL = {
+      variants: [
+        {
+          match: [
+            /new/,
+            regex.concat(WHITESPACE, "+"),
+            // to prevent built ins from being confused as the class constructor call
+            regex.concat("(?!", normalizeKeywords(BUILT_INS).join("\\b|"), "\\b)"),
+            regex.concat(/\\?/, IDENT_RE),
+            regex.concat(WHITESPACE, "*", /\(/),
+          ],
+          scope: {
+            1: "keyword",
+            4: "title.class",
+          },
+        }
+      ]
+    };
+
+    const FUNCTION_INVOKE = {
+      relevance: 0,
+      match: [
+        /\b/,
+        // to prevent keywords from being confused as the function title
+        regex.concat("(?!fn\\b|function\\b|", normalizeKeywords(KWS).join("\\b|"), "|", normalizeKeywords(BUILT_INS).join("\\b|"), "\\b)"),
+        IDENT_RE,
+        regex.concat(WHITESPACE, "*"),
+        regex.lookahead(/(?=\()/)
+      ],
+      scope: {
+        3: "title.function.invoke",
+      }
+    };
+
+    const CONSTANT_REFERENCE = regex.concat(IDENT_RE, "\\b(?!\\()");
+
+    const LEFT_AND_RIGHT_SIDE_OF_DOUBLE_COLON = {
+      variants: [
+        {
+          match: [
+            regex.concat(
+              /::/,
+              regex.lookahead(/(?!class\b)/)
+            ),
+            CONSTANT_REFERENCE,
+          ],
+          scope: {
+            2: "variable.constant",
+          },
+        },
+        {
+          match: [
+            /::/,
+            /class/,
+          ],
+          scope: {
+            2: "variable.language",
+          },
+        },
+        {
+          match: [
+            PASCAL_CASE_CLASS_NAME_RE,
+            regex.concat(
+              "::",
+              regex.lookahead(/(?!class\b)/)
+            ),
+          ],
+          scope: {
+            1: "title.class",
+          },
+        },
+        {
+          match: [
+            PASCAL_CASE_CLASS_NAME_RE,
+            /::/,
+            /class/,
+          ],
+          scope: {
+            1: "title.class",
+            3: "variable.language",
+          },
+        }
+      ]
+    };
+
     return {
-      case_insensitive: true,
+      case_insensitive: false,
       keywords: KEYWORDS,
       contains: [
         hljs.HASH_COMMENT_MODE,
-        hljs.COMMENT('//', '$', {contains: [PREPROCESSOR]}),
+        hljs.COMMENT('//', '$'),
         hljs.COMMENT(
           '/\\*',
           '\\*/',
           {
             contains: [
               {
-                className: 'doctag',
-                begin: '@[A-Za-z]+'
+                scope: 'doctag',
+                match: '@[A-Za-z]+'
               }
             ]
           }
         ),
-        hljs.COMMENT(
-          '__halt_compiler.+?;',
-          false,
-          {
-            endsWithParent: true,
-            keywords: '__halt_compiler'
+        {
+          match: /__halt_compiler\(\);/,
+          keywords: '__halt_compiler',
+          starts: {
+            scope: "comment",
+            end: hljs.MATCH_NOTHING_RE,
+            contains: [
+              {
+                match: /\?>/,
+                scope: "meta",
+                endsParent: true
+              }
+            ]
           }
-        ),
+        },
         PREPROCESSOR,
         {
-          className: 'keyword', begin: /\$this\b/
+          scope: 'variable.language',
+          match: /\$this\b/
         },
         VARIABLE,
+        FUNCTION_INVOKE,
+        LEFT_AND_RIGHT_SIDE_OF_DOUBLE_COLON,
         {
-          // swallow composed identifiers to avoid parsing them as keywords
-          begin: /(::|->)+[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/
+          match: [
+            /const/,
+            /\s/,
+            IDENT_RE,
+            /\s*=/,
+          ],
+          scope: {
+            1: "keyword",
+            3: "variable.constant",
+          },
         },
+        CONSTRUCTOR_CALL,
         {
-          className: 'function',
+          scope: 'function',
           relevance: 0,
           beginKeywords: 'fn function', end: /[;{]/, excludeEnd: true,
           illegal: '[$%\\[]',
@@ -40780,7 +41643,7 @@ sap.ui.define((function () { 'use strict';
               endsParent: true
             },
             {
-              className: 'params',
+              scope: 'params',
               begin: '\\(', end: '\\)',
               excludeBegin: true,
               excludeEnd: true,
@@ -40788,6 +41651,7 @@ sap.ui.define((function () { 'use strict';
               contains: [
                 'self',
                 VARIABLE,
+                LEFT_AND_RIGHT_SIDE_OF_DOUBLE_COLON,
                 hljs.C_BLOCK_COMMENT_MODE,
                 STRING,
                 NUMBER
@@ -40796,7 +41660,7 @@ sap.ui.define((function () { 'use strict';
           ]
         },
         {
-          className: 'class',
+          scope: 'class',
           variants: [
             { beginKeywords: "enum", illegal: /[($"]/ },
             { beginKeywords: "class interface trait", illegal: /[:($"]/ }
@@ -40809,18 +41673,31 @@ sap.ui.define((function () { 'use strict';
             hljs.UNDERSCORE_TITLE_MODE
           ]
         },
+        // both use and namespace still use "old style" rules (vs multi-match)
+        // because the namespace name can include `\` and we still want each
+        // element to be treated as its own *individual* title
         {
           beginKeywords: 'namespace',
           relevance: 0,
           end: ';',
           illegal: /[.']/,
-          contains: [hljs.UNDERSCORE_TITLE_MODE]
+          contains: [
+            hljs.inherit(hljs.UNDERSCORE_TITLE_MODE, { scope: "title.class" })
+          ]
         },
         {
           beginKeywords: 'use',
           relevance: 0,
           end: ';',
-          contains: [hljs.UNDERSCORE_TITLE_MODE]
+          contains: [
+            // TODO: title.function vs title.class
+            {
+              match: /\b(as|const|function)\b/,
+              scope: "keyword"
+            },
+            // TODO: could be title.class or title.function
+            hljs.UNDERSCORE_TITLE_MODE
+          ]
         },
         STRING,
         NUMBER
@@ -42006,29 +42883,57 @@ sap.ui.define((function () { 'use strict';
   */
 
   function protobuf(hljs) {
+    const KEYWORDS = [
+      "package",
+      "import",
+      "option",
+      "optional",
+      "required",
+      "repeated",
+      "group",
+      "oneof"
+    ];
+    const TYPES = [
+      "double",
+      "float",
+      "int32",
+      "int64",
+      "uint32",
+      "uint64",
+      "sint32",
+      "sint64",
+      "fixed32",
+      "fixed64",
+      "sfixed32",
+      "sfixed64",
+      "bool",
+      "string",
+      "bytes"
+    ];
+    const CLASS_DEFINITION = {
+      match: [
+        /(message|enum|service)\s+/,
+        hljs.IDENT_RE
+      ],
+      scope: {
+        1: "keyword",
+        2: "title.class"
+      }
+    };
+
     return {
       name: 'Protocol Buffers',
       keywords: {
-        keyword: 'package import option optional required repeated group oneof',
-        built_in: 'double float int32 int64 uint32 uint64 sint32 sint64 ' +
-          'fixed32 fixed64 sfixed32 sfixed64 bool string bytes',
-        literal: 'true false'
+        keyword: KEYWORDS,
+        type: TYPES,
+        literal: ['true', 'false']
       },
       contains: [
         hljs.QUOTE_STRING_MODE,
         hljs.NUMBER_MODE,
         hljs.C_LINE_COMMENT_MODE,
         hljs.C_BLOCK_COMMENT_MODE,
-        {
-          className: 'class',
-          beginKeywords: 'message enum service', end: /\{/,
-          illegal: /\n/,
-          contains: [
-            hljs.inherit(hljs.TITLE_MODE, {
-              starts: {endsWithParent: true, excludeEnd: true} // hack: eating everything after the first title
-            })
-          ]
-        },
+        CLASS_DEFINITION,
         {
           className: 'function',
           beginKeywords: 'rpc',
@@ -42552,6 +43457,12 @@ sap.ui.define((function () { 'use strict';
     // https://docs.python.org/3.9/reference/lexical_analysis.html#numeric-literals
     const digitpart = '[0-9](_?[0-9])*';
     const pointfloat = `(\\b(${digitpart}))?\\.(${digitpart})|\\b(${digitpart})\\.`;
+    // Whitespace after a number (or any lexical token) is needed only if its absence
+    // would change the tokenization
+    // https://docs.python.org/3.9/reference/lexical_analysis.html#whitespace-between-tokens
+    // We deviate slightly, requiring a word boundary or a keyword
+    // to avoid accidentally recognizing *prefixes* (e.g., `0` in `0x41` or `08` or `0__1`)
+    const lookahead = `\\b|${RESERVED_WORDS.join('|')}`;
     const NUMBER = {
       className: 'number',
       relevance: 0,
@@ -42567,7 +43478,7 @@ sap.ui.define((function () { 'use strict';
         // because both MUST contain a decimal point and so cannot be confused with
         // the interior part of an identifier
         {
-          begin: `(\\b(${digitpart})|(${pointfloat}))[eE][+-]?(${digitpart})[jJ]?\\b`
+          begin: `(\\b(${digitpart})|(${pointfloat}))[eE][+-]?(${digitpart})[jJ]?(?=${lookahead})`
         },
         {
           begin: `(${pointfloat})[jJ]?`
@@ -42580,22 +43491,22 @@ sap.ui.define((function () { 'use strict';
         // decinteger is optionally imaginary
         // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
         {
-          begin: '\\b([1-9](_?[0-9])*|0+(_?0)*)[lLjJ]?\\b'
+          begin: `\\b([1-9](_?[0-9])*|0+(_?0)*)[lLjJ]?(?=${lookahead})`
         },
         {
-          begin: '\\b0[bB](_?[01])+[lL]?\\b'
+          begin: `\\b0[bB](_?[01])+[lL]?(?=${lookahead})`
         },
         {
-          begin: '\\b0[oO](_?[0-7])+[lL]?\\b'
+          begin: `\\b0[oO](_?[0-7])+[lL]?(?=${lookahead})`
         },
         {
-          begin: '\\b0[xX](_?[0-9a-fA-F])+[lL]?\\b'
+          begin: `\\b0[xX](_?[0-9a-fA-F])+[lL]?(?=${lookahead})`
         },
 
         // imagnumber (digitpart-based)
         // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
         {
-          begin: `\\b(${digitpart})[jJ]\\b`
+          begin: `\\b(${digitpart})[jJ](?=${lookahead})`
         }
       ]
     };
@@ -42675,7 +43586,7 @@ sap.ui.define((function () { 'use strict';
         hljs.HASH_COMMENT_MODE,
         {
           match: [
-            /def/, /\s+/,
+            /\bdef/, /\s+/,
             IDENT_RE,
           ],
           scope: {
@@ -42688,14 +43599,14 @@ sap.ui.define((function () { 'use strict';
           variants: [
             {
               match: [
-                /class/, /\s+/,
+                /\bclass/, /\s+/,
                 IDENT_RE, /\s*/,
                 /\(\s*/, IDENT_RE,/\s*\)/
               ],
             },
             {
               match: [
-                /class/, /\s+/,
+                /\bclass/, /\s+/,
                 IDENT_RE
               ],
             }
@@ -43864,19 +44775,123 @@ sap.ui.define((function () { 'use strict';
   */
 
   function rsl(hljs) {
+    const BUILT_INS = [
+      "abs",
+      "acos",
+      "ambient",
+      "area",
+      "asin",
+      "atan",
+      "atmosphere",
+      "attribute",
+      "calculatenormal",
+      "ceil",
+      "cellnoise",
+      "clamp",
+      "comp",
+      "concat",
+      "cos",
+      "degrees",
+      "depth",
+      "Deriv",
+      "diffuse",
+      "distance",
+      "Du",
+      "Dv",
+      "environment",
+      "exp",
+      "faceforward",
+      "filterstep",
+      "floor",
+      "format",
+      "fresnel",
+      "incident",
+      "length",
+      "lightsource",
+      "log",
+      "match",
+      "max",
+      "min",
+      "mod",
+      "noise",
+      "normalize",
+      "ntransform",
+      "opposite",
+      "option",
+      "phong",
+      "pnoise",
+      "pow",
+      "printf",
+      "ptlined",
+      "radians",
+      "random",
+      "reflect",
+      "refract",
+      "renderinfo",
+      "round",
+      "setcomp",
+      "setxcomp",
+      "setycomp",
+      "setzcomp",
+      "shadow",
+      "sign",
+      "sin",
+      "smoothstep",
+      "specular",
+      "specularbrdf",
+      "spline",
+      "sqrt",
+      "step",
+      "tan",
+      "texture",
+      "textureinfo",
+      "trace",
+      "transform",
+      "vtransform",
+      "xcomp",
+      "ycomp",
+      "zcomp"
+    ];
+
+    const TYPES = [
+      "matrix",
+      "float",
+      "color",
+      "point",
+      "normal",
+      "vector"
+    ];
+
+    const KEYWORDS = [
+      "while",
+      "for",
+      "if",
+      "do",
+      "return",
+      "else",
+      "break",
+      "extern",
+      "continue"
+    ];
+
+    const CLASS_DEFINITION = {
+      match: [
+        /(surface|displacement|light|volume|imager)/,
+        /\s+/,
+        hljs.IDENT_RE,
+      ],
+      scope: {
+        1: "keyword",
+        3: "title.class",
+      }
+    };
+
     return {
       name: 'RenderMan RSL',
       keywords: {
-        keyword:
-          'float color point normal vector matrix while for if do return else break extern continue',
-        built_in:
-          'abs acos ambient area asin atan atmosphere attribute calculatenormal ceil cellnoise ' +
-          'clamp comp concat cos degrees depth Deriv diffuse distance Du Dv environment exp ' +
-          'faceforward filterstep floor format fresnel incident length lightsource log match ' +
-          'max min mod noise normalize ntransform opposite option phong pnoise pow printf ' +
-          'ptlined radians random reflect refract renderinfo round setcomp setxcomp setycomp ' +
-          'setzcomp shadow sign sin smoothstep specular specularbrdf spline sqrt step tan ' +
-          'texture textureinfo trace transform vtransform xcomp ycomp zcomp'
+        keyword: KEYWORDS,
+        built_in: BUILT_INS,
+        type: TYPES
       },
       illegal: '</',
       contains: [
@@ -43890,11 +44905,7 @@ sap.ui.define((function () { 'use strict';
           begin: '#',
           end: '$'
         },
-        {
-          className: 'class',
-          beginKeywords: 'surface displacement light volume imager',
-          end: '\\('
-        },
+        CLASS_DEFINITION,
         {
           beginKeywords: 'illuminate illuminance gather',
           end: '\\('
@@ -49521,12 +50532,13 @@ sap.ui.define((function () { 'use strict';
   /*
   Language: Stan
   Description: The Stan probabilistic programming language
-  Author: Jeffrey B. Arnold <jeffrey.arnold@gmail.com>
+  Author: Sean Pinkney <sean.pinkney@gmail.com>
   Website: http://mc-stan.org/
   Category: scientific
   */
 
   function stan(hljs) {
+    const regex = hljs.regex;
     // variable names cannot conflict with block identifiers
     const BLOCKS = [
       'functions',
@@ -49537,6 +50549,7 @@ sap.ui.define((function () { 'use strict';
       'transformed',
       'generated'
     ];
+
     const STATEMENTS = [
       'for',
       'in',
@@ -49547,16 +50560,10 @@ sap.ui.define((function () { 'use strict';
       'continue',
       'return'
     ];
-    const SPECIAL_FUNCTIONS = [
-      'print',
-      'reject',
-      'increment_log_prob|10',
-      'integrate_ode|10',
-      'integrate_ode_rk45|10',
-      'integrate_ode_bdf|10',
-      'algebra_solver'
-    ];
-    const VAR_TYPES = [
+
+    const TYPES = [
+      'array',
+      'complex',
       'int',
       'real',
       'vector',
@@ -49572,13 +50579,24 @@ sap.ui.define((function () { 'use strict';
       'cov_matrix|10',
       'void'
     ];
+
+    // to get the functions list
+    // clone the [stan-docs repo](https://github.com/stan-dev/docs)
+    // then cd into it and run this bash script https://gist.github.com/joshgoebel/dcd33f82d4059a907c986049893843cf
+    //
+    // the output files are
+    // distributions_quoted.txt
+    // functions_quoted.txt
+
     const FUNCTIONS = [
       'Phi',
       'Phi_approx',
       'abs',
       'acos',
       'acosh',
+      'add_diag',
       'algebra_solver',
+      'algebra_solver_newton',
       'append_array',
       'append_col',
       'append_row',
@@ -49587,56 +50605,21 @@ sap.ui.define((function () { 'use strict';
       'atan',
       'atan2',
       'atanh',
-      'bernoulli_cdf',
-      'bernoulli_lccdf',
-      'bernoulli_lcdf',
-      'bernoulli_logit_lpmf',
-      'bernoulli_logit_rng',
-      'bernoulli_lpmf',
-      'bernoulli_rng',
       'bessel_first_kind',
       'bessel_second_kind',
-      'beta_binomial_cdf',
-      'beta_binomial_lccdf',
-      'beta_binomial_lcdf',
-      'beta_binomial_lpmf',
-      'beta_binomial_rng',
-      'beta_cdf',
-      'beta_lccdf',
-      'beta_lcdf',
-      'beta_lpdf',
-      'beta_rng',
       'binary_log_loss',
-      'binomial_cdf',
       'binomial_coefficient_log',
-      'binomial_lccdf',
-      'binomial_lcdf',
-      'binomial_logit_lpmf',
-      'binomial_lpmf',
-      'binomial_rng',
       'block',
-      'categorical_logit_lpmf',
-      'categorical_logit_rng',
-      'categorical_lpmf',
-      'categorical_rng',
-      'cauchy_cdf',
-      'cauchy_lccdf',
-      'cauchy_lcdf',
-      'cauchy_lpdf',
-      'cauchy_rng',
       'cbrt',
       'ceil',
-      'chi_square_cdf',
-      'chi_square_lccdf',
-      'chi_square_lcdf',
-      'chi_square_lpdf',
-      'chi_square_rng',
+      'chol2inv',
       'cholesky_decompose',
       'choose',
       'col',
       'cols',
       'columns_dot_product',
       'columns_dot_self',
+      'conj',
       'cos',
       'cosh',
       'cov_exp_quad',
@@ -49654,34 +50637,16 @@ sap.ui.define((function () { 'use strict';
       'diagonal',
       'digamma',
       'dims',
-      'dirichlet_lpdf',
-      'dirichlet_rng',
       'distance',
       'dot_product',
       'dot_self',
-      'double_exponential_cdf',
-      'double_exponential_lccdf',
-      'double_exponential_lcdf',
-      'double_exponential_lpdf',
-      'double_exponential_rng',
-      'e',
       'eigenvalues_sym',
       'eigenvectors_sym',
       'erf',
       'erfc',
       'exp',
       'exp2',
-      'exp_mod_normal_cdf',
-      'exp_mod_normal_lccdf',
-      'exp_mod_normal_lcdf',
-      'exp_mod_normal_lpdf',
-      'exp_mod_normal_rng',
       'expm1',
-      'exponential_cdf',
-      'exponential_lccdf',
-      'exponential_lcdf',
-      'exponential_lpdf',
-      'exponential_rng',
       'fabs',
       'falling_factorial',
       'fdim',
@@ -49690,94 +50655,68 @@ sap.ui.define((function () { 'use strict';
       'fmax',
       'fmin',
       'fmod',
-      'frechet_cdf',
-      'frechet_lccdf',
-      'frechet_lcdf',
-      'frechet_lpdf',
-      'frechet_rng',
-      'gamma_cdf',
-      'gamma_lccdf',
-      'gamma_lcdf',
-      'gamma_lpdf',
       'gamma_p',
       'gamma_q',
-      'gamma_rng',
-      'gaussian_dlm_obs_lpdf',
+      'generalized_inverse',
+      'get_imag',
       'get_lp',
-      'gumbel_cdf',
-      'gumbel_lccdf',
-      'gumbel_lcdf',
-      'gumbel_lpdf',
-      'gumbel_rng',
+      'get_real',
       'head',
-      'hypergeometric_lpmf',
-      'hypergeometric_rng',
+      'hmm_hidden_state_prob',
+      'hmm_marginal',
       'hypot',
+      'identity_matrix',
       'inc_beta',
       'int_step',
+      'integrate_1d',
       'integrate_ode',
+      'integrate_ode_adams',
       'integrate_ode_bdf',
       'integrate_ode_rk45',
       'inv',
       'inv_Phi',
-      'inv_chi_square_cdf',
-      'inv_chi_square_lccdf',
-      'inv_chi_square_lcdf',
-      'inv_chi_square_lpdf',
-      'inv_chi_square_rng',
       'inv_cloglog',
-      'inv_gamma_cdf',
-      'inv_gamma_lccdf',
-      'inv_gamma_lcdf',
-      'inv_gamma_lpdf',
-      'inv_gamma_rng',
       'inv_logit',
       'inv_sqrt',
       'inv_square',
-      'inv_wishart_lpdf',
-      'inv_wishart_rng',
       'inverse',
       'inverse_spd',
       'is_inf',
       'is_nan',
+      'lambert_w0',
+      'lambert_wm1',
       'lbeta',
       'lchoose',
+      'ldexp',
       'lgamma',
-      'lkj_corr_cholesky_lpdf',
-      'lkj_corr_cholesky_rng',
-      'lkj_corr_lpdf',
-      'lkj_corr_rng',
+      'linspaced_array',
+      'linspaced_int_array',
+      'linspaced_row_vector',
+      'linspaced_vector',
       'lmgamma',
       'lmultiply',
       'log',
-      'log10',
       'log1m',
       'log1m_exp',
       'log1m_inv_logit',
       'log1p',
       'log1p_exp',
-      'log2',
       'log_determinant',
       'log_diff_exp',
       'log_falling_factorial',
       'log_inv_logit',
+      'log_inv_logit_diff',
       'log_mix',
+      'log_modified_bessel_first_kind',
       'log_rising_factorial',
       'log_softmax',
       'log_sum_exp',
-      'logistic_cdf',
-      'logistic_lccdf',
-      'logistic_lcdf',
-      'logistic_lpdf',
-      'logistic_rng',
       'logit',
-      'lognormal_cdf',
-      'lognormal_lccdf',
-      'lognormal_lcdf',
-      'lognormal_lpdf',
-      'lognormal_rng',
       'machine_precision',
+      'map_rect',
       'matrix_exp',
+      'matrix_exp_multiply',
+      'matrix_power',
       'max',
       'mdivide_left_spd',
       'mdivide_left_tri_low',
@@ -49787,120 +50726,80 @@ sap.ui.define((function () { 'use strict';
       'min',
       'modified_bessel_first_kind',
       'modified_bessel_second_kind',
-      'multi_gp_cholesky_lpdf',
-      'multi_gp_lpdf',
-      'multi_normal_cholesky_lpdf',
-      'multi_normal_cholesky_rng',
-      'multi_normal_lpdf',
-      'multi_normal_prec_lpdf',
-      'multi_normal_rng',
-      'multi_student_t_lpdf',
-      'multi_student_t_rng',
-      'multinomial_lpmf',
-      'multinomial_rng',
       'multiply_log',
       'multiply_lower_tri_self_transpose',
-      'neg_binomial_2_cdf',
-      'neg_binomial_2_lccdf',
-      'neg_binomial_2_lcdf',
-      'neg_binomial_2_log_lpmf',
-      'neg_binomial_2_log_rng',
-      'neg_binomial_2_lpmf',
-      'neg_binomial_2_rng',
-      'neg_binomial_cdf',
-      'neg_binomial_lccdf',
-      'neg_binomial_lcdf',
-      'neg_binomial_lpmf',
-      'neg_binomial_rng',
       'negative_infinity',
-      'normal_cdf',
-      'normal_lccdf',
-      'normal_lcdf',
-      'normal_lpdf',
-      'normal_rng',
+      'norm',
       'not_a_number',
       'num_elements',
-      'ordered_logistic_lpmf',
-      'ordered_logistic_rng',
+      'ode_adams',
+      'ode_adams_tol',
+      'ode_adjoint_tol_ctl',
+      'ode_bdf',
+      'ode_bdf_tol',
+      'ode_ckrk',
+      'ode_ckrk_tol',
+      'ode_rk45',
+      'ode_rk45_tol',
+      'one_hot_array',
+      'one_hot_int_array',
+      'one_hot_row_vector',
+      'one_hot_vector',
+      'ones_array',
+      'ones_int_array',
+      'ones_row_vector',
+      'ones_vector',
       'owens_t',
-      'pareto_cdf',
-      'pareto_lccdf',
-      'pareto_lcdf',
-      'pareto_lpdf',
-      'pareto_rng',
-      'pareto_type_2_cdf',
-      'pareto_type_2_lccdf',
-      'pareto_type_2_lcdf',
-      'pareto_type_2_lpdf',
-      'pareto_type_2_rng',
-      'pi',
-      'poisson_cdf',
-      'poisson_lccdf',
-      'poisson_lcdf',
-      'poisson_log_lpmf',
-      'poisson_log_rng',
-      'poisson_lpmf',
-      'poisson_rng',
+      'polar',
       'positive_infinity',
       'pow',
       'print',
       'prod',
+      'proj',
       'qr_Q',
       'qr_R',
+      'qr_thin_Q',
+      'qr_thin_R',
       'quad_form',
       'quad_form_diag',
       'quad_form_sym',
+      'quantile',
       'rank',
-      'rayleigh_cdf',
-      'rayleigh_lccdf',
-      'rayleigh_lcdf',
-      'rayleigh_lpdf',
-      'rayleigh_rng',
+      'reduce_sum',
       'reject',
       'rep_array',
       'rep_matrix',
       'rep_row_vector',
       'rep_vector',
+      'reverse',
       'rising_factorial',
       'round',
       'row',
       'rows',
       'rows_dot_product',
       'rows_dot_self',
-      'scaled_inv_chi_square_cdf',
-      'scaled_inv_chi_square_lccdf',
-      'scaled_inv_chi_square_lcdf',
-      'scaled_inv_chi_square_lpdf',
-      'scaled_inv_chi_square_rng',
+      'scale_matrix_exp_multiply',
       'sd',
       'segment',
       'sin',
       'singular_values',
       'sinh',
       'size',
-      'skew_normal_cdf',
-      'skew_normal_lccdf',
-      'skew_normal_lcdf',
-      'skew_normal_lpdf',
-      'skew_normal_rng',
       'softmax',
       'sort_asc',
       'sort_desc',
       'sort_indices_asc',
       'sort_indices_desc',
       'sqrt',
-      'sqrt2',
       'square',
       'squared_distance',
       'step',
-      'student_t_cdf',
-      'student_t_lccdf',
-      'student_t_lcdf',
-      'student_t_lpdf',
-      'student_t_rng',
       'sub_col',
       'sub_row',
       'sum',
+      'svd_U',
+      'svd_V',
+      'symmetrize_from_lower_tri',
       'tail',
       'tan',
       'tanh',
@@ -49909,6 +50808,7 @@ sap.ui.define((function () { 'use strict';
       'tgamma',
       'to_array_1d',
       'to_array_2d',
+      'to_complex',
       'to_matrix',
       'to_row_vector',
       'to_vector',
@@ -49917,35 +50817,29 @@ sap.ui.define((function () { 'use strict';
       'trace_quad_form',
       'trigamma',
       'trunc',
-      'uniform_cdf',
-      'uniform_lccdf',
-      'uniform_lcdf',
-      'uniform_lpdf',
-      'uniform_rng',
+      'uniform_simplex',
       'variance',
-      'von_mises_lpdf',
-      'von_mises_rng',
-      'weibull_cdf',
-      'weibull_lccdf',
-      'weibull_lcdf',
-      'weibull_lpdf',
-      'weibull_rng',
-      'wiener_lpdf',
-      'wishart_lpdf',
-      'wishart_rng'
+      'zeros_array',
+      'zeros_int_array',
+      'zeros_row_vector'
     ];
+
     const DISTRIBUTIONS = [
       'bernoulli',
       'bernoulli_logit',
+      'bernoulli_logit_glm',
       'beta',
       'beta_binomial',
+      'beta_proportion',
       'binomial',
       'binomial_logit',
       'categorical',
       'categorical_logit',
+      'categorical_logit_glm',
       'cauchy',
       'chi_square',
       'dirichlet',
+      'discrete_range',
       'double_exponential',
       'exp_mod_normal',
       'exponential',
@@ -49953,6 +50847,7 @@ sap.ui.define((function () { 'use strict';
       'gamma',
       'gaussian_dlm_obs',
       'gumbel',
+      'hmm_latent',
       'hypergeometric',
       'inv_chi_square',
       'inv_gamma',
@@ -49968,18 +50863,26 @@ sap.ui.define((function () { 'use strict';
       'multi_normal_prec',
       'multi_student_t',
       'multinomial',
+      'multinomial_logit',
       'neg_binomial',
       'neg_binomial_2',
       'neg_binomial_2_log',
+      'neg_binomial_2_log_glm',
       'normal',
+      'normal_id_glm',
       'ordered_logistic',
+      'ordered_logistic_glm',
+      'ordered_probit',
       'pareto',
       'pareto_type_2',
       'poisson',
       'poisson_log',
+      'poisson_log_glm',
       'rayleigh',
       'scaled_inv_chi_square',
+      'skew_double_exponential',
       'skew_normal',
+      'std_normal',
       'student_t',
       'uniform',
       'von_mises',
@@ -49995,7 +50898,7 @@ sap.ui.define((function () { 'use strict';
         relevance: 0,
         contains: [
           {
-            className: 'doctag',
+            scope: 'doctag',
             match: /@(return|param)/
           }
         ]
@@ -50003,19 +50906,24 @@ sap.ui.define((function () { 'use strict';
     );
 
     const INCLUDE = {
-      className: 'meta',
-      begin: /^#include\b/,
+      scope: 'meta',
+      begin: /#include\b/,
       end: /$/,
-      relevance: 0, // relevance comes from keywords
-      keywords: "include",
       contains: [
         {
-          match: /[a-z][a-z-.]+/,
-          className: "string"
+          match: /[a-z][a-z-._]+/,
+          scope: 'string'
         },
         hljs.C_LINE_COMMENT_MODE
       ]
     };
+
+    const RANGE_CONSTRAINTS = [
+      "lower",
+      "upper",
+      "offset",
+      "multiplier"
+    ];
 
     return {
       name: 'Stan',
@@ -50023,7 +50931,8 @@ sap.ui.define((function () { 'use strict';
       keywords: {
         $pattern: hljs.IDENT_RE,
         title: BLOCKS,
-        keyword: STATEMENTS.concat(VAR_TYPES).concat(SPECIAL_FUNCTIONS),
+        type: TYPES,
+        keyword: STATEMENTS,
         built_in: FUNCTIONS
       },
       contains: [
@@ -50032,41 +50941,81 @@ sap.ui.define((function () { 'use strict';
         hljs.HASH_COMMENT_MODE,
         BLOCK_COMMENT,
         {
-          // hack: in range constraints, lower must follow "<"
-          begin: /<\s*lower\s*=/,
-          keywords: 'lower'
+          scope: 'built_in',
+          match: /\s(pi|e|sqrt2|log2|log10)(?=\()/,
+          relevance: 0
         },
         {
-          // hack: in range constraints, upper must follow either , or <
-          // <lower = ..., upper = ...> or <upper = ...>
-          begin: /[<,]\s*upper\s*=/,
-          keywords: 'upper'
+          match: regex.concat(/[<,]\s*/, regex.either(...RANGE_CONSTRAINTS), /\s*=/),
+          keywords: RANGE_CONSTRAINTS
         },
         {
-          className: 'keyword',
-          begin: /\btarget\s*\+=/
+          scope: 'keyword',
+          match: /\btarget(?=\s*\+=)/,
         },
         {
-          begin: '~\\s*(' + hljs.IDENT_RE + ')\\s*\\(',
-          keywords: DISTRIBUTIONS
-        },
-        {
-          className: 'number',
-          variants: [
-            {
-              begin: /\b\d+(?:\.\d*)?(?:[eE][+-]?\d+)?/
-            },
-            {
-              begin: /\.\d+(?:[eE][+-]?\d+)?\b/
-            }
+          // highlights the 'T' in T[,] for only Stan language distributrions
+          match: [
+            /~\s*/,
+            regex.either(...DISTRIBUTIONS),
+            /(?:\(\))/,
+            /\s*T(?=\s*\[)/
           ],
+          scope: {
+            2: "built_in",
+            4: "keyword"
+          }
+        },
+        {
+          // highlights distributions that end with special endings
+          scope: 'built_in',
+          keywords: DISTRIBUTIONS,
+          begin: regex.concat(/\w*/, regex.either(...DISTRIBUTIONS), /(_lpdf|_lupdf|_lpmf|_cdf|_lcdf|_lccdf|_qf)(?=\s*[\(.*\)])/)
+        },
+        {
+          // highlights distributions after ~
+          begin: [
+            /~/,
+            /\s*/,
+            regex.concat(regex.either(...DISTRIBUTIONS), /(?=\s*[\(.*\)])/)
+          ],
+          scope: { 3: "built_in" }
+        },
+        {
+          // highlights user defined distributions after ~
+          begin: [
+            /~/,
+            /\s*\w+(?=\s*[\(.*\)])/,
+            '(?!.*/\b(' + regex.either(...DISTRIBUTIONS) + ')\b)'
+          ],
+          scope: { 2: "title.function" }
+        },
+        {
+          // highlights user defined distributions with special endings
+          scope: 'title.function',
+          begin: /\w*(_lpdf|_lupdf|_lpmf|_cdf|_lcdf|_lccdf|_qf)(?=\s*[\(.*\)])/
+        },
+        {
+          scope: 'number',
+          match: regex.concat(
+            // Comes from @RunDevelopment accessed 11/29/2021 at
+            // https://github.com/PrismJS/prism/blob/c53ad2e65b7193ab4f03a1797506a54bbb33d5a2/components/prism-stan.js#L56
+
+            // start of big noncapture group which
+            // 1. gets numbers that are by themselves
+            // 2. numbers that are separated by _
+            // 3. numbers that are separted by .
+            /(?:\b\d+(?:_\d+)*(?:\.(?:\d+(?:_\d+)*)?)?|\B\.\d+(?:_\d+)*)/,
+            // grabs scientific notation
+            // grabs complex numbers with i
+            /(?:[eE][+-]?\d+(?:_\d+)*)?i?(?!\w)/
+          ),
           relevance: 0
         },
         {
-          className: 'string',
-          begin: '"',
-          end: '"',
-          relevance: 0
+          scope: 'string',
+          begin: /"/,
+          end: /"/
         }
       ]
     };
@@ -51047,11 +51996,13 @@ sap.ui.define((function () { 'use strict';
     }
   }
 
+  /** @typedef { {capture?: boolean} } RegexEitherOptions */
+
   /**
    * Any of the passed expresssions may match
    *
    * Creates a huge this | this | that | that match
-   * @param {(RegExp | string)[] } args
+   * @param {(RegExp | string)[] | [...(RegExp | string)[], RegexEitherOptions]} args
    * @returns {string}
    */
   function either(...args) {
@@ -51201,7 +52152,7 @@ sap.ui.define((function () { 'use strict';
   ];
 
   // Keywords that start with a number sign (#).
-  // #available is handled separately.
+  // #(un)available is handled separately.
   const numberSignKeywords = [
     '#colorLiteral',
     '#column',
@@ -51367,7 +52318,7 @@ sap.ui.define((function () { 'use strict';
     'usableFromInline'
   ];
 
-  // Contextual keywords used in @available and #available.
+  // Contextual keywords used in @available and #(un)available.
   const availabilityKeywords = [
     'iOS',
     'iOSApplicationExtension',
@@ -51598,7 +52549,7 @@ sap.ui.define((function () { 'use strict';
 
     // https://docs.swift.org/swift-book/ReferenceManual/Attributes.html
     const AVAILABLE_ATTRIBUTE = {
-      match: /(@|#)available/,
+      match: /(@|#(un)?)available/,
       className: "keyword",
       starts: {
         contains: [
@@ -52657,67 +53608,208 @@ sap.ui.define((function () { 'use strict';
   */
 
   function twig(hljs) {
-    var PARAMS = {
-      className: 'params',
-      begin: '\\(', end: '\\)'
+    const regex = hljs.regex;
+    const FUNCTION_NAMES = [
+      "attribute",
+      "block",
+      "constant",
+      "country_timezones",
+      "cycle",
+      "date",
+      "dump",
+      "html_classes",
+      "include",
+      "max",
+      "min",
+      "parent",
+      "random",
+      "range",
+      "source",
+      "template_from_string"
+    ];
+
+    const FILTERS = [
+      "abs",
+      "batch",
+      "capitalize",
+      "column",
+      "convert_encoding",
+      "country_name",
+      "currency_name",
+      "currency_symbol",
+      "data_uri",
+      "date",
+      "date_modify",
+      "default",
+      "escape",
+      "filter",
+      "first",
+      "format",
+      "format_currency",
+      "format_date",
+      "format_datetime",
+      "format_number",
+      "format_time",
+      "html_to_markdown",
+      "inky_to_html",
+      "inline_css",
+      "join",
+      "json_encode",
+      "keys",
+      "language_name",
+      "last",
+      "length",
+      "locale_name",
+      "lower",
+      "map",
+      "markdown",
+      "markdown_to_html",
+      "merge",
+      "nl2br",
+      "number_format",
+      "raw",
+      "reduce",
+      "replace",
+      "reverse",
+      "round",
+      "slice",
+      "slug",
+      "sort",
+      "spaceless",
+      "split",
+      "striptags",
+      "timezone_name",
+      "title",
+      "trim",
+      "u|0",
+      "upper",
+      "url_encode"
+    ];
+
+    let TAG_NAMES = [
+      "apply",
+      "autoescape",
+      "block",
+      "cache",
+      "deprecated",
+      "do",
+      "embed",
+      "extends",
+      "filter",
+      "flush",
+      "for",
+      "from",
+      "if",
+      "import",
+      "include",
+      "macro",
+      "sandbox",
+      "set",
+      "use",
+      "verbatim",
+      "with"
+    ];
+
+    TAG_NAMES = TAG_NAMES.concat(TAG_NAMES.map(t => `end${t}`));
+
+    const STRING = {
+      scope: 'string',
+      variants: [
+        {
+          begin: /'/,
+          end: /'/
+        },
+        {
+          begin: /"/,
+          end: /"/
+        },
+      ]
     };
 
-    var FUNCTION_NAMES = 'attribute block constant cycle date dump include ' +
-                    'max min parent random range source template_from_string';
+    const NUMBER = {
+      scope: "number",
+      match: /\d+/
+    };
 
-    var FUNCTIONS = {
-      beginKeywords: FUNCTION_NAMES,
-      keywords: {name: FUNCTION_NAMES},
+    const PARAMS = {
+      begin: /\(/,
+      end: /\)/,
+      excludeBegin: true,
+      excludeEnd: true,
+      contains: [
+        STRING,
+        NUMBER
+      ]
+    };
+
+
+    const FUNCTIONS = {
+      beginKeywords: FUNCTION_NAMES.join(" "),
+      keywords: { name: FUNCTION_NAMES },
+      relevance: 0,
+      contains: [ PARAMS ]
+    };
+
+    const FILTER = {
+      match: /\|(?=[A-Za-z_]+:?)/,
+      beginScope: "punctuation",
       relevance: 0,
       contains: [
-        PARAMS
+        {
+          match: /[A-Za-z_]+:?/,
+          keywords: FILTERS
+        },
       ]
     };
 
-    var FILTER = {
-      begin: /\|[A-Za-z_]+:?/,
-      keywords:
-        'abs batch capitalize column convert_encoding date date_modify default ' +
-        'escape filter first format inky_to_html inline_css join json_encode keys last ' +
-        'length lower map markdown merge nl2br number_format raw reduce replace ' +
-        'reverse round slice sort spaceless split striptags title trim upper url_encode',
-      contains: [
-        FUNCTIONS
-      ]
+    const tagNamed = (tagnames, {relevance}) => {
+      return {
+        beginScope: {
+          1: 'template-tag',
+          3: 'name'
+        },
+        relevance: relevance || 2,
+        endScope: 'template-tag',
+        begin: [
+          /\{%/,
+          /\s*/,
+          regex.either(...tagnames)
+        ],
+        end: /%\}/,
+        keywords: "in",
+        contains: [
+          FILTER,
+          FUNCTIONS,
+          STRING,
+          NUMBER
+        ]
+      };
     };
 
-    var TAGS = 'apply autoescape block deprecated do embed extends filter flush for from ' +
-      'if import include macro sandbox set use verbatim with';
-
-    TAGS = TAGS + ' ' + TAGS.split(' ').map(function(t){return 'end' + t}).join(' ');
+    const CUSTOM_TAG_RE = /[a-z_]+/;
+    const TAG = tagNamed(TAG_NAMES, { relevance: 2 });
+    const CUSTOM_TAG = tagNamed([ CUSTOM_TAG_RE ], { relevance: 1 });
 
     return {
       name: 'Twig',
-      aliases: ['craftcms'],
+      aliases: [ 'craftcms' ],
       case_insensitive: true,
       subLanguage: 'xml',
       contains: [
         hljs.COMMENT(/\{#/, /#\}/),
-        {
-          className: 'template-tag',
-          begin: /\{%/, end: /%\}/,
-          contains: [
-            {
-              className: 'name',
-              begin: /\w+/,
-              keywords: TAGS,
-              starts: {
-                endsWithParent: true,
-                contains: [FILTER, FUNCTIONS],
-                relevance: 0
-              }
-            }
-          ]
-        },
+        TAG,
+        CUSTOM_TAG,
         {
           className: 'template-variable',
-          begin: /\{\{/, end: /\}\}/,
-          contains: ['self', FILTER, FUNCTIONS]
+          begin: /\{\{/,
+          end: /\}\}/,
+          contains: [
+            'self',
+            FILTER,
+            FUNCTIONS,
+            STRING,
+            NUMBER
+          ]
         }
       ]
     };
@@ -53172,10 +54264,14 @@ sap.ui.define((function () { 'use strict';
       regex.either(
         // Hard coded exceptions
         /\bJSON/,
-        // Float32Array
-        /\b[A-Z][a-z]+([A-Z][a-z]+|\d)*/,
-        // CSSFactory
-        /\b[A-Z]{2,}([A-Z][a-z]+|\d)+/,
+        // Float32Array, OutT
+        /\b[A-Z][a-z]+([A-Z][a-z]*|\d)*/,
+        // CSSFactory, CSSFactoryT
+        /\b[A-Z]{2,}([A-Z][a-z]+|\d)+([A-Z][a-z]*)*/,
+        // FPs, FPsT
+        /\b[A-Z]{2,}[a-z]+([A-Z][a-z]+|\d)*([A-Z][a-z]*)*/,
+        // P
+        // single letters are not highlighted
         // BLAH
         // this will be flagged as a UPPER_CASE_CONSTANT instead
       ),
@@ -53288,8 +54384,10 @@ sap.ui.define((function () { 'use strict';
         /const|var|let/, /\s+/,
         IDENT_RE$1, /\s*/,
         /=\s*/,
+        /(async\s*)?/, // async is optional
         regex.lookahead(FUNC_LEAD_IN_RE)
       ],
+      keywords: "async",
       className: {
         1: "keyword",
         3: "title.function"

@@ -8,7 +8,7 @@ sap.ui.define((function () { 'use strict';
 
 	/**
 	 * marked - a markdown parser
-	 * Copyright (c) 2011-2021, Christopher Jeffrey. (MIT Licensed)
+	 * Copyright (c) 2011-2022, Christopher Jeffrey. (MIT Licensed)
 	 * https://github.com/markedjs/marked
 	 */
 
@@ -29,6 +29,9 @@ sap.ui.define((function () { 'use strict';
 	function _createClass(Constructor, protoProps, staticProps) {
 	  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
 	  if (staticProps) _defineProperties(Constructor, staticProps);
+	  Object.defineProperty(Constructor, "prototype", {
+	    writable: false
+	  });
 	  return Constructor;
 	}
 
@@ -435,16 +438,10 @@ sap.ui.define((function () { 'use strict';
 	  _proto.space = function space(src) {
 	    var cap = this.rules.block.newline.exec(src);
 
-	    if (cap) {
-	      if (cap[0].length > 1) {
-	        return {
-	          type: 'space',
-	          raw: cap[0]
-	        };
-	      }
-
+	    if (cap && cap[0].length > 0) {
 	      return {
-	        raw: '\n'
+	        type: 'space',
+	        raw: cap[0]
 	      };
 	    }
 	  };
@@ -670,10 +667,30 @@ sap.ui.define((function () { 'use strict';
 	      for (i = 0; i < l; i++) {
 	        this.lexer.state.top = false;
 	        list.items[i].tokens = this.lexer.blockTokens(list.items[i].text, []);
-
-	        if (!list.loose && list.items[i].tokens.some(function (t) {
+	        var spacers = list.items[i].tokens.filter(function (t) {
 	          return t.type === 'space';
-	        })) {
+	        });
+	        var hasMultipleLineBreaks = spacers.every(function (t) {
+	          var chars = t.raw.split('');
+	          var lineBreaks = 0;
+
+	          for (var _iterator = _createForOfIteratorHelperLoose(chars), _step; !(_step = _iterator()).done;) {
+	            var _char = _step.value;
+
+	            if (_char === '\n') {
+	              lineBreaks += 1;
+	            }
+
+	            if (lineBreaks > 1) {
+	              return true;
+	            }
+	          }
+
+	          return false;
+	        });
+
+	        if (!list.loose && spacers.length && hasMultipleLineBreaks) {
+	          // Having a single line break doesn't mean a list is loose. A single line break is terminating the last list item
 	          list.loose = true;
 	          list.items[i].loose = true;
 	        }
@@ -1185,7 +1202,7 @@ sap.ui.define((function () { 'use strict';
 	  + '|<(?!script|pre|style|textarea)([a-z][\\w-]*)(?:attribute)*? */?>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:(?:\\n *)+\\n|$)' // (7) open tag
 	  + '|</(?!script|pre|style|textarea)[a-z][\\w-]*\\s*>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:(?:\\n *)+\\n|$)' // (7) closing tag
 	  + ')',
-	  def: /^ {0,3}\[(label)\]: *\n? *<?([^\s>]+)>?(?:(?: +\n? *| *\n *)(title))? *(?:\n+|$)/,
+	  def: /^ {0,3}\[(label)\]: *(?:\n *)?<?([^\s>]+)>?(?:(?: +(?:\n *)?| *\n *)(title))? *(?:\n+|$)/,
 	  table: noopTest,
 	  lheading: /^([^\n]+)\n {0,3}(=+|-+) *(?:\n+|$)/,
 	  // regex template, placeholders will be replaced according to different paragraph
@@ -1193,7 +1210,7 @@ sap.ui.define((function () { 'use strict';
 	  _paragraph: /^([^\n]+(?:\n(?!hr|heading|lheading|blockquote|fences|list|html|table| +\n)[^\n]+)*)/,
 	  text: /^[^\n]+/
 	};
-	block._label = /(?!\s*\])(?:\\[\[\]]|[^\[\]])+/;
+	block._label = /(?!\s*\])(?:\\.|[^\[\]\\])+/;
 	block._title = /(?:"(?:\\"?|[^"\\])*"|'[^'\n]*(?:\n[^'\n]+)*\n?'|\([^()]*\))/;
 	block.def = edit(block.def).replace('label', block._label).replace('title', block._title).getRegex();
 	block.bullet = /(?:[*+-]|\d{1,9}[.)])/;
@@ -1258,8 +1275,8 @@ sap.ui.define((function () { 'use strict';
 	  + '|^<!\\[CDATA\\[[\\s\\S]*?\\]\\]>',
 	  // CDATA section
 	  link: /^!?\[(label)\]\(\s*(href)(?:\s+(title))?\s*\)/,
-	  reflink: /^!?\[(label)\]\[(?!\s*\])((?:\\[\[\]]?|[^\[\]\\])+)\]/,
-	  nolink: /^!?\[(?!\s*\])((?:\[[^\[\]]*\]|\\[\[\]]|[^\[\]])*)\](?:\[\])?/,
+	  reflink: /^!?\[(label)\]\[(ref)\]/,
+	  nolink: /^!?\[(ref)\](?:\[\])?/,
 	  reflinkSearch: 'reflink|nolink(?!\\()',
 	  emStrong: {
 	    lDelim: /^(?:\*+(?:([punct_])|[^\s*]))|^_+(?:([punct*])|([^\s_]))/,
@@ -1296,7 +1313,8 @@ sap.ui.define((function () { 'use strict';
 	inline._href = /<(?:\\.|[^\n<>\\])+>|[^\s\x00-\x1f]*/;
 	inline._title = /"(?:\\"?|[^"\\])*"|'(?:\\'?|[^'\\])*'|\((?:\\\)?|[^)\\])*\)/;
 	inline.link = edit(inline.link).replace('label', inline._label).replace('href', inline._href).replace('title', inline._title).getRegex();
-	inline.reflink = edit(inline.reflink).replace('label', inline._label).getRegex();
+	inline.reflink = edit(inline.reflink).replace('label', inline._label).replace('ref', block._label).getRegex();
+	inline.nolink = edit(inline.nolink).replace('ref', block._label).getRegex();
 	inline.reflinkSearch = edit(inline.reflinkSearch, 'g').replace('reflink', inline.reflink).replace('nolink', inline.nolink).getRegex();
 	/**
 	 * Normal Inline Grammar
@@ -1498,7 +1516,11 @@ sap.ui.define((function () { 'use strict';
 	      if (token = this.tokenizer.space(src)) {
 	        src = src.substring(token.raw.length);
 
-	        if (token.type) {
+	        if (token.raw.length === 1 && tokens.length > 0) {
+	          // if there's a single \n as a spacer, it's terminating the last line,
+	          // so move it there so that we don't get unecessary paragraph tags
+	          tokens[tokens.length - 1].raw += '\n';
+	        } else {
 	          tokens.push(token);
 	        }
 

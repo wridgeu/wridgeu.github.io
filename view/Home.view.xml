@@ -100,7 +100,6 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<html:div class="wiki-wrapper">
-							<Image class="bookshelf-wiki-img" src="./resources/img/bookshelf.webp" alt="Wiki Bookshelf Picture" lazyLoading="true"/>
 							<Button class="visit-wiki-button" type="Accept" text="Visit" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"/>
 						</html:div>
 					</l:BlockLayoutCell>
