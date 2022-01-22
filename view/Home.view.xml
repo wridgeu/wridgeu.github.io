@@ -82,7 +82,7 @@
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
-					<l:BlockLayoutCell>
+					<l:BlockLayoutCell id="integrationcards-container">
 						<FlexBox wrap="Wrap" direction="Row" justifyContent="Center" alignItems="Center">
 							<w:Card class="integrationcard" manifest="./integrationcards/datacard-sap-manifest.json" width="250px" height="auto"/>
 							<w:Card class="integrationcard" manifest="./integrationcards/datacard-tools-manifest.json" width="250px" height="auto"/>
@@ -100,7 +100,7 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<html:div class="wiki-wrapper">
-							<Button class="visit-wiki-button" type="Accept" text="Visit" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"/>
+							<Button id="wiki-button" class="visit-wiki-button" type="Accept" text="Visit" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"/>
 						</html:div>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
