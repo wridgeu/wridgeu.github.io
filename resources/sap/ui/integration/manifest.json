@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.96.0"
+      "version": "1.97.0"
     },
     "title": "SAPUI5 library with integration-related controls.",
     "description": "SAPUI5 library with integration-related controls.",
@@ -59,13 +59,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.96",
+      "minUI5Version": "1.97",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.96.0"
+          "minVersion": "1.97.0"
         },
         "sap.f": {
-          "minVersion": "1.96.0"
+          "minVersion": "1.97.0"
         }
       }
     },

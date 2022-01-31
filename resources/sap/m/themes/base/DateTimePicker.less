@@ -37,7 +37,7 @@
 
 /* Compact mode */
 .sapUiSizeCompact .sapMDateTimePopupCont {
-	height: 17rem;
+	height: 21rem;
 	min-width: 34.0625rem;
 }
 
@@ -113,4 +113,23 @@ html.sap-phone .sapMDateTimePopupCont {
 
 .sapUiSizeCompact .sapMTimePickerDropDown .sapMTimePickerContainer {
 	min-width: 17rem;
+}
+
+html.sapUiMedia-Std-Tablet,
+html.sapUiMedia-StdExt-Tablet {
+	.sapMDateTimePopupCont > .sapUiCal:not(.sapUiCalInt) {
+		width: 47%;
+		min-width: 47%;
+	}
+	.sapMTimePickerContainer {
+		min-width: 53%;
+		width: 53%;
+	}
+}
+
+html:not(.sapUiMedia-Std-Phone),
+html:not(.sapUiMedia-StdExt-Phone) {
+	.sapMDateTimePopup .sapMPopoverCont {
+		overflow: hidden auto !important; /* disable horizontal scrolling when not phone size */
+	}
 }
