@@ -5,7 +5,7 @@
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
-			"version": "1.19.0"
+			"version": "1.20.1"
 		},
 		"serviceWorker": {
             "file" : "sw.js",
@@ -64,10 +64,7 @@
 				"sap.ui.layout": {
 					"lazy": true
 				},
-				"sap.tnt": {
-					"lazy": true
-				},
-				"sap.ui.table":{
+				"sap.ui.integration":{
 					"lazy": true
 				},
 				"sap.ui.support": {

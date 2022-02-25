@@ -1,4 +1,4 @@
-sap.ui.define((function () { 'use strict';
+sap.ui.define(['exports'], (function (exports) { 'use strict';
 
   var deepFreezeEs6 = {exports: {}};
 
@@ -57564,6 +57564,11 @@ sap.ui.define((function () { 'use strict';
   hljs.default = hljs;
   var lib = hljs;
 
-  return lib;
+  // https://nodejs.org/api/packages.html#packages_writing_dual_packages_while_avoiding_or_minimizing_hazards
+
+  exports.HighlightJS = lib;
+  exports["default"] = lib;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
 
 }));
