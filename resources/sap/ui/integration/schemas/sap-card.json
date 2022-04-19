@@ -32,7 +32,8 @@
         "1.20.0",
         "1.21.0",
         "1.22.0",
-        "1.23.0"
+        "1.23.0",
+        "1.24.0"
       ]
     },
     "designtime": {
@@ -40,7 +41,7 @@
       "type": "string"
     },
     "configuration": {
-      "description": "Represents configuration with parameters, destinations, and filters, which can be used inside the card",
+      "description": "General configuration of the card. Allows to define parameters, destinations, filters and more",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -64,6 +65,9 @@
               },
               {
                 "$ref": "#/definitions/Configuration.FilterType.DateRange"
+              },
+              {
+                "$ref": "#/definitions/Configuration.FilterType.Search"
               }
             ]
           }
@@ -91,6 +95,13 @@
               "description": "Configuration for the submit action handler",
               "type": "object"
             }
+          }
+        },
+        "messages": {
+          "description": "Describes the messages for the card",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Configuration.NoData"
           }
         }
       }
@@ -151,6 +162,35 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/actionsStripItem"
+          }
+        },
+        "paginator": {
+          "description": "[Experimental] Describes the paginator",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pageSize": {
+              "description": "Represents the number of the items in one page",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/definitions/simpleBinding"
+                }
+              ]
+            },
+            "totalCount": {
+              "description": "Represents the total count of the items in all pages",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/definitions/simpleBinding"
+                }
+              ]
+            }
           }
         }
       }
@@ -787,7 +827,7 @@
           }
         },
         "feeds": {
-          "description": "Feeds for the chart.",
+          "description": "Feeds for the chart",
           "type": "array",
           "items": {
             "$ref": "#/definitions/ContentType.Analytical.Field"
@@ -1100,6 +1140,14 @@
         "visible": {
           "description": "Represents the visibility state of the group",
           "$ref": "#/definitions/visibility"
+        },
+        "alignment": {
+          "description": "[Experimental] Alignment of the group",
+          "enum": [
+            "Default",
+            "Stretch"
+          ],
+          "default": "Default"
         }
       }
     },
@@ -1121,17 +1169,21 @@
           "type": "string"
         },
         "type": {
-          "description": "[Deprecated] Defines the type of the displayed information",
+          "description": "Defines the type of the displayed information. Some of the types are deprecated",
           "type": "string",
           "oneOf": [
             {
               "enum": [
+                "Default",
+                "NumericData",
+                "Status",
+                "IconGroup",
                 "phone",
                 "email",
                 "link",
                 "text"
               ],
-              "default": "text"
+              "default": "Default"
             },
             {
               "$ref": "#/definitions/simpleBinding"
@@ -1167,6 +1219,171 @@
         "visible": {
           "description": "Represents the visibility state of the item",
           "$ref": "#/definitions/visibility"
+        },
+        "mainIndicator": {
+          "description": "[Experimental]",
+          "$ref": "#/definitions/ContentType.Object.Item.MainIndicator"
+        },
+        "sideIndicators": {
+          "description": "[Experimental] Multiple side indicators that relate to the main numeric indicator",
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/definitions/HeaderType.Numeric.SideIndicator"
+          }
+        },
+        "sideIndicatorsAlignment": {
+          "description": "[Experimental] The alignment of the side indicators",
+          "type": "string",
+          "oneOf": [
+            {
+              "enum": [
+                "Begin",
+                "End"
+              ],
+              "default": "Begin"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "template": {
+          "description": "[Experimental] Template definition for the icons in the group",
+          "$ref": "#/definitions/ContentType.Object.Item.IconGroupTemplate"
+        },
+        "path": {
+          "description": "[Experimental] Binding path to the icon data",
+          "type": "string"
+        },
+        "size": {
+          "description": "[Experimental] The size of the icons in an IconGroup",
+          "oneOf": [
+            {
+              "enum": [
+                "XS",
+                "S",
+                "M"
+              ],
+              "default": "XS"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "maxLines": {
+          "description": "Maximum number of lines",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "details": {
+          "description": "Represents additional information about the numeric indicators",
+          "type": "string"
+        },
+        "state": {
+          "description": "The state color of the item",
+          "$ref": "#/definitions/state"
+        }
+      }
+    },
+    "ContentType.Object.Item.MainIndicator": {
+      "description": "Represents the main numeric indicator of the NumericData",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "description": "The value of the main indicator",
+          "type": "string"
+        },
+        "unit": {
+          "description": "The unit of the main indicator",
+          "type": "string"
+        },
+        "trend": {
+          "description": "The trend indicator (direction)",
+          "type": "string",
+          "oneOf": [
+            {
+              "enum": [
+                "Down",
+                "None",
+                "Up"
+              ],
+              "default": "None"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "state": {
+          "description": "The state color of the main indicator",
+          "type": "string",
+          "oneOf": [
+            {
+              "description": "The state color of the main indicator",
+              "$ref": "#/definitions/Enums.ValueColor"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "size": {
+          "oneOf": [
+            {
+              "enum": [
+                "S",
+                "L"
+              ],
+              "default": "Default"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        }
+      }
+    },
+    "ContentType.Object.Item.IconGroupTemplate": {
+      "description": "Template definition for the icons in the group",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "icon"
+      ],
+      "properties": {
+        "icon": {
+          "$ref": "#/definitions/ContentType.Object.Item.IconGroupIcon"
+        },
+        "actions": {
+          "description": "Defines actions that can be applied on the icon",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/action"
+          }
+        }
+      }
+    },
+    "ContentType.Object.Item.IconGroupIcon": {
+      "description": "Definition for icons in the IconGroup",
+      "type": "object",
+      "additionalProperties": false,
+      "properties":  {
+        "src": {
+          "type": "string",
+          "description": "Represents icon name or source URL"
+        },
+        "text": {
+          "type": "string",
+          "description": "Represents text that will be displayed in the icon"
         }
       }
     },
@@ -1881,7 +2098,12 @@
             {
               "enum": [
                 "GET",
-                "POST"
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS",
+                "HEAD"
               ],
               "default": "GET"
             },
@@ -1900,7 +2122,7 @@
           "additionalProperties": true
         },
         "retryAfter": {
-          "description": "Number of seconds before the request is retried if it failed the previous time.",
+          "description": "Number of seconds before the request is retried if it failed the previous time",
           "oneOf": [
             {
               "type": "number"
@@ -1936,7 +2158,7 @@
       }
     },
     "batchRequest": {
-      "description": "Represents a request which is a part of a batch request.",
+      "description": "Represents a request which is a part of a batch request",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1976,22 +2198,22 @@
       "additionalProperties": false,
       "properties": {
         "maxAge": {
-          "description": "The maximum age for which the cache is considered fresh.",
+          "description": "The maximum age for which the cache is considered fresh",
           "type": "number",
           "default": 0
         },
         "staleWhileRevalidate": {
-          "description": "Should we show stale cache while revalidating.",
+          "description": "Should we show stale cache while revalidating",
           "type": "boolean",
           "default": false
         },
         "noStore": {
-          "description": "[Deprecated] Set to true to disable caching for this card.",
+          "description": "[Deprecated] Set to true to disable caching for this card",
           "type": "boolean",
           "default": false
         },
         "enabled": {
-          "description": "Set to false to disable caching for this card.",
+          "description": "Set to false to disable caching for this card",
           "type": "boolean",
           "default": false
         }
@@ -2214,7 +2436,7 @@
       }
     },
     "Configuration.FilterType.Select": {
-      "description": "[Experimental] Select filter",
+      "description": "Select filter",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2236,11 +2458,7 @@
           "$ref": "#/definitions/data"
         },
         "label": {
-          "description": "Label for the filter for user-friendly visualization in the design-time editor",
-          "type": "string"
-        },
-        "description": {
-          "description": "Description of the filter for user-friendly visualization in the design-time editor",
+          "description": "Label for the filter. Used by screen readers",
           "type": "string"
         },
         "items": {
@@ -2303,11 +2521,7 @@
           "$ref": "#/definitions/data"
         },
         "label": {
-          "description": "Label for the filter for user-friendly visualization in the design-time editor",
-          "type": "string"
-        },
-        "description": {
-          "description": "Description of the filter for user-friendly visualization in the design-time editor",
+          "description": "Label for the filter. Used by screen readers",
           "type": "string"
         },
         "value": {
@@ -2370,6 +2584,39 @@
         }
       }
     },
+    "Configuration.FilterType.Search": {
+      "description": "Search filter",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "description": "The type of the filter",
+          "oneOf": [
+            {
+              "const": "Search"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
+        "data": {
+          "$ref": "#/definitions/data"
+        },
+        "label": {
+          "description": "Label for the filter. Used by screen readers",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value of the filter",
+          "type": "string"
+        },
+        "placeholder": {
+          "description": "The placeholder of the filter",
+          "type": "string"
+        }
+      }
+    },
     "Configuration.Destinations": {
       "description": "Represents a configuration for a cloud platform destination",
       "type": "object",
@@ -2400,6 +2647,29 @@
       "properties": {
         "data": {
           "$ref": "#/definitions/data"
+        }
+      }
+    },
+    "Configuration.NoData": {
+      "description": "Represents a configuration for a NoData",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "description": "Title shown in the illustrated message of the card",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description shown in the illustrated message of the card",
+          "type": "string"
+        },
+        "size": {
+          "description": "Defines the size predefined from sap.m.IllustratedMessage",
+          "type": "string"
+        },
+        "type": {
+          "description": "Defines the image predefined from sap.m.IllustratedMessage",
+          "type": "string"
         }
       }
     },
@@ -2653,7 +2923,7 @@
       "additionalProperties": false,
       "properties": {
         "actions": {
-          "description": "Action(s) which will be executed when button is pressed.",
+          "description": "Action(s) which will be executed when button is pressed",
           "type": "array",
           "items": {
             "$ref": "#/definitions/action"

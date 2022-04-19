@@ -4,9 +4,9 @@
   <name>sap.ui.integration</name>
   <vendor>SAP SE</vendor>
   <copyright>OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.97.0</version>
+  <version>1.101.0</version>
 
   <documentation>SAPUI5 library with integration-related controls.</documentation>
 
@@ -48,22 +48,11 @@
     </packaging>
 
     <!-- Thirdparty references -->
-    <thirdparty xmlns="http://www.sap.com/ui5/buildext/thirdparty" >
-        <lib name="ui5-web-components" displayName="UI5 Web Components" version="1.0.0-rc.8" homepage="https://sap.github.io/ui5-webcomponents/">
+    <thirdparty xmlns="http://www.sap.com/ui5/buildext/thirdparty">
+        <lib name="ui5-web-components" displayName="UI5 Web Components" version="1.0.1" homepage="https://sap.github.io/ui5-webcomponents/">
             <license url="https://github.com/SAP/ui5-webcomponents/blob/master/LICENSE.txt" type="Apache-2.0"></license>
             <copyright>SAP</copyright>
-            <pattern>sap/ui/integration/thirdparty/webcomponents/*.*.json</pattern>
-            <pattern>sap/ui/integration/thirdparty/webcomponents/bundle*</pattern>
-        </lib>
-        <lib name="webcomponentsjs" displayName="Webcomponentsjs" version="1.0.2" homepage="https://github.com/webcomponents/webcomponentsjs">
-            <license url="https://github.com/webcomponents/webcomponentsjs/blob/master/LICENSE.md" type="BSD-3-Clause"></license>
-            <copyright>2015 The Polymer Authors</copyright>
-            <pattern>sap/ui/integration/thirdparty/webcomponents/webcomponentsjs/*</pattern>
-        </lib>
-        <lib name="cldr" displayName="Unicode Common Locale Data Repository" version="unknown" homepage="http://cldr.unicode.org/">
-            <license url="http://www.unicode.org/copyright.html" type="Unicode-DFS-2015" />
-            <copyright>1991-2014 Unicode, Inc.</copyright>
-            <pattern>sap/ui/integration/thirdparty/webcomponents/Unicode-Data-Files-LICENSE.txt</pattern>
+            <pattern>sap/ui/integration/thirdparty/webcomponents/*</pattern>
         </lib>
         <lib name="adaptive-cards" displayName="Adaptive Cards" version="2.9.0" homepage="https://adaptivecards.io/">
             <license url="https://github.com/microsoft/AdaptiveCards/blob/master/LICENSE" type="MIT"></license>
@@ -71,20 +60,25 @@
             <pattern>sap/ui/integration/thirdparty/adaptivecards.js</pattern>
             <pattern>sap/ui/integration/schemas/adaptive-card.json</pattern>
         </lib>
-        <lib name="adaptive-cards-templating" displayName="Adaptive Cards Templating" version="0.1.1-alpha.0" homepage="https://adaptivecards.io/">
+        <lib name="adaptive-cards-templating" displayName="Adaptive Cards Templating" version="2.2.0" homepage="https://adaptivecards.io/">
             <license url="https://github.com/microsoft/AdaptiveCards/blob/master/LICENSE" type="MIT"></license>
             <copyright>2017 Microsoft</copyright>
             <pattern>sap/ui/integration/thirdparty/adaptivecards-templating.js</pattern>
         </lib>
-        <lib name="markdown-it" displayName="Markdown-it" version="10.0.0" homepage="https://github.com/markdown-it/markdown-it">
+        <lib name="adaptive-expressions" displayName="Adaptive Expressions" version="4.15.0" homepage="https://www.npmjs.com/package/adaptive-expressions">
+            <license url="https://github.com/microsoft/botbuilder-js/blob/main/LICENSE" type="MIT"></license>
+            <copyright>Microsoft</copyright>
+            <pattern>sap/ui/integration/thirdparty/adaptive-expressions.js</pattern>
+        </lib>
+        <lib name="markdown-it" displayName="Markdown-it" version="12.2.0" homepage="https://github.com/markdown-it/markdown-it">
             <license url="https://github.com/markdown-it/markdown-it/blob/master/LICENSE" type="MIT"></license>
             <copyright>2014 Vitaly Puzrin, Alex Kocharin</copyright>
             <pattern>sap/ui/integration/thirdparty/markdown-it.js</pattern>
         </lib>
-        <lib name="ajv" displayName="ajv" version="6.12.3" homepage="https://ajv.js.org/">
-            <license url="https://ajv.js.org/license.html" type="MIT"></license>
-            <copyright>2015-2017 Evgeny Poberezkin</copyright>
-            <pattern>../test/sap/ui/integration/demokit/cardExplorer/webapp/thirdparty/ajv/ajv.min.js</pattern>
+        <lib name="@cfworker/json-schema" displayName="@cfworker/json-schema" version="1.6.8" homepage="https://cfworker.dev/">
+            <license url="https://github.com/cfworker/cfworker/blob/main/LICENSE.md" type="MIT"></license>
+            <copyright>2020 Jeremy Danyow</copyright>
+            <pattern>../test/sap/ui/integration/demokit/cardExplorer/webapp/thirdparty/CfWorkerJsonSchemaValidator.js</pattern>
         </lib>
     </thirdparty>
 

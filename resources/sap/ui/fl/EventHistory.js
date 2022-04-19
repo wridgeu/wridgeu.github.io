@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(function(){"use strict";var e=function(){};e._aEventIds=["ControlForPersonalizationRendered"];e._aUnsubscribedEventIds=[];e._oHistory={};e.start=function(){e._aEventIds.forEach(function(n){if(e._aUnsubscribedEventIds.indexOf(n)===-1){sap.ui.getCore().getEventBus().subscribe("sap.ui",n,e.saveEvent);e._oHistory[n]=[]}})};e.saveEvent=function(n,t,s){var r={channelId:n,eventId:t,parameters:s.getId()};if(e._oHistory[t]){var i=e._oHistory[t].some(function(e){return e.channelId===r.channelId&&e.eventId===r.eventId&&e.parameters===r.parameters});if(!i){e._oHistory[t].push(r)}}};e.getHistoryAndStop=function(n){sap.ui.getCore().getEventBus().unsubscribe("sap.ui",n,e.saveEvent);e._addUnsubscribedEvent(n);return e._oHistory[n]||[]};e._addUnsubscribedEvent=function(n){if(e._aUnsubscribedEventIds.indexOf(n)===-1){e._aUnsubscribedEventIds.push(n)}};return e},true);

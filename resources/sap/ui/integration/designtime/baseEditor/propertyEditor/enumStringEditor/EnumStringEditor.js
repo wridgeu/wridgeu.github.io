@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor","sap/ui/integration/designtime/baseEditor/util/isValidBindingString"],function(e,t){"use strict";var i=e.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.enumStringEditor.EnumStringEditor",{metadata:{library:"sap.ui.integration",deprecated:true},xmlFragment:"sap.ui.integration.designtime.baseEditor.propertyEditor.enumStringEditor.EnumStringEditor",renderer:e.getMetadata().getRenderer().render});i.configMetadata=Object.assign({},e.configMetadata,{allowBindings:{defaultValue:true,mergeStrategy:"mostRestrictiveWins"},allowCustomValues:{defaultValue:false,mergeStrategy:"mostRestrictiveWins",mostRestrictiveValue:true}});i.prototype.getDefaultValidators=function(){var t=this.getConfig();return Object.assign({},e.prototype.getDefaultValidators.call(this),{isValidBinding:{type:"isValidBinding",isEnabled:t.allowBindings},notABinding:{type:"notABinding",isEnabled:!t.allowBindings},isSelectedKey:{type:"isSelectedKey",config:{keys:function(e){return e.getConfig().enum}},isEnabled:!t.allowCustomValues}})};i.prototype._onChange=function(){var e=this.getContent();var t=e.getSelectedKey();var i=e.getValue();this.setValue(t||i)};return i});

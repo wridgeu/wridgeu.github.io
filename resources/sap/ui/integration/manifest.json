@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.97.0"
+      "version": "1.101.0"
     },
     "title": "SAPUI5 library with integration-related controls.",
     "description": "SAPUI5 library with integration-related controls.",
@@ -16,17 +16,7 @@
       {
         "name": "ui5-web-components",
         "packagedWithMySelf": true,
-        "version": "1.0.0-rc.8"
-      },
-      {
-        "name": "webcomponentsjs",
-        "packagedWithMySelf": true,
-        "version": "1.0.2"
-      },
-      {
-        "name": "cldr",
-        "packagedWithMySelf": true,
-        "version": "unknown"
+        "version": "1.0.1"
       },
       {
         "name": "adaptive-cards",
@@ -36,17 +26,22 @@
       {
         "name": "adaptive-cards-templating",
         "packagedWithMySelf": true,
-        "version": "0.1.1-alpha.0"
+        "version": "2.2.0"
+      },
+      {
+        "name": "adaptive-expressions",
+        "packagedWithMySelf": true,
+        "version": "4.15.0"
       },
       {
         "name": "markdown-it",
         "packagedWithMySelf": true,
-        "version": "10.0.0"
+        "version": "12.2.0"
       },
       {
-        "name": "ajv",
+        "name": "@cfworker/json-schema",
         "packagedWithMySelf": true,
-        "version": "6.12.3"
+        "version": "1.6.8"
       }
     ]
   },
@@ -59,13 +54,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.97",
+      "minUI5Version": "1.101",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.97.0"
+          "minVersion": "1.101.0"
         },
         "sap.f": {
-          "minVersion": "1.97.0"
+          "minVersion": "1.101.0"
         }
       }
     },
@@ -127,6 +122,7 @@
       "content": {
         "controls": [
           "sap.ui.integration.widgets.Card",
+          "sap.ui.integration.cards.filters.FilterBar",
           "sap.ui.integration.cards.Header",
           "sap.ui.integration.cards.NumericHeader",
           "sap.ui.integration.controls.ListContentItem"

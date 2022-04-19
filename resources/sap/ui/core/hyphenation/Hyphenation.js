@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 sap.ui.define(["./HyphenationTestingWords","sap/ui/base/ManagedObject","sap/base/Log","sap/ui/core/Locale"],function(e,n,t,r){"use strict";var i={bg:true,ca:true,hr:true,cs:false,// no valid license

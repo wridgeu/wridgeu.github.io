@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/util/merge","sap/ui/model/json/JSONModel","sap/ui/core/Core","sap/base/util/deepClone"],function(e,a,r,t){"use strict";var n={layers:{admin:0,content:5,translation:10,all:20},mergeManifestPathChanges:function(e,a){Object.keys(a).forEach(function(r){if(r.charAt(0)==="/"){var t=a[r];e.setProperty(r,t)}})},mergeDelta:function(r,t,o){var i=e({},r);if(typeof o==="undefined"){o="sap.card"}if(Array.isArray(t)&&t.length>0){var s;t.forEach(function(r){if(r.content){e(i[o],r.content)}else{s=s||new a(i);n.mergeManifestPathChanges(s,r)}})}return i},mergeDesigntimeMetadata:function(a,r){var t=e({},a);r.forEach(function(e){var a=e.content.entityPropertyChange||[];a.forEach(function(e){var a=e.propertyPath;switch(e.operation){case"UPDATE":if(t.hasOwnProperty(a)){t[a]=e.propertyValue}break;case"DELETE":delete t[a];break;case"INSERT":if(!t.hasOwnProperty(a)){t[a]=e.propertyValue}break;default:break}})});return t}};return n});

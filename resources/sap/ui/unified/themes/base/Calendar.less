@@ -29,7 +29,9 @@
 	overflow: hidden;
 	position: relative;
 	outline: none;
-	display: inline-block;
+	display: flex;
+	flex-direction: column-reverse;
+	justify-content: flex-end;
 	white-space: initial; /* To not inherit */
 	box-sizing: border-box;
 	text-align: center;
@@ -334,6 +336,10 @@ html.sap-desktop .sapUiCalHead > button.sapUiCalDsbl:focus,
 
 .sapUiCalItemNow{
 	color: @sapUiHighlight;
+}
+
+.sapUiCalItemNow.sapUiCalItemDsbl {
+	color: fade(@sapUiBaseText, 50);
 }
 
 .sapUiCalItemWeekEnd{

@@ -6,3 +6,27 @@
 .sapUiIntCard {
 	min-height: 5rem;
 }
+
+.sapUiIntCardDialog{
+	.sapUiIntCard {
+		border-radius: @sapUiElementBorderCornerRadius;
+	}
+
+	&.sapMDialog:not(.sapUiResponsiveContentPadding):not(.sapUiContentPadding) .sapMDialogScroll {
+		padding-bottom: 0px;
+		padding-top: 0px;
+	}
+}
+
+.sapFCard .sapFCardHeader .sapFCardHeaderToolbarCont .sapUiIntCardCloseButton.sapFCardHeaderToolbar {
+	margin: -1.25rem -0.75rem 0.25rem 0.25rem;
+}
+
+.sapFCard.sapUiIntCardWithFooter:not(.sapFCardNoHeader) .sapFCardContent {
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+.sapUiIntCardObjectButtonGroup {
+	margin-left: -0.5rem;
+}

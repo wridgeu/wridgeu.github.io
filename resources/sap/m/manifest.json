@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.97.0"
+      "version": "1.101.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -22,17 +22,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.97",
+      "minUI5Version": "1.101",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.97.0"
+          "minVersion": "1.101.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.97.0",
+          "minVersion": "1.101.0",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.97.0",
+          "minVersion": "1.101.0",
           "lazy": true
         }
       }
@@ -144,6 +144,7 @@
           "sap.m.IconTabBarSelectList",
           "sap.m.IconTabFilterExpandButtonBadge",
           "sap.m.IconTabHeader",
+          "sap.m.IllustratedMessage",
           "sap.m.Image",
           "sap.m.ImageContent",
           "sap.m.Input",
@@ -280,7 +281,7 @@
           "sap.m.p13n.SelectionPanel",
           "sap.m.p13n.SortPanel",
           "sap.m.p13n.Popup",
-          "sap.m.table.ColumnMenu"
+          "sap.m.table.columnmenu.Menu"
         ],
         "elements": [
           "sap.m.BadgeCustomData",
@@ -369,11 +370,11 @@
           "sap.m.semantic.ShareInJamAction",
           "sap.m.semantic.SortAction",
           "sap.m.semantic.SortSelect",
-          "sap.m.table.ColumnMenuEntry",
-          "sap.m.table.Item",
-          "sap.m.table.ItemBase",
-          "sap.m.table.QuickAction",
-          "sap.m.table.QuickActionBase"
+          "sap.m.table.columnmenu.Entry",
+          "sap.m.table.columnmenu.Item",
+          "sap.m.table.columnmenu.ItemBase",
+          "sap.m.table.columnmenu.QuickAction",
+          "sap.m.table.columnmenu.QuickActionBase"
         ],
         "types": [
           "sap.m.AvatarImageFitType",
@@ -412,6 +413,8 @@
           "sap.m.IconTabDensityMode",
           "sap.m.IconTabFilterDesign",
           "sap.m.IconTabHeaderMode",
+          "sap.m.IllustratedMessageSize",
+          "sap.m.IllustratedMessageType",
           "sap.m.ImageMode",
           "sap.m.InputTextFormatMode",
           "sap.m.InputType",

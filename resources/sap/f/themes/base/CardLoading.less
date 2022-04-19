@@ -47,15 +47,18 @@
 		}
 	}
 
-	&.sapFCardPreview .sapFCardFilter::after,
-	.sapFCardFilterLoading::after {
-		.sapFCardLoadingShimmerMixin();
-		content: "";
-		position: absolute;
-		width: 100%;
-		height: 2.5rem;
-		top: 2px;
-		left: 0;
+	&.sapFCardPreview .sapFCardFilter,
+	.sapFCardFilterLoading {
+		position: relative;
+		&::after {
+			.sapFCardLoadingShimmerMixin();
+			content: "";
+			position: absolute;
+			top: 2px;
+			bottom: 2px;
+			left: 0;
+			right: 0;
+		}
 	}
 
 	&.sapFCardPreview .sapFCardFooter,
@@ -63,20 +66,18 @@
 		.sapUiIntActionsStrip {
 			position: relative;
 			&::after {
-				.sapFCardLoadingShimmerMixin();
 				content: "";
 				position: absolute;
 				width: 100%;
-				height: 2.5rem;
-				top: 2px;
-				left: 0;
+				height: 100%;
+				background-color: @sapUiTileBackground;
 			}
 		}
 	}
 
 	.sapFCardNumericHeader.sapFCardHeaderLoading,
 	&.sapFCardPreview .sapFCardNumericHeader {
-		.sapFCardHeaderMainIndicator .sapFCardHeaderItemBinded {
+		.sapFCardNumericIndicatorsMain .sapFCardHeaderItemBinded {
 			min-width: 5rem;
 		}
 
@@ -98,7 +99,7 @@
 			display: none;
 		}
 
-		.sapFCardBaseContent.sapFCardContentLoading > :not(.sapFCardContentPlaceholder) {
+		.sapFCardBaseContent.sapFCardContentLoading:not(.sapFCardObjectContent) > :not(.sapFCardContentPlaceholder) {
 			display: none;
 		}
 
@@ -126,13 +127,22 @@
 			height: 100%;
 
 			.sapFCardLoadingShimmer {
-				width: 144px;
-				height: 144px;
+				max-width: 144px;
+				max-height: 144px;
+				height: ~"calc(100% - 4px)"; /* leave place for the focus */
 			}
 
 			.sapFCardSVG {
 				fill: @sapUiTileBackground;
 			}
+		}
+
+		.sapFCardBaseContent.sapFCardContentLoading.sapFCardObjectContent .sapFCardContentGenericPlaceholder {
+			position: absolute;
+			top: 0;
+    		left: 0;
+			z-index: 1;
+			background-color: @sapUiTileBackground;
 		}
 	}
 
@@ -184,12 +194,5 @@
 			background-image: unset !important;
 			animation-name: unset !important;
 		}
-	}
-}
-
-.sapUiSizeCompact .sapFCard {
-
-	.sapFCardFilter::after {
-		height: 1.8rem;
 	}
 }
