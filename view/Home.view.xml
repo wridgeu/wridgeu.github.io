@@ -9,32 +9,35 @@
 		<content>
 			<l:BlockLayout>
 				<l:BlockLayoutRow>
-					<l:BlockLayoutCell backgroundColorSet="ColorSet5" backgroundColorShade="ShadeC">
-						<FlexBox alignItems="Center" alignContent="Center" justifyContent="Center" backgroundDesign="Transparent" direction="Column">
-							<Avatar displaySize="XL" src="./resources/img/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
-						</FlexBox>
+					<l:BlockLayoutCell>
+						<VBox>	
+							<FlexBox alignItems="Center" alignContent="Center" justifyContent="Center" backgroundDesign="Transparent" direction="Column">
+								<Avatar displaySize="XL" src="./resources/img/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
+							</FlexBox>
+							<l:BlockLayoutCell>
+								<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" direction="Row" justifyContent="Center">
+									<html:a href="https://linkedin.com/in/dev-marco-beier" target="_blank" rel="noopener">
+										<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh" lazyLoading="true"/>
+									</html:a>
+									<html:a href="https://xing.com/profile/Marco_Beier8/cv" target="_blank" rel="noopener">
+										<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh" lazyLoading="true"/>
+									</html:a>
+									<html:a href="https://github.com/wridgeu" target="_blank" rel="noopener">
+										<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh" lazyLoading="true"/>
+									</html:a>
+									<html:a href="https://twitter.com/Wridgeu" target="_blank" rel="noopener">
+										<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh" lazyLoading="true"/>
+									</html:a>
+									<html:a href="https://people.sap.com/marcobeier" target="_blank" rel="noopener">
+										<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh" lazyLoading="true"/>
+									</html:a>
+								</FlexBox>
+							</l:BlockLayoutCell>
+						</VBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
-					<l:BlockLayoutCell>
-						<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" direction="Row" justifyContent="Center">
-							<html:a href="https://linkedin.com/in/dev-marco-beier" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh" lazyLoading="true"/>
-							</html:a>
-							<html:a href="https://xing.com/profile/Marco_Beier8/cv" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh" lazyLoading="true"/>
-							</html:a>
-							<html:a href="https://github.com/wridgeu" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh" lazyLoading="true"/>
-							</html:a>
-							<html:a href="https://twitter.com/Wridgeu" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh" lazyLoading="true"/>
-							</html:a>
-							<html:a href="https://people.sap.com/marcobeier" target="_blank" rel="noopener">
-								<Image class="setOpacity setMinSeperator" src="./resources/img/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh" lazyLoading="true"/>
-							</html:a>
-						</FlexBox>
-					</l:BlockLayoutCell>
+
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
@@ -100,7 +103,7 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<html:div class="wiki-wrapper">
-							<Button id="wiki-button" class="visit-wiki-button" type="Accept" text="Visit" iconFirst="false" icon="sap-icon://arrow-right" press="onWiki"/>
+							<Button id="wiki-button" class="visit-wiki-button" type="Accept" text="Visit" iconFirst="false" icon="sap-icon://arrow-right" press=".onWiki"/>
 						</html:div>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
@@ -108,7 +111,7 @@
 		</content>
 		<footer>
 			<Toolbar id="footerToolbar" design="Info">
-				<core:Icon src="sap-icon://lightbulb" class="size2" color="#ffffff" press="onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
+				<core:Icon src="sap-icon://lightbulb" class="size2" press=".onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
 				<ToolbarSpacer/>
 				<Text class="footerText" text="{i18n>footerText}">
 					<layoutData>
@@ -116,7 +119,7 @@
 					</layoutData>
 				</Text>
 				<ToolbarSpacer/>
-				<core:Icon src="sap-icon://sap-ui5" class="size2" color="#ffffff" press="onUI5IconPress" alt="UI5 Version" tooltip="{i18n>versionInfoTooltip}"/>
+				<core:Icon src="sap-icon://sap-ui5" class="size2" press=".onUI5IconPress" alt="UI5 Version" tooltip="{i18n>versionInfoTooltip}"/>
 			</Toolbar>
 		</footer>
 	</Page>

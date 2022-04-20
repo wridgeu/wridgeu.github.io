@@ -45,8 +45,8 @@
 			"phone": true
 		},
 		"supportedThemes": [
-			"sap_fiori_3",
-			"sap_fiori_3_dark"
+			"sap_horizon",
+			"sap_horizon_dark"
 		]
 	},
 	"sap.ui5": {

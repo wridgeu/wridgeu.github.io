@@ -1,0 +1,62 @@
+/* ============================ */
+/* CSS for control sap.m/Token  */
+/* Horizon theme                */
+/* ============================ */
+
+@_sap_m_Token_TokenPadding: 0.5rem;
+@_sap_m_Token_TokenCompactPadding: 0.25rem;
+@_sap_m_Token_LeftPadding: 0.25rem;
+@_sap_m_Token_TokenSize: @sapMFontSmallSize + (2 * @_sap_m_Token_TokenPadding) - @_sap_m_Token_LeftPadding;
+@_sap_m_Token_TokenCompactSize: @sapMFontSmallSize + @_sap_m_Token_TokenCompactPadding;
+
+.sapMToken {
+	padding-left: @_sap_m_Token_LeftPadding;
+}
+
+.sapMTokenSelected:not(:focus),
+.sapMToken.sapMTokenReadOnly.sapMTokenSelected {
+	background: @sapUiButtonSelectedBackground;
+	border: @sapUiButtonBorderWidth solid @sapUiButtonSelectedBorderColor;
+	border-radius: @sapUiButtonBorderCornerRadius;
+}
+
+html.sap-desktop .sapMToken:not(.sapMTokenSelected):not(:focus):hover {
+	background: @sapUiButtonTokenBackground;
+	border: 1px solid @sapUiButtonTokenBorderColor;
+	border-radius: @sapUiButtonBorderCornerRadius;
+	box-shadow: @sapUiContentInteractionShadow;
+}
+
+html.sap-desktop .sapMToken.sapMTokenSelected:hover {
+	background: @sapUiButtonSelectedBackground;
+	border: @sapUiButtonBorderWidth solid @sapUiButtonSelectedBorderColor;
+	border-radius: @sapUiButtonBorderCornerRadius;
+}
+
+html.sap-desktop .sapMToken.sapMTokenSelected:not(:focus):hover {
+	box-shadow: @sapUiContentInteractionShadow;
+}
+
+.sapMToken.sapMTokenReadOnly,
+.sapMToken.sapMTokenReadOnly.sapMTokenSelected {
+	color: @sapUiContentLabelColor;
+}
+
+html.sap-desktop .sapMToken:focus {
+	outline: 2px solid @sapUiButtonSelectedBorderColor;
+	outline-offset: 0.0625rem;
+	border-radius: @sapUiButtonBorderCornerRadius;
+}
+
+html.sap-desktop .sapMToken:not(.sapMTokenSelected):focus:hover {
+	border: @sapUiButtonBorderWidth solid @sapUiButtonTokenBorderColor;
+}
+
+html.sap-desktop .sapUiSizeCompact .sapMToken:focus,
+html.sap-desktop .sapUiSizeCondensed .sapMToken:focus {
+	outline-offset: 0;
+}
+
+html.sap-desktop .sapMToken.sapMTokenSelected:focus {
+	color: @sapUiButtonSelectedTextColor;
+}

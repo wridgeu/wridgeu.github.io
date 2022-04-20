@@ -4,7 +4,7 @@
     xmlns:l="sap.ui.layout" 
     xmlns:core="sap.ui.core" 
     xmlns:mvc="sap.ui.core.mvc">
-    <Page id="wikiPage" showHeader="true" showNavButton="true" navButtonPress="onBackHome" title="Wiki/Blog" titleAlignment="Center" navButtonTooltip="back to main page">
+    <Page id="wikiPage" showHeader="true" showNavButton="true" navButtonPress=".onBackHome" title="Wiki/Blog" titleAlignment="Center" navButtonTooltip="back to main page">
         <headerContent>
                 <html:a href="https://github.com/wridgeu/wridgeu.github.io/wiki" target="_blank" rel="noopener">
 			        <Button icon="sap-icon://action" iconFirst="false" tooltip="{i18n>sourceTooltip}" text="{i18n>source}"  />
@@ -39,7 +39,7 @@
         </content>
         <footer>
             <Toolbar id="footerToolbar" design="Info">
-                <core:Icon src="sap-icon://lightbulb" class="size2" color="#ffffff" press="onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
+                <core:Icon src="sap-icon://lightbulb" class="size2" press=".onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
                 <ToolbarSpacer/>
                 <Text class="footerText" text="{i18n>footerText}">
                     <layoutData>
