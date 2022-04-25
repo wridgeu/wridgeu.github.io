@@ -2,20 +2,20 @@
     xmlns="sap.m" 
     xmlns:core="sap.ui.core">
     <Dialog title="{i18n>UI5VerDlgTitle}" verticalScrolling="false" horizontalScrolling="false">
-        <FlexBox class="sapUiSmallMarginTopBottom" direction="Row" justifyContent="Center">
+        <FlexBox class="sapUiSmallMarginTopBottom" justifyContent="Center">
             <FlexBox direction="Column">
-                <FlexBox direction="Row" justifyContent="Start">
+                <FlexBox>
                     <Label text="{i18n>UI5Ver}"/>
                     <Text renderWhitespace="true" text=" {versionInfo>/version}"/>
                 </FlexBox>
-                <FlexBox direction="Row" justifyContent="Start">
+                <FlexBox>
                     <Label text="{i18n>Versionname}"/>
                     <Text renderWhitespace="true" text=" {versionInfo>/name}"/>
                 </FlexBox>
             </FlexBox>
         </FlexBox>
-        <endButton>            
-            <Button text="{i18n>UI5VerDlgClose}" press="onCloseDialog"/>
+        <endButton>
+            <Button text="{i18n>UI5VerDlgClose}" press=".onCloseDialog"/>
         </endButton>
     </Dialog>
 </core:FragmentDefinition>
