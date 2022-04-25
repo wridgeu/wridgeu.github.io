@@ -1,6 +1,24 @@
 [
     {
-        "companie": "SALT Solutions GmbH",
+        "company": "Accenture DACH",
+        "website": "https://www.accenture.com/",
+        "nodes": [
+            {
+                "description": "Role: ",
+                "position": "SAP ABAP Developer",
+                "nodes": [
+                    {
+                        "textFrom":"From: ",
+                        "textTo":"To: ",
+                        "from": "01.11.2021",
+                        "to": "Now"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "company": "SALT Solutions GmbH",
         "website": "https://www.salt-solutions.de/",
         "nodes": [
             {
@@ -11,7 +29,7 @@
                         "textFrom":"From: ",
                         "textTo":"To: ",
                         "from": "01.07.2017",
-                        "to": "Now"
+                        "to": "01.11.2021"
                     }
                 ]
             },
@@ -30,7 +48,7 @@
         ]
     },
     {
-        "companie": "Vogel Business Media GmbH & Co. KG",
+        "company": "Vogel Business Media GmbH & Co. KG",
         "website": "https://www.vogel.de/",
         "nodes": [
             {
