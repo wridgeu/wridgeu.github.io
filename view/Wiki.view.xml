@@ -4,9 +4,9 @@
     xmlns:core="sap.ui.core" 
     xmlns:mvc="sap.ui.core.mvc"
 	core:require="{ sapMLib: 'sap/m/library' }">
-    <Page id="wikiPage" showHeader="true" showNavButton="true" navButtonPress=".onBackHome" title="Wiki/Blog" titleAlignment="Center" navButtonTooltip="back to main page">
+    <Page id="wikiPage" showHeader="true" showNavButton="true" navButtonPress=".onBackHome" title="{convertedmarkdown>/title}" titleAlignment="Center" navButtonTooltip="back to main page">
         <headerContent>
-            <Button icon="sap-icon://action" iconFirst="false" tooltip="{i18n>sourceTooltip}" text="{i18n>source}" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu/wridgeu.github.io/wiki', true)"  />
+            <Button visible="{= ${convertedmarkdown>/edit} ? true : false }" icon="sap-icon://edit" iconFirst="false" tooltip="{i18n>sourceTooltipEdit}" text="{i18n>sourceEdit}" press="sapMLib.URLHelper.redirect( ${convertedmarkdown>/edit}, true)"  />
 
         </headerContent>
         <content>
@@ -37,7 +37,7 @@
             </l:ResponsiveSplitter>
         </content>
         <footer>
-            <Toolbar id="footerToolbar" design="Info">
+            <Toolbar id="footerToolbar" design="Solid">
                 <core:Icon src="sap-icon://lightbulb" class="size2" press=".onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
                 <ToolbarSpacer/>
                 <Text class="footerText" text="{i18n>footerText}">
@@ -46,6 +46,7 @@
                     </layoutData>
                 </Text>
                 <ToolbarSpacer/>
+                <Button icon="sap-icon://action" iconFirst="false" tooltip="{i18n>sourceTooltip}" text="{i18n>source}" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu/wridgeu.github.io/wiki', true)"  />
             </Toolbar>
         </footer>
     </Page>
