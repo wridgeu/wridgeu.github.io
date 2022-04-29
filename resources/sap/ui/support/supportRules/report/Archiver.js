@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/base/Log","sap/base/util/isPlainObject","sap/ui/thirdparty/jszip","sap/ui/core/util/File"],function(r,t,e,a){"use strict";var i=function(){this._mData={}};i.prototype.add=function(e,a,i){if(!e){r.error("Archiver: No name was given.");return false}if(!a){r.error("Archiver: No data was given.");return false}if(typeof a==="string"){this._mData[e]=a;return true}else if(i){if((i==="json"||i==="har")&&(t(a)||Array.isArray(a))){try{this._mData[e]=JSON.stringify(a);return true}catch(t){r.error("Archiver: JSON data could not be serialized for "+e)}}else{r.error("Archiver: JSON data could not be serialized for "+i+". Either the type is unknown or the data has a wrong format.")}}else{r.error("Archiver: Data could not be serialized for "+e+". Data is is not a string or has a an invalid type.");return false}return false};i.prototype.download=function(r){var t=new e;if(t){for(var i in this._mData){t.file(i,this._mData[i])}var n=t.generate({type:"blob"});a.save(n,r,"zip","application/zip")}};i.prototype.clear=function(){this._mData={};return true};i.prototype.hasData=function(r){if(r!==undefined){return this._mData.hasOwnProperty(r)}return Object.keys(this._mData).length>0};return i},true);

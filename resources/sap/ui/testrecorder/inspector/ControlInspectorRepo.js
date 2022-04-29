@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/ui/base/Object","sap/ui/thirdparty/jquery"],function(t,e){"use strict";var n=null;var r=[];var o=100;var i=t.extend("sap.ui.testrecorder.inspector.ControlInspectorRepo",{constructor:function(){if(!n){t.apply(this,arguments)}else{return n}}});i.prototype.findSelector=function(t){var e=r.filter(function(e){return e.domElementId===t&&e.selector});return e[0]&&e[0].selector||null};i.prototype.save=function(t,e,n){var i=Object.assign({selector:e,snippet:n},t);var s=-1;r.forEach(function(e,n){if(e.domElementId===t.domElementId&&JSON.stringify(e.assertion)===JSON.stringify(t.assertion)){s=n}});if(s>-1){r[s]=i}else{if(r.length===o){r.shift()}r.push(i)}};i.prototype.clear=function(){r=[]};i.prototype.getRequests=function(){return r.map(function(t){return{domElementId:t.domElementId,action:t.action,assertion:t.assertion}})};i.prototype.getSelectors=function(){return r.map(function(t){return t.selector})};i.prototype.getSnippets=function(){return r.map(function(t){return t.snippet})};i.prototype.getAll=function(){return r};n=new i;return n});

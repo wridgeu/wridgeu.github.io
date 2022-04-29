@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define([],function(){"use strict";var t=function(t){this._sId=t;this._highLighter=document.getElementById(this._sId)||null};t.prototype.highlight=function(t){if(this._highLighter){this.showHighLighter()}else{this._createHighLighter()}var e=this._highLighter.firstElementChild;var i=document.getElementById(t);if(i){var h=i.getBoundingClientRect();e.style.top=h.top+"px";e.style.left=h.left+"px";e.style.height=h.height+"px";e.style.width=h.width+"px"}return this};t.prototype.hideHighLighter=function(){this._highLighter.style.display="none"};t.prototype.showHighLighter=function(){this._highLighter.style.display="block"};t.prototype._createHighLighter=function(){var t=document.createElement("div");t.style.cssText="box-sizing: border-box;border:1px solid blue;background: rgba(20, 20, 200, 0.4);position: absolute";var e=document.createElement("div");e.id=this._sId;e.style.cssText="position: fixed;top:0;right:0;bottom:0;left:0;z-index: 1000;overflow: hidden;";e.appendChild(t);document.body.appendChild(e);e.onmousemove=this.hideHighLighter.bind(this);this._highLighter=e};return t});

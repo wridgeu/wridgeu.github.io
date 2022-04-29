@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/base/Log","sap/base/util/Version","sap/ui/thirdparty/jquery","sap/m/library","sap/ui/VersionInfo"],function(i,t,n,r,e){"use strict";var o={openTopic:function(i){e.load({library:"sap.ui.core"}).then(function(n){var r="",e="",o=n.version,a=t(o).getMajor(),s=t(o).getMinor(),u=window.location.origin;if(s%2!==0){s--}e+=String(a)+"."+String(s);if(u.indexOf("veui5infra")!==-1){r=u+"/sapui5-sdk-internal/#/topic/"+i}else{r=u+"/demokit-"+e+"/#/topic/"+i}this._redirectToUrlWithFallback(r,i)}.bind(this))},_redirectToUrlWithFallback:function(t,n){this._pingUrl(t).then(function i(){r.URLHelper.redirect(t,true)},function e(){i.info("Support Assistant tried to load documentation link in "+t+"but fail");t="https://ui5.sap.com/#/topic/"+n;r.URLHelper.redirect(t,true)})},_pingUrl:function(i){return n.ajax({type:"HEAD",async:true,context:this,url:i})}};return o});

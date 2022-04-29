@@ -1,6 +1,0 @@
-/*!
- * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-sap.ui.define(["sap/ui/thirdparty/jquery"],function(n){"use strict";var e=sap.ui.require.toUrl("sap/ui/support").replace(/(^|\/)resources\//,"$1test-resources/")+"/internal/.ping";var a={bCanLoadInternalRules:null,isDistributionOpenUI5:function(n){var e=false,a="";try{a=n.gav?n.gav:n.name;e=a.indexOf("openui5")!==-1?true:false}catch(n){return e}return e},canLoadInternalRules:function(){var a=this;if(a.bCanLoadInternalRules!==null){return a.bCanLoadInternalRules}n.ajax({type:"HEAD",async:false,url:e,success:function(){a.bCanLoadInternalRules=true},error:function(){a.bCanLoadInternalRules=false}});return a.bCanLoadInternalRules},canLoadInternalRulesAsync:function(){var a=this;var r=new Promise(function(r){if(a.bCanLoadInternalRules!==null){r(a.bCanLoadInternalRules);return}n.ajax({type:"HEAD",url:e,success:function(){a.bCanLoadInternalRules=true;r(a.bCanLoadInternalRules)},error:function(){a.bCanLoadInternalRules=false;r(a.bCanLoadInternalRules)}})});return r},generateUuidV4:function(){var n="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,function(n){var e=Math.random()*16|0;if(n==="y"){e=e&3|8}return e.toString(16)});return n}};return a});

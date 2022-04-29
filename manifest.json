@@ -31,14 +31,7 @@
 	},
 	"sap.ui": {
 		"technology": "UI5",
-		"icons": {
-			"icon": "",
-			"favIcon": "",
-			"phone": "",
-			"phone@2": "",
-			"tablet": "",
-			"tablet@2": ""
-		},
+		"icons": {},
 		"deviceTypes": {
 			"desktop": true,
 			"tablet": true,
@@ -57,20 +50,14 @@
 			"id": "app"
 		},
 		"dependencies": {
-			"minUI5Version": "1.95.0",
+			"minUI5Version": "1.101.0",
 			"libs": {
-				"sap.ui.core": {},
 				"sap.m": {},
+				"sap.ui.core": {},
 				"sap.ui.layout": {
 					"lazy": true
 				},
 				"sap.ui.integration":{
-					"lazy": true
-				},
-				"sap.ui.support": {
-					"lazy": true
-				},
-				"sap.ui.testrecorder":{
 					"lazy": true
 				}
 			}
@@ -97,6 +84,9 @@
 			"css": [
 				{
 					"uri": "css/style.css"
+				},
+				{
+					"uri": "css/ocean.minified.css"
 				}
 			]
 		},
