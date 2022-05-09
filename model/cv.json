@@ -1,11 +1,41 @@
 [
     {
+        "company": "awenɢ meᴅia",
+        "website": "https://aweng.media/",
+        "nodes": [
+            {
+                "description": "Role: ",
+                "position":"Web Developer & Project Management",
+                "nodes": [
+                    {
+                        "textFrom":"From: ",
+                        "textTo":"To: ",
+                        "from": "01.04.2022",
+                        "to": "Now"
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "company": "Accenture DACH",
         "website": "https://www.accenture.com/",
         "nodes": [
             {
                 "description": "Role: ",
-                "position": "SAP ABAP Developer",
+                "position":"UI5 Architect",
+                "nodes": [
+                    {
+                        "textFrom":"From: ",
+                        "textTo":"To: ",
+                        "from": "01.04.2022",
+                        "to": "Now"
+                    }
+                ]
+            },
+            {
+                "description": "Role: ",
+                "position": " IT Consultant / SAP ABAP Developer",
                 "nodes": [
                     {
                         "textFrom":"From: ",
@@ -23,7 +53,7 @@
         "nodes": [
             {
                 "description": "Role: ",
-                "position": "SAP ABAP Developer",
+                "position": "IT Consultant / SAP ABAP Developer",
                 "nodes": [
                     {
                         "textFrom":"From: ",

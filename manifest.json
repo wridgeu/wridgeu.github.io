@@ -46,7 +46,6 @@
 		"rootView": {
 			"viewName": "sapmarco.projectpages.view.Shell",
 			"type": "XML",
-			"async": true,
 			"id": "app"
 		},
 		"dependencies": {
@@ -96,8 +95,7 @@
 				"viewType": "XML",
 				"viewPath": "sapmarco.projectpages.view",
 				"controlId": "app",
-				"controlAggregation": "pages",
-				"async": true
+				"controlAggregation": "pages"
 			},
 			"routes": [
 				{
