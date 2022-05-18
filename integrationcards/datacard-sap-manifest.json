@@ -32,7 +32,7 @@
 			"title": "SAP",
 			"icon": {
                 "shape": "Square",
-				"src": "../resources/img/sap_logo_gui.jpg"
+				"src": "../resources/img/webp/sap_logo_gui.webp"
 			}
 		},
 		"content": {
@@ -41,21 +41,21 @@
 					{
 						"Name": "Solutions",
 						"Description": "ERP, EWM, TM, SolMan",
-						"Icon": "../resources/img/forklift.png",
+						"Icon": "../resources/img/webp/forklift.webp",
 						"Initials": "SAP",
                         "Alt": "SAP Systems"
 					},
 					{
 						"Name": "SAP- OpenUI5",
 						"Description": "UI5, OData, WebC, Fiori",
-                        "Icon": "../resources/img/blue_ui5.svg",
+                        "Icon": "../resources/img/svg/blue_ui5.svg",
 						"Initials": "UI",
                         "Alt": "SAP UI Framework"
 					},
 					{
 						"Name": "Cloud (&on-prem)",
 						"Description": "RAP, CAP, CDS",
-						"Icon": "../resources/img/sap_cap.svg",
+						"Icon": "../resources/img/svg/sap_cap.svg",
 						"Initials": "CL",
                         "Alt": "SAP Cloud"
 					}

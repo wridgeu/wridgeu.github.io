@@ -12,16 +12,16 @@
 					<l:BlockLayoutCell>
 						<VBox>	
 							<FlexBox alignItems="Center" alignContent="Center" justifyContent="Center" direction="Column">
-								<Avatar displaySize="XL" src="./resources/img/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
+								<Avatar displaySize="XL" src="./resources/img/src-images/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
 							</FlexBox>
 							<l:BlockLayoutCell>
 								<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" justifyContent="Center">
 									<!-- core:require https://sapui5.hana.ondemand.com/sdk/#/topic/b11d853a8e784db6b2d210ef57b0f7d7.html -->
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://linkedin.com/in/dev-marco-beier', true)" src="./resources/img/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh" lazyLoading="true"/>
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://xing.com/profile/Marco_Beier8/cv', true)" src="./resources/img/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh" lazyLoading="true"/>
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu', true)" src="./resources/img/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh" lazyLoading="true"/>
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://twitter.com/Wridgeu', true)" src="./resources/img/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh" lazyLoading="true"/>
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://people.sap.com/marcobeier', true)" src="./resources/img/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh" lazyLoading="true"/>
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://linkedin.com/in/dev-marco-beier', true)" src="./resources/img/svg/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh" lazyLoading="true"/>
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://xing.com/profile/Marco_Beier8/cv', true)" src="./resources/img/svg/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh" lazyLoading="true"/>
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu', true)" src="./resources/img/svg/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh" lazyLoading="true"/>
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://twitter.com/Wridgeu', true)" src="./resources/img/svg/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh" lazyLoading="true"/>
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://people.sap.com/marcobeier', true)" src="./resources/img/svg/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh" lazyLoading="true"/>
 								</FlexBox>
 							</l:BlockLayoutCell>
 						</VBox>
@@ -96,7 +96,7 @@
 						<HBox justifyContent="Center">
 							<GenericTile class="keepTileTextColor sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>wikiButtonHeader}" press=".onWiki"
 								subheader="{i18n>wikiButtonSubtitle}"
-								backgroundImage="./resources/img/library.jpg">
+								backgroundImage="./resources/img/webp/library.webp">
 							</GenericTile>
 						</HBox>
 					</l:BlockLayoutCell>

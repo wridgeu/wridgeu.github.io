@@ -40,7 +40,7 @@
 			"title": "Toolbox",
 			"icon": {
                 "shape": "Square",
-				"src": "../resources/img/toolbox.png"
+				"src": "../resources/img/src-images/toolbox.png"
 			}
 		},
 		"content": {
@@ -49,28 +49,28 @@
 					{
 						"Name": "Git",
 						"Description": "Github, Gitlab",
-						"Icon": "../resources/img/giticon.webp",
+						"Icon": "../resources/img/webp/giticon.webp",
 						"Initials": "GIT",
                         "Alt": "Version Control"
 					},
 					{
 						"Name": "Package Managers",
 						"Description": "NPM, Yarn",
-						"Icon": "../resources/img/yarn_logo.png",
+						"Icon": "../resources/img/webp/yarn_logo.webp",
 						"Initials": "NPM",
                         "Alt": "Node Package Manager"
 					},
 					{
 						"Name": "Docker",
 						"Description": "Docker (incl. WSL)",
-						"Icon": "../resources/img/docker.png",
+						"Icon": "../resources/img/src-images/docker.png",
 						"Initials": "D",
                         "Alt": "Containerization"
 					},
 					{
 						"Name": "IDEs",
 						"Description": "VSC, Eclipse, BAS, SE80",
-						"Icon": "../resources/img/vsc.png",
+						"Icon": "../resources/img/webp/vsc.webp",
 						"Initials": "D",
                         "Alt": "Development Environments"
 					}

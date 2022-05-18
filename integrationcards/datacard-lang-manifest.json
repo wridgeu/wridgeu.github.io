@@ -36,7 +36,7 @@
 			"title": "Languages",
 			"icon": {
                 "shape": "Square",
-				"src": "../resources/img/code.png"
+				"src": "../resources/img/src-images/code.png"
 			}
 		},
 		"content": {
@@ -45,21 +45,21 @@
 					{
 						"Name": "ABAP",
 						"Description": "ABAP OO, BOPF, RAP",
-						"Icon": "../resources/img/abap_wand.png",
+						"Icon": "../resources/img/webp/abap_wand.webp",
 						"Initials": "ABAP",
                         "Alt": "Everything around ABAP"
 					},
 					{
 						"Name": "JavaScript/TS",
 						"Description": "WebDev (HTML, CSS)",
-						"Icon": "../resources/img/Logo_JS.svg",
+						"Icon": "../resources/img/svg/Logo_JS.svg",
 						"Initials": "JS",
                         "Alt": "Web-Development"
 					},
 					{
 						"Name": "PHP",
 						"Description": "Symfony, Doctrine, Twig",
-						"Icon": "../resources/img/php_logo.png",
+						"Icon": "../resources/img/webp/php_logo.webp",
                         "Initials": "PHP",
                         "Alt": "PHP"
 					}
