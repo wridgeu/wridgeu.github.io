@@ -50287,7 +50287,7 @@ sap.ui.define(['exports'], (function (exports) { 'use strict';
     	  // keywords with less than 3 letters are reduced in relevancy
     	  function reduceRelevancy(list, {
     	    exceptions, when
-    	  }) {
+    	  } = {}) {
     	    const qualifyFn = when;
     	    exceptions = exceptions || [];
     	    return list.map((item) => {
