@@ -44,15 +44,14 @@
 	border-top: 0.125rem solid @sapUiListTableFooterBorder;
 }
 
-/* Moved due to new default vertical-align regardless of density */
-.sapMListTblNavCol,
-.sapMListTblCell {
-  vertical-align: top;
-}
-
-.sapUiSizeCompact{
-  .sapMListTblNavCol,
-  .sapMListTblCell {
-    vertical-align: middle;
-  }
+/* overwrite text control styles */
+.sapUiSizeCompact .sapMListTblCell {
+	.sapMLnk,
+	.sapMText,
+	.sapMLabel,
+	.sapMObjectNumber,
+	.sapMObjectIdentifier,
+	.sapMObjStatus {
+		line-height: 1.5rem;
+	}
 }

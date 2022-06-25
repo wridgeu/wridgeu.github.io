@@ -205,7 +205,6 @@ html.sap-desktop .sapMDialog {
 
 .sapMDialog > header.sapMDialogTitle .sapMTitle {
 	color: @sapUiPageHeaderTextColor;
-	margin: 0;
 	vertical-align: middle;
 }
 
@@ -218,7 +217,6 @@ html.sap-desktop .sapMDialog {
 
 .sapMDialog > header.sapMDialogTitle .sapMDialogIcon.sapUiIcon {
 	font-size: 1.25rem;
-	margin-right: 0.5rem;
 	vertical-align: middle;
 }
 
@@ -345,6 +343,12 @@ html.sap-desktop .sapMDialog {
 	min-height: @_sap_m_Dialog_BarHeight;
 	padding-bottom: @_sap_m_Dialog_BarHeight;
 	padding-top: @_sap_m_Dialog_BarHeight;
+
+	footer {
+		.sapMTB.sapMFooter-CTX {
+			border-bottom: none;
+		}
+	}
 
 	&.sapMDialog-NoFooter {
 		padding-bottom: 0;

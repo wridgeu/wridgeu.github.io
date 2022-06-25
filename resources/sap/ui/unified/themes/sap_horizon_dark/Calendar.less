@@ -137,6 +137,7 @@ html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:active {
 	color: @sapUiBaseText;
 	background-color: @sapUiListBackground;
 	border-color: @sapUiListBorderColor;
+	border-radius: 0.5rem;
 }
 
 .sapUiCalItemNow {
@@ -152,14 +153,6 @@ html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:active {
 
 html.sap-desktop .sapUiCalItem:not(.sapUiCalItemSel):not(.sapUiCalItemWeekEnd):focus {
 	background-color: @sapUiLegendWorkingBackground;
-}
-
-/* hover and focus makes only sense on desktops. On mobile devices it's not needed */
-html.sap-desktop .sapUiCalDatesRow .sapUiCalItem:not(.sapUiCalItemSel):hover,
-html.sap-desktop .sapUiCalMonthPicker .sapUiCalItem:not(.sapUiCalItemSel):not(.sapUiCalItemSelBetween):hover,
-html.sap-desktop .sapUiCalYearPicker .sapUiCalItem:not(.sapUiCalItemSel):not(.sapUiCalItemSelBetween):hover,
-html.sap-desktop .sapUiCal:not(.sapUiCalDateInt) .sapUiCalItem:not(.sapUiCalItemSel) :not(.sapUiCalWeekNum):hover {
-	background-color: @sapUiListHoverBackground;
 }
 
 html.sap-desktop .sapUiCalItem.sapUiCalItemNow:not(.sapUiCalItemSelBetween):not(.sapUiCalItemSelStart):not(.sapUiCalItemSelEnd):focus > .sapUiCalItemText{
@@ -233,6 +226,8 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 html.sap-desktop .sapUiCalItemWeekEnd:not(.sapUiCalItemSel):focus {
 	background-color: @sapUiLegendNonWorkingBackground;
 }
+
+.sapUiCalItem:hover,
 .sapUiCalItemWeekEnd:hover {
 	background-color: @sapUiListHoverBackground;
 }
@@ -293,9 +288,9 @@ html.sap-desktop .sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetw
 				border: 0.0625rem solid @sapUiListSelectionBorderColor;
 				border-radius: 0.3125rem;
 				margin: 0.125rem;
-				width: 1.5625rem;
-				height: 1.5rem;
-				line-height: 1.4375rem;
+				width: 1.75rem;
+				height: 2.375rem;
+				line-height: 2.375rem;
 				top: 0.0625rem;
 			}
 		}
@@ -541,6 +536,11 @@ html.sap-desktop .sapUiCalItemSelBetween:focus:not(:hover){
 	color: @sapUiContentSelectedTextColor;
 }
 
+/* Day names inside day */
+.sapUiCalNoNameLine .sapUiCalItem > .sapUiCalItemText {
+	padding-top: 0.75rem;
+}
+
 /*** compact mode (desktop size) ***/
 
 .sapUiSizeCompact .sapUiCalItemNow:not(.sapUiCalItemSelBetween) > .sapUiCalItemText {
@@ -567,6 +567,12 @@ html.sap-desktop .sapUiCalItemSelBetween:focus:not(:hover){
 	.sapUiCalHead > button {
 		margin: 0.1875rem 0;
 		height: 1.625rem;
+	}
+
+	.sapUiCalItem.sapUiCalItemNow.sapUiCalItemSelBetween > .sapUiCalItemText {
+		width: 1.5625rem;
+		height: 1.5rem;
+		line-height: 1.4375rem;
 	}
 }
 

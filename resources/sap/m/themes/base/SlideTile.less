@@ -17,6 +17,7 @@
 		position: relative;
 		height: 100%;
 		width: 100%;
+		border-radius: 0.23rem 0.23rem 0.25rem 0.25rem;
 	}
 
 	&.sapMSTScopeActions {
@@ -29,6 +30,13 @@
 			z-index: 1;
 			color: @sapUiButtonIconColor;
 			pointer-events: none;
+			background-color: transparent;
+			border: 0;
+			.sapMBtnIcon{
+				bottom: 0.6rem;
+				left: 0.9rem;
+				border: 0;
+			}
 			&:focus {
 				outline: none;
 			}
@@ -86,6 +94,17 @@
 				bottom: -0.6875rem;
 				left: -0.6875rem;
 				right: -0.0625rem;
+			}
+		}
+	}
+}
+
+.sapUiSizeCompact{
+	.sapMST {
+		.sapMSTMoreIcon {
+			.sapMBtnIcon{
+				left: 0.3rem;
+				bottom: 0.4rem;
 			}
 		}
 	}
