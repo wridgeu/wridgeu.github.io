@@ -747,8 +747,6 @@ sap.ui.define((function () { 'use strict';
       };
     }
 
-    var css_1 = css;
-
-    return css_1;
+    return css;
 
 }));

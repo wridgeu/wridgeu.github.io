@@ -746,8 +746,6 @@ sap.ui.define((function () { 'use strict';
       };
     }
 
-    var javascript_1 = javascript;
-
-    return javascript_1;
+    return javascript;
 
 }));

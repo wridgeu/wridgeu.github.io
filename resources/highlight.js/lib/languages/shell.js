@@ -12,6 +12,14 @@ sap.ui.define((function () { 'use strict';
         globalThis.process = { env:env };
     })();
 
+    /*
+    Language: Shell Session
+    Requires: bash.js
+    Author: TSUYUSATO Kitsune <make.just.on@gmail.com>
+    Category: common
+    Audit: 2020
+    */
+
     /** @type LanguageFn */
     function shell(hljs) {
       return {
@@ -36,8 +44,6 @@ sap.ui.define((function () { 'use strict';
       };
     }
 
-    var shell_1 = shell;
-
-    return shell_1;
+    return shell;
 
 }));

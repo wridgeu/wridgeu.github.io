@@ -94,7 +94,7 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<HBox justifyContent="Center">
-							<GenericTile class="keepTileTextColor sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>wikiButtonHeader}" press=".onWiki"
+							<GenericTile class="tile-text-color tile-image-position sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>wikiButtonHeader}" press=".onWiki"
 								subheader="{i18n>wikiButtonSubtitle}"
 								backgroundImage="./resources/img/webp/library.webp">
 							</GenericTile>

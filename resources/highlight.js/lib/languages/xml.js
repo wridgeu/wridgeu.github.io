@@ -12,6 +12,13 @@ sap.ui.define((function () { 'use strict';
         globalThis.process = { env:env };
     })();
 
+    /*
+    Language: HTML, XML
+    Website: https://www.w3.org/XML/
+    Category: common, web
+    Audit: 2020
+    */
+
     /** @type LanguageFn */
     function xml(hljs) {
       const regex = hljs.regex;
@@ -238,8 +245,6 @@ sap.ui.define((function () { 'use strict';
       };
     }
 
-    var xml_1 = xml;
-
-    return xml_1;
+    return xml;
 
 }));

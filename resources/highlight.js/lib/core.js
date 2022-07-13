@@ -1,4 +1,4 @@
-sap.ui.define((function () { 'use strict';
+sap.ui.define(['exports'], (function (exports) { 'use strict';
 
     (function() {
         const env = {"NODE_ENV":"production"};
@@ -2571,6 +2571,9 @@ sap.ui.define((function () { 'use strict';
     highlight.HighlightJS = highlight;
     highlight.default = highlight;
 
-    return core;
+    exports.HighlightJS = core;
+    exports["default"] = core;
+
+    Object.defineProperty(exports, '__esModule', { value: true });
 
 }));

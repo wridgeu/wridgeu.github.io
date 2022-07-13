@@ -37,7 +37,8 @@
         "1.25.0",
         "1.26.0",
         "1.27.0",
-        "1.28.0"
+        "1.28.0",
+        "1.29.0"
       ]
     },
     "designtime": {
@@ -1219,6 +1220,10 @@
           "items": {
             "$ref": "#/definitions/action"
           }
+        },
+        "hasData": {
+          "description": "Represents flag for no data",
+          "type": "string"
         }
       }
     },
@@ -1282,6 +1287,8 @@
                 "NumericData",
                 "Status",
                 "IconGroup",
+                "ComboBox",
+                "TextArea",
                 "phone",
                 "email",
                 "link",
@@ -1394,6 +1401,41 @@
         "state": {
           "description": "The state color of the item",
           "$ref": "#/definitions/state"
+        },
+        "id": {
+          "description": "ID for input fields",
+          "type": "string"
+        },
+        "selectedKey": {
+          "description": "Defines the initially selected key from the given options for ComboBox.",
+          "type": "string"
+        },
+        "placeholder": {
+          "description": "Placeholder for input fields",
+          "type": "string"
+        },
+        "rows": {
+          "description": "Property rows for TextArea",
+          "type": "number"
+        },
+        "item": {
+          "type": "object",
+          "description": "Binding info for ComboBox items",
+          "required": [
+            "template"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "template": {
+              "$ref": "#/definitions/ContentType.Object.Item.ComboBoxItemTemplate"
+            },
+            "path": {
+              "description": "Defines the path to the structure holding the data about the items",
+              "type": "string",
+              "default": "/",
+              "pattern": "^[a-zA-Z0-9_\\.\\-/|@#]*$"
+            }
+          }
         }
       }
     },
@@ -1492,6 +1534,21 @@
         "alt": {
           "type": "string",
           "description": "Represents text that will be displayed as a tooltip"
+        }
+      }
+    },
+    "ContentType.Object.Item.ComboBoxItemTemplate": {
+      "description": "Template for combo box items",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "description": "The title of the option",
+          "type": "string"
+        },
+        "key": {
+          "description": "The unique key of the option. Mapped to the input's value",
+          "type": "string"
         }
       }
     },

@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.103.0"
+      "version": "1.104.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -22,17 +22,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.103",
+      "minUI5Version": "1.104",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.103.0"
+          "minVersion": "1.104.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.103.0",
+          "minVersion": "1.104.0",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.103.0",
+          "minVersion": "1.104.0",
           "lazy": true
         }
       }
@@ -334,6 +334,7 @@
           "sap.m.UploadCollectionParameter",
           "sap.m.upload.Uploader",
           "sap.m.upload.UploadSetItem",
+          "sap.m.VariantItem",
           "sap.m.ViewSettingsCustomItem",
           "sap.m.ViewSettingsCustomTab",
           "sap.m.ViewSettingsFilterItem",
@@ -424,6 +425,7 @@
           "sap.m.LabelDesign",
           "sap.m.LightBoxLoadingStates",
           "sap.m.LinkConversion",
+          "sap.m.LinkAccessibleRole",
           "sap.m.ListGrowingDirection",
           "sap.m.ListHeaderDesign",
           "sap.m.ListKeyboardMode",

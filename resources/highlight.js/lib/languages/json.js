@@ -12,6 +12,14 @@ sap.ui.define((function () { 'use strict';
         globalThis.process = { env:env };
     })();
 
+    /*
+    Language: JSON
+    Description: JSON (JavaScript Object Notation) is a lightweight data-interchange format.
+    Author: Ivan Sagalaev <maniac@softwaremaniacs.org>
+    Website: http://www.json.org
+    Category: common, protocols, web
+    */
+
     function json(hljs) {
       const ATTRIBUTE = {
         className: 'attr',
@@ -49,8 +57,6 @@ sap.ui.define((function () { 'use strict';
       };
     }
 
-    var json_1 = json;
-
-    return json_1;
+    return json;
 
 }));
