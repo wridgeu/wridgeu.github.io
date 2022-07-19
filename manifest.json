@@ -5,7 +5,7 @@
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
-			"version": "1.20.2"
+			"version": "1.21.0"
 		},
 		"serviceWorker": {
             "file" : "sw.js",

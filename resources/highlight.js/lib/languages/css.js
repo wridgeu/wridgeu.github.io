@@ -695,6 +695,7 @@ sap.ui.define((function () { 'use strict';
                 relevance: 0, // from keywords
                 keywords: { built_in: "url data-uri" },
                 contains: [
+                  ...STRINGS,
                   {
                     className: "string",
                     // any character other than `)` as in `url()` will be the start

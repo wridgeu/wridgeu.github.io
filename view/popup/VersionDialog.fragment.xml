@@ -1,0 +1,19 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog id="VersionDialog" title="{i18n>UI5VerDlgTitle}" verticalScrolling="false" horizontalScrolling="false">
+        <FlexBox class="sapUiSmallMarginTopBottom" justifyContent="Center">
+            <FlexBox direction="Column">
+                <FlexBox>
+                    <Label text="{i18n>UI5Ver}" />
+                    <Text renderWhitespace="true" text=" {versionInfo>/version}" />
+                </FlexBox>
+                <FlexBox>
+                    <Label text="{i18n>Versionname}" />
+                    <Text renderWhitespace="true" text=" {versionInfo>/name}" />
+                </FlexBox>
+            </FlexBox>
+        </FlexBox>
+        <endButton>
+            <Button text="{i18n>UI5VerDlgClose}" press=".onCloseDialog" />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>
