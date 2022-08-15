@@ -10,12 +10,12 @@
 				<Text class="sapUiLargeMarginTopBottom" text="{i18n>ui5conintroduction}" textAlign="Center"></Text>
 			</HBox>
 			<FlexBox fitContainer="true" justifyContent="Center" renderType="Bare" width="100%" wrap="Wrap">
-				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/_DSC7836.jpg" width="45%"/>
-				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/_DSC7837.jpg" width="45%"/>
-				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/_DSC7840.jpg" width="45%"/>
-				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/_DSC7844.jpg" width="45%"/>
-				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/_DSC7839.jpg" width="45%"/>
-				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/_DSC7857.jpg" width="45%"/>
+				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC7836.jpg" width="45%"/>
+				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC7837.jpg" width="45%"/>
+				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC7840.jpg" width="45%"/>
+				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC7844.jpg" width="45%"/>
+				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC7839.jpg" width="45%"/>
+				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC7857.jpg" width="45%"/>
 				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC03115.jpg" width="45%"/>
 				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC03117.jpg" width="45%"/>
 				<Image class="sapUiTinyMarginTopBottom sapUiTinyMarginBeginEnd" src="resources/img/ui5con22/DSC03120.jpg" width="45%"/>
