@@ -1,46 +1,37 @@
-<mvc:View controllerName="sapmarco.projectpages.controller.Home" displayBlock="true" 
-	xmlns="sap.m" 
-	xmlns:l="sap.ui.layout" 
-	xmlns:core="sap.ui.core" 
-	xmlns:mvc="sap.ui.core.mvc"
-	xmlns:w="sap.ui.integration.widgets"
-	core:require="{ sapMLib: 'sap/m/library' }">
+<mvc:View controllerName="sapmarco.projectpages.controller.Home" displayBlock="true" xmlns="sap.m" xmlns:l="sap.ui.layout" xmlns:core="sap.ui.core" xmlns:mvc="sap.ui.core.mvc" xmlns:w="sap.ui.integration.widgets" core:require="{ sapMLib: 'sap/m/library' }">
 	<Page showHeader="false">
 		<content>
 			<l:BlockLayout>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
-						<VBox>	
+						<VBox>
 							<FlexBox alignItems="Center" alignContent="Center" justifyContent="Center" direction="Column">
-								<Avatar displaySize="XL" src="./resources/img/src-images/myself.jpg" fallbackIcon="sap-icon://person-placeholder"/>
+								<Avatar displaySize="XL" src="./resources/img/src-images/myself.jpg" fallbackIcon="sap-icon://person-placeholder" />
 							</FlexBox>
 							<l:BlockLayoutCell>
 								<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" justifyContent="Center">
 									<!-- core:require https://sapui5.hana.ondemand.com/sdk/#/topic/b11d853a8e784db6b2d210ef57b0f7d7.html -->
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://linkedin.com/in/dev-marco-beier', true)" src="./resources/img/svg/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh" lazyLoading="true"/>
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://xing.com/profile/Marco_Beier8/cv', true)" src="./resources/img/svg/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh" lazyLoading="true"/>
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu', true)" src="./resources/img/svg/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh" lazyLoading="true"/>
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://twitter.com/Wridgeu', true)" src="./resources/img/svg/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh" lazyLoading="true"/>
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://people.sap.com/marcobeier', true)" src="./resources/img/svg/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh" lazyLoading="true"/>
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://linkedin.com/in/dev-marco-beier', true)" src="./resources/img/svg/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh" lazyLoading="true" />
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://xing.com/profile/Marco_Beier8/cv', true)" src="./resources/img/svg/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh" lazyLoading="true" />
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu', true)" src="./resources/img/svg/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh" lazyLoading="true" />
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://twitter.com/Wridgeu', true)" src="./resources/img/svg/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh" lazyLoading="true" />
+									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://people.sap.com/marcobeier', true)" src="./resources/img/svg/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh" lazyLoading="true" />
 								</FlexBox>
 							</l:BlockLayoutCell>
 						</VBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
-
-				</l:BlockLayoutRow>
-				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<FlexBox class="setMiddle" width="100%">
-							<Text class="text" text="{i18n>introText}"/>
+							<Text class="text" text="{i18n>introText}" />
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow class="setMiddle" id="cVRow">
 					<l:BlockLayoutCell>
 						<FlexBox width="100%">
-							<Text class="text" text="{i18n>mainText}"/>
+							<Text class="text" text="{i18n>mainText}" />
 						</FlexBox>
 					</l:BlockLayoutCell>
 					<l:BlockLayoutCell>
@@ -48,17 +39,17 @@
 							<FlexBox justifyContent="Center">
 								<Tree items="{path: 'cv>/', parameters:{arrayNames: ['nodes']}}">
 									<CustomTreeItem>
-										<Text renderWhitespace="true" text="{cv>description}"/>
-										<Link href="{cv>website}" text="{cv>company}" target="_blank"/>
-										<Label text="{cv>position}"/>
+										<Text renderWhitespace="true" text="{cv>description}" />
+										<Link href="{cv>website}" text="{cv>company}" target="_blank" />
+										<Label text="{cv>position}" />
 										<FlexBox direction="Column">
 											<FlexBox>
-												<Text renderWhitespace="true" text="{cv>textTo}"/>
-												<Label text="{cv>to}"/>
+												<Text renderWhitespace="true" text="{cv>textTo}" />
+												<Label text="{cv>to}" />
 											</FlexBox>
 											<FlexBox>
-												<Text renderWhitespace="true" text="{cv>textFrom}"/>
-												<Label text="{cv>from}"/>
+												<Text renderWhitespace="true" text="{cv>textFrom}" />
+												<Label text="{cv>from}" />
 											</FlexBox>
 										</FlexBox>
 									</CustomTreeItem>
@@ -70,34 +61,32 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<FlexBox class="sapUiLargeMarginTop setMiddle" width="100%" direction="Column" alignItems="Center">
-							<Text class="title" text="{i18n>sectionSkills}"/>
-							<Text text="{i18n>roughOverview}"/>
+							<Text class="title" text="{i18n>sectionSkills}" />
+							<Text text="{i18n>roughOverview}" />
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell id="integrationcards-container">
-						<FlexBox wrap="Wrap" justifyContent="Center" alignItems="Center" >
-							<w:Card class="integrationcard" manifest="./integrationcards/datacard-sap-manifest.json" width="250px" height="auto"/>
-							<w:Card class="integrationcard" manifest="./integrationcards/datacard-tools-manifest.json" width="250px" height="auto"/>
-							<w:Card class="integrationcard" manifest="./integrationcards/datacard-lang-manifest.json" width="250px" height="auto"/>
+						<FlexBox wrap="Wrap" justifyContent="Center" alignItems="Center">
+							<w:Card class="integrationcard" manifest="./integrationcards/datacard-sap-manifest.json" width="250px" height="auto" />
+							<w:Card class="integrationcard" manifest="./integrationcards/datacard-tools-manifest.json" width="250px" height="auto" />
+							<w:Card class="integrationcard" manifest="./integrationcards/datacard-lang-manifest.json" width="250px" height="auto" />
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<HBox justifyContent="Center">
-							<Text class="title" text="{i18n>wiki}"/>
+							<Text class="title" text="{i18n>misc}" />
 						</HBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<HBox justifyContent="Center">
-							<GenericTile class="tile-text-color tile-image-position sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>wikiButtonHeader}" press=".onWiki"
-								subheader="{i18n>wikiButtonSubtitle}"
-								backgroundImage="./resources/img/webp/library.webp">
-							</GenericTile>
+							<GenericTile class="tile-text-color tile-image-position sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>wikiButtonHeader}" press=".onWiki" subheader="{i18n>wikiButtonSubtitle}" backgroundImage="./resources/img/webp/library.webp"></GenericTile>
+							<GenericTile class="sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>ui5ConButtonHeader}" press=".onUI5con" subheader="{i18n>ui5ConButtonSubtitle}" backgroundImage="./resources/img/webp/UI5con-Black.webp"></GenericTile>
 						</HBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
@@ -105,15 +94,15 @@
 		</content>
 		<footer>
 			<Toolbar id="footerToolbar" design="Solid">
-				<core:Icon src="sap-icon://lightbulb" class="size2" press=".onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
-				<ToolbarSpacer/>
+				<core:Icon src="sap-icon://lightbulb" class="size2" press=".toggleTheme" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}" />
+				<ToolbarSpacer />
 				<Text class="footerText" text="{i18n>footerText}">
 					<layoutData>
-						<ToolbarLayoutData shrinkable="true"/>
+						<ToolbarLayoutData shrinkable="true" />
 					</layoutData>
 				</Text>
-				<ToolbarSpacer/>
-				<core:Icon src="sap-icon://sap-ui5" class="size2" press=".onUI5IconPress" alt="UI5 Version" tooltip="{i18n>versionInfoTooltip}"/>
+				<ToolbarSpacer />
+				<core:Icon src="sap-icon://sap-ui5" class="size2" press=".onUI5IconPress" alt="UI5 Version" tooltip="{i18n>versionInfoTooltip}" />
 			</Toolbar>
 		</footer>
 	</Page>

@@ -4,7 +4,7 @@
     xmlns:core="sap.ui.core" 
     xmlns:mvc="sap.ui.core.mvc"
 	core:require="{ sapMLib: 'sap/m/library' }">
-    <Page id="wikiPage" showHeader="true" showNavButton="true" navButtonPress=".onBackHome" title="{convertedmarkdown>/title}" titleAlignment="Center" navButtonTooltip="back to main page">
+    <Page id="wikiPage" showHeader="true" showNavButton="true" navButtonPress=".onNavBack" title="{convertedmarkdown>/title}" titleAlignment="Center" navButtonTooltip="{i18n>navButtonBackTooltip}">
         <headerContent>
             <Button visible="{= ${convertedmarkdown>/edit} ? true : false }" icon="sap-icon://edit" iconFirst="false" tooltip="{i18n>sourceTooltipEdit}" text="{i18n>sourceEdit}" press="sapMLib.URLHelper.redirect( ${convertedmarkdown>/edit}, true)"  />
 

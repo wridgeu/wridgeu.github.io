@@ -49,7 +49,7 @@
 			"id": "app"
 		},
 		"dependencies": {
-			"minUI5Version": "1.104.0",
+			"minUI5Version": "1.105.0",
 			"libs": {
 				"sap.m": {},
 				"sap.ui.core": {},
@@ -111,6 +111,13 @@
 					"target": [
 						"TargetWiki"
 					]
+				},
+				{
+					"name": "RouteUI5Con",
+					"pattern": "UI5Con2022",
+					"target": [
+						"TargetUI5Con"
+					]
 				}
 			],
 			"targets": {
@@ -125,6 +132,12 @@
 					"viewId": "Wiki",
 					"viewLevel": 2,
 					"viewName": "Wiki"
+				},
+				"TargetUI5Con": {
+					"viewType": "XML",
+					"viewId": "UI5Con",
+					"viewLevel": 2,
+					"viewName": "UI5Con"
 				}
 			}
 		}

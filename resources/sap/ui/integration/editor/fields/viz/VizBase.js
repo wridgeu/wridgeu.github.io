@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/Control","sap/m/SegmentedButton","sap/m/SegmentedButtonItem","sap/base/util/merge"],function(t,e,o,i){"use strict";var n=t.extend("sap.ui.integration.editor.fields.viz.VizBase",{metadata:{library:"sap.ui.integration",properties:{value:{type:"string",defaultValue:""},editable:{type:"boolean",defaultValue:true}},aggregations:{_control:{type:"sap.ui.core.Control",multiple:false,visibility:"hidden"}}},renderer:function(t,e){var o=e.getAggregation("_control");t.openStart("div");e.applyStyle(t);t.writeElementData(e);t.openEnd();t.renderControl(o);t.close("div")}});n.prototype.init=function(){this.onInit();this.setAggregation("_control",this._oControl)};n.prototype.bindProperty=function(e,o){t.prototype.bindProperty.apply(this,arguments);this.bindPropertyToControl(e,o);return this};n.prototype.onInit=function(){};n.prototype.applyStyle=function(t){};n.prototype.bindPropertyToControl=function(t,e){if(t==="value"){var o=i({},e);this._oControl.bindProperty("value",o)}if(t==="editable"){var o=i({},e);this._oControl.bindProperty("editable",o)}};return n});
