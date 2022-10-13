@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.105.0</version>
+  <version>1.107.0</version>
 
   <documentation>SAPUI5 library with integration-related controls.</documentation>
 
@@ -37,11 +37,6 @@
         <raw-module name="sap/ui/integration/sap-ui-integration-define-nojQuery.js" depends="ui5loader-autoconfig.js" />
       </module-infos>
       <all-in-one>
-        <!-- ===========================================================================
-             !! ATTENTION !!
-             The following excludes must be kept in sync with those configured for the
-             'preload-and-merge' plugin execution in the pom.xml of the wrapper library.
-             =========================================================================== -->
         <exclude name="sap/ui/integration/thirdparty/" />
         <exclude name="sap/ui/integration/designtime/thirdparty/" />
       </all-in-one>

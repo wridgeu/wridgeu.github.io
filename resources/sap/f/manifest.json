@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.105.0"
+      "version": "1.107.0"
     },
     "title": "SAPUI5 library with Fiori controls.",
     "description": "SAPUI5 library with Fiori controls.",
@@ -22,16 +22,16 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.105",
+      "minUI5Version": "1.107",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.105.0"
+          "minVersion": "1.107.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.105.0"
+          "minVersion": "1.107.0"
         },
         "sap.m": {
-          "minVersion": "1.105.0"
+          "minVersion": "1.107.0"
         }
       }
     },
@@ -114,6 +114,7 @@
           "sap.f.ProductSwitch",
           "sap.f.ProductSwitchItem",
           "sap.f.ShellBar",
+          "sap.f.SidePanel",
           "sap.f.Illustration"
         ],
         "elements": [
@@ -143,7 +144,8 @@
           "sap.f.semantic.SendMessageAction",
           "sap.f.semantic.ShareInJamAction",
           "sap.f.semantic.TitleMainAction",
-          "sap.f.SearchManager"
+          "sap.f.SearchManager",
+          "sap.f.SidePanelItem"
         ],
         "types": [
           "sap.f.AvatarImageFitType",

@@ -5,13 +5,20 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.105.0"
+      "version": "1.107.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "ach": "CA-UI5-CTR",
     "resources": "resources.json",
-    "offline": true
+    "offline": true,
+    "openSourceComponents": [
+      {
+        "name": "DOMPurify",
+        "packagedWithMySelf": true,
+        "version": "2.3.8"
+      }
+    ]
   },
   "sap.ui": {
     "technology": "UI5",
@@ -22,17 +29,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.105",
+      "minUI5Version": "1.107",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.105.0"
+          "minVersion": "1.107.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.105.0",
+          "minVersion": "1.107.0",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.105.0",
+          "minVersion": "1.107.0",
           "lazy": true
         }
       }
@@ -97,6 +104,8 @@
           "sap.m.ActionListItem",
           "sap.m.ActionSelect",
           "sap.m.ActionSheet",
+          "sap.m.ActionTile",
+          "sap.m.ActionTileContent",
           "sap.m.App",
           "sap.m.Avatar",
           "sap.m.Bar",
@@ -113,6 +122,7 @@
           "sap.m.ComboBox",
           "sap.m.ComboBoxTextField",
           "sap.m.ComboBoxBase",
+          "sap.m.CustomAttribute",
           "sap.m.CustomListItem",
           "sap.m.CustomTile",
           "sap.m.CustomTreeItem",
@@ -481,6 +491,7 @@
           "sap.m.WrappingType",
           "sap.m.WizardRenderMode",
           "sap.m.semantic.SemanticRuleSetType",
+          "sap.m.table.columnmenu.Category",
           "sap.m.upload.UploaderHttpRequestMethod"
         ],
         "interfaces": [
