@@ -84,7 +84,7 @@ sap.ui.define((function () { 'use strict';
         end: /'/
       };
       const ARITHMETIC = {
-        begin: /\$\(\(/,
+        begin: /\$?\(\(/,
         end: /\)\)/,
         contains: [
           {

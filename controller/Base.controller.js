@@ -1,1 +1,41 @@
-sap.ui.define(["sap/ui/core/Core","sap/ui/core/mvc/Controller","sap/ui/core/routing/History","sap/ui/core/UIComponent","../classes/VersionDialog"],function(e,o,t,n,i){function s(e){return e&&e.__esModule&&typeof e.default!=="undefined"?e.default:e}const r=s(i);const a=o.extend("sapmarco.projectpages.controller.BaseController",{constructor:function e(){o.prototype.constructor.apply(this,arguments);this._sLightTheme="sap_horizon";this._sDarkTheme="sap_horizon_dark"},toggleTheme:function o(){if(e.getConfiguration().getTheme()===this._sLightTheme){e.applyTheme(this._sDarkTheme)}else{e.applyTheme(this._sLightTheme)}},navTo:function e(o,t,n,i){this.getRouter().navTo(o,t,n,i)},getRouter:function e(){return n.getRouterFor(this)},openVersionDialog:async function e(o){await new r(o).open()},onNavBack:function e(){const o=t.getInstance().getPreviousHash();if(o!==undefined){window.history.back()}else{this.getRouter().navTo("RouteMain",{},{},true)}}});return a});
+sap.ui.define(["sap/ui/core/Core", "sap/ui/core/mvc/Controller", "sap/ui/core/routing/History", "sap/ui/core/UIComponent", "../classes/VersionDialog"], function (Core, Controller, History, UIComponent, __VersionDialog) {
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
+  }
+  const VersionDialog = _interopRequireDefault(__VersionDialog);
+  /**
+   * @namespace sapmarco.projectpages.controller
+   */
+  const BaseController = Controller.extend("sapmarco.projectpages.controller.BaseController", {
+    constructor: function constructor() {
+      Controller.prototype.constructor.apply(this, arguments);
+      this._sLightTheme = "sap_horizon";
+      this._sDarkTheme = "sap_horizon_dark";
+    },
+    toggleTheme: function _toggleTheme() {
+      if (Core.getConfiguration().getTheme() === this._sLightTheme) {
+        Core.applyTheme(this._sDarkTheme);
+      } else {
+        Core.applyTheme(this._sLightTheme);
+      }
+    },
+    navTo: function _navTo(psTarget, pmParameters, targetInfo, pbReplace) {
+      this.getRouter().navTo(psTarget, pmParameters, targetInfo, pbReplace);
+    },
+    getRouter: function _getRouter() {
+      return UIComponent.getRouterFor(this);
+    },
+    openVersionDialog: async function _openVersionDialog(view) {
+      await new VersionDialog(view).open();
+    },
+    onNavBack: function _onNavBack() {
+      const sPreviousHash = History.getInstance().getPreviousHash();
+      if (sPreviousHash !== undefined) {
+        window.history.back();
+      } else {
+        this.getRouter().navTo("RouteMain", {}, {}, true /*no history*/);
+      }
+    }
+  });
+  return BaseController;
+});

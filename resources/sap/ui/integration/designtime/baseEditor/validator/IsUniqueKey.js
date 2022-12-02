@@ -3,4 +3,4 @@
  * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/util/includes"],function(e){"use strict";return{async:false,errorMessage:"BASE_EDITOR.VALIDATOR.DUPLICATE_KEY",validate:function(n,r){return r.currentKey===undefined||!e(r.keys,n)||n===undefined||n===r.currentKey}}});
+sap.ui.define([],function(){"use strict";return{async:false,errorMessage:"BASE_EDITOR.VALIDATOR.DUPLICATE_KEY",validate:function(e,n){return n.currentKey===undefined||!n.keys.includes(e)||e===undefined||e===n.currentKey}}});

@@ -105,9 +105,13 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 }
 
 .sapMListTblSubCntSpr,
-.sapMListTblSubCntHdr,
 .sapMListTblSubCntVal {
-	display: inline-flex;
+    display: inline;
+}
+
+// the header could have a FlexBox control which will occupy 100% width, thus corrupting the popin layout
+.sapMListTblSubCntHdr {
+    display: inline-flex;
 }
 
 .sapMListTblSubCntValBlock {
@@ -172,6 +176,7 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 /* Ensuring that the row height is not smaller that 3rem in Cozy mode */
 .sapMListTblRow {
 	height: @sapUiElementLineHeight;
+	position: static; /* override the position: relative rule of the list item */
 }
 
 .sapMListTblCell.sapMListTblCellNoData {
@@ -218,7 +223,7 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 /* sticky headerToolbar, infoToolbar and column headers */
 .sapMSticky .sapMListTblHeader {
 	position: sticky;
-	z-index: 1;
+	z-index: 2; /* allow controls to have own z-index: 1 */
 }
 
 /* .sapMSticky7 denotes that the headerToolbar, infoToolbar and column headers are sticky */
@@ -252,6 +257,12 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 /* busyIndicator should not block the toolbars if <table> is set busy */
 .sapMSticky > .sapMListTbl > .sapUiLocalBusyIndicator {
 	z-index: 1;
+}
+
+/* define outline for the block layer */
+.sapMListTblCnt > .sapUiBlockLayerOnly:focus {
+	outline: @_sap_m_ListItemBase_Focus_Outline;
+	outline-offset: @_sap_m_ListItemBase_Focus_OffsetWithGap;
 }
 
 /* table footer */
@@ -469,6 +480,9 @@ html[data-sap-ui-browser^='ff'] .sapMTableRowCustomFocus:focus > :not(.sapMListT
 		.sapMObjStatusText {
 			line-height: inherit;
 		}
+	}
+	.sapMFlexItem .sapMText {
+		line-height: inherit;
 	}
 }
 

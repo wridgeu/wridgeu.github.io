@@ -103,7 +103,7 @@ export class Tokenizer {
       return {
         type: 'code',
         raw,
-        lang: cap[2] ? cap[2].trim() : cap[2],
+        lang: cap[2] ? cap[2].trim().replace(this.rules.inline._escapes, '$1') : cap[2],
         text
       };
     }
@@ -365,14 +365,15 @@ export class Tokenizer {
   def(src) {
     const cap = this.rules.block.def.exec(src);
     if (cap) {
-      if (cap[3]) cap[3] = cap[3].substring(1, cap[3].length - 1);
       const tag = cap[1].toLowerCase().replace(/\s+/g, ' ');
+      const href = cap[2] ? cap[2].replace(/^<(.*)>$/, '$1').replace(this.rules.inline._escapes, '$1') : '';
+      const title = cap[3] ? cap[3].substring(1, cap[3].length - 1).replace(this.rules.inline._escapes, '$1') : cap[3];
       return {
         type: 'def',
         tag,
         raw: cap[0],
-        href: cap[2],
-        title: cap[3]
+        href,
+        title
       };
     }
   }
@@ -574,7 +575,7 @@ export class Tokenizer {
         || (cap = this.rules.inline.nolink.exec(src))) {
       let link = (cap[2] || cap[1]).replace(/\s+/g, ' ');
       link = links[link.toLowerCase()];
-      if (!link || !link.href) {
+      if (!link) {
         const text = cap[0].charAt(0);
         return {
           type: 'text',
@@ -629,22 +630,24 @@ export class Tokenizer {
         // Remove extra characters. *a*** -> *a*
         rLength = Math.min(rLength, rLength + delimTotal + midDelimTotal);
 
+        const raw = src.slice(0, lLength + match.index + (match[0].length - rDelim.length) + rLength);
+
         // Create `em` if smallest delimiter has odd char count. *a***
         if (Math.min(lLength, rLength) % 2) {
-          const text = src.slice(1, lLength + match.index + rLength);
+          const text = raw.slice(1, -1);
           return {
             type: 'em',
-            raw: src.slice(0, lLength + match.index + rLength + 1),
+            raw,
             text,
             tokens: this.lexer.inlineTokens(text)
           };
         }
 
         // Create 'strong' if smallest delimiter has even char count. **a***
-        const text = src.slice(2, lLength + match.index + rLength - 1);
+        const text = raw.slice(2, -2);
         return {
           type: 'strong',
-          raw: src.slice(0, lLength + match.index + rLength + 1),
+          raw,
           text,
           tokens: this.lexer.inlineTokens(text)
         };

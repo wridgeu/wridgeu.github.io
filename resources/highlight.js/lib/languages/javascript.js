@@ -216,7 +216,8 @@ sap.ui.define((function () { 'use strict';
             nextChar === "<" ||
             // the , gives away that this is not HTML
             // `<T, A extends keyof T, V>`
-            nextChar === ",") {
+            nextChar === ","
+            ) {
             response.ignoreMatch();
             return;
           }
@@ -234,10 +235,18 @@ sap.ui.define((function () { 'use strict';
           // `<blah />` (self-closing)
           // handled by simpleSelfClosing rule
 
-          // `<From extends string>`
-          // technically this could be HTML, but it smells like a type
           let m;
           const afterMatch = match.input.substring(afterMatchIndex);
+
+          // some more template typing stuff
+          //  <T = any>(key?: string) => Modify<
+          if ((m = afterMatch.match(/^\s*=/))) {
+            response.ignoreMatch();
+            return;
+          }
+
+          // `<From extends string>`
+          // technically this could be HTML, but it smells like a type
           // NOTE: This is ugh, but added specifically for https://github.com/highlightjs/highlight.js/issues/3276
           if ((m = afterMatch.match(/^\s+extends\s+/))) {
             if (m.index === 0) {
@@ -380,6 +389,8 @@ sap.ui.define((function () { 'use strict';
         HTML_TEMPLATE,
         CSS_TEMPLATE,
         TEMPLATE_STRING,
+        // Skip numbers when they are part of a variable name
+        { match: /\$\d+/ },
         NUMBER,
         // This is intentional:
         // See https://github.com/highlightjs/highlight.js/issues/3288
@@ -529,7 +540,8 @@ sap.ui.define((function () { 'use strict';
           /\b/,
           noneOf([
             ...BUILT_IN_GLOBALS,
-            "super"
+            "super",
+            "import"
           ]),
           IDENT_RE$1, regex.lookahead(/\(/)),
         className: "title.function",
@@ -612,6 +624,8 @@ sap.ui.define((function () { 'use strict';
           CSS_TEMPLATE,
           TEMPLATE_STRING,
           COMMENT,
+          // Skip numbers when they are part of a variable name
+          { match: /\$\d+/ },
           NUMBER,
           CLASS_REFERENCE,
           {

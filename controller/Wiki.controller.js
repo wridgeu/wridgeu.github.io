@@ -1,1 +1,66 @@
-sap.ui.define(["../util/githubService","../util/markdownService","./Base.controller","sap/m/ActionListItem","sap/ui/model/json/JSONModel","sap/ui/Device"],function(t,e,i,n,o,s){function a(t){return t&&t.__esModule&&typeof t.default!=="undefined"?t.default:t}const d=t["getSelectedContent"];const c=t["getWikiIndex"];const r=t["getContentEditLink"];const l=e["markdownService"];const h=a(i);const u=h.extend("sapmarco.projectpages.controller.WikiController",{onInit:function t(){this.getView().addStyleClass(this.getOwnerComponent().getContentDensityClass());this._wikiContentModel=new o({markdown:"",title:"",edit:""});this.getView().setModel(this._wikiContentModel,"convertedmarkdown");this.getRouter().getRoute("RouteWiki").attachMatched(this._onRouteMatched.bind(this),this)},onThemeSwap:function t(){this.toggleTheme()},_onRouteMatched:async function t(){await this._initializeSidebar()},_initializeSidebar:async function t(){const e=await c();const i=l.parse(e);const o=[...i.matchAll(/\wiki\/(.*?)\"/g)];o.forEach(t=>{this.byId("sidebar").addItem(new n({text:`${t[1]}`,press:this.onSidebarSelection.bind(this,t[1],this._wikiContentModel,s.system.phone)}))})},onSidebarSelection:function t(e,i,n){void(async()=>{const t=await d(e);const o=r(e);i.setData({markdown:`<div class="container">${l.parse(t)}</div>`,title:e,edit:o});if(n)setTimeout(()=>{this.byId("responsiveSplitter")._activatePage(1)},0);if(this.byId("markdownSection"))this.byId("markdownSection").scrollTo(0,0)})()}});return u});
+sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.controller", "sap/m/ActionListItem", "sap/ui/model/json/JSONModel", "sap/ui/Device"], function (___util_githubService, ___util_markdownService, __BaseController, ActionListItem, JSONModel, Device) {
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
+  }
+  const getSelectedContent = ___util_githubService["getSelectedContent"];
+  const getWikiIndex = ___util_githubService["getWikiIndex"];
+  const getContentEditLink = ___util_githubService["getContentEditLink"];
+  const markdownService = ___util_markdownService["markdownService"];
+  const BaseController = _interopRequireDefault(__BaseController);
+  /**
+   * @namespace sapmarco.projectpages.controller
+   */
+  const WikiController = BaseController.extend("sapmarco.projectpages.controller.WikiController", {
+    onInit: function _onInit() {
+      this.getView().addStyleClass(this.getOwnerComponent().getContentDensityClass());
+      this._wikiContentModel = new JSONModel({
+        markdown: "",
+        title: "",
+        edit: ""
+      });
+      this.getView().setModel(this._wikiContentModel, "convertedmarkdown");
+      this.getRouter().getRoute("RouteWiki").attachMatched(this._onRouteMatched.bind(this), this);
+    },
+    onThemeSwap: function _onThemeSwap() {
+      this.toggleTheme();
+    },
+    _onRouteMatched: async function _onRouteMatched() {
+      await this._initializeSidebar();
+    },
+    _initializeSidebar: async function _initializeSidebar() {
+      //get sidebar from actual github-wiki
+      const wikiIndex = await getWikiIndex();
+      //parse markdown to html
+      const parsedMarkdown = markdownService.parse(wikiIndex);
+      const matches = [...parsedMarkdown.matchAll(/\wiki\/(.*?)\"/g)];
+      matches.forEach(element => {
+        this.byId("sidebar").addItem(new ActionListItem({
+          text: `${element[1]}`,
+          press: this.onSidebarSelection.bind(this, element[1], this._wikiContentModel, Device.system.phone)
+        }));
+      });
+    },
+    onSidebarSelection: function _onSidebarSelection(sMarkdownFileName, jsonModel, isOpenedOnPhone) {
+      // fix eslint issue in press event handler of ActionListItem:
+      // see: https://stackoverflow.com/a/63488201
+      // also: https://typescript-eslint.io/rules/no-floating-promises/
+      void (async () => {
+        //get markdown page and encode - to %20
+        const markdownPage = await getSelectedContent(sMarkdownFileName);
+        const editLink = getContentEditLink(sMarkdownFileName);
+        jsonModel.setData({
+          markdown: `<div class="container">${markdownService.parse(markdownPage)}</div>`,
+          title: sMarkdownFileName,
+          edit: editLink
+        });
+
+        //improve UX by always starting at the top when opening up new content & jumping to new pane
+        if (isOpenedOnPhone) setTimeout(() => {
+          this.byId("responsiveSplitter")._activatePage(1);
+        }, 0);
+        if (this.byId("markdownSection")) this.byId("markdownSection").scrollTo(0, 0);
+      })();
+    }
+  });
+  return WikiController;
+});

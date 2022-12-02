@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.107.0"
+      "version": "1.109.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -29,17 +29,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.107",
+      "minUI5Version": "1.109",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.107.0"
+          "minVersion": "1.109.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.107.0",
+          "minVersion": "1.109.0",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.107.0",
+          "minVersion": "1.109.0",
           "lazy": true
         }
       }
@@ -136,6 +136,7 @@
           "sap.m.DraftIndicator",
           "sap.m.DynamicDateRange",
           "sap.m.ExpandableText",
+          "sap.m.AdditionalTextButton",
           "sap.m.FacetFilter",
           "sap.m.FacetFilterItem",
           "sap.m.FacetFilterList",
@@ -195,6 +196,7 @@
           "sap.m.OverflowToolbar",
           "sap.m.OverflowToolbarButton",
           "sap.m.OverflowToolbarToggleButton",
+          "sap.m.OverflowToolbarMenuButton",
           "sap.m.P13nColumnsPanel",
           "sap.m.P13nGroupPanel",
           "sap.m.P13nSelectionPanel",

@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.107.0"
+      "version": "1.109.0"
     },
     "title": "SAPUI5 library with integration-related controls.",
     "description": "SAPUI5 library with integration-related controls.",
@@ -16,7 +16,7 @@
       {
         "name": "ui5-web-components",
         "packagedWithMySelf": true,
-        "version": "1.0.1"
+        "version": "1.7.0"
       },
       {
         "name": "adaptive-cards",
@@ -54,13 +54,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.107",
+      "minUI5Version": "1.109",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.107.0"
+          "minVersion": "1.109.0"
         },
         "sap.f": {
-          "minVersion": "1.107.0"
+          "minVersion": "1.109.0"
         }
       }
     },
@@ -134,7 +134,8 @@
         "types": [
           "sap.ui.integration.CardActionType",
           "sap.ui.integration.CardDataMode",
-          "sap.ui.integration.CardMenuAction"
+          "sap.ui.integration.CardMenuAction",
+          "sap.ui.integration.CardDesign"
         ],
         "interfaces": []
       }
