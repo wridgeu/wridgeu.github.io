@@ -4,3 +4,4 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";return{aggregations:{content:{domRef:":sap-domref > .sapMPage > section"}}}});
+//# sourceMappingURL=ShareMenuPage.designtime.js.map

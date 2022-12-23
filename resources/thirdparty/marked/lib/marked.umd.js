@@ -21,7 +21,7 @@
       descriptor.enumerable = descriptor.enumerable || false;
       descriptor.configurable = true;
       if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, descriptor.key, descriptor);
+      Object.defineProperty(target, _toPropertyKey(descriptor.key), descriptor);
     }
   }
   function _createClass(Constructor, protoProps, staticProps) {
@@ -62,6 +62,20 @@
       };
     }
     throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+  function _toPrimitive(input, hint) {
+    if (typeof input !== "object" || input === null) return input;
+    var prim = input[Symbol.toPrimitive];
+    if (prim !== undefined) {
+      var res = prim.call(input, hint || "default");
+      if (typeof res !== "object") return res;
+      throw new TypeError("@@toPrimitive must return a primitive value.");
+    }
+    return (hint === "string" ? String : Number)(input);
+  }
+  function _toPropertyKey(arg) {
+    var key = _toPrimitive(arg, "string");
+    return typeof key === "symbol" ? key : String(key);
   }
 
   function getDefaults() {
@@ -484,10 +498,14 @@
       var cap = this.rules.block.blockquote.exec(src);
       if (cap) {
         var text = cap[0].replace(/^ *>[ \t]?/gm, '');
+        var top = this.lexer.state.top;
+        this.lexer.state.top = true;
+        var tokens = this.lexer.blockTokens(text);
+        this.lexer.state.top = top;
         return {
           type: 'blockquote',
           raw: cap[0],
-          tokens: this.lexer.blockTokens(text, []),
+          tokens: tokens,
           text: text
         };
       }
@@ -526,7 +544,9 @@
           }
           raw = cap[0];
           src = src.substring(raw.length);
-          line = cap[2].split('\n', 1)[0];
+          line = cap[2].split('\n', 1)[0].replace(/^\t+/, function (t) {
+            return ' '.repeat(3 * t.length);
+          });
           nextLine = src.split('\n', 1)[0];
           if (this.options.pedantic) {
             indent = 2;
@@ -545,7 +565,7 @@
             endEarly = true;
           }
           if (!endEarly) {
-            var nextBulletRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}(?:[*+-]|\\d{1,9}[.)])((?: [^\\n]*)?(?:\\n|$))");
+            var nextBulletRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}(?:[*+-]|\\d{1,9}[.)])((?:[ \t][^\\n]*)?(?:\\n|$))");
             var hrRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}((?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})(?:\\n+|$)");
             var fencesBeginRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}(?:```|~~~)");
             var headingBeginRegex = new RegExp("^ {0," + Math.min(3, indent - 1) + "}#");
@@ -553,25 +573,25 @@
             // Check if following lines should be included in List Item
             while (src) {
               rawLine = src.split('\n', 1)[0];
-              line = rawLine;
+              nextLine = rawLine;
 
               // Re-align to follow commonmark nesting rules
               if (this.options.pedantic) {
-                line = line.replace(/^ {1,4}(?=( {4})*[^ ])/g, '  ');
+                nextLine = nextLine.replace(/^ {1,4}(?=( {4})*[^ ])/g, '  ');
               }
 
               // End list item if found code fences
-              if (fencesBeginRegex.test(line)) {
+              if (fencesBeginRegex.test(nextLine)) {
                 break;
               }
 
               // End list item if found start of new heading
-              if (headingBeginRegex.test(line)) {
+              if (headingBeginRegex.test(nextLine)) {
                 break;
               }
 
               // End list item if found start of new bullet
-              if (nextBulletRegex.test(line)) {
+              if (nextBulletRegex.test(nextLine)) {
                 break;
               }
 
@@ -579,22 +599,38 @@
               if (hrRegex.test(src)) {
                 break;
               }
-              if (line.search(/[^ ]/) >= indent || !line.trim()) {
+              if (nextLine.search(/[^ ]/) >= indent || !nextLine.trim()) {
                 // Dedent if possible
-                itemContents += '\n' + line.slice(indent);
-              } else if (!blankLine) {
-                // Until blank line, item doesn't need indentation
-                itemContents += '\n' + line;
+                itemContents += '\n' + nextLine.slice(indent);
               } else {
-                // Otherwise, improper indentation ends this item
-                break;
+                // not enough indentation
+                if (blankLine) {
+                  break;
+                }
+
+                // paragraph continuation unless last line was a different block level element
+                if (line.search(/[^ ]/) >= 4) {
+                  // indented code block
+                  break;
+                }
+                if (fencesBeginRegex.test(line)) {
+                  break;
+                }
+                if (headingBeginRegex.test(line)) {
+                  break;
+                }
+                if (hrRegex.test(line)) {
+                  break;
+                }
+                itemContents += '\n' + nextLine;
               }
-              if (!blankLine && !line.trim()) {
+              if (!blankLine && !nextLine.trim()) {
                 // Check if current line is blank
                 blankLine = true;
               }
               raw += rawLine + '\n';
               src = src.substring(rawLine.length + 1);
+              line = nextLine.slice(indent);
             }
           }
           if (!list.loose) {
@@ -635,26 +671,21 @@
         for (i = 0; i < l; i++) {
           this.lexer.state.top = false;
           list.items[i].tokens = this.lexer.blockTokens(list.items[i].text, []);
-          var spacers = list.items[i].tokens.filter(function (t) {
-            return t.type === 'space';
-          });
-          var hasMultipleLineBreaks = spacers.every(function (t) {
-            var chars = t.raw.split('');
-            var lineBreaks = 0;
-            for (var _iterator = _createForOfIteratorHelperLoose(chars), _step; !(_step = _iterator()).done;) {
-              var _char = _step.value;
-              if (_char === '\n') {
-                lineBreaks += 1;
-              }
-              if (lineBreaks > 1) {
-                return true;
-              }
-            }
-            return false;
-          });
-          if (!list.loose && spacers.length && hasMultipleLineBreaks) {
-            // Having a single line break doesn't mean a list is loose. A single line break is terminating the last list item
-            list.loose = true;
+          if (!list.loose) {
+            // Check if list should be loose
+            var spacers = list.items[i].tokens.filter(function (t) {
+              return t.type === 'space';
+            });
+            var hasMultipleLineBreaks = spacers.length > 0 && spacers.some(function (t) {
+              return /\n.*\n/.test(t.raw);
+            });
+            list.loose = hasMultipleLineBreaks;
+          }
+        }
+
+        // Set all items to loose if list is loose
+        if (list.loose) {
+          for (i = 0; i < l; i++) {
             list.items[i].loose = true;
           }
         }
@@ -1031,9 +1062,9 @@
           } while (prevCapZero !== cap[0]);
           text = escape(cap[0]);
           if (cap[1] === 'www.') {
-            href = 'http://' + text;
+            href = 'http://' + cap[0];
           } else {
-            href = text;
+            href = cap[0];
           }
         }
         return {
@@ -1246,7 +1277,7 @@
     escape: edit(inline.escape).replace('])', '~|])').getRegex(),
     _extended_email: /[A-Za-z0-9._+-]+(@)[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/,
     url: /^((?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9\-]+\.?)+[^\s<]*|^email/,
-    _backpedal: /(?:[^?!.,:;*_~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_~)]+(?!$))+/,
+    _backpedal: /(?:[^?!.,:;*_'"~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_'"~)]+(?!$))+/,
     del: /^(~~?)(?=[^\s~])([\s\S]*?[^\s~])\1(?=[^~]|$)/,
     text: /^([`~]+|[^`~])(?:(?= {2,}\n)|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)|[\s\S]*?(?:(?=[\\<!\[`*~_]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)))/
   });

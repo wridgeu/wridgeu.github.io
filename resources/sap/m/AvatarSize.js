@@ -4,3 +4,4 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";var t={XS:"XS",S:"S",M:"M",L:"L",XL:"XL",Custom:"Custom"};return t});
+//# sourceMappingURL=AvatarSize.js.map

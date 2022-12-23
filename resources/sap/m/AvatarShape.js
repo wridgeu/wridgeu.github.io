@@ -4,3 +4,4 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";var e={Circle:"Circle",Square:"Square"};return e});
+//# sourceMappingURL=AvatarShape.js.map

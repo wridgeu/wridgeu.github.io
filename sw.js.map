@@ -1,0 +1,1 @@
+{"version":3,"file":"sw.js","names":["importScripts","self","worker","initFromManifest","manifestUrl"],"sources":["sw-dbg.js"],"mappings":"AAAAA,cAAc,kCAEdC,KAAKC,OAAOC,iBAAiB,CAC5BC,YAAa"}

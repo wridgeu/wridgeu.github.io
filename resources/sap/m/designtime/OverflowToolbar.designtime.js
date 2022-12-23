@@ -4,3 +4,4 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";return{templates:{create:"sap/m/designtime/OverflowToolbar.create.fragment.xml"}}});
+//# sourceMappingURL=OverflowToolbar.designtime.js.map

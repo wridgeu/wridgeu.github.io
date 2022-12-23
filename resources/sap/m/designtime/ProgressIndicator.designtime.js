@@ -4,3 +4,4 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";return{palette:{group:"DISPLAY",icons:{svg:"sap/m/designtime/ProgressIndicator.icon.svg"}},templates:{create:"sap/m/designtime/ProgressIndicator.create.fragment.xml"}}});
+//# sourceMappingURL=ProgressIndicator.designtime.js.map

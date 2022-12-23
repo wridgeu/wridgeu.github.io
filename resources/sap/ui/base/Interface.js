@@ -4,3 +4,4 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/base/Object"],function(e){"use strict";var t=e._Interface;return t},true);
+//# sourceMappingURL=Interface.js.map

@@ -7,3 +7,4 @@
  * @experimental
  */
 sap.ui.define(["sap/ui/integration/designtime/cardEditor/config/generateFooterActionsStripConfig"],function(t){"use strict";return{items:t({tags:["footer"],path:"footer/actionsStrip"})}});
+//# sourceMappingURL=FooterConfig.js.map

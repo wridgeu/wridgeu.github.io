@@ -4,3 +4,4 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(function(){"use strict";var t={API:"API",Auto:"Auto",Direct:"Direct"};return t},true);
+//# sourceMappingURL=SubmitMode.js.map

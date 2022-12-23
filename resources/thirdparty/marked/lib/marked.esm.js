@@ -459,11 +459,14 @@ class Tokenizer {
     const cap = this.rules.block.blockquote.exec(src);
     if (cap) {
       const text = cap[0].replace(/^ *>[ \t]?/gm, '');
-
+      const top = this.lexer.state.top;
+      this.lexer.state.top = true;
+      const tokens = this.lexer.blockTokens(text);
+      this.lexer.state.top = top;
       return {
         type: 'blockquote',
         raw: cap[0],
-        tokens: this.lexer.blockTokens(text, []),
+        tokens,
         text
       };
     }
@@ -510,7 +513,7 @@ class Tokenizer {
         raw = cap[0];
         src = src.substring(raw.length);
 
-        line = cap[2].split('\n', 1)[0];
+        line = cap[2].split('\n', 1)[0].replace(/^\t+/, (t) => ' '.repeat(3 * t.length));
         nextLine = src.split('\n', 1)[0];
 
         if (this.options.pedantic) {
@@ -532,7 +535,7 @@ class Tokenizer {
         }
 
         if (!endEarly) {
-          const nextBulletRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}(?:[*+-]|\\d{1,9}[.)])((?: [^\\n]*)?(?:\\n|$))`);
+          const nextBulletRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}(?:[*+-]|\\d{1,9}[.)])((?:[ \t][^\\n]*)?(?:\\n|$))`);
           const hrRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}((?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})(?:\\n+|$)`);
           const fencesBeginRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}(?:\`\`\`|~~~)`);
           const headingBeginRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}#`);
@@ -540,25 +543,25 @@ class Tokenizer {
           // Check if following lines should be included in List Item
           while (src) {
             rawLine = src.split('\n', 1)[0];
-            line = rawLine;
+            nextLine = rawLine;
 
             // Re-align to follow commonmark nesting rules
             if (this.options.pedantic) {
-              line = line.replace(/^ {1,4}(?=( {4})*[^ ])/g, '  ');
+              nextLine = nextLine.replace(/^ {1,4}(?=( {4})*[^ ])/g, '  ');
             }
 
             // End list item if found code fences
-            if (fencesBeginRegex.test(line)) {
+            if (fencesBeginRegex.test(nextLine)) {
               break;
             }
 
             // End list item if found start of new heading
-            if (headingBeginRegex.test(line)) {
+            if (headingBeginRegex.test(nextLine)) {
               break;
             }
 
             // End list item if found start of new bullet
-            if (nextBulletRegex.test(line)) {
+            if (nextBulletRegex.test(nextLine)) {
               break;
             }
 
@@ -567,20 +570,38 @@ class Tokenizer {
               break;
             }
 
-            if (line.search(/[^ ]/) >= indent || !line.trim()) { // Dedent if possible
-              itemContents += '\n' + line.slice(indent);
-            } else if (!blankLine) { // Until blank line, item doesn't need indentation
-              itemContents += '\n' + line;
-            } else { // Otherwise, improper indentation ends this item
-              break;
+            if (nextLine.search(/[^ ]/) >= indent || !nextLine.trim()) { // Dedent if possible
+              itemContents += '\n' + nextLine.slice(indent);
+            } else {
+              // not enough indentation
+              if (blankLine) {
+                break;
+              }
+
+              // paragraph continuation unless last line was a different block level element
+              if (line.search(/[^ ]/) >= 4) { // indented code block
+                break;
+              }
+              if (fencesBeginRegex.test(line)) {
+                break;
+              }
+              if (headingBeginRegex.test(line)) {
+                break;
+              }
+              if (hrRegex.test(line)) {
+                break;
+              }
+
+              itemContents += '\n' + nextLine;
             }
 
-            if (!blankLine && !line.trim()) { // Check if current line is blank
+            if (!blankLine && !nextLine.trim()) { // Check if current line is blank
               blankLine = true;
             }
 
             raw += rawLine + '\n';
             src = src.substring(rawLine.length + 1);
+            line = nextLine.slice(indent);
           }
         }
 
@@ -625,25 +646,19 @@ class Tokenizer {
       for (i = 0; i < l; i++) {
         this.lexer.state.top = false;
         list.items[i].tokens = this.lexer.blockTokens(list.items[i].text, []);
-        const spacers = list.items[i].tokens.filter(t => t.type === 'space');
-        const hasMultipleLineBreaks = spacers.every(t => {
-          const chars = t.raw.split('');
-          let lineBreaks = 0;
-          for (const char of chars) {
-            if (char === '\n') {
-              lineBreaks += 1;
-            }
-            if (lineBreaks > 1) {
-              return true;
-            }
-          }
 
-          return false;
-        });
+        if (!list.loose) {
+          // Check if list should be loose
+          const spacers = list.items[i].tokens.filter(t => t.type === 'space');
+          const hasMultipleLineBreaks = spacers.length > 0 && spacers.some(t => /\n.*\n/.test(t.raw));
 
-        if (!list.loose && spacers.length && hasMultipleLineBreaks) {
-          // Having a single line break doesn't mean a list is loose. A single line break is terminating the last list item
-          list.loose = true;
+          list.loose = hasMultipleLineBreaks;
+        }
+      }
+
+      // Set all items to loose if list is loose
+      if (list.loose) {
+        for (i = 0; i < l; i++) {
           list.items[i].loose = true;
         }
       }
@@ -1049,9 +1064,9 @@ class Tokenizer {
         } while (prevCapZero !== cap[0]);
         text = escape(cap[0]);
         if (cap[1] === 'www.') {
-          href = 'http://' + text;
+          href = 'http://' + cap[0];
         } else {
-          href = text;
+          href = cap[0];
         }
       }
       return {
@@ -1368,7 +1383,7 @@ inline.gfm = merge({}, inline.normal, {
   escape: edit(inline.escape).replace('])', '~|])').getRegex(),
   _extended_email: /[A-Za-z0-9._+-]+(@)[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/,
   url: /^((?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9\-]+\.?)+[^\s<]*|^email/,
-  _backpedal: /(?:[^?!.,:;*_~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_~)]+(?!$))+/,
+  _backpedal: /(?:[^?!.,:;*_'"~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_'"~)]+(?!$))+/,
   del: /^(~~?)(?=[^\s~])([\s\S]*?[^\s~])\1(?=[^~]|$)/,
   text: /^([`~]+|[^`~])(?:(?= {2,}\n)|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)|[\s\S]*?(?:(?=[\\<!\[`*~_]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)))/
 });

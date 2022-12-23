@@ -1,0 +1,1 @@
+{"version":3,"file":"regsw.js","names":["navigator","window","addEventListener","serviceWorker","register"],"sources":["regsw-dbg.js"],"mappings":"AACA,GAAI,kBAAmBA,UAAW,CAC9BC,OAAOC,iBAAiB,OAAQ,WAC5BF,UAAUG,cAAcC,SAAS,SACrC,EACJ"}

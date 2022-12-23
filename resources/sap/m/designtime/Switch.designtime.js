@@ -4,3 +4,4 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";return{palette:{group:"ACTION",icons:{svg:"sap/m/designtime/Switch.icon.svg"}},templates:{create:"sap/m/designtime/Switch.create.fragment.xml"}}});
+//# sourceMappingURL=Switch.designtime.js.map

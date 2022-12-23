@@ -1,25 +1,2 @@
-sap.ui.define(["./Base.controller"], function (__BaseController) {
-  function _interopRequireDefault(obj) {
-    return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
-  }
-  const BaseController = _interopRequireDefault(__BaseController);
-  /**
-   * @namespace sapmarco.projectpages.controller
-   */
-  const HomeController = BaseController.extend("sapmarco.projectpages.controller.HomeController", {
-    onInit: function _onInit() {
-      this._ownerComponent = this.getOwnerComponent();
-      this.getView().addStyleClass(this._ownerComponent.getContentDensityClass());
-    },
-    onUI5IconPress: async function _onUI5IconPress() {
-      await this.openVersionDialog(this.getView());
-    },
-    onWiki: function _onWiki() {
-      this.navTo("RouteWiki");
-    },
-    onUI5con: function _onUI5con() {
-      this.navTo("RouteUI5Con");
-    }
-  });
-  return HomeController;
-});
+sap.ui.define(["./Base.controller"],function(n){function e(n){return n&&n.__esModule&&typeof n.default!=="undefined"?n.default:n}const o=e(n);const t=o.extend("sapmarco.projectpages.controller.HomeController",{onInit:function n(){this._ownerComponent=this.getOwnerComponent();this.getView().addStyleClass(this._ownerComponent.getContentDensityClass())},onUI5IconPress:function n(){try{const n=this;return Promise.resolve(n.openVersionDialog(n.getView())).then(function(){})}catch(n){return Promise.reject(n)}},onWiki:function n(){this.navTo("RouteWiki")},onUI5con:function n(){this.navTo("RouteUI5Con")}});return t});
+//# sourceMappingURL=Home.controller.js.map
