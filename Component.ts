@@ -2,7 +2,7 @@ import UIComponent from "sap/ui/core/UIComponent";
 import { support } from "sap/ui/Device";
 import deviceModelCreator from "./model/models";
 
-// import additional dependencies to bundle them properly (done by Peter in UI5 Community)
+// import additional dependencies to bundle them properly
 import "sap/ui/core/ComponentSupport";
 import "sap/ui/core/date/Gregorian";
 

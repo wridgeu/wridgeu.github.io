@@ -16,10 +16,6 @@ export default class HomeController extends BaseController {
 		await this.openVersionDialog(this.getView());
 	}
 
-	/**
-	 * Event-handler for navigation
-	 * to the Wiki-Page
-	 */
 	public onWiki(): void {
 		this.navTo("RouteWiki");
 	}

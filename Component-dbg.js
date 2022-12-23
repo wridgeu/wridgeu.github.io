@@ -3,7 +3,7 @@ sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sa
     return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
   }
   const support = sap_ui_Device["support"];
-  const deviceModelCreator = _interopRequireDefault(__deviceModelCreator); // import additional dependencies to bundle them properly (done by Peter in UI5 Community)
+  const deviceModelCreator = _interopRequireDefault(__deviceModelCreator); // import additional dependencies to bundle them properly
   /**
    * Configures the UI5 Module Loader to handle marked
    * and map marked to the default namespace.
