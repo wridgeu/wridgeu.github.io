@@ -2580,7 +2580,7 @@ sap.ui.define(['exports'], (function (exports) { 'use strict';
     highlight.default = highlight;
 
     exports.HighlightJS = core;
-    exports["default"] = core;
+    exports.default = core;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
