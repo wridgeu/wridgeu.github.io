@@ -273,7 +273,6 @@ html.sap-desktop .sapMGTLineModePress .sapMGTFocusDiv {
 html.sap-desktop .sapMGTActionButtonPress.sapMGT:focus
 {
 		.sapMGTFocusDiv{
-			border: none;
 			box-shadow: none;
 		}
 }
@@ -512,5 +511,27 @@ html.sap-desktop .sapMGT.sapMGTBackgroundImage:focus .sapMGTFocusDiv:after, html
 	.sapMTileCnt.News {
 		border-bottom-left-radius: 0.87rem;
 		border-bottom-right-radius: 0.87rem;
+	}
+}
+
+/******************* OVERLAYS AND HELPERS *******************/
+
+.sapMGTOverlay {
+	border-radius: inherit;
+}
+
+.sapMGT.sapMGTBackgroundImage {
+	.sapMGTOverlay {
+		border-radius: 0.9rem;
+	}
+	&.sapMGTStateFailed {
+		.sapMGTWithImageHoverOverlay {
+			border-radius: @sapTile_BorderCornerRadius;
+		}
+	}
+	&:active {
+		.sapMGTOverlay {
+			border-radius: 0.95rem;
+		}
 	}
 }

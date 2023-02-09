@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -54,7 +54,7 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -69,7 +69,8 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 				"sap.ui.core.IShrinkable",
 				"sap.ui.core.IFormContent",
 				"sap.ui.core.ISemanticFormContent",
-				"sap.m.IHyphenation"
+				"sap.m.IHyphenation",
+				"sap.m.IToolbarInteractiveControl"
 			],
 			library: "sap.m",
 			properties: {
@@ -483,11 +484,24 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 * Gets the accessibility information for the text.
 	 *
 	 * @protected
-	 * @returns {object} Accessibility information for the text.
+	 * @returns {sap.ui.core.AccessibilityInfo} Accessibility information for the text.
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 */
 	Text.prototype.getAccessibilityInfo = function () {
 		return { description: this.getText() };
+	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	Text.prototype._getToolbarInteractive = function () {
+		return false;
 	};
 
 	/**

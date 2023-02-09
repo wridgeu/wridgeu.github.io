@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,13 +20,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.layout
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @since 1.15
 	 * @public
 	 */
 	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.ui.layout",
-		version: "1.109.0",
+		version: "1.110.0",
 		dependencies: ["sap.ui.core"],
 		designtime: "sap/ui/layout/designtime/library.designtime",
 		types: [
@@ -796,6 +796,8 @@ sap.ui.define([
 			bFinal: false /* if true, the helper must not be overwritten by an other library */
 		};
 	}
+
+	thisLib.cssgrid = thisLib.cssgrid || {};
 
 	/**
 	 * @classdesc A string type that represents a grid track (the space between two grid lines)

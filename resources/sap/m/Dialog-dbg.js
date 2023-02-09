@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -109,18 +109,7 @@ function(
 		/**
 		 * Margin on top and bottom of dialog
 		 */
-		var VERTICAL_MARGIN = Parameters.get({
-				name: "_sap_m_Dialog_VerticalMargin",
-				callback: function(sValue) {
-					VERTICAL_MARGIN = parseFloat(sValue);
-				}
-			});
-
-		if (VERTICAL_MARGIN) {
-			VERTICAL_MARGIN = parseFloat(VERTICAL_MARGIN);
-		} else {
-			VERTICAL_MARGIN = 3; // default value
-		}
+		var VERTICAL_MARGIN = 3; // default value
 
 		/**
 		* Constructor for a new Dialog.
@@ -178,7 +167,7 @@ function(
 		*
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.109.0
+		* @version 1.110.0
 		*
 		* @constructor
 		* @public
@@ -200,11 +189,12 @@ function(
 
 					/**
 					 * Title text appears in the Dialog header.
+					 * <br/><b>Note:</b> The heading level of the Dialog is <code>H1</code>. Headings in the Dialog content should start with <code>H2</code> heading level.
 					 */
 					title: {type: "string", group: "Appearance", defaultValue: null},
 
 					/**
-					 * Determines whether the header is shown inside the Dialog. If this property is set to <code>true</code>, the <code>text</code> and <code>icon</code> properties are ignored. This property has a default value <code>true</code>.
+					 * Determines whether the header is shown inside the Dialog. If this property is set to <code>false</code>, the <code>text</code> and <code>icon</code> properties are ignored. This property has a default value <code>true</code>.
 					 * @since 1.15.1
 					 */
 					showHeader: {type: "boolean", group: "Appearance", defaultValue: true},
@@ -322,6 +312,7 @@ function(
 
 					/**
 					 * When it is set, the <code>icon</code>, <code>title</code> and <code>showHeader</code> properties are ignored. Only the <code>customHeader</code> is shown as the header of the Dialog.
+					 * <br/><b>Note:</b> To improve accessibility, titles with heading level <code>H1</code> should be used inside the custom header.
 					 * @since 1.15.1
 					 */
 					customHeader: {type: "sap.m.IBar", multiple: false},
@@ -350,9 +341,15 @@ function(
 
 					/**
 					 * Buttons can be added to the footer area of the Dialog through this aggregation. When this aggregation is set, any change to the <code>beginButton</code> and <code>endButton</code> has no effect anymore. Buttons which are inside this aggregation are aligned at the right side (left side in RTL mode) of the footer instead of in the middle of the footer.
+					 * The buttons aggregation can not be used together with the footer aggregation.
 					 * @since 1.21.1
 					 */
 					buttons: {type: "sap.m.Button", multiple: true, singularName: "button"},
+
+					/**
+					 * The footer of this dialog. It is always located at the bottom of the dialog. The footer aggregation can not  be used together with the buttons aggregation.
+					 */
+					footer: {type: "sap.m.Toolbar", multiple: false},
 
 					/**
 					 * The hidden aggregation for internal maintained <code>header</code>.
@@ -454,6 +451,33 @@ function(
 			renderer: DialogRenderer
 		});
 
+		/**
+		 * Sets a new value for property {@link #setEscapeHandler escapeHandler}.
+		 *
+		 * This property expects a function with one parameter of type Promise. In the function, you should call either <code>resolve()</code> or <code>reject()</code> on the Promise object.
+		 * The function allows you to define custom behavior which will be executed when the Escape key is pressed. By default, when the Escape key is pressed, the dialog is immediately closed.
+		 *
+		 * When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.
+		 *
+		 * @method
+		 * @param {function({resolve: function, reject: function})} [fnEscapeHandler] New value for property <code>escapeHandler</code>
+		 * @public
+		 * @name sap.m.Dialog#setEscapeHandler
+		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 */
+
+		/**
+		 * Gets current value of property {@link #getEscapeHandler escapeHandler}.
+		 *
+		 * This property expects a function with one parameter of type Promise. In the function, you should call either <code>resolve()</code> or <code>reject()</code> on the Promise object.
+		 * The function allows you to define custom behavior which will be executed when the Escape key is pressed. By default, when the Escape key is pressed, the dialog is immediately closed.
+		 *
+		 * @method
+		 * @returns {function({resolve: function, reject: function})|null} Value of property <code>escapeHandler</code>
+		 * @public
+		 * @name sap.m.Dialog#getEscapeHandler
+		 */
+
 		ResponsivePaddingsEnablement.call(Dialog.prototype, {
 			header: {suffix: "header"},
 			subHeader: {selector: ".sapMDialogSubHeader .sapMIBar"},
@@ -538,6 +562,8 @@ function(
 		};
 
 		Dialog.prototype.onBeforeRendering = function () {
+			this._loadVerticalMargin();
+
 			var oHeader = this._getAnyHeader();
 
 			if (!Dialog._bPaddingByDefault && this.hasStyleClass("sapUiPopupWithPadding")) {
@@ -964,7 +990,15 @@ function(
 		 * @private
 		 */
 		 Dialog.prototype._findFirstPositiveButton = function () {
-			var aButtons = this.getButtons();
+			var aButtons;
+
+			if (this.getFooter()) {
+				aButtons = this.getFooter().getContent().filter(function (oItem) {
+					return oItem.isA("sap.m.Button");
+				});
+			} else {
+				aButtons = this.getButtons();
+			}
 
 			for (var i = 0; i < aButtons.length; i++) {
 				var oButton = aButtons[i];
@@ -1292,7 +1326,7 @@ function(
 		Dialog.prototype._calcMaxSizes = function () {
 			var oAreaDimensions = this._getAreaDimensions(),
 				$this = this.$(),
-				iHeaderHeight = $this.find(".sapMDialogTitle").height() || 0,
+				iHeaderHeight = $this.find(".sapMDialogTitleGroup").height() || 0,
 				iSubHeaderHeight = $this.find(".sapMDialogSubHeader").height() || 0,
 				iFooterHeight = $this.find("> footer").height() || 0,
 				iHeightAsPadding = iHeaderHeight + iSubHeaderHeight + iFooterHeight,
@@ -1375,7 +1409,7 @@ function(
 			} else {
 				this._headerTitle = new Title(this.getId() + "-title", {
 					text: sTitle,
-					level: TitleLevel.H2
+					level: TitleLevel.H1
 				}).addStyleClass("sapMDialogTitle");
 
 				this._header.addContentMiddle(this._headerTitle);
@@ -1461,7 +1495,7 @@ function(
 				return null;
 			}
 
-			return this.$().find('header.sapMDialogTitle .sapMDialogTitleGroup')[0];
+			return this.$().find('header .sapMDialogTitleGroup')[0];
 		};
 
 		/**
@@ -1665,6 +1699,9 @@ function(
 		};
 
 		Dialog.prototype._createToolbarButtons = function () {
+			if (this.getFooter()) {
+				return;
+			}
 			var toolbar = this._getToolbar();
 			var buttons = this.getButtons();
 			var beginButton = this.getBeginButton();
@@ -1774,6 +1811,26 @@ function(
 				return oRb.getText("DIALOG_HEADER_ARIA_DESCRIBEDBY_RESIZABLE");
 			}
 			return "";
+		};
+
+		/**
+		 * Returns the value of the Vertical Margin from the CSS parameter
+		 * @private
+		 */
+		Dialog.prototype._loadVerticalMargin = function () {
+			VERTICAL_MARGIN = Parameters.get({
+				name: "_sap_m_Dialog_VerticalMargin",
+				callback: function(sValue) {
+					VERTICAL_MARGIN = parseFloat(sValue);
+				}
+			});
+
+			if (VERTICAL_MARGIN) {
+				VERTICAL_MARGIN = parseFloat(VERTICAL_MARGIN);
+			} else {
+				VERTICAL_MARGIN = 3; // default value
+			}
+
 		};
 
 		/* =========================================================== */
@@ -1962,7 +2019,7 @@ function(
 				return true;
 			}
 
-			return $target.hasClass('sapMDialogTitle');
+			return $target.hasClass('sapMDialogTitleGroup');
 		}
 
 		if (Device.system.desktop) {

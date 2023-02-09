@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -66,7 +66,7 @@ sap.ui.define([
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -92,13 +92,12 @@ sap.ui.define([
 
 					/**
 					 * Indicates whether the picker is opened.
-					 *
+					 * @deprecated since version 1.110
 					 * @private
 					 */
 					 open: {
 						type: "boolean",
-						defaultValue: false,
-						hidden: true
+						defaultValue: false
 					},
 
 					/**
@@ -199,6 +198,9 @@ sap.ui.define([
 		ComboBoxBase.prototype.updateItems = function(sReason) {
 			this.bItemsUpdated = false;
 
+			var iItemsCount = this.getItems().length;
+			var oList;
+
 			// for backward compatibility and to keep the old data binding behavior,
 			// the items should be destroyed before calling .updateAggregation("items")
 			this.destroyItems();
@@ -213,6 +215,19 @@ sap.ui.define([
 				}
 
 				this.onItemsLoaded();
+			}
+
+			oList = this._getList();
+
+			// when there are no items both before the update and after it, we have to remove the busy state
+			if (oList && iItemsCount === this.getItems().length) {
+				oList.setBusy(false);
+				oList.setShowNoData(!this.getItems().length);
+				this.bInitialBusyIndicatorState = false;
+
+				if (this.getValue()) {
+					this.open();
+				}
 			}
 		};
 
@@ -658,12 +673,6 @@ sap.ui.define([
 				If the input has FormattedText aggregation while the suggestions popover is open then
 				it's new, because the old is already switched to have the value state header as parent */
 				this._updateSuggestionsPopoverValueState();
-			}
-
-			if (this.getShowClearIcon()) {
-				this._getClearIcon().setVisible(this.shouldShowClearIcon());
-			} else if (this._oClearIcon) {
-				this._getClearIcon().setVisible(false);
 			}
 		};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -51,7 +51,7 @@ sap.ui.define([
          * @extends sap.m.Slider
          *
          * @author SAP SE
-         * @version 1.109.0
+         * @version 1.110.0
          *
          * @constructor
          * @public
@@ -288,7 +288,7 @@ sap.ui.define([
          * @param {sap.m.SliderTooltipBase} oTooltip Slider/Range slider tooltip
          * @returns {HTMLElement} The handle, from which the tooltip is responsible.
          * @private
-         * @ui5-restricted sap.m.SliderTooltipContainer.js
+         * @ui5-restricted sap.m.SliderTooltipContainer
          */
         RangeSlider.prototype._getHandleForTooltip = function (oTooltip) {
             var oHandle = oTooltip === this._mHandleTooltip.start.tooltip ?

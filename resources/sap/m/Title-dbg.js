@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -73,7 +73,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IShrinkable
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @since 1.27.0
 	 *
 	 * @constructor
@@ -87,7 +87,8 @@ sap.ui.define([
 			library : "sap.m",
 			interfaces : [
 				 "sap.ui.core.IShrinkable",
-				 "sap.m.IHyphenation"
+				 "sap.m.IHyphenation",
+				 "sap.m.IToolbarInteractiveControl"
 			],
 			properties : {
 
@@ -263,7 +264,7 @@ sap.ui.define([
 	/**
 	 * Gets the accessibility information for the <code>sap.m.Title</code> control.
 	 *
-	 * @returns {object} The accessibility info
+	 * @returns {sap.ui.core.AccessibilityInfo} The accessibility info
 	 * @protected
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 */
@@ -320,6 +321,20 @@ sap.ui.define([
 
 		return iLevel;
 	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	Title.prototype._getToolbarInteractive = function () {
+		return false;
+	};
+
 
 	// Add hyphenation to Title functionality
 	HyphenationSupport.mixInto(Title.prototype);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.unified.IProcessableBlobs
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -672,7 +672,7 @@ sap.ui.define([
 	 * Ensures that FileUploader's internal button will have a reference back to the labels, by which
 	 * the FileUploader is labelled
 	 *
-	 * @returns {this} For chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	FileUploader.prototype._ensureBackwardsReference = function () {
@@ -1183,7 +1183,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @since 1.25.0
-	 * @returns {this} The <code>sap.ui.unified.FileUploader</code> instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	FileUploader.prototype.clear = function () {
 		var uploadForm = this.getDomRef("fu_form");
@@ -1731,10 +1731,10 @@ sap.ui.define([
 		}
 	};
 
-	/*
+	/**
 	* Processes the passed files and sends them afterwards via XHR request.
-	* @param {array} [aFiles] list of files from type window.File
-	* @returns this
+	* @param {window.File[]} [aFiles] list of files from type window.File
+	* @returns {this} Reference to <code>this</code> for method chaining
 	* @private
 	*/
 	FileUploader.prototype._sendProcessedFilesWithXHR = function (aFiles) {
@@ -1830,13 +1830,13 @@ sap.ui.define([
 		return true;
 	};
 
-	/*
-	* Validate provided files from drag and drop event and send them trough XHR
-	* Be aware that this method is private and is created only for drag and drop enablement inside sap.m.UploadCollection
-	* @param {array} [aFiles] list of files from type window.File, this array is returned from input type="file" or from Drag and Drop
-	* @returns {this}
-	* @private
-	*/
+	/**
+	 * Validate provided files from drag and drop event and send them trough XHR
+	 * Be aware that this method is private and is created only for drag and drop enablement inside sap.m.UploadCollection
+	 * @param {window.File[]} [aFiles] list of files from type window.File, this array is returned from input type="file" or from Drag and Drop
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @private
+	 */
 	FileUploader.prototype._sendFilesFromDragAndDrop = function (aFiles) {
 		if (this._areFilesAllowed(aFiles)) {
 			this._sendFilesWithXHR(aFiles);
@@ -1844,12 +1844,12 @@ sap.ui.define([
 		return this;
 	};
 
-	/*
-	* The value in the FileUplader input is generated from this method.
-	* It contains the names of the files in quotes divided by space.
-	* @param {array} [aFiles] list with files from type window.File, this array is returned from input type="file" or from Drag and Drop
-	* returns {string} The value of the input
-	*/
+	/**
+	 * The value in the FileUplader input is generated from this method.
+	 * It contains the names of the files in quotes divided by space.
+	 * @param {window.File[]} [aFiles] list with files from type window.File, this array is returned from input type="file" or from Drag and Drop
+	 * @returns {string} The value of the input
+	 */
 	FileUploader.prototype._generateInputValue = function (aFiles) {
 		var sFileString = "";
 
@@ -2065,7 +2065,7 @@ sap.ui.define([
 	 * @public
 	 * @since 1.52
 	 * @param {Blob[]} aBlobs The initial Blobs which can be used to determine/calculate a new array of Blobs for further processing.
-	 * @return {Promise} A Promise that resolves with an array of Blobs which is used for the final uploading.
+	 * @returns {Promise<Blob[]>} A Promise that resolves with an array of Blobs which is used for the final uploading.
 	 */
 	FileUploader.prototype.getProcessedBlobsFromArray = function (aBlobs){
 		return new Promise(function(resolve){
@@ -2082,9 +2082,8 @@ sap.ui.define([
 	/**
 	 * Checks if the chosen file is readable.
 	 *
-	 * @returns {Promise} A promise that resolves successfully if the
-	 * chosen file can be read and fails with an error message
-	 * if it cannot
+	 * @returns {Promise} A promise that resolves successfully
+	 * if the chosen file can be read and fails with an error message if it cannot
 	 * @public
 	 */
 	FileUploader.prototype.checkFileReadable = function() {

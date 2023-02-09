@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -11,41 +11,42 @@ sap.ui.define([
 	"use strict";
 
 	/**
-	 * Constructor for a new ActionItem.
+	 * Constructor for a new <code>ActionItem</code>.
 	 *
-	 * @param {string} [sId] ID for the new ActionItem, generated automatically if no ID is given
-	 * @param {object} [mSettings] Initial settings for the new ActionItem
+	 * @param {string} [sId] ID for the new <code>ActionItem</code>, generated automatically if no ID is given
+	 * @param {object} [mSettings] Initial settings for the new <code>ActionItem</code>
 	 *
 	 * @class
-	 * The ActionItem serves as a menu action item for the sap.m.table.columnmenu.Menu.
-	 * It can be used to specify control- and application-specific items which should solely serve as actions.
+	 * The <code>ActionItem</code> class is used for action items for the <code>sap.m.table.columnmenu.Menu</code>.
+	 * It can be used to specify control- and application-specific items that should solely serve as actions.
 	 *
 	 * @extends sap.m.table.columnmenu.ItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
-	 * @private
-	 * @experimental
+	 * @public
+	 * @since 1.110
 	 *
 	 * @alias sap.m.table.columnmenu.ActionItem
 	 */
 	var ActionItem = ItemBase.extend("sap.m.table.columnmenu.ActionItem", {
+
 		metadata: {
 			library: "sap.m",
 			properties: {
 				/**
-				 * Defines the label, which should be used for the buttons.
+				 * Defines the label that is used for the action item.
 				 */
 				label: {type: "string"},
 				/**
-				 * Defines the icon for the menu item.
+				 * Defines the icon for the action item.
 				 */
 				icon: {type: "sap.ui.core.URI"}
 			},
 			events: {
 				/**
-				 * This event will be fired, when the action was pressed.
+				 * This event is fired when the action item is pressed.
 				 */
 				press: {}
 			}

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -21,10 +21,9 @@ sap.ui.define([
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 * @alias sap.m.p13n.GroupPanel
 	 */
 	var GroupPanel = QueryPanel.extend("sap.m.p13n.GroupPanel", {
@@ -59,7 +58,6 @@ sap.ui.define([
 	/**
 	 * P13n <code>GroupItem</code> object type.
 	 *
-	 * @type {sap.m.p13n.GroupItem}
 	 * @static
 	 * @constant
 	 * @typedef {object} sap.m.p13n.GroupItem

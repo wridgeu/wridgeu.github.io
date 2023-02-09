@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,7 @@ sap.ui.define([], function() {
 	 * Static collection of utility functions to handle time zone related conversions
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @namespace
 	 * @alias sap.ui.core.format.TimezoneUtil
 	 * @private

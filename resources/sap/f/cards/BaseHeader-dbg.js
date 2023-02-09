@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -297,13 +297,6 @@ sap.ui.define([
 	/**
 	 * @ui5-restricted
 	 */
-	BaseHeader.prototype.getAriaRole = function () {
-		return "group";
-	};
-
-	/**
-	 * @ui5-restricted
-	 */
 	BaseHeader.prototype.getTitleAriaRole = function () {
 		return "heading";
 	};
@@ -312,7 +305,7 @@ sap.ui.define([
 	 * @ui5-restricted
 	 */
 	BaseHeader.prototype.getFocusableElementAriaRole = function () {
-		return this.hasListeners("press") ? "button" : null;
+		return this.hasListeners("press") ? "button" : "group";
 	};
 
 	/**

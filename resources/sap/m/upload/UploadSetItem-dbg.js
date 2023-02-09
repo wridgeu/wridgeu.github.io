@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,7 +34,7 @@ sap.ui.define([
 	 * @class Item that represents one file to be uploaded using the {@link sap.m.upload.UploadSet} control.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @constructor
 	 * @public
 	 * @since 1.63
@@ -134,20 +134,24 @@ sap.ui.define([
 				 * This event is fired when an open action is invoked on an item.
 				 */
 				openPressed: {
-					/**
-					 * The item on which the open action has been invoked.
-					 */
-					item: {type: "sap.m.upload.UploadSetItem"},
+					 parameters: {
+						/**
+						* The item on which the open action has been invoked.
+						*/
+						item: {type: "sap.m.upload.UploadSetItem"}
+					},
 					allowPreventDefault: true
 				},
 				/**
 				 * This event is fired when a remove action is invoked on an item.
 				 */
 				removePressed: {
-					/**
-					 * The item on which the remove action was invoked.
-					 */
-					item: {type: "sap.m.upload.UploadSetItem"},
+					 parameters: {
+						/**
+						* The item on which the open action has been invoked.
+						*/
+						item: {type: "sap.m.upload.UploadSetItem"}
+					},
 					allowPreventDefault: true
 				}
 			}
@@ -966,7 +970,7 @@ sap.ui.define([
 		if (aButtonsToRender.length > 0) {
 			oRm.openStart("div").class("sapMUCButtonContainer").openEnd();
 			aButtonsToRender.forEach(function (oBtn, iIndex) {
-				if (iIndex < (aButtonsToRender.length - 1)) {
+				if (iIndex < (aButtonsToRender.length)) {
 					oBtn.addStyleClass("sapMUCFirstButton");
 				}
 				oRm.renderControl(oBtn);

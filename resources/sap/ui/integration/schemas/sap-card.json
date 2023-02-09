@@ -43,7 +43,9 @@
         "1.30.0",
         "1.31.0",
         "1.32.0",
-        "1.33.0"
+        "1.33.0",
+        "1.34.0",
+        "1.35.0"
       ]
     },
     "designtime": {
@@ -853,6 +855,17 @@
                     }
                 ]
             },
+            "showStateIcon": {
+              "description": "Defines if a default state icon is shown",
+              "oneOf": [
+                {
+                 "type": "boolean"
+                },
+                {
+                 "$ref": "#/definitions/simpleBinding"
+                }
+              ]
+            },
             "visible": {
               "description": "Visibility of the item",
               "oneOf": [
@@ -1542,6 +1555,17 @@
           "description": "The state color of the item",
           "$ref": "#/definitions/state"
         },
+        "showStateIcon": {
+          "description": "Defines if a default state icon is shown",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
+        },
         "id": {
           "description": "ID for input fields",
           "type": "string"
@@ -1642,7 +1666,6 @@
             }
           ]
         }
-      
       }
     },
     "ContentType.Object.Item.IconGroupTemplate": {
@@ -2904,6 +2927,17 @@
               "pattern": "^[a-zA-Z0-9_\\.\\-/|@#]*$"
             }
           }
+        },
+        "visible": {
+          "description": "Determines whether the filter is visible",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
         }
       }
     },
@@ -3002,6 +3036,17 @@
               "nextYear"
             ]
           }
+        },
+        "visible": {
+          "description": "Determines whether the filter is visible",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
         }
       }
     },
@@ -3035,6 +3080,17 @@
         "placeholder": {
           "description": "The placeholder of the filter",
           "type": "string"
+        },
+        "visible": {
+          "description": "Determines whether the filter is visible",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/definitions/simpleBinding"
+            }
+          ]
         }
       }
     },

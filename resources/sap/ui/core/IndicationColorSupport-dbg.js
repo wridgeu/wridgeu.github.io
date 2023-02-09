@@ -1,22 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides helper class IndicationColoreSupport
-sap.ui.define(['./library'],
-	function(library) {
+sap.ui.define(['./library', 'sap/ui/core/Lib'],
+	function(coreLib, Library) {
 	"use strict";
 
 	// shortcut for enum(s)
-	var IndicationColor = library.IndicationColor;
+	var IndicationColor = coreLib.IndicationColor;
 
 		/**
 		 * Helper functionality for indication color support.
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 * @public
 		 * @namespace sap.ui.core.IndicationColorSupport
 		 * @since 1.66
@@ -28,7 +28,7 @@ sap.ui.define(['./library'],
 		var ensureTexts = function() {
 			if (!mTexts) { // initialize texts if required
 				mTexts = {};
-				var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core");
+				var rb = Library.get("sap.ui.core").getResourceBundle();
 				mTexts[IndicationColor.Indication01] = rb.getText("INDICATION_STATE_INDICATION01");
 				mTexts[IndicationColor.Indication02] = rb.getText("INDICATION_STATE_INDICATION02");
 				mTexts[IndicationColor.Indication03] = rb.getText("INDICATION_STATE_INDICATION03");

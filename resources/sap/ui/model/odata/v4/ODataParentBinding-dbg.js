@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -596,25 +596,55 @@ sap.ui.define([
 	};
 
 	/**
+	 * Deletes the entity identified by the edit URL.
+	 *
+	 * @param {sap.ui.model.odata.v4.lib._GroupLock} [oGroupLock]
+	 *   A lock for the group ID to be used for the DELETE request; w/o a lock, no DELETE is sent.
+	 *   For a transient entity, the lock is ignored (use NULL)!
+	 * @param {string} [sEditUrl]
+	 *   The entity's edit URL to be used for the DELETE request; only required with a lock
+	 * @param {sap.ui.model.odata.v4.Context} oContext
+	 *   The context to be deleted
+	 * @param {object} [oETagEntity]
+	 *   An entity with the ETag of the binding for which the deletion was requested. This is
+	 *   provided if the deletion is delegated from a context binding with empty path to a list
+	 *   binding. W/o a lock, this is ignored.
+	 * @param {boolean} [bDoNotRequestCount]
+	 *   Whether not to request the new count from the server; useful in case of
+	 *   {@link sap.ui.model.odata.v4.Context#replaceWith} where it is known that the count remains
+	 *   unchanged; w/o a lock this should be true
+	 * @param {function} fnUndelete
+	 *   A function to undelete the context (and poss. the context the deletion was delegated to)
+	 *   when the deletion failed or has been canceled
+	 * @returns {sap.ui.base.SyncPromise}
+	 *   A promise which is resolved without a result in case of success, or rejected with an
+	 *   instance of <code>Error</code> in case of failure.
+	 * @throws {Error}
+	 *   If the cache promise for this binding is not yet fulfilled, or if the cache is shared
+	 *
+	 * @name sap.ui.model.odata.v4.ODataParentBinding#delete
+	 * @private
+	 */
+
+	/**
 	 * Deletes the entity in the cache. If the binding doesn't have a cache, it forwards to the
 	 * parent binding adjusting the path.
 	 *
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} [oGroupLock]
 	 *   A lock for the group ID to be used for the DELETE request; w/o a lock, no DELETE is sent.
 	 *   For a transient entity, the lock is ignored (use NULL)!
-	 * @param {string} sEditUrl
-	 *   The entity's edit URL to be used for the DELETE request; w/o a lock, this is mostly
-	 *   ignored.
+	 * @param {string} [sEditUrl]
+	 *   The entity's edit URL to be used for the DELETE request; only required with a lock
 	 * @param {string} sPath
 	 *   The path of the entity relative to this binding
 	 * @param {object} [oETagEntity]
 	 *   An entity with the ETag of the binding for which the deletion was requested. This is
 	 *   provided if the deletion is delegated from a context binding with empty path to a list
 	 *   binding. W/o a lock, this is ignored.
-	 * @param {function} [fnCallback]
+	 * @param {function} fnCallback
 	 *  A function which is called immediately when an entity has been deleted from the cache, or
-	 *   when it was re-inserted due to an error; only used in the list binding; the index of the
-	 *   entity and an offset (-1 for deletion, 1 for re-insertion) are passed as parameter
+	 *   when it was re-inserted; the index of the entity and an offset (-1 for deletion, 1 for
+	 *   re-insertion) are passed as parameter
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise which is resolved without a result in case of success, or rejected with an
 	 *   instance of <code>Error</code> in case of failure; returns <code>undefined</code> if the
@@ -1115,7 +1145,7 @@ sap.ui.define([
 			this.oModel.getDependentBindings(oContext).forEach(function (oBinding) {
 				oBinding.resetChanges();
 			});
-			this._delete(null, sCanonicalPath.slice(1), oContext);
+			this.delete(null, sCanonicalPath.slice(1), oContext);
 		}
 	};
 
@@ -1419,22 +1449,26 @@ sap.ui.define([
 	 */
 	ODataParentBinding.prototype.updateAggregatedQueryOptions = function (mNewQueryOptions) {
 		var aAllKeys = Object.keys(mNewQueryOptions),
+			mAggregatedQueryOptions = this.mAggregatedQueryOptions,
 			that = this;
 
-		if (this.mAggregatedQueryOptions) {
-			aAllKeys = aAllKeys.concat(Object.keys(this.mAggregatedQueryOptions));
+		if (mAggregatedQueryOptions) {
+			aAllKeys = aAllKeys.concat(Object.keys(mAggregatedQueryOptions));
 			aAllKeys.forEach(function (sName) {
-				// if the aggregated query options are not initial any more, $select and $expand
+				// if the aggregated query options are not initial anymore, $select and $expand
 				// have already been merged
 				if (that.bAggregatedQueryOptionsInitial
 						|| sName !== "$select" && sName !== "$expand") {
 					if (mNewQueryOptions[sName] === undefined) {
-						delete that.mAggregatedQueryOptions[sName];
+						delete mAggregatedQueryOptions[sName];
 					} else {
-						that.mAggregatedQueryOptions[sName] = mNewQueryOptions[sName];
+						mAggregatedQueryOptions[sName] = mNewQueryOptions[sName];
 					}
 				}
 			});
+			if (mAggregatedQueryOptions.$select && !mAggregatedQueryOptions.$select.length) {
+				mAggregatedQueryOptions.$select = [Object.keys(mAggregatedQueryOptions.$expand)[0]];
+			}
 		}
 	};
 

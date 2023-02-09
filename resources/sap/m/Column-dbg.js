@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -135,8 +135,7 @@ sap.ui.define([
 			 * Merging only happens when rendering the <code>sap.m.Table</code> control, subsequent changes on the cell or item do not have any
 			 * effect on the merged state of the cells, therefore this feature should not be used together with two-way binding.
 			 * This property is ignored if any column is configured to be shown as a pop-in.
-			 * Merging is not supported if the <code>items</code> aggregation of the <code>sap.m.Table</code> control is
-			 * bound to an {@link sap.ui.model.odata.v4.ODataModel OData V4 model}.
+			 * Don't set this property for cells for which the content provides a user interaction, such as <code>sap.m.Link</code>.
 			 *
 			 * @since 1.16
 			 */
@@ -204,7 +203,7 @@ sap.ui.define([
 			 *
 			 * @since 1.98.0
 			 */
-			headerMenu: {type: "sap.ui.core.IColumnHeaderMenu", multiple: false, visibility: "hidden"}
+			headerMenu: {type: "sap.ui.core.IColumnHeaderMenu", multiple: false}
 		},
 		designtime: "sap/m/designtime/Column.designtime"
 	}});

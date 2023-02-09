@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -52,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.MenuItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -124,12 +124,12 @@ sap.ui.define([
 		// Left border
 		rm.openStart("div").class("sapUiMnuItmL").openEnd().close("div");
 
-		// icon/check column
-		rm.openStart("div").class("sapUiMnuItmIco").openEnd();
 		if (oItem.getIcon()) {
+			// icon/check column
+			rm.openStart("div").class("sapUiMnuItmIco").openEnd();
 			rm.icon(oItem.getIcon(), null, {title: null});
+			rm.close("div");
 		}
-		rm.close("div");
 
 		// Text filed column
 		rm.openStart("div", itemId + "-txt").class("sapUiMnuItmTxt").openEnd();

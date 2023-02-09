@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -112,7 +112,7 @@ sap.ui.define([
 	 * The responsiveness of the <code>MessageView</code> is determined by the container in which it is embedded. For that reason the control could not be visualized if the
 	 * container’s sizes are not defined.
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -129,7 +129,7 @@ sap.ui.define([
 				 * Callback function for resolving a promise after description has been asynchronously loaded inside this function.
 				 * @callback sap.m.MessageView~asyncDescriptionHandler
 				 * @param {object} config A single parameter object
-				 * @param {MessagePopoverItem} config.item Reference to respective MessagePopoverItem instance
+				 * @param {sap.m.MessageItem} config.item Reference to respective MessageItem instance
 				 * @param {object} config.promise Object grouping a promise's reject and resolve methods
 				 * @param {function} config.promise.resolve Method to resolve promise
 				 * @param {function} config.promise.reject Method to reject promise
@@ -1114,7 +1114,7 @@ sap.ui.define([
 
 				// first check if there is a class attribute and enrich it with 'sapMMsgViewItemDisabledLink'
 				// else, add proper class
-				var sClasses = "sapMMsgViewItemDisabledLink sapMMsgViewItemPendingLink";
+				var sClasses = "sapMMsgViewItemDisabledLink sapMMsgViewItemPendingLink sapMLnk";
 				var indexOfClass = attrs.indexOf("class");
 				if (indexOfClass > -1) {
 					attrs[indexOfClass + 1] += sClasses;
@@ -1181,7 +1181,6 @@ sap.ui.define([
 	 */
 	MessageView.prototype._fnHandleForwardNavigation = function (oListItem, sTransiotionName) {
 		var oMessageItem = oListItem._oMessageItem,
-			aDetailsPageContent = this._detailsPage.getContent() || [],
 			asyncDescHandler = this.getAsyncDescriptionHandler();
 
 		this._previousIconTypeClass = this._previousIconTypeClass || "";
@@ -1191,7 +1190,7 @@ sap.ui.define([
 			messageTypeFilter: this._getCurrentMessageTypeFilter()
 		});
 
-		this._clearDetailsPage.call(this, aDetailsPageContent);
+		this._clearDetailsPage.call(this);
 
 		if (typeof asyncDescHandler === "function" && oMessageItem.getLongtextUrl()) {
 			// Set markupDescription to true as markup description should be processed as markup
@@ -1205,6 +1204,7 @@ sap.ui.define([
 			});
 
 			var proceed = function () {
+				this._clearDetailsPage.call(this);
 				this._detailsPage.setBusy(false);
 				this._navigateToDetails.call(this, oMessageItem, oListItem, sTransiotionName, true);
 			}.bind(this);
@@ -1258,8 +1258,8 @@ sap.ui.define([
 	 * @param {sap.ui.core.Control} aDetailsPageContent The details page content
 	 * @private
 	 */
-	MessageView.prototype._clearDetailsPage = function (aDetailsPageContent) {
-		aDetailsPageContent.forEach(function (oControl) {
+	MessageView.prototype._clearDetailsPage = function () {
+		this._detailsPage.getContent().forEach(function (oControl) {
 			oControl.destroy();
 		}, this);
 	};

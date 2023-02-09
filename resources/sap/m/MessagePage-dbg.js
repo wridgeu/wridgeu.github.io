@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -72,7 +72,7 @@ sap.ui.define([
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/message-page/ Message Page}
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -178,7 +178,13 @@ sap.ui.define([
 					/**
 					 * The description displayed under the text when enableFormattedText is false.
 					 */
-					_description: {type: "sap.m.Text", multiple: false, visibility: "hidden"}
+					_description: {type: "sap.m.Text", multiple: false, visibility: "hidden"},
+
+					/**
+					 * An icon managed internally by the MessagePage control.
+					 * It could be either an image or an icon from the icon font.
+					 */
+					_icon: {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"}
 				},
 				associations : {
 
@@ -239,11 +245,6 @@ sap.ui.define([
 				this._oNavButton.destroy();
 				this._oNavButton = null;
 			}
-
-			if (this._oIconControl) {
-				this._oIconControl.destroy();
-				this._oIconControl = null;
-			}
 		};
 
 		MessagePage.prototype.setTitle = function(sTitle) {
@@ -297,16 +298,10 @@ sap.ui.define([
 		};
 
 		MessagePage.prototype.setIcon = function(sIcon) {
-			var sValue = this.getIcon() || "";
-				sIcon = sIcon || "";
+			this.setProperty("icon", sIcon, true); // no re-rendering
 
-			if (sValue !== sIcon) {
-				var bSupressRendering = !!sValue && !!sIcon && IconPool.isIconURI(sIcon) === IconPool.isIconURI(sValue);
-				this.setProperty("icon", sIcon, bSupressRendering);
-				if (bSupressRendering && this._oIconControl) {
-					this._oIconControl.setSrc(sIcon);
-				}
-			}
+			var oIcon = this.getAggregation("_icon");
+			oIcon && oIcon.setSrc(sIcon);
 
 			return this;
 		};
@@ -324,12 +319,13 @@ sap.ui.define([
 		};
 
 		MessagePage.prototype._getIconControl = function() {
-			if (this._oIconControl) {
-				this._oIconControl.destroy();
-				this._oIconControl = null;
+			var oIconControl = this.getAggregation("_icon");
+
+			if (oIconControl) {
+				oIconControl.destroy();
 			}
 
-			this._oIconControl = IconPool.createControlByURI({
+			oIconControl = IconPool.createControlByURI({
 				id: this.getId() + "-pageIcon",
 				src: this.getIcon(),
 				height: "8rem",
@@ -339,7 +335,9 @@ sap.ui.define([
 				alt: this.getIconAlt()
 			}, Image).addStyleClass("sapMMessagePageIcon");
 
-			return this._oIconControl;
+			this.setAggregation("_icon", oIconControl, true);
+
+			return oIconControl;
 		};
 
 		/**

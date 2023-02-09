@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([], function () {
@@ -50,7 +50,7 @@ sap.ui.define([], function () {
 	 * @interface
 	 * @alias sap.base.util.SimpleResponse
 	 * @private
-	 * @ui5-restricted SAPUI5 Dist
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	function SimpleResponse(xhr, PromiseImpl) {
 		var headers = parseHeaders(xhr.getAllResponseHeaders());
@@ -122,7 +122,7 @@ sap.ui.define([], function () {
 	 *
 	 * @alias module:sap/base/util/fetch
 	 * @private
-	 * @ui5-restricted SAPUI5 Dist
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	function fetch(resource, init, _mImplementations) {
 		/**
@@ -217,7 +217,7 @@ sap.ui.define([], function () {
 	 *
 	 * @type {Object}
 	 * @private
-	 * @ui5-restricted SAPUI5 Dist
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 *
 	 */
 	fetch.ContentTypes = {

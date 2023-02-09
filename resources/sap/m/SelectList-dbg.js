@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,12 +13,9 @@ sap.ui.define([
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/core/Item',
 	'./SelectListRenderer',
-	'sap/base/Log',
-	"sap/ui/thirdparty/jquery",
-	// jQuery Plugin "control"
-	"sap/ui/dom/jquery/control"
+	'sap/base/Log'
 ],
-	function(library, Core, Control, Element, ItemNavigation, Item, SelectListRenderer, Log, jQuery) {
+	function(library, Core, Control, Element, ItemNavigation, Item, SelectListRenderer, Log) {
 		"use strict";
 
 		// shortcut for sap.m.touch
@@ -38,7 +35,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public

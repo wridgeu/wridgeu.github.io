@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -64,7 +64,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -188,7 +188,7 @@ function(
 				 * @experimental Since 1.78. This aggregation is experimental and provides only limited functionality. Also the API might be changed in future.
 				 * @since 1.78
 				 */
-				formattedValueStateText: { type: "sap.m.FormattedText", multiple: false, defaultValue: null },
+				formattedValueStateText: { type: "sap.m.FormattedText", multiple: false },
 
 				/**
 				 * Clone of the <code>formattedValueStateText</code> aggregation created for the accessibility elements used
@@ -196,7 +196,7 @@ function(
 				 * @experimental Since 1.84. This aggregation is experimental and provides only limited functionality. Also the API might be changed in future.
 				 * @since 1.84
 				 */
-				_invisibleFormattedValueStateText: { type: "sap.m.FormattedText", multiple: false, visibility: "hidden", defaultValue: null },
+				_invisibleFormattedValueStateText: { type: "sap.m.FormattedText", multiple: false, visibility: "hidden" },
 
 				/**
 				 * Icons that will be placed after the input field

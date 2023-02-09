@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -108,7 +108,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -403,7 +403,6 @@ sap.ui.define([
 			horizontal: false,
 			vertical: true
 		});
-		this._oScrollHelper.setOnAfterScrollToElement(this._onAfterScrollToElement.bind(this));
 		this._oStickyHeaderObserver = null;
 		this._oHeaderObserver = null;
 		this._oSubHeaderAfterRenderingDelegate = {onAfterRendering: function() {
@@ -622,35 +621,6 @@ sap.ui.define([
 	 * PRIVATE METHODS
 	 */
 
-	/**
-	 * Offsets to the required scroll position.
-	 * The offset is the offset of the scroll container from the top of the content container.
-	 *
-	 * This is required because <code>sap.ui.code>ScrollEnablement.prototype.scrollToElement</code>
-	 * scrolls the element to the very top of the scroll container, regardless of the scroll container top-padding.
-	 *
-	 * @private
-	 */
-	DynamicPage.prototype._onAfterScrollToElement = function () {
-		var iScrollTop = this.$wrapper.scrollTop(),
-			iOffsetBeforeSnap = this._getTitleAreaHeight(),
-			bWasStickySubheaderInTitleArea = this._bStickySubheaderInTitleArea,
-			iOffset;
-
-		// synchronously call the existing listener for the native 'scroll' event
-		this._toggleHeaderOnScroll();
-
-		iOffset = iOffsetBeforeSnap;
-		// if the subheader was sticked (removed from the topmost part of the scrollable area) =>
-		// all elements bellow it became offset with X pixels, where X is the subHeader height =>
-		// the element (target of <code>scrollToElement</code>) was offset respectively =>
-		// adjust the scroll position to ensure the element is back visible (outside scroll overflow)
-		if (this._bStickySubheaderInTitleArea && !bWasStickySubheaderInTitleArea && this.$wrapper.scrollTop() === iScrollTop) {
-			iOffset += this._getHeight(this._oStickySubheader);
-		}
-
-		this.$wrapper.scrollTop(iScrollTop - iOffset);
-	};
 
 	/**
 	 * If the header is larger than the allowed height, the <code>preserveHeaderStateOnScroll</code> property will be ignored
@@ -1352,6 +1322,7 @@ sap.ui.define([
 		// (1) add top padding for the area underneath the title element
 		// so that the title does not overlap the content of the scroll container
 		oWrapperElement.style.paddingTop = iTitleHeight + "px";
+		this._oScrollHelper.setScrollPaddingTop(iTitleHeight);
 
 		// (2) also make the area underneath the title invisible (using clip-path)
 		// to allow usage of *transparent background* of the title element

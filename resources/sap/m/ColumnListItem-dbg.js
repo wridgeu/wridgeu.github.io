@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -267,7 +267,7 @@ sap.ui.define([
 			}
 		});
 
-		return aOutput.join(" . ").trim();
+		return aOutput.filter(Boolean).join(" . ").trim();
 	};
 
 	// update the aria-selected for the cells

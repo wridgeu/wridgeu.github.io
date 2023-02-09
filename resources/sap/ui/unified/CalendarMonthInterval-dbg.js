@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -65,7 +65,7 @@ sap.ui.define([
 	 * <b>Note:</b> JavaScript Date objects are used to set and return the months, mark them as selected or as a special type.
 	 * But the date part of the Date object is not used. If a Date object is returned the date will be set to the 1st of the corresponding month.
 	 * @extends sap.ui.core.Control
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -347,9 +347,9 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets a start date.
+	 * Sets start date of the interval.
 	 * @param {Date} oStartDate A JavaScript date
-	 * @return {this} <code>this</code> for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	CalendarMonthInterval.prototype.setStartDate = function(oStartDate){
 
@@ -450,7 +450,7 @@ sap.ui.define([
 	/**
 	 * Gets the used locale for the <code>CalendarMonthInterval</code>
 	 * Only for internal use
-	 * @return {string} sLocale
+	 * @returns {string} sLocale
 	 * @private
 	 */
 	CalendarMonthInterval.prototype.getLocale = function(){
@@ -465,7 +465,7 @@ sap.ui.define([
 
 	/**
 	 *
-	 * @return {sap.ui.unified.calendar.CalendarDate} the focused date
+	 * @returns {sap.ui.unified.calendar.CalendarDate} the focused date
 	 * @private
 	 */
 	CalendarMonthInterval.prototype._getFocusedDate = function(){
@@ -494,7 +494,7 @@ sap.ui.define([
 	/**
 	 * Sets the focused month of the <code>CalendarMonthInterval</code>.
 	 *
-	 * @param {Object} oDatetime JavaScript date object for focused date. (The month of this date will be focused.)
+	 * @param {Date} oDatetime JavaScript date object for focused date. (The month of this date will be focused.)
 	 * @returns {sap.ui.unified.Calendar} <code>this</code> to allow method chaining
 	 * @public
 	 */
@@ -521,8 +521,8 @@ sap.ui.define([
 	/**
 	 * Displays a month in the <code>CalendarMonthInterval</code> but doesn't set the focus.
 	 *
-	 * @param {Object} oDatetime JavaScript date object for displayed date. (The month of this date will be displayed.)
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @param {Date} oDatetime JavaScript date object for displayed date. (The month of this date will be displayed.)
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	CalendarMonthInterval.prototype.displayDate = function(oDatetime){
@@ -622,10 +622,10 @@ sap.ui.define([
 
 	};
 
-	/*
+	/**
 	 * Sets a minimum date for the calendar.
-	 * @param {Date} oDate a JavaScript date
-	 * @returns {this} <code>this</code> for method chaining
+	 * @param {Date} [oDate] A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	CalendarMonthInterval.prototype.setMinDate = function(oDate){
 
@@ -681,10 +681,10 @@ sap.ui.define([
 
 	};
 
-	/*
+	/**
 	 * Sets a maximum date for the calendar.
-	 * @param {Date} oDate a JavaScript date
-	 * @return {this} <code>this</code> for method chaining
+	 * @param {Date} [oDate] A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	CalendarMonthInterval.prototype.setMaxDate = function(oDate){
 
@@ -921,7 +921,7 @@ sap.ui.define([
 
 	/**
 	 * Retrieves the start date as calendar date
-	 * @return {sap.ui.unified.calendar.CalendarDate} the start date
+	 * @returns {sap.ui.unified.calendar.CalendarDate} the start date
 	 * @private
 	 */
 	function _getStartDate(){

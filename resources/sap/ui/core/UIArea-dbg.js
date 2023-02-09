@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -183,7 +183,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
 	 * @alias sap.ui.core.UIArea
@@ -226,12 +226,12 @@ sap.ui.define([
 				/**
 				 * Content that is displayed in the UIArea.
 				 */
-				content : {name : "content", type : "sap.ui.core.Control", multiple : true, singularName : "content"},
+				content : {type : "sap.ui.core.Control", multiple : true, singularName : "content"},
 
 				/**
 				 * Dependent objects whose lifecycle is bound to the UIArea but which are not automatically rendered by the UIArea.
 				 */
-				dependents : {name : "dependents", type : "sap.ui.core.Control", multiple : true}
+				dependents : {type : "sap.ui.core.Control", multiple : true}
 			}
 		},
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,6 +53,9 @@ sap.ui.define([
 	// shortcut for sap.m.PlacementType
 	var PlacementType = library.PlacementType;
 
+	//shortcut for sap.m.BackgroundDesign
+	var BackgroundDesign = library.BackgroundDesign;
+
 	/**
 	 * Constructor for a new Carousel.
 	 *
@@ -100,7 +103,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -151,7 +154,14 @@ sap.ui.define([
 				 * place the arrows on the sides of the carousel. Alternatively <code>sap.m.CarouselArrowsPlacement.PageIndicator</code> can
 				 * be used to place the arrows on the sides of the page indicator.
 				 */
-				arrowsPlacement : {type : "sap.m.CarouselArrowsPlacement", group : "Appearance", defaultValue : CarouselArrowsPlacement.Content}
+				arrowsPlacement : {type : "sap.m.CarouselArrowsPlacement", group : "Appearance", defaultValue : CarouselArrowsPlacement.Content},
+
+				/**
+				 * Defines the carousel's background design. Default is <code>sap.m.BackgroundDesign.Translucent</code>.
+				 * @public
+				 * @since 1.110
+				 */
+				backgroundDesign : {type : "sap.m.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Translucent}
 			},
 			defaultAggregation : "pages",
 			aggregations : {
@@ -490,8 +500,8 @@ sap.ui.define([
 			return;
 		}
 
-		var sNewActivePageId = this.getPages()[iNextSlide - 1].getId();
-		this._updateActivePages(sNewActivePageId);
+		this._sNewActivePageId = this.getPages()[iNextSlide - 1].getId();
+		this._updateActivePages(this._sNewActivePageId);
 
 		this.fireBeforePageChanged({
 			activePages: this._aAllActivePagesIndexes
@@ -752,6 +762,7 @@ sap.ui.define([
 		}
 
 		this.setAssociation("activePage", sPageId, true);
+		this._updateActivePages(this._sNewActivePageId ? this._sNewActivePageId : sPageId);
 
 		return this;
 	};

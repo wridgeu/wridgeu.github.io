@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -91,7 +91,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 * @mixes sap.ui.core.ContextMenuSupport
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @public
 		 * @alias sap.m.Page
@@ -435,7 +435,8 @@ function(
 			}
 
 			var $footer = jQuery(this.getDomRef()).find(".sapMPageFooter").last(),
-				useAnimation = Configuration.getAnimation();
+				sAnimationMode = Configuration.getAnimationMode(),
+				bHasAnimations = sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal;
 
 			if (!this.getFloatingFooter()) {
 				this.setProperty("showFooter", bShowFooter);
@@ -452,7 +453,7 @@ function(
 				return this;
 			}
 
-			if (useAnimation) {
+			if (bHasAnimations) {
 				setTimeout(function () {
 					$footer.toggleClass("sapUiHidden", !bShowFooter);
 				}, Page.FOOTER_ANIMATION_DURATION);

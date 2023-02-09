@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -130,8 +130,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.109.0
-	 * @version 1.109.0
+	 * @version 1.110.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -298,7 +298,7 @@ sap.ui.define([
 	 * If this property is used, the <code>dateValue</code> property should not be changed from the caller.
 	 *
 	 * @param {string} sValue The new value of the input.
-	 * @return {this} <code>this</code> to allow method chaining.
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateRangeSelection.prototype.setValue = function(sValue) {
@@ -360,8 +360,8 @@ sap.ui.define([
 
 	/**
 	 * Converts the parameter to a Javascript Date, if it is a timestamp integer.
-	 * @param {object|int} vBindingDate A timestamp or a Javascript Date
-	 * @returns {object} A Javascript Date object
+	 * @param {Date|int} vBindingDate A timestamp or a Javascript Date
+	 * @returns {Date} A Javascript Date object
 	 * @private
 	 */
 	function _normalizeDateValue(vBindingDate) {
@@ -370,8 +370,8 @@ sap.ui.define([
 
 	/**
 	 * Converts the parameter to a timestamp integer, if it is a Javascript Date.
-	 * @param {object|int} vBindingDate A timestamp or a Javascript Date
-	 * @returns {object} A timestamp integer
+	 * @param {Date|int} vBindingDate A timestamp or a Javascript Date
+	 * @returns {int} A timestamp integer
 	 * @private
 	 */
 	function _denormalizeDateValue(vBindingDate) {
@@ -383,7 +383,7 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> Property <code>valueFormat</code> is not supported in the <code>sap.m.DateRangeSelection</code> control.
 	 *
-	 * @return {string} the value of property valueFormat
+	 * @returns {string} the value of property valueFormat
 	 * @public
 	 * @name sap.m.DateRangeSelection#getValueFormat
 	 * @function
@@ -395,7 +395,7 @@ sap.ui.define([
 	 * <b>Note:</b> Property <code>valueFormat</code> is not supported in the <code>sap.m.DateRangeSelection</code> control.
 	 *
 	 * @param {string} sValueFormat New value for property valueFormat
-	 * @return {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateRangeSelection.prototype.setValueFormat = function(sValueFormat) {
@@ -459,7 +459,7 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {object} the value of property <code>dateValue</code>
+	 * @returns {Date} the value of property <code>dateValue</code>
 	 * @public
 	 * @name sap.m.DateRangeSelection#getDateValue
 	 * @function
@@ -472,8 +472,8 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {object} oDateValue New value for property <code>dateValue</code>
-	 * @return {this} <code>this</code> to allow method chaining.
+	 * @param {Date} oDateValue New value for property <code>dateValue</code>
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateRangeSelection.prototype.setDateValue = function(oDateValue) {
@@ -493,6 +493,17 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Setter for property <code>secondDateValue</code>.
+	 *
+	 * The start date of the range as JavaScript Date object. This is independent from any formatter.
+	 *
+	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
+	 *
+	 * @param {Date} oSecondDateValue New value for property <code>dateValue</code>
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
 	DateRangeSelection.prototype.setSecondDateValue = function(oSecondDateValue) {
 
 		if (!this._isValidDate(oSecondDateValue)) {
@@ -948,7 +959,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {object} Current accessibility state of the control
+	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control
 	 * @protected
 	 */
 	DateRangeSelection.prototype.getAccessibilityInfo = function() {
@@ -1291,7 +1302,7 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @param {object} [mArguments] The arguments to pass along with the event.
-	 * @return {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @protected
 	 * @name sap.m.DateRangeSelection#fireChange
 	 * @function

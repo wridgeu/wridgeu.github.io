@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -594,6 +594,18 @@ sap.ui.define([
 		 * @param {Promise} resolves when async processing is done
 		 */
 		createAndAddCustomData: function(oControl, sCustomDataKey, sValue, oAppComponent) {},
+
+		/**
+		 * Checks the custom data created via the {@link sap.ui.core.util.reflection.BaseTreeModifier.js#createAndAddCustomData}.
+		 * If there is a custom data with the given key, an object with the following two properties is returned:
+		 * customData: CustomData attribute / object
+		 * customDataValue: Value of the CustomData
+		 *
+		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
+		 * @param {string} sCustomDataKey - Key for the Custom Data
+		 * @returns {object} Information about the custom data or an empty object
+		 */
+		getCustomDataInfo: function(vControl, sCustomDataKey) {},
 
 		/**
 		 * Creates the control in the corresponding representation.

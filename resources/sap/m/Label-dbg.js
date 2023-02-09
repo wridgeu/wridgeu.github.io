@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -78,7 +78,7 @@ function(
 	 * @implements sap.ui.core.Label, sap.ui.core.IShrinkable, sap.ui.core.IAccessKeySupport
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -92,6 +92,7 @@ function(
 				"sap.ui.core.Label",
 				"sap.ui.core.IShrinkable",
 				"sap.m.IOverflowToolbarContent",
+				"sap.m.IToolbarInteractiveControl",
 				"sap.m.IHyphenation",
 				"sap.ui.core.IAccessKeySupport"
 			],
@@ -201,7 +202,7 @@ function(
 	 *
 	 * @protected
 	 *
-	 * @returns {object} AccessibilityInfo of the <code>sap.m.Label</code>
+	 * @returns {sap.ui.core.AccessibilityInfo} AccessibilityInfo of the <code>sap.m.Label</code>
 	 */
 	Label.prototype.getAccessibilityInfo = function() {
 		var sDescription = this.getText();
@@ -236,7 +237,7 @@ function(
 	 * Required by the {@link sap.m.IOverflowToolbarContent} interface.
 	 *
 	 * @public
-	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
+	 * @returns {sap.m.OverflowToolbarConfig} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 */
 	Label.prototype.getOverflowToolbarConfig = function() {
 		var oConfig = {
@@ -319,6 +320,19 @@ function(
 	 */
 	 Label.prototype.setIsInColumnHeaderContext = function (bIsInColumnHeaderContext) {
 		this._isInColumnHeaderContext = !!bIsInColumnHeaderContext;
+	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	Label.prototype._getToolbarInteractive = function () {
+		return false;
 	};
 
 	// enrich Label functionality

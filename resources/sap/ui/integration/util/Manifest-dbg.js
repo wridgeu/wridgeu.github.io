@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -64,7 +64,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @private
@@ -205,7 +205,7 @@ sap.ui.define([
 	/**
 	 * Load a manifest.json file and all of its resources and then process it.
 	 *
-	 * @param {Object} mSettings The settings to use for manifest loading.
+	 * @param {object} mSettings The settings to use for manifest loading.
 	 * @returns {Promise} A promise resolved when the manifest is ready and processed.
 	 */
 	Manifest.prototype.load = function (mSettings) {
@@ -249,6 +249,13 @@ sap.ui.define([
 		}.bind(this));
 	};
 
+	/**
+	 * Loads the dependencies listed in "sap.ui5"/dependencies/libs and the includes
+	 * @returns {Promise} A promise resolved when the dependencies are loaded
+	 */
+	Manifest.prototype.loadDependenciesAndIncludes = function () {
+		return this._oManifest.loadDependenciesAndIncludes(true);
+	};
 
 	/**
 	 * Loads the i18n resources.

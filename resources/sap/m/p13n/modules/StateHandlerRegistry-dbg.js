@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,10 +18,10 @@ sap.ui.define([
 	 * Constructor for a new StateHandlerRegistry.
 	 *
 	 * @class
-	 * @extends sap.ui.base.Object
+	 * @extends sap.ui.base.EventProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @private
 	 * @since 1.104
@@ -84,10 +84,11 @@ sap.ui.define([
 	};
 
 	/**
+	 * This method is the central point of access to the DefaultProviderRegistry Singleton.
+	 *
 	 * @private
 	 * @ui5-restricted sap.m
 	 *
-	 * This method is the central point of access to the DefaultProviderRegistry Singleton.
 	 * @returns {this} Returns the <code>StateHandlerRegistry</code> instance.
 	 */
 	StateHandlerRegistry.getInstance = function () {

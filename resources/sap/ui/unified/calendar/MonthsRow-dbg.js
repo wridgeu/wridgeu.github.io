@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -62,7 +62,7 @@ sap.ui.define([
 	 * The MontsRow works with JavaScript Date objects, but only the month and the year are used to display and interact.
 	 * As representation for a month, the 1st of the month will always be returned in the API.
 	 * @extends sap.ui.core.Control
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -114,7 +114,7 @@ sap.ui.define([
 			 * @private
 			 * @since 1.108.0
 			 */
-			primaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance", defaultValue : null},
+			primaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
 
 			/**
 			 * If set, the days are also displayed in this calendar type
@@ -122,7 +122,7 @@ sap.ui.define([
 			 * @private
 			 * @since 1.109.0
 			 */
-			 secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance", defaultValue : null}
+			 secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"}
 		},
 		aggregations : {
 
@@ -304,7 +304,7 @@ sap.ui.define([
 	/**
 	 * Sets a date for the months row.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {this} <code>this</code> for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	MonthsRow.prototype.setDate = function(oDate){
 		if (oDate) {
@@ -321,7 +321,7 @@ sap.ui.define([
 	 * Calculates the first and last displayed date about a given month.
 	 * @param {integer} iCurrentMonth is the month on which the date calculations are based.
 	 * @param {integer} iCurrentYear is the year on which the date calculations are based.
-	 * @return {object} object contains two values - start and end date (JSDates in secondary calendat type).
+	 * @returns {object} object contains two values - start and end date (JSDates in secondary calendat type).
 	 */
 	MonthsRow.prototype._getDisplayedSecondaryDates = function (iCurrentMonth, iCurrentYear){
 		var sSecondaryCalendarType = this._getSecondaryCalendarType(),
@@ -348,7 +348,7 @@ sap.ui.define([
 	};
 
 	/**
-	* @return {sap.ui.unified.calendar.CalendarDate} the last set calendar date or the current date
+	* @returns {sap.ui.unified.calendar.CalendarDate} the last set calendar date or the current date
 	* @private
 	*/
 	MonthsRow.prototype._getDate = function(){
@@ -362,10 +362,10 @@ sap.ui.define([
 	};
 
 
-	/*
-	 * Sets a date for a start date of the months row.
+	/**
+	 * Sets start date of the month row.
 	 * @param {Date} oStartDate A JavaScript date
-	 * @return {this} <code>this</code> for method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 */
 	MonthsRow.prototype.setStartDate = function(oStartDate){
 		CalendarUtils._checkJSDateObject(oStartDate);
@@ -407,8 +407,8 @@ sap.ui.define([
 	/**
 	 * Displays the month of a given date without setting the focus
 	 *
-	 * @param {object} oDate JavaScript Date object for focused date.
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @param {Date} oDate JavaScript Date object for focused date.
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	MonthsRow.prototype.displayDate = function(oDate){
@@ -612,10 +612,10 @@ sap.ui.define([
 		return this._ariaRole ? this._ariaRole : "gridcell";
 	};
 
-	/*
+	/**
 	 * Checks if a date is selected and what kind of selected
-	 * @param {sap.ui.unified.calendar.CalendarDate} oDate
-	 * @return {int} iSelected 0: not selected; 1: single day selected, 2: interval start, 3: interval end, 4: interval between, 5: one day interval (start = end)
+	 * @param {sap.ui.unified.calendar.CalendarDate} oDate A CalendarDate
+	 * @returns {int} iSelected 0: not selected; 1: single day selected, 2: interval start, 3: interval end, 4: interval between, 5: one day interval (start = end)
 	 * @private
 	 */
 	MonthsRow.prototype._checkDateSelected = function(oDate){
@@ -682,10 +682,11 @@ sap.ui.define([
 
 	};
 
-	/*
-	 * gets the type of a single date checking the specialDates aggregation
+	/**
+	 * Gets the type of a single date checking the specialDates aggregation
 	 * the first hit is used
-	 * @return {sap.ui.unified.calendar.CalendarDate} date type and tooltip defined in CalendarDayType
+	 * @param {object} oDate A date object.
+	 * @returns {sap.ui.unified.calendar.CalendarDate} date type and tooltip defined in CalendarDayType
 	 * @private
 	 */
 	MonthsRow.prototype._getDateType = function(oDate){
@@ -730,11 +731,11 @@ sap.ui.define([
 
 	};
 
-	/*
+	/**
 	 * Checks if a Month is enabled
 	 * the min. and max. date of the CalendarMonthInterval are used
-	 * @param {sap.ui.unified.calendar.CalendarDate} oDate
-	 * @return {boolean} Flag if enabled
+	 * @param {sap.ui.unified.calendar.CalendarDate} oDate A CalendarDate
+	 * @returns {boolean} Flag if enabled
 	 * @private
 	 */
 	MonthsRow.prototype._checkMonthEnabled = function(oDate){
@@ -806,7 +807,7 @@ sap.ui.define([
 				}
 
 				if ($Target.hasClass("sapUiCalItem")) {
-					oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymm.parse($Target.attr("data-sap-month"), this.getProperty("primaryCalendarType")));
+					oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymm.parse($Target.attr("data-sap-month")));
 					oFocusedDate.setDate(1);
 				}
 
@@ -920,7 +921,7 @@ sap.ui.define([
 	 * Checks if a date is focusable in the current rendered output.
 	 * This means that if it is not rendered, it is not focusable.
 	 *
-	 * @param {object} oDateTime JavaScript Date object for focused date.
+	 * @param {Date} oDateTime JavaScript Date object for focused date.
 	 * @returns {boolean} flag if focusable
 	 * @public
 	 */
@@ -1012,7 +1013,7 @@ sap.ui.define([
 		// find out what day was focused
 		var $DomRef = jQuery(aDomRefs[iIndex]);
 
-		oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymm.parse($DomRef.attr("data-sap-month"), this.getProperty("primaryCalendarType")));
+		oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymm.parse($DomRef.attr("data-sap-month")));
 		oFocusedDate.setDate(1);
 		this.setDate(oFocusedDate.toLocalJSDate());
 

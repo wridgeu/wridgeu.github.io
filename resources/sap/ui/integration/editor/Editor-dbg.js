@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -137,7 +137,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @constructor
 	 * @since 1.94
 	 * @private
@@ -889,7 +889,7 @@ sap.ui.define([
 		 * @experimental since 1.94
 		 * @public
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 * @borrows sap.ui.integration.editor.Editor#getParameters as getParameters
 		 * @borrows sap.ui.integration.editor.Editor#resolveDestination as resolveDestination
 		 * @borrows sap.ui.integration.editor.Editor#request as request
@@ -1495,6 +1495,10 @@ sap.ui.define([
 								case "group":
 									break;
 								case "object":
+									if (oItem.value && oItem.value !== "" && typeof oItem.value === "object") {
+										mResult[oItem.manifestpath] = oItem.value;
+									}
+									break;
 								case "object[]":
 									if (Array.isArray(oItem.value)) {
 										var aValue = deepClone(oItem.value, 500);

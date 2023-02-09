@@ -1,8 +1,9 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
 
 // Provides TablePersoDialog
 sap.ui.define([
@@ -27,7 +28,8 @@ sap.ui.define([
 	'sap/ui/model/FilterOperator',
 	'sap/ui/model/json/JSONModel',
 	'sap/m/SearchField',
-	'sap/ui/core/Configuration'
+	'sap/ui/core/Configuration',
+	'sap/ui/core/library'
 ],
 	function(
 		Text,
@@ -51,7 +53,8 @@ sap.ui.define([
 		FilterOperator,
 		JSONModel,
 		SearchField,
-		Configuration
+		Configuration,
+		coreLibrary
 	) {
 	"use strict";
 
@@ -65,6 +68,9 @@ sap.ui.define([
 
 	// shortcut for sap.m.WrappingType
 	var WrappingType = library.WrappingType;
+
+	// shortcut for sap.ui.core.TitleLevel
+	var TitleLevel = coreLibrary.TitleLevel;
 
 	/**
 	 * The TablePersoDialog can be used to display and allow modification of personalization settings relating to a Table. It displays the columns of the table that it refers to by using
@@ -85,7 +91,7 @@ sap.ui.define([
 	 * @class Table Personalization Dialog
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @alias sap.m.TablePersoDialog
 	 */
 	var TablePersoDialog = ManagedObject.extend("sap.m.TablePersoDialog", /** @lends sap.m.TablePersoDialog.prototype */
@@ -219,10 +225,12 @@ sap.ui.define([
 			var aFields = this._oInnerTable.getModel("Personalization").getProperty("/aColumns");
 			var bButtonUpEnabled,bButtonDownEnabled;
 
-			if (!this._oSelectedItem){
+			if (!this._oSelectedItem || this._oInnerTable.getItems().length == 0){
 				//no item yet selected
 				bButtonUpEnabled = false;
 				bButtonDownEnabled = false;
+
+				this._oSelectedItem = null;
 			} else {
 				var iItemIndex = aFields.indexOf(this._oSelectedItem.getBindingContext("Personalization").getObject());
 				bButtonUpEnabled = iItemIndex > 0 ? true : false;
@@ -284,7 +292,8 @@ sap.ui.define([
 		var oHeader = new Bar({
 			contentLeft:
 				new Title(this.getId() + "-Dialog-title",{
-					text: this._oRb.getText("PERSODIALOG_COLUMNS_TITLE")
+					text: this._oRb.getText("PERSODIALOG_COLUMNS_TITLE"),
+					level: TitleLevel.H1
 				}),
 			contentRight: this._resetAllButton
 		});
@@ -306,7 +315,7 @@ sap.ui.define([
 			initialFocus: (Device.system.desktop ? this._oInnerTable : null),
 			content : [this._oInnerTable ],
 			subHeader : oSubHeader,
-			leftButton : new Button(this.getId() + "-buttonOk", {
+			beginButton : new Button(this.getId() + "-buttonOk", {
 				text : this._oRb.getText("PERSODIALOG_OK"),
 				press : function () {
 					that._oDialog.close();
@@ -316,7 +325,7 @@ sap.ui.define([
 				},
 				type : ButtonType.Emphasized
 			}),
-			rightButton : new Button(this.getId() + "-buttonCancel", {
+			endButton : new Button(this.getId() + "-buttonCancel", {
 				text: this._oRb.getText("PERSODIALOG_CANCEL"),
 				press: function () {
 					that._oDialog.close();
@@ -549,6 +558,20 @@ sap.ui.define([
 
 		this._fnUpdateArrowButtons.call(this);
 
+		if (this._oButtonDown.getEnabled() || this._oButtonUp.getEnabled()) {
+			if (!this._oButtonDown.getEnabled()) {
+				setTimeout(function() { // when button was disable, we need a timeout before setting the focus
+					this._oButtonUp && this._oButtonUp.focus();
+				}.bind(this), 0);
+			}
+			if (!this._oButtonUp.getEnabled()) {
+				setTimeout(function() { // when button was disable, we need a timeout before setting the focus
+					this._oButtonDown && this._oButtonDown.focus();
+				}.bind(this), 0);
+			}
+		} else {
+			this._oSearchField.focus();
+		}
 	};
 
 	/**

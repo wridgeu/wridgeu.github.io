@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 //Provides control sap.ui.unified.Calendar.
@@ -74,7 +74,7 @@ sap.ui.define([
 	 * Basic Calendar.
 	 * This calendar is used for DatePickers
 	 * @extends sap.ui.core.Control
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -629,9 +629,10 @@ sap.ui.define([
 		this._oSpecialDatesControlOrigin = oControl;
 	};
 
-	/*
-	 * if used inside DatePicker get the value from the parent
-	 * To don't have sync issues...
+	/**
+	 * If used inside DatePicker get the value from the parent
+	 * To not have sync issues...
+	 * @returns {sap.ui.unified.DateTypeRange[]} Array with special dates
 	 */
 	Calendar.prototype.getSpecialDates = function(){
 
@@ -665,10 +666,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * sets the locale for the DatePicker
+	 * Sets the locale for the DatePicker
 	 * only for internal use
 	 * @param {string} sLocale  new value for <code>locale</code>
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	Calendar.prototype.setLocale = function(sLocale){
@@ -685,9 +686,9 @@ sap.ui.define([
 	};
 
 	/**
-	 * gets the used locale for the DatePicker
+	 * Gets the used locale for the DatePicker
 	 * only for internal use
-	 * @return {string} sLocale
+	 * @returns {string} sLocale
 	 * @private
 	 */
 	Calendar.prototype.getLocale = function(){
@@ -700,8 +701,8 @@ sap.ui.define([
 
 	};
 	/**
-	 * gets the focused date
-	 * @return {sap.ui.unified.calendar.CalendarDate} the focused date.
+	 * Gets the focused date
+	 * @returns {sap.ui.unified.calendar.CalendarDate} The focused date
 	 * @private
 	 */
 	Calendar.prototype._getFocusedDate = function(){
@@ -726,8 +727,8 @@ sap.ui.define([
 	/**
 	 * Displays and sets the focused date of the calendar.
 	 *
-	 * @param {Object} oDate A JavaScript date object for focused date
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @param {Date} oDate A JavaScript date object for focused date
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	Calendar.prototype.focusDate = function(oDate) {
@@ -742,9 +743,8 @@ sap.ui.define([
 	/**
 	 * Displays a date in the calendar but doesn't set the focus.
 	 *
-	 * @param {Object} oDate
-	 *         JavaScript date object for focused date.
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @param {Date} oDate JavaScript date object for focused date
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @since 1.28.0
 	 * @public
 	 */
@@ -761,7 +761,7 @@ sap.ui.define([
 	 *
 	 * There might be some days of the previous month shown, but they can not be focused.
 	 *
-	 * @returns {Object} JavaScript date object for start date.
+	 * @returns {Date} JavaScript date object for start date
 	 * @since 1.34.1
 	 * @public
 	 */
@@ -952,7 +952,7 @@ sap.ui.define([
 	/**
 	 * Sets a minimum date for the calendar.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {this} <code>this</code> for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	Calendar.prototype.setMinDate = function(oDate){
@@ -974,7 +974,7 @@ sap.ui.define([
 			this._oMinDate = CalendarDate.fromLocalJSDate(oDate, sPrimaryCalendarType);
 
 			var iYear = this._oMinDate.getYear();
-			CalendarUtils._checkYearInValidRange(iYear);
+			CalendarUtils._checkYearInValidRange(iYear, sPrimaryCalendarType);
 
 			if (this._oMaxDate.isBefore(this._oMinDate)) {
 				Log.warning("minDate > maxDate -> maxDate set to end of the month", this);
@@ -1006,13 +1006,13 @@ sap.ui.define([
 	/**
 	 * Sets a maximum date for the calendar.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {this} <code>this</code> for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	Calendar.prototype.setMaxDate = function(oDate){
 
 		var aMonths = this.getAggregation("month"),
-			sPrimaryCalendarType,
+			sPrimaryCalendarType = this.getPrimaryCalendarType(),
 			iMaxYear;
 
 		if (deepEqual(oDate, this.getMaxDate())) {
@@ -1028,7 +1028,7 @@ sap.ui.define([
 			this._oMaxDate = CalendarDate.fromLocalJSDate(oDate, sPrimaryCalendarType);
 
 			var iYear = this._oMaxDate.getYear();
-			CalendarUtils._checkYearInValidRange(iYear);
+			CalendarUtils._checkYearInValidRange(iYear, sPrimaryCalendarType);
 
 			if (this._oMinDate.isAfter(this._oMaxDate)) {
 				Log.warning("maxDate < minDate -> minDate set to begin of the month", this);
@@ -1060,7 +1060,7 @@ sap.ui.define([
 	 * Sets the visibility of the Current date button in the calendar.
 	 *
 	 * @param {boolean} bShow whether the Today button will be displayed
-	 * @return {this} <code>this</code> for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	Calendar.prototype.setShowCurrentDateButton = function(bShow){
@@ -1119,7 +1119,7 @@ sap.ui.define([
 
 	/**
 	 * Getter for monthPicker aggregation.
-	 * @return {sap.ui.unified.calendar.MonthPicker} The monthPicker control instance
+	 * @returns {sap.ui.unified.calendar.MonthPicker} The monthPicker control instance
 	 * @private
 	 */
 	Calendar.prototype._getMonthPicker = function () {
@@ -1128,7 +1128,7 @@ sap.ui.define([
 
 	/**
 	 * Getter for yearPicker aggregation.
-	 * @return {sap.ui.unified.calendar.YearPicker} The yearPicker control instance
+	 * @returns {sap.ui.unified.calendar.YearPicker} The yearPicker control instance
 	 * @private
 	 */
 	Calendar.prototype._getYearPicker = function () {
@@ -1137,7 +1137,7 @@ sap.ui.define([
 
 	/**
 	 * Getter for yearPicker aggregation.
-	 * @return {sap.ui.unified.calendar.YearRangePicker} The yearRangePicker control instance
+	 * @returns {sap.ui.unified.calendar.YearRangePicker} The yearRangePicker control instance
 	 * @private
 	 */
 	Calendar.prototype._getYearRangePicker = function () {
@@ -1377,7 +1377,7 @@ sap.ui.define([
 	 * Enables/Disables previous and next buttons in the year picker header.
 	 * This function assumes there is a "yearPicker" aggregation.
 	 * So callers must take care.
-	 * @return {void}
+	 * @returns {void}
 	 * @private
 	 */
 	Calendar.prototype._togglePrevNexYearPicker = function(){
@@ -1419,7 +1419,7 @@ sap.ui.define([
 	 * Handles navigation to previous date.
 	 * This function assumes there are both "yearPicker" & "monthPicker" aggregation available.
 	 * So callers must take care.
-	 * @return {void}
+	 * @returns {void}
 	 * @private
 	 */
 	Calendar.prototype._handlePrevious = function(oEvent){
@@ -1479,7 +1479,7 @@ sap.ui.define([
 	 * Handles navigation to next date.
 	 * This function assumes there are both "yearPicker" & "monthPicker" aggregation available.
 	 * So callers must take care.
-	 * @return {void}
+	 * @returns {void}
 	 * @private
 	 */
 	Calendar.prototype._handleNext = function(oEvent){
@@ -1791,7 +1791,7 @@ sap.ui.define([
 	/**
 	 * Updates visibility of active Header month button
 	 * Only for internal use
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	Calendar.prototype._updateMonthButtonVisibility = function(){
@@ -1810,7 +1810,7 @@ sap.ui.define([
 	 * Shows an embedded Month Picker.
 	 * This function assumes there is a "monthPicker" & "yearPicker" aggregation.
 	 * So callers must take care.
-	 * @return {void}
+	 * @returns {void}
 	 * @private
 	 */
 	Calendar.prototype._showMonthPicker = function (bSkipFocus) {
@@ -1851,7 +1851,7 @@ sap.ui.define([
 	 * Shows an embedded year Picker.
 	 * This function assumes there is a "yearPicker" aggregation.
 	 * So callers must take care.
-	 * @return {void}
+	 * @returns {void}
 	 * @private
 	 */
 	Calendar.prototype._showYearPicker = function () {
@@ -2251,7 +2251,7 @@ sap.ui.define([
 	 /**
 	 * Updates visibility of active Header Year button
 	 * Only for internal use
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	Calendar.prototype._updateActiveHeaderYearButtonVisibility = function(){
@@ -2680,16 +2680,17 @@ sap.ui.define([
 	function _displayDate(oDate, bSkipFocus) {
 
 		var oCalDate,
+			sPrimaryCalendarType = this.getPrimaryCalendarType(),
 			iYear;
 
 		if (!oDate) {
 			return;
 		}
 
-		oCalDate = CalendarDate.fromLocalJSDate(oDate, this.getPrimaryCalendarType());
+		oCalDate = CalendarDate.fromLocalJSDate(oDate, sPrimaryCalendarType);
 
 		iYear = oCalDate.getYear();
-		CalendarUtils._checkYearInValidRange(iYear);
+		CalendarUtils._checkYearInValidRange(iYear, sPrimaryCalendarType);
 
 		if (CalendarUtils._isOutside(oCalDate, this._oMinDate, this._oMaxDate)) {
 			throw new Error("Date must not be in valid range (minDate and maxDate); " + this);

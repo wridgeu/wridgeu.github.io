@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -14,9 +14,9 @@ sap.ui.define([
 	 * since any control that is a direct or indirect descendant of the provided <code>for</code> association is affected by this configuration.
 	 * For example, this controller can be used for <code>sap.ui.mdc</code> controls.
 	 *
-	 * @private
+	 * @class
+	 * @ui5-restricted sap.ui.mdc, sap.fe
 	 *
-	 * @experimental
 	 * @since 1.104
 	*/
 	var PersistenceProvider = CoreControl.extend("sap.m.p13n.PersistenceProvider", /** @lends sap.ui.mdc.p13n.PersistenceProvider.prototype */ {
@@ -67,6 +67,7 @@ sap.ui.define([
 
 		var oModel = this.getModel(ControlVariantApplyAPI.getVariantModelName());
 		if (oModel) {
+			this.reinitialize();
 			this._fnResolveModel(oModel);
 		}
 	};
@@ -138,6 +139,21 @@ sap.ui.define([
 		this.setProperty("mode", sValue);
 
 		return this;
+	};
+
+	/**
+	 * This method reinitializes the inner <code>VariantManagement</code> control be providing the
+	 * variant model and triggering a reinitialize on the inner VM in the static area
+	 *
+	 * @ui5-restricted sap.m.p13n
+	 */
+	PersistenceProvider.prototype.reinitialize = function () {
+		var oVM = sap.ui.getCore().byId(this.getId() + "--vm");
+		if (this.getMode() === mode.Transient && oVM) {
+			var oVariantModel = this.getModel(ControlVariantApplyAPI.getVariantModelName());
+			oVM.setModel(oVariantModel, ControlVariantApplyAPI.getVariantModelName());
+			oVM.reinitialize();
+		}
 	};
 
 	PersistenceProvider.prototype.exit = function () {

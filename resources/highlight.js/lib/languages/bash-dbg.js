@@ -12,14 +12,6 @@ sap.ui.define((function () { 'use strict';
         globalThis.process = { env:env };
     })();
 
-    /*
-    Language: Bash
-    Author: vah <vahtenberg@gmail.com>
-    Contributrors: Benjamin Pannell <contact@sierrasoftworks.com>
-    Website: https://www.gnu.org/software/bash/
-    Category: common
-    */
-
     /** @type LanguageFn */
     function bash(hljs) {
       const regex = hljs.regex;
@@ -398,6 +390,8 @@ sap.ui.define((function () { 'use strict';
       };
     }
 
-    return bash;
+    var bash_1 = bash;
+
+    return bash_1;
 
 }));

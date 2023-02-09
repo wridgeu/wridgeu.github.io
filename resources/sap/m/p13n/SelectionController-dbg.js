@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,10 +29,9 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 * @alias sap.m.p13n.SelectionController
 	 */
 	var SelectionController = BaseObject.extend("sap.m.p13n.SelectionController",{

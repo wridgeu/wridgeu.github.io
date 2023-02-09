@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -86,7 +86,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent, sap.ui.core.IAccessKeySupport
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -96,6 +96,7 @@ sap.ui.define([
 		metadata : {
 
 			interfaces : [
+				"sap.m.IToolbarInteractiveControl",
 				"sap.ui.core.IFormContent",
 				"sap.ui.core.ISemanticFormContent",
 				"sap.ui.core.IAccessKeySupport"
@@ -563,7 +564,7 @@ sap.ui.define([
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
-	 * @returns {{role: string, type: string, description: string, focusable: boolean, enabled: boolean, editable: boolean}}
+	 * @returns {sap.ui.core.AccessibilityInfo}
 	 * The object contains the accessibility information of <code>sap.m.CheckBox</code>
 	 */
 	CheckBox.prototype.getAccessibilityInfo = function() {
@@ -577,6 +578,19 @@ sap.ui.define([
 			enabled: this.getEnabled(),
 			editable: this.getEditable()
 		};
+	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	CheckBox.prototype._getToolbarInteractive = function () {
+		return true;
 	};
 
 	/*

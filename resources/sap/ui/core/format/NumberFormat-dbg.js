@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -46,10 +46,15 @@ sap.ui.define([
 		}
 	});
 
-	// Regex for matching the number placeholder in pattern
-	var rNumPlaceHolder = /0+(\.0+)?/;
-	// Regex for checking that the given string only consists of '0' characters
-	var rOnlyZeros = /^0+$/;
+	var rAllWhiteSpaces = /\s/g,
+		rDigit = /\d/,
+		// Not matching Sc (currency symbol) and Z (separator) characters
+		// https://www.unicode.org/reports/tr44/#General_Category_Values
+		rNotSAndNotZ = /[^\$\xA2-\xA5\u058F\u060B\u09F2\u09F3\u09FB\u0AF1\u0BF9\u0E3F\u17DB\u20A0-\u20BD\uA838\uFDFC\uFE69\uFF04\uFFE0\uFFE1\uFFE5\uFFE6\u0020\xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/,
+		// Regex for matching the number placeholder in pattern
+		rNumPlaceHolder = /0+(\.0+)?/,
+		// Regex for checking that the given string only consists of '0' characters
+		rOnlyZeros = /^0+$/;
 
 	// Indian currency INR (e.g. xx.xx.yyy.xx.xx.yyy.xx.xx.yyy)
 	var getIndianCurrencyINRGroupingRegExp = function() {
@@ -345,7 +350,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
-	 * @param {number} [oFormatOptions.emptyString=NaN] @since 1.30.0 defines what an empty string
+	 * @param {null|number|string} [oFormatOptions.emptyString=NaN] since 1.30.0 defines what an empty string
 	 *   is parsed as, and what is formatted as an empty string. The allowed values are "" (empty string),
 	 *   NaN, <code>null</code>, or 0.
 	 *   The 'format' and 'parse' functions are done in a symmetric way. For example, when this
@@ -365,7 +370,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minFractionDigits=0] defines the minimal number of decimal digits
 	 * @param {int} [oFormatOptions.minIntegerDigits=1] defines the minimal number of non-decimal digits
 	 * @param {string} [oFormatOptions.minusSign] defines the used minus symbol
-	 * @param {boolean} [oFormatOptions.parseAsString=false] @since 1.28.2 defines whether to output
+	 * @param {boolean} [oFormatOptions.parseAsString=false] since 1.28.2 defines whether to output
 	 *   the string from the parse function in order to keep the precision for big numbers. Numbers
 	 *   in scientific notation are parsed back to standard notation. For example, "5e-3" is parsed
 	 *   to "0.005".
@@ -387,10 +392,10 @@ sap.ui.define([
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimal in the shortened format string. If this isn't specified, the 'decimals' options is used
 	 * @param {int} [oFormatOptions.shortLimit] only use short number formatting for values above this limit
-	 * @param {int} [oFormatOptions.shortRefNumber] @since 1.40 specifies a number from which the scale factor for 'short' or 'long' style format is generated. The generated scale factor is
+	 * @param {int} [oFormatOptions.shortRefNumber] since 1.40 specifies a number from which the scale factor for 'short' or 'long' style format is generated. The generated scale factor is
 	 *  used for all numbers which are formatted with this format instance. This option has effect only when the option 'style' is set to 'short' or 'long'. This option is by default set
 	 *  with <code>undefined</code> which means the scale factor is selected automatically for each number being formatted.
-	 * @param {boolean} [oFormatOptions.showScale=true] @since 1.40 specifies whether the scale factor is shown in the formatted number. This option takes effect only when the 'style' options is set to either 'short' or 'long'.
+	 * @param {boolean} [oFormatOptions.showScale=true] since 1.40 specifies whether the scale factor is shown in the formatted number. This option takes effect only when the 'style' options is set to either 'short' or 'long'.
 	 * @param {boolean} [oFormatOptions.strictGroupingValidation=false] whether the positions of grouping separators are validated. Space characters used as grouping separators are not validated.
 	 * @param {string} [oFormatOptions.style=standard] defines the style of format. Valid values are
 	 *   'short, 'long' or 'standard' (based on the CLDR decimalFormat). When set to 'short' or 'long',
@@ -438,9 +443,9 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
-	 * @param {number} [oFormatOptions.emptyString=NaN] @since 1.30.0 defines what an empty string
-	 *   is parsed as, and what is formatted as an empty string. The allowed values are only NaN,
-	 *   null or 0.
+	 * @param {null|number|string} [oFormatOptions.emptyString=NaN] since 1.30.0 defines what an empty string
+	 *   is parsed as, and what is formatted as an empty string. The allowed values are "" (empty string)
+	 *   NaN, <code>null</code>, or 0.
 	 *   The 'format' and 'parse' functions are done in a symmetric way. For example, when this
 	 *   parameter is set to NaN, an empty string is parsed as NaN, and NaN is formatted as an empty
 	 *   string.
@@ -458,7 +463,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minFractionDigits=0] defines the minimal number of decimal digits
 	 * @param {int} [oFormatOptions.minIntegerDigits=1] defines the minimal number of non-decimal digits
 	 * @param {string} [oFormatOptions.minusSign] defines the used minus symbol
-	 * @param {boolean} [oFormatOptions.parseAsString=false] @since 1.28.2 defines whether to output
+	 * @param {boolean} [oFormatOptions.parseAsString=false] since 1.28.2 defines whether to output
 	 *   the string from the parse function in order to keep the precision for big numbers. Numbers
 	 *   in scientific notation are parsed back to standard notation. For example, "5e+3" is parsed
 	 *   to "5000".
@@ -480,10 +485,10 @@ sap.ui.define([
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimal in the shortened format string. If this isn't specified, the 'decimals' options is used
 	 * @param {int} [oFormatOptions.shortLimit] only use short number formatting for values above this limit
-	 * @param {int} [oFormatOptions.shortRefNumber] @since 1.40 specifies a number from which the scale factor for 'short' or 'long' style format is generated. The generated scale factor is
+	 * @param {int} [oFormatOptions.shortRefNumber] since 1.40 specifies a number from which the scale factor for 'short' or 'long' style format is generated. The generated scale factor is
 	 *  used for all numbers which are formatted with this format instance. This option has effect only when the option 'style' is set to 'short' or 'long'. This option is by default set
 	 *  with <code>undefined</code> which means the scale factor is selected automatically for each number being formatted.
-	 * @param {boolean} [oFormatOptions.showScale=true] @since 1.40 specifies whether the scale factor is shown in the formatted number. This option takes effect only when the 'style' options is set to either 'short' or 'long'.
+	 * @param {boolean} [oFormatOptions.showScale=true] since 1.40 specifies whether the scale factor is shown in the formatted number. This option takes effect only when the 'style' options is set to either 'short' or 'long'.
 	 * @param {boolean} [oFormatOptions.strictGroupingValidation=false] whether the positions of grouping separators are validated. Space characters used as grouping separators are not validated.
 	 * @param {string} [oFormatOptions.style=standard] defines the style of format. Valid values are
 	 *   'short, 'long' or 'standard' (based on the CLDR decimalFormat). When set to 'short' or 'long',
@@ -574,7 +579,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
-	 * @param {number} [oFormatOptions.emptyString=NaN] @since 1.30.0 defines what an empty string
+	 * @param {null|number|string} [oFormatOptions.emptyString=NaN] since 1.30.0 defines what an empty string
 	 *   is parsed as, and what is formatted as an empty string. The allowed values are "" (empty string),
 	 *   NaN, <code>null</code>, or 0.
 	 *   The 'format' and 'parse' functions are done in a symmetric way. For example, when this
@@ -594,7 +599,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minFractionDigits=0] defines the minimal number of decimal digits
 	 * @param {int} [oFormatOptions.minIntegerDigits=1] defines the minimal number of non-decimal digits
 	 * @param {string} [oFormatOptions.minusSign] defines the used minus symbol
-	 * @param {boolean} [oFormatOptions.parseAsString=false] @since 1.28.2 defines whether to output
+	 * @param {boolean} [oFormatOptions.parseAsString=false] since 1.28.2 defines whether to output
 	 *   the string from the parse function in order to keep the precision for big numbers. Numbers
 	 *   in scientific notation are parsed back to standard notation. For example, "5e-3" is parsed
 	 *   to "0.005".
@@ -614,7 +619,7 @@ sap.ui.define([
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimal in the shortened format string. If this isn't specified, the 'decimals' options is used
 	 * @param {int} [oFormatOptions.shortLimit] only use short number formatting for values above this limit
-	 * @param {int} [oFormatOptions.shortRefNumber] @since 1.40 specifies a number from which the scale factor for 'short' or 'long' style format is generated. The generated scale factor is
+	 * @param {int} [oFormatOptions.shortRefNumber] since 1.40 specifies a number from which the scale factor for 'short' or 'long' style format is generated. The generated scale factor is
 	 *  used for all numbers which are formatted with this format instance. This option has effect only when the option 'style' is set to 'short' or 'long'. This option is by default set
 	 *  with <code>undefined</code> which means the scale factor is selected automatically for each number being formatted.
 	 * @param {boolean} [oFormatOptions.showMeasure=true] defines whether the currency code/symbol is shown in the formatted string,
@@ -625,7 +630,7 @@ sap.ui.define([
 	 *      <code>NumberFormat.getCurrencyInstance({showNumber:true}).format(1, "EUR"); // "1.00 EUR"</code>
 	 *      <code>NumberFormat.getCurrencyInstance({showNumber:false}).format(1, "EUR"); // "EUR"</code>
 	 *  If both <code>showMeasure</code> and <code>showNumber</code> are false, an empty string is returned
-	 * @param {boolean} [oFormatOptions.showScale=true] @since 1.40 specifies whether the scale factor is shown in the formatted number.
+	 * @param {boolean} [oFormatOptions.showScale=true] since 1.40 specifies whether the scale factor is shown in the formatted number.
 	 *   This option takes effect only when the 'style' options is set to either 'short' or 'long'.
 	 * @param {boolean} [oFormatOptions.strictGroupingValidation=false] whether the positions of grouping separators are validated. Space characters used as grouping separators are not validated.
 	 * @param {string} [oFormatOptions.style=standard] defines the style of format. Valid values are
@@ -702,7 +707,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
-	 * @param {number} [oFormatOptions.emptyString=NaN] @since 1.30.0 defines what an empty string
+	 * @param {null|number|string} [oFormatOptions.emptyString=NaN] since 1.30.0 defines what an empty string
 	 *   is parsed as, and what is formatted as an empty string. The allowed values are "" (empty string),
 	 *   NaN, <code>null</code>, or 0.
 	 *   The 'format' and 'parse' functions are done in a symmetric way. For example, when this
@@ -722,7 +727,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minFractionDigits=0] defines the minimal number of decimal digits
 	 * @param {int} [oFormatOptions.minIntegerDigits=1] defines the minimal number of non-decimal digits
 	 * @param {string} [oFormatOptions.minusSign] defines the used minus symbol
-	 * @param {boolean} [oFormatOptions.parseAsString=false] @since 1.28.2 defines whether to output
+	 * @param {boolean} [oFormatOptions.parseAsString=false] since 1.28.2 defines whether to output
 	 *   the string from the parse function in order to keep the precision for big numbers. Numbers
 	 *   in scientific notation are parsed back to standard notation. For example, "5e-3" is parsed
 	 *   to "0.005".
@@ -745,7 +750,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimals in the shortened
 	 *   format string. If this option isn't specified, the 'decimals' option is used instead.
 	 * @param {int} [oFormatOptions.shortLimit] defines a limit above which only short number formatting is used
-	 * @param {int} [oFormatOptions.shortRefNumber] @since 1.40 specifies a number from which the
+	 * @param {int} [oFormatOptions.shortRefNumber] since 1.40 specifies a number from which the
 	 *   scale factor for the 'short' or 'long' style format is generated. The generated scale
 	 *   factor is used for all numbers which are formatted with this format instance. This option
 	 *   only takes effect when the 'style' option is set to 'short' or 'long'. This option is
@@ -762,7 +767,7 @@ sap.ui.define([
 	 *      <code>NumberFormat.getUnitInstance({showNumber:true}).format(2, "duration-day"); // "2 days"</code>
 	 *      <code>NumberFormat.getUnitInstance({showNumber:false}).format(2, "duration-day"); // "days"</code>
 	 *  If both <code>showMeasure</code> and <code>showNumber</code> are false, an empty string is returned
-	 * @param {boolean} [oFormatOptions.showScale=true] @since 1.40 specifies whether the scale factor is shown in the formatted number. This option takes effect only when the 'style' options is set to either 'short' or 'long'.
+	 * @param {boolean} [oFormatOptions.showScale=true] since 1.40 specifies whether the scale factor is shown in the formatted number. This option takes effect only when the 'style' options is set to either 'short' or 'long'.
 	 * @param {boolean} [oFormatOptions.strictGroupingValidation=false] whether the positions of grouping separators are validated. Space characters used as grouping separators are not validated.
 	 * @param {string} [oFormatOptions.style=standard] defines the style of format. Valid values are
 	 *   'short, 'long' or 'standard' (based on the CLDR decimalFormat). When set to 'short' or 'long',
@@ -799,7 +804,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
-	 * @param {number} [oFormatOptions.emptyString=NaN] @since 1.30.0 defines what an empty string
+	 * @param {null|number|string} [oFormatOptions.emptyString=NaN] since 1.30.0 defines what an empty string
 	 *   is parsed as, and what is formatted as an empty string. The allowed values are "" (empty string),
 	 *   NaN, <code>null</code>, or 0.
 	 *   The 'format' and 'parse' functions are done in a symmetric way. For example, when this
@@ -819,7 +824,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minFractionDigits=0] defines the minimal number of decimal digits
 	 * @param {int} [oFormatOptions.minIntegerDigits=1] defines the minimal number of non-decimal digits
 	 * @param {string} [oFormatOptions.minusSign] defines the used minus symbol
-	 * @param {boolean} [oFormatOptions.parseAsString=false] @since 1.28.2 defines whether to output
+	 * @param {boolean} [oFormatOptions.parseAsString=false] since 1.28.2 defines whether to output
 	 *   the string from the parse function in order to keep the precision for big numbers. Numbers
 	 *   in scientific notation are parsed back to standard notation. For example, "5e-3" is parsed
 	 *   to "0.005".
@@ -842,10 +847,10 @@ sap.ui.define([
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimal in the shortened format string. If this isn't specified, the 'decimals' options is used
 	 * @param {int} [oFormatOptions.shortLimit] only use short number formatting for values above this limit
-	 * @param {int} [oFormatOptions.shortRefNumber] @since 1.40 specifies a number from which the scale factor for 'short' or 'long' style format is generated. The generated scale factor is
+	 * @param {int} [oFormatOptions.shortRefNumber] since 1.40 specifies a number from which the scale factor for 'short' or 'long' style format is generated. The generated scale factor is
 	 *  used for all numbers which are formatted with this format instance. This option has effect only when the option 'style' is set to 'short' or 'long'. This option is by default set
 	 *  with <code>undefined</code> which means the scale factor is selected automatically for each number being formatted.
-	 * @param {boolean} [oFormatOptions.showScale=true] @since 1.40 specifies whether the scale factor is shown in the formatted number. This option takes effect only when the 'style' options is set to either 'short' or 'long'.
+	 * @param {boolean} [oFormatOptions.showScale=true] since 1.40 specifies whether the scale factor is shown in the formatted number. This option takes effect only when the 'style' options is set to either 'short' or 'long'.
 	 * @param {boolean} [oFormatOptions.strictGroupingValidation=false] whether the positions of grouping separators are validated. Space characters used as grouping separators are not validated.
 	 * @param {string} [oFormatOptions.style=standard] defines the style of format. Valid values are
 	 *   'short, 'long' or 'standard' (based on the CLDR decimalFormat). When set to 'short' or 'long',
@@ -897,8 +902,12 @@ sap.ui.define([
 				});
 			}
 			if (oFormatOptions.emptyString !== undefined) {
-				// eslint-disable-next-line no-self-compare -- check if it's NaN (only NaN doesn't equal to itself)
-				assert(oFormatOptions.emptyString === "" || oFormatOptions.emptyString === 0 || oFormatOptions.emptyString === null || /* check if it's NaN (only NaN doesn't equal to itself) */ oFormatOptions.emptyString !== oFormatOptions.emptyString, "The format option 'emptyString' must be either 0, null or NaN");
+				assert(oFormatOptions.emptyString === ""
+					|| oFormatOptions.emptyString === 0
+					|| oFormatOptions.emptyString === null
+					// eslint-disable-next-line no-self-compare -- check if it's NaN (only NaN doesn't equal to itself)
+					|| oFormatOptions.emptyString !== oFormatOptions.emptyString,
+					"The format option 'emptyString' must be either '', 0, null, or NaN");
 			}
 		}
 
@@ -1451,7 +1460,7 @@ sap.ui.define([
 		}
 
 		if (!bValueIsNullOrUndefined) {
-			sNumber = this.convertToDecimal(vValue);
+			sNumber = LocaleData.convertToDecimal(vValue);
 		}
 
 		if (sNumber == "NaN") {
@@ -1652,13 +1661,9 @@ sap.ui.define([
 
 		if (oOptions.showMeasure && sMeasure) {
 			var sPlaceHolder = "\u00a4",
-				// convert the PCRE regex in CLDR to the regex supported by Javascript
-				// The regex means to exclude all possible currency symbols.
-				// In PCRE regex, there's an expression to match all currency symbols /\p{Sc}/ which has to be converted to this long regex in javascript.
-				// This regex is borrowed from https://stackoverflow.com/questions/25910808/javascript-regex-currency-symbol-in-a-string.
 				mRegex = {
-					"[:digit:]": /\d/,
-					"[:^S:]": /[^\$\xA2-\xA5\u058F\u060B\u09F2\u09F3\u09FB\u0AF1\u0BF9\u0E3F\u17DB\u20A0-\u20BD\uA838\uFDFC\uFE69\uFF04\uFFE0\uFFE1\uFFE5\uFFE6]/
+					"[:digit:]": rDigit,
+					"[[:^S:]&[:^Z:]]": rNotSAndNotZ
 				},
 				iMeasureStart = sPattern.indexOf(sPlaceHolder),
 				// determine whether the number is before the measure or after it by comparing the position of measure placeholder with half of the length of the pattern string
@@ -1883,7 +1888,7 @@ sap.ui.define([
 
 		// remove all white spaces because when grouping separator is a non-breaking space (russian and french for example)
 		// user will not input it this way. Also white spaces or grouping separator can be ignored by determining the value
-		sValue = sValue.replace(/\s/g, "");
+		sValue = sValue.replace(rAllWhiteSpaces, "");
 
 		oShort = getNumberFromShortened(sValue, this.oLocaleData, bIndianCurrency);
 		if (oShort) {
@@ -1981,59 +1986,6 @@ sap.ui.define([
 		}
 		return vResult;
 	};
-
-	/**
-	 * Convert to decimal representation
-	 * Floats larger than 1e+20 or smaller than 1e-6 are shown in exponential format,
-	 * but need to be converted to decimal format for further formatting
-	 *
-	 * @param {float} fValue float number e.g. 10.1
-	 * @return {string} decimal number
-	 * @private
-	 */
-	NumberFormat.prototype.convertToDecimal = function(fValue) {
-		var sValue = "" + fValue,
-			bNegative, sBase, iDecimalLength, iFractionLength, iExponent, iPos;
-		if (sValue.indexOf("e") == -1 && sValue.indexOf("E") == -1) {
-			return sValue;
-		}
-		var aResult = sValue.match(/^([+-]?)((\d+)(?:\.(\d+))?)[eE]([+-]?\d+)$/);
-		bNegative = aResult[1] == "-";
-		sBase = aResult[2].replace(/\./g,"");
-		iDecimalLength = aResult[3] ? aResult[3].length : 0;
-		iFractionLength = aResult[4] ? aResult[4].length : 0;
-		iExponent = parseInt(aResult[5]);
-
-		if (iExponent > 0) {
-			if (iExponent < iFractionLength) {
-				iPos = iDecimalLength + iExponent;
-				sValue = sBase.substr(0, iPos) + "." + sBase.substr(iPos);
-			} else {
-				sValue = sBase;
-				iExponent -= iFractionLength;
-				for (var i = 0; i < iExponent; i++) {
-					sValue += "0";
-				}
-			}
-		} else {
-			if (-iExponent < iDecimalLength) {
-				iPos = iDecimalLength + iExponent;
-				sValue = sBase.substr(0, iPos) + "." + sBase.substr(iPos);
-			} else {
-				sValue = sBase;
-				iExponent += iDecimalLength;
-				for (var i = 0; i > iExponent; i--) {
-					sValue = "0" + sValue;
-				}
-				sValue = "0." + sValue;
-			}
-		}
-		if (bNegative) {
-			sValue = "-" + sValue;
-		}
-		return sValue;
-	};
-
 
 	/**
 	 * Returns the scaling factor which is calculated based on the format options and the current locale being used.
@@ -2844,6 +2796,7 @@ sap.ui.define([
 			if (!sCurSymbol) {
 				continue;
 			}
+			sCurSymbol = sCurSymbol.replace(rAllWhiteSpaces, "\u0020");
 			if (sValue.indexOf(sCurSymbol) >= 0 && sSymbol.length <= sCurSymbol.length) {
 				sCode = sCurCode;
 				bDuplicate = false;
@@ -2903,7 +2856,7 @@ sap.ui.define([
 	 */
 	function parseNumberAndCurrency(oConfig) {
 		var aIsoMatches,
-			sValue = oConfig.value;
+			sValue = oConfig.value.replace(rAllWhiteSpaces, "\u0020");
 
 		// Search for known symbols (longest match)
 		// no distinction between default and custom currencies

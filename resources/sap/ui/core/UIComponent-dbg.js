@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,18 +8,19 @@
 sap.ui.define([
 	'../base/ManagedObject',
 	'./Component',
+	'./Element',
 	'sap/ui/core/mvc/ViewType',
 	'sap/ui/core/mvc/XMLProcessingMode',
 	'./UIComponentMetadata',
 	'./mvc/Controller',
 	'./mvc/View',
 	'sap/base/util/ObjectPath',
-	'sap/base/Log',
-	'sap/ui/core/Core' // to ensure correct behaviour of sap.ui.getCore()
+	'sap/base/Log'
 ],
 	function(
 		ManagedObject,
 		Component,
+		Element,
 		ViewType,
 		XMLProcessingMode,
 		UIComponentMetadata,
@@ -54,7 +55,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Component
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @alias sap.ui.core.UIComponent
 	 * @since 1.9.2
 	 */
@@ -210,8 +211,8 @@ sap.ui.define([
 	 *            Qualified name of the newly created class
 	 * @param {object} [oClassInfo]
 	 *            Object literal with information about the class
-	 * @param {object} [oClassInfo.metadata]
-	 *            See {@link sap.ui.core.Element.extend} for the values allowed in every extend.
+	 * @param {sap.ui.core.Component.MetadataOptions} [oClassInfo.metadata]
+	 *            The metadata object describing the class. See {@link sap.ui.core.Component.extend} for the values allowed in every extend.
 	 * @param {sap.ui.core.UIComponent.RoutingMetadata} [oClassInfo.metadata.routing]
 	 *            Since 1.16. An object containing the routing-relevant configurations, routes, targets, config.
 	 *
@@ -228,6 +229,7 @@ sap.ui.define([
 	 * @returns {function} The created class / constructor function
 	 * @name sap.ui.core.UIComponent.extend
 	 * @function
+	 * @static
 	 * @public
 	 */
 
@@ -604,7 +606,7 @@ sap.ui.define([
 	 * @public
 	 */
 	UIComponent.prototype.byId = function(sId) {
-		return sap.ui.getCore().byId(this.createId(sId));
+		return Element.registry.get(this.createId(sId));
 	};
 
 	/**

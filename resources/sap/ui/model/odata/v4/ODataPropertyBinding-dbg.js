@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getUpdateGroupId as #getUpdateGroupId
@@ -144,7 +144,7 @@ sap.ui.define([
 	 * indicator or to process an error.
 	 *
 	 * If back-end requests are successful, the event has almost no parameters. For compatibility
-	 * with {@link sap.ui.model.Binding#event:dataReceived}, an event parameter
+	 * with {@link sap.ui.model.Binding#event:dataReceived 'dataReceived'}, an event parameter
 	 * <code>data : {}</code> is provided: "In error cases it will be undefined", but otherwise it
 	 * is not. Use {@link #getValue() oEvent.getSource().getValue()} to access the response data.
 	 * Note that controls bound to this data may not yet have been updated, meaning it is not safe
@@ -721,7 +721,9 @@ sap.ui.define([
 	/**
 	 * Sets the new current value and updates the cache. If the value cannot be accepted or cannot
 	 * be updated on the server, an error is logged to the console and added to the message manager
-	 * as a technical message.
+	 * as a technical message. Unless preconditions fail synchronously, a
+	 * {@link sap.ui.model.odata.v4.ODataModel#event:propertyChange 'propertyChange'} event is
+	 * fired and provides a promise on the outcome of the asynchronous operation.
 	 *
 	 * @param {any} vValue
 	 *   The new value which must be primitive
@@ -746,6 +748,7 @@ sap.ui.define([
 	 */
 	ODataPropertyBinding.prototype.setValue = function (vValue, sGroupId) {
 		var oGroupLock,
+			oPromise,
 			sResolvedPath = this.getResolvedPath(),
 			that = this;
 
@@ -775,12 +778,23 @@ sap.ui.define([
 				return; // do not update this.vValue!
 			}
 			oGroupLock = this.bNoPatch ? null : this.lockGroup(sGroupId, true, true);
-			this.oContext.doSetProperty(this.sPath, vValue, oGroupLock).catch(function (oError) {
+			oPromise = this.oContext.doSetProperty(this.sPath, vValue, oGroupLock);
+			oPromise.catch(function (oError) {
 				if (oGroupLock) {
 					oGroupLock.unlock(true);
 				}
 				reportError(oError);
 			});
+			if (!oPromise.isRejected() && that.oModel.hasListeners("propertyChange")) {
+				that.oModel.firePropertyChange({
+					context : that.oContext,
+					path : that.sPath,
+					promise : oPromise.isPending() ? oPromise.getResult() : undefined,
+					reason : ChangeReason.Binding,
+					resolvedPath : sResolvedPath,
+					value : vValue
+				});
+			} // else: do not construct parameter object in vain
 		}
 	};
 

@@ -1,7 +1,7 @@
 /* eslint-disable max-nested-callbacks */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 	 *
 	 * @alias sap.m.changeHandler.MoveTableColumns
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @experimental Since 1.48
 	 */
 	var MoveTableColumns = {};

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -293,7 +293,8 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 	TableRenderer.renderListStartAttributes = function(rm, oControl) {
 		rm.openStart("table", oControl.getId("listUl"));
 		rm.class("sapMListTbl");
-		rm.attr("aria-labelledby", oControl.getAriaLabelledBy().concat(this.getAriaLabelledBy(oControl), InvisibleText.getStaticId("sap.m", "TABLE_ARIA_LABEL")).join(" "));
+		var aLabels = oControl.getAriaLabelledBy().concat(this.getAriaLabelledBy(oControl), InvisibleText.getStaticId("sap.m", "TABLE_ARIA_LABEL"));
+		rm.attr("aria-labelledby", aLabels.filter(Boolean).join(" "));
 		if (oControl.getFixedLayout() === false) {
 			rm.style("table-layout", "auto");
 		}

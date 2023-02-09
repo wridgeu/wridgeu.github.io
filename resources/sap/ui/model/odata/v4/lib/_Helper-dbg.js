@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -347,13 +347,49 @@ sap.ui.define([
 		 * @param {any} vValue - Any value, including <code>undefined</code>
 		 * @param {function} [fnReplacer] - The replacer function to transform the result, see
 		 *   <code>JSON.stringify</code>
-		 * @returns {any} - A clone
+		 * @param {boolean} [bAsString] - Whether to return the result of JSON.stringify
+		 * @returns {any} A clone or its string representation
 		 */
-		clone : function clone(vValue, fnReplacer) {
-			return vValue === undefined || vValue === Infinity || vValue === -Infinity
-				|| /*NaN?*/vValue !== vValue // eslint-disable-line no-self-compare
-				? vValue
-				: JSON.parse(JSON.stringify(vValue, fnReplacer));
+		clone : function clone(vValue, fnReplacer, bAsString) {
+			var sStringified;
+
+			if (vValue === undefined || vValue === Infinity || vValue === -Infinity
+					|| Number.isNaN(vValue)) {
+				return vValue;
+			}
+			sStringified = JSON.stringify(vValue, fnReplacer);
+			return bAsString ? sStringified : JSON.parse(sStringified);
+		},
+
+		/**
+		 * Converts $select and $expand of the given query options into corresponding paths. Expects
+		 * $select to be always an array and $expand to be always an object (as delivered by
+		 * ODataModel#buildQueryOptions). Other query options are ignored.
+		 *
+		 * $expand must not contain collection-valued navigation properties.
+		 *
+		 * @param {object} mQueryOptions - The query options
+		 * @returns {string[]} The paths
+		 */
+		convertExpandSelectToPaths : function (mQueryOptions) {
+			var aPaths = [];
+
+			function convert(mQueryOptions0, sPathPrefix) {
+				if (mQueryOptions0.$select) {
+					mQueryOptions0.$select.forEach(function (sSelect) {
+						aPaths.push(_Helper.buildPath(sPathPrefix, sSelect));
+					});
+				}
+				if (mQueryOptions0.$expand) {
+					Object.keys(mQueryOptions0.$expand).forEach(function (sExpandPath) {
+						convert(mQueryOptions0.$expand[sExpandPath],
+							_Helper.buildPath(sPathPrefix, sExpandPath));
+						});
+				}
+			}
+
+			convert(mQueryOptions, "");
+			return aPaths;
 		},
 
 		/**
@@ -1276,7 +1312,7 @@ sap.ui.define([
 
 			aKeyProperties = aKeyProperties || mTypeForMetaPath[sMetaPath].$Key;
 			bFailed = aKeyProperties.some(function (vKey) {
-				var sKey, sKeyPath, sPropertyName, aSegments, oType, vValue;
+				var sKey, sKeyPath, oObject, sPropertyName, aSegments, oType, vValue;
 
 				if (typeof vKey === "string") {
 					sKey = sKeyPath = vKey;
@@ -1288,14 +1324,15 @@ sap.ui.define([
 					}
 				}
 				aSegments = sKeyPath.split("/");
+				// the last path segment is the name of the simple property
+				sPropertyName = aSegments.pop();
 
-				vValue = _Helper.drillDown(oInstance, aSegments);
-				if (vValue === undefined) {
+				oObject = _Helper.drillDown(oInstance, aSegments);
+				vValue = oObject[sPropertyName];
+				if (vValue === undefined || (sPropertyName + "@odata.type") in oObject) {
 					return true;
 				}
 
-				// the last path segment is the name of the simple property
-				sPropertyName = aSegments.pop();
 				// find the type containing the simple property
 				oType = mTypeForMetaPath[_Helper.buildPath(sMetaPath, aSegments.join("/"))];
 				vValue = _Helper.formatLiteral(vValue, oType[sPropertyName].$Type);
@@ -1328,6 +1365,29 @@ sap.ui.define([
 				sPath = "/" + sPath;
 			}
 			return sPath.replace(rNotMetaContext, "").slice(1);
+		},
+
+		/**
+		 * Returns the list of predicates corresponding to the given list of contexts, or
+		 * <code>null</code if at least one predicate is missing.
+		 *
+		 * @param {sap.ui.model.odata.v4.Context[]} aContexts - A list of contexts
+		 * @returns {string[]|null} The corresponding list of predicates
+		 */
+		getPredicates : function (aContexts) {
+			var bMissingPredicate,
+				aPredicates = aContexts.map(getPredicate);
+
+			function getPredicate(oContext) {
+				var sPredicate = _Helper.getPrivateAnnotation(oContext.getValue(), "predicate");
+
+				if (!sPredicate) {
+					bMissingPredicate = true;
+				}
+				return sPredicate;
+			}
+
+			return bMissingPredicate ? null : aPredicates;
 		},
 
 		/**
@@ -1558,8 +1618,6 @@ sap.ui.define([
 		 *   identifier may be appended
 		 * @param {string} [sPrefix=""]
 		 *   Optional prefix for navigation property meta paths used during recursion
-		 * @param {boolean} [bAllowEmptySelect]
-		 *   Whether an empty "$select" is allowed
 		 * @returns {object}
 		 *   The updated query options or <code>null</code> if no request is needed
 		 * @throws {Error}
@@ -1567,7 +1625,7 @@ sap.ui.define([
 		 *   collection-valued navigation property
 		 */
 		intersectQueryOptions : function (mCacheQueryOptions, aPaths, fnFetchMetadata,
-				sRootMetaPath, sPrefix, bAllowEmptySelect) {
+				sRootMetaPath, sPrefix) {
 			var aExpands = [],
 				mExpands = {},
 				mResult,
@@ -1659,9 +1717,6 @@ sap.ui.define([
 				// for a collection we already have the key in the resource path
 				_Helper.selectKeyProperties(mResult,
 					fnFetchMetadata(sRootMetaPath + "/").getResult());
-			} else if (!aSelects.length && !bAllowEmptySelect) {
-				// avoid $select= in URL, use any navigation property
-				mResult.$select = Object.keys(mExpands).slice(0, 1);
 			}
 			if (isEmptyObject(mExpands)) {
 				delete mResult.$expand;
@@ -1897,18 +1952,20 @@ sap.ui.define([
 		 *   Any value, including <code>undefined</code>
 		 * @param {boolean} [bRemoveClientAnnotations]
 		 *   Whether to remove all client-side annotations, not just private ones
+		 * @param {boolean} [bAsString]
+		 *   Whether to return the result of JSON.stringify
 		 * @returns {any}
-		 *   A public clone
+		 *   A public clone or its string representation
 		 *
 		 * @see sap.ui.model.odata.v4.lib._Helper.clone
 		 */
-		publicClone : function (vValue, bRemoveClientAnnotations) {
+		publicClone : function (vValue, bRemoveClientAnnotations, bAsString) {
 			return _Helper.clone(vValue, function (sKey, vValue) {
 				if (bRemoveClientAnnotations ? !sKey.startsWith("@$ui5.") : sKey !== "@$ui5._") {
 					return vValue;
 				}
 				// return undefined;
-			});
+			}, bAsString);
 		},
 
 		/**
@@ -1938,6 +1995,35 @@ sap.ui.define([
 		},
 
 		/**
+		 * Restores an entity and its POST body to the initial state which is read from a private
+		 * annotation. Key-value pairs are deleted if they are not in the initial state. Change
+		 * listeners are notified about the changed or deleted values, and the "inactive" flag is
+		 * reset to <code>true</code>.
+		 *
+		 * @param {object} mChangeListeners - A map of change listeners by path
+		 * @param {string} sPath - The path to the entity; used to notify change listeners
+		 * @param {object} oEntity - The entity to be restored.
+		 */
+		resetInactiveEntity : function (mChangeListeners, sPath, oEntity) {
+			var oInitialData = _Helper.getPrivateAnnotation(oEntity, "initialData"),
+				oPostBody = _Helper.getPrivateAnnotation(oEntity, "postBody");
+
+			Object.keys(oPostBody).forEach(function (sKey) {
+				if (sKey in oInitialData) {
+					oEntity[sKey] = oPostBody[sKey] = oInitialData[sKey];
+				} else {
+					delete oPostBody[sKey];
+					delete oEntity[sKey];
+				}
+				_Helper.fireChange(mChangeListeners, sPath + "/" + sKey, oEntity[sKey]);
+			});
+
+			_Helper.updateAll(mChangeListeners, sPath, oEntity,
+				{"@$ui5.context.isInactive" : true}
+			);
+		},
+
+		/**
 		 * Resolves the "If-Match" header in the given map of request-specific headers.
 		 * For lazy determination of the ETag, the "If-Match" header may contain an object
 		 * containing the current ETag. If needed create a copy of the given map and replace the
@@ -1945,10 +2031,13 @@ sap.ui.define([
 		 *
 		 * @param {object} [mHeaders]
 		 *   Map of request-specific headers.
+		 * @param {boolean} [bIgnoreETag]
+		 *   Whether the entity's ETag should be actively ignored (If-Match:*); ignored if there is
+		 *   no ETag or if "If-Match" does not contain an object
 		 * @returns {object}
 		 *   The map of request-specific headers with the resolved If-Match header.
 		 */
-		resolveIfMatchHeader : function (mHeaders) {
+		resolveIfMatchHeader : function (mHeaders, bIgnoreETag) {
 			var vIfMatchValue = mHeaders && mHeaders["If-Match"];
 
 			if (vIfMatchValue && typeof vIfMatchValue === "object") {
@@ -1957,7 +2046,7 @@ sap.ui.define([
 				if (vIfMatchValue === undefined) {
 					delete mHeaders["If-Match"];
 				} else {
-					mHeaders["If-Match"] = vIfMatchValue;
+					mHeaders["If-Match"] = bIgnoreETag ? "*" : vIfMatchValue;
 				}
 			}
 			return mHeaders;

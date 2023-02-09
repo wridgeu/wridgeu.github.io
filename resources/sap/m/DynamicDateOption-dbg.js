@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @public
 		 * @since 1.92
@@ -60,7 +60,7 @@ sap.ui.define([
 					 * the array items are "date" and "int". A date range is usually represented
 					 * with two consecutive "date" values.
 					 */
-					valueTypes: { type: "string[]", multiple: true }
+					valueTypes: { type: "string[]" }
 				}
 			}
 		});

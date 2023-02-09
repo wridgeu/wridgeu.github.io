@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -809,7 +809,7 @@ sap.ui.define([
 		// find first visible column
 		var $headRow = this.$("tblHeader"),
 			bHeaderVisible = !$headRow.hasClass("sapMListTblHeaderNone"),
-			aVisibleColumns = $headRow.find(".sapMListTblCell:visible"),
+			aVisibleColumns = $headRow.find(".sapMListTblCell:not([aria-hidden=true]"),
 			$firstVisibleCol = aVisibleColumns.eq(0);
 
 		// check if only one column is visible
@@ -829,7 +829,7 @@ sap.ui.define([
 
 		// update the visible column count and colspan
 		// highlight, navigation and navigated indicator columns are getting rendered always
-		this._colCount = aVisibleColumns.length + 3 + !!ListBaseRenderer.ModeOrder[this.getMode()];
+		this._colCount = aVisibleColumns.length + 3 + !!ListBaseRenderer.ModeOrder[this.getMode()] + $headRow.find(".sapMListTblDummyCell").length;
 		this.$("tblBody").find(".sapMGHLICell").attr("colspan", this.getColSpan());
 		this.$("nodata-text").attr("colspan", this.getColCount());
 

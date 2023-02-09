@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,8 +10,9 @@ sap.ui.define([
 	"sap/base/security/encodeXML",
 	"./Configuration",
 	"./Control",
+	"./Lib",
 	"./library" // ensure loading of CSS
-], function(Log, encodeXML, Configuration, Control) {
+], function(Log, encodeXML, Configuration, Control, Library) {
 	"use strict";
 
 
@@ -30,7 +31,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @since 1.27.0
@@ -178,15 +179,18 @@ sap.ui.define([
 	 * @public
 	 */
 	InvisibleText.getStaticId = function(sLibrary, sTextKey) {
-		var sTextId = "", sKey, oBundle, oText;
+		var sTextId = "", sKey, oBundle, oText, oLibrary;
 
 		if ( Configuration.getAccessibility() && sTextKey ) {
 			// Note: identify by lib and text key, not by text to avoid conflicts after a language change
 			sKey = sLibrary + "|" + sTextKey;
 			sTextId = mTextIds[sKey];
 			if ( sTextId == null ) {
-				oBundle = sap.ui.getCore().getLibraryResourceBundle(sLibrary);
-				oText = new InvisibleText().setText( oBundle.getText(sTextKey) );
+				oLibrary = Library.get(sLibrary);
+				if (oLibrary) {
+					oBundle = oLibrary.getResourceBundle();
+				}
+				oText = new InvisibleText().setText(oBundle ? oBundle.getText(sTextKey) : sTextKey);
 				oText.toStatic();
 				sTextId = mTextIds[sKey] = oText.getId();
 				// A potential component-owner ID is unwanted for InvisibleTexts since its DOM is cached
@@ -204,7 +208,7 @@ sap.ui.define([
 			sKey, p, oBundle, oText;
 		for ( sKey in mTextIds ) {
 			p = sKey.indexOf('|');
-			oBundle = oCore.getLibraryResourceBundle(sKey.slice(0, p));
+			oBundle = Library.get(sKey.slice(0, p)).getResourceBundle();
 			oText = oCore.byId(mTextIds[sKey]);
 			oText && oText.setText(oBundle.getText(sKey.slice(p + 1)));
 		}

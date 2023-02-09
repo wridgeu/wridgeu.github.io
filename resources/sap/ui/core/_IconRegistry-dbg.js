@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /* global FontFace */
@@ -13,9 +13,10 @@ sap.ui.define([
 	"sap/base/i18n/ResourceBundle",
 	"sap/base/Log",
 	"sap/base/util/fetch",
-	"sap/base/util/syncFetch"
+	"sap/base/util/syncFetch",
+	"sap/ui/core/Lib"
 ],
-	function(URI, ResourceBundle, Log, fetch, syncFetch) {
+	function(URI, ResourceBundle, Log, fetch, syncFetch, Library) {
 		"use strict";
 
 		/**
@@ -741,7 +742,7 @@ sap.ui.define([
 		// Lazy load core resource bundle
 		function getCoreResourceBundle() {
 			if (!oCoreResourceBundle) {
-				oCoreResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core");
+				oCoreResourceBundle = Library.get("sap.ui.core").getResourceBundle();
 			}
 			return oCoreResourceBundle;
 		}

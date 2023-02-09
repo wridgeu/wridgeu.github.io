@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.filters.BaseFilter
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @private
@@ -75,6 +75,7 @@ sap.ui.define([
 		var oSelect = this._getSelect();
 
 		oSelect.setSelectedKey(this.getValue().value);
+		this._syncValue();
 	};
 
 	/**

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -88,6 +88,9 @@ function(
 		// shortcut for sap.ui.core.InvisibleMessageMode
 		var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
 
+		// shortcut for sap.ui.core.TitleLevel
+		var TitleLevel = coreLibrary.TitleLevel;
+
 		/**
 		 * Constructor for a new <code>sap.m.Select</code>.
 		 *
@@ -103,7 +106,7 @@ function(
 		 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -114,6 +117,7 @@ function(
 				interfaces: [
 					"sap.ui.core.IFormContent",
 					"sap.m.IOverflowToolbarContent",
+					"sap.m.IToolbarInteractiveControl",
 					"sap.f.IShellBar",
 					"sap.ui.core.ISemanticFormContent"
 				],
@@ -658,7 +662,7 @@ function(
 		 * Required by the {@link sap.m.IOverflowToolbarContent} interface.
 		 *
 		 * @public
-		 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
+		 * @returns {sap.m.OverflowToolbarConfig} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 		 */
 		Select.prototype.getOverflowToolbarConfig = function() {
 
@@ -1338,7 +1342,8 @@ function(
 				this.setAggregation("_pickerHeader", new Bar({
 					titleAlignment: library.TitleAlignment.Auto,
 					contentMiddle: new Title({
-						text: oResourceBundle.getText("SELECT_PICKER_TITLE_TEXT")
+						text: oResourceBundle.getText("SELECT_PICKER_TITLE_TEXT"),
+						level: TitleLevel.H1
 					}),
 					contentRight: new Button({
 						icon: sIconURI,
@@ -3148,7 +3153,8 @@ function(
 		 *
 		 * @see sap.ui.core.Control#getAccessibilityInfo
 		 * @protected
-		 * @returns {object} The <code>sap.m.Select</code> accessibility information
+		 * @returns {sap.ui.core.AccessibilityInfo}
+		 * The object contains the accessibility information for <code>sap.m.Select</code>
 		 */
 		Select.prototype.getAccessibilityInfo = function() {
 			var aDescriptions = [],
@@ -3185,6 +3191,19 @@ function(
 				oInfo.description = sDescription;
 			}
 			return oInfo;
+		};
+
+		/**
+		 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+		 * Determines if the Control is interactive.
+		 *
+		 * @returns {boolean} If it is an interactive Control
+		 *
+		 * @private
+		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 */
+		Select.prototype._getToolbarInteractive = function () {
+			return true;
 		};
 
 		/**

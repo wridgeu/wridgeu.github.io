@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -46,18 +46,19 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @private
-		 * @ui5-restricted sap.m.MenuButton,sap.ui.richtextEditor.ToolbarWrapper
+		 * @ui5-restricted sap.m.MenuButton,sap.ui.richtexteditor.ToolbarWrapper
 		 * @alias sap.m.SplitButton
 		 */
 		var SplitButton = Control.extend("sap.m.SplitButton", /** @lends sap.m.SplitButton.prototype */ {
 			metadata : {
 
 				interfaces : [
-					"sap.m.IOverflowToolbarContent"
+					"sap.m.IOverflowToolbarContent",
+					"sap.m.IToolbarInteractiveControl"
 				],
 				library : "sap.m",
 				properties : {
@@ -326,6 +327,17 @@ function(
 
 			return oConfig;
 		};
+
+	/**
+	 * Determines if it is interactive Control
+	 *
+	 * @private
+	 * @returns {boolean} If it is an interactive Control
+	 */
+	SplitButton.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
 
 		return SplitButton;
 	});

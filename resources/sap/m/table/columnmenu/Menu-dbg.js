@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -9,10 +9,10 @@ sap.ui.define([
 	"sap/m/Toolbar",
 	"sap/m/ToolbarSpacer",
 	"sap/m/library",
-	'sap/ui/Device',
-	"sap/ui/base/Object",
+	"sap/ui/Device",
 	"sap/ui/core/Control",
 	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/core/library",
 	"sap/ui/core/UIArea",
 	"sap/ui/thirdparty/jquery",
@@ -35,9 +35,9 @@ sap.ui.define([
 	ToolbarSpacer,
 	library,
 	Device,
-	BaseObject,
 	Control,
 	Core,
+	Element,
 	coreLibrary,
 	UIArea,
 	jQuery,
@@ -61,33 +61,34 @@ sap.ui.define([
 	var Category = library.table.columnmenu.Category;
 
 	/**
-	 * Constructor for a new Menu.
+	 * Constructor for a new <code>Menu</code>.
 	 *
-	 * @param {string} [sId] ID for the new Menu, generated automatically if no ID is given
-	 * @param {object} [mSettings] Initial settings for the new Menu
+	 * @param {string} [sId] ID for the new <code>Menu</code>, generated automatically if no ID is given
+	 * @param {object} [mSettings] Initial settings for the new <code>Menu</code>
 	 *
 	 * @class
-	 * This Menu is a popover, intended to be used by a table.
-	 * It serves as a entry point for the table personalization via the column headers.
-	 * The Menu is separated into two sections: quick actions and menu items.
+	 * The <code>Menu</code> control is a popover, intended to be used by a table.
+	 * It serves as an entry point for the table personalization via the column headers.
+	 * The menu is separated into two sections: quick actions and menu items.
 	 *
 	 * The top section of the popover contains contextual quick actions for the column the menu was triggered from.
-	 * The lower section contains menu items, which consist of generic and global table settings.
+	 * The lower section contains menu items related to generic and global table settings.
 	 *
 	 * There are control- and application-specific quick actions and menu items.
-	 * Applications are able to add their own quick actions, actions and items.
+	 * Applications can add their own quick actions and items.
 	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
-	 * @private
-	 * @experimental
+	 * @public
+	 * @since 1.110
 	 *
 	 * @alias sap.m.table.columnmenu.Menu
 	 */
 	var Menu = Control.extend("sap.m.table.columnmenu.Menu", {
+
 		metadata: {
 			library: "sap.m",
 			interfaces: ["sap.ui.core.IColumnHeaderMenu"],
@@ -116,12 +117,12 @@ sap.ui.define([
 			},
 			events: {
 				/**
-				 * Fires before the column menu is opened
+				 * Fired before the column menu is opened
 				 */
 				beforeOpen: {
 					parameters : {
 						/**
-						 * The element for which the menu is opened. If it is an <code>HTMLElement</code> the closest control is passed for this event
+						 * The element for which the menu is opened. If it is an <code>HTMLElement</code>, the closest control is passed for this event
 						 * (if it exists).
 						 */
 						openBy : {type : "sap.ui.core.Element"}
@@ -156,21 +157,17 @@ sap.ui.define([
 	/**
 	 * Opens the popover at the specified target.
 	 *
-	 * @param {sap.ui.core.Control | HTMLElement} oAnchor This is the control or HTMLElement, where the popover will be placed at.
+	 * @param {sap.ui.core.Control | HTMLElement} oAnchor This is the control or HTMLElement where the popover is placed.
 	 * @public
 	 */
 	Menu.prototype.openBy = function(oAnchor) {
-		if (this.isOpen()) {
+		if (this.isOpen() && oAnchor === this._oIsOpenBy) {
 			return;
 		}
 
-		if (!this.getParent()) {
-			UIArea.registry.get(Core.getStaticAreaRef().id).addContent(this, true);
-		}
-
 		var oControl = oAnchor;
-		if (!BaseObject.isA(oAnchor, "sap.ui.core.Element")) {
-			oControl = jQuery(oAnchor).control(0, true);
+		if (!(oAnchor instanceof Element)) {
+			oControl = Element.closestTo(oAnchor, true);
 		}
 
 		this.fireBeforeOpen({
@@ -185,7 +182,13 @@ sap.ui.define([
 		}
 
 		this._initItemsContainer();
+
+		if (!this.getParent()) {
+			UIArea.registry.get(Core.getStaticAreaRef().id).addContent(this, true);
+		}
+
 		this._oPopover.openBy(oAnchor);
+		this._oIsOpenBy = oAnchor;
 
 		ControlEvents.bindAnyEvent(this.fAnyEventHandlerProxy);
 	};
@@ -193,7 +196,7 @@ sap.ui.define([
 	/**
 	 * Returns the <code>sap.ui.core.aria.HasPopup<\code> type of the menu.
 	 *
-	 * @returns {sap.ui.core.aria.HasPopup} <code>sap.ui.core.aria.HasPopup<\code> type of the menu
+	 * @returns {sap.ui.core.aria.HasPopup} <code>sap.ui.core.aria.HasPopup</code> type of the menu
 	 * @public
 	 * @since 1.98.0
 	 */
@@ -202,12 +205,12 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns true when the menu is open, otherwise it returns false.
+	 * Determines whether the menu is open.
 	 *
 	 * @returns {boolean} Whether the menu is open.
 	 */
 	Menu.prototype.isOpen = function () {
-		return this._oPopover && this._oPopover.isOpen();
+		return this._oPopover ? this._oPopover.isOpen() : false;
 	};
 
 	/**
@@ -217,10 +220,10 @@ sap.ui.define([
 	 */
 	Menu.prototype.close = function () {
 		this._previousView = null;
-		if (this._oPopover) {
+		if (this._oPopover && this._oPopover.isOpen()) {
 			this._oPopover.close();
+			ControlEvents.unbindAnyEvent(this.fAnyEventHandlerProxy);
 		}
-		ControlEvents.unbindAnyEvent(this.fAnyEventHandlerProxy);
 	};
 
 	Menu.prototype.exit = function () {
@@ -230,6 +233,9 @@ sap.ui.define([
 		}
 		if (this._oItemsContainer) {
 			delete this._oItemsContainer;
+		}
+		if (this._oIsOpenBy) {
+			delete this._oIsOpenBy;
 		}
 		ControlEvents.unbindAnyEvent(this.fAnyEventHandlerProxy);
 	};
@@ -617,7 +623,7 @@ sap.ui.define([
 
 			// Create content
 			var aControls = [];
-			var aContent = oQuickAction.getContent();
+			var aContent = oQuickAction.getContent() || [];
 
 			aContent.forEach(function(oItem, iIndex) {
 				var oGridData, sSpan, sIndent, oControl;

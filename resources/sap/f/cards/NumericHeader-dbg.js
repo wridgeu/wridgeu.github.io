@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -39,7 +39,7 @@ sap.ui.define([
 	 * @extends sap.f.cards.BaseHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -233,7 +233,7 @@ sap.ui.define([
 	 * those controls.
 	 *
 	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
-	 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
+	 * @param {{role: string, level: string}} mAriaProps - The mapping of "aria-" prefixed attributes
 	 * @protected
 	 */
 	NumericHeader.prototype.enhanceAccessibilityState = function (oElement, mAriaProps) {

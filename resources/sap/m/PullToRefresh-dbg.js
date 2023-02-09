@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -91,8 +91,7 @@ sap.ui.define([
 	PullToRefresh.ARIA_F5_REFRESH = "PULL_TO_REFRESH_ARIA_F5";
 
 	PullToRefresh.prototype.init = function(){
-		// TODO: migration not possible. jQuery.sap.simulateMobileOnDesktop is a testing flag which should not be used.
-		this._bTouchMode = Device.support.touch && !Device.system.combi || jQuery.sap.simulateMobileOnDesktop;
+		this._bTouchMode = Device.support.touch && !Device.system.combi;
 		this._iState = 0; // 0 - normal; 1 - release to refresh; 2 - loading
 		this._sAriaF5Text = InvisibleText.getStaticId("sap.m", PullToRefresh.ARIA_F5_REFRESH);
 	};
@@ -101,8 +100,7 @@ sap.ui.define([
 		// lazy create a Busy indicator to avoid overhead when invisible at start
 		if (this.getVisible() && !this._oBusyIndicator) {
 			this._oBusyIndicator = new BusyIndicator({
-				size: "1.7rem",
-				design: "auto"
+				size: "1.7rem"
 			});
 			this._oBusyIndicator.setParent(this);
 		}

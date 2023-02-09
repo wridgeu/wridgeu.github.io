@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -20,15 +20,14 @@ sap.ui.define([
 	 * @class
 	 * This control serves as base class for a query builder like personalization implementation.
 	 *
-	 * @class
 	 * @extends sap.m.p13n.BasePanel
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @private
-	 * @ui5-restricted
-	 * @experimental Since 1.96.
+	 * @ui5-restricted sap.m, sap.ui.mdc
+	 *
 	 * @since 1.96
 	 * @alias sap.m.p13n.QueryPanel
 	 */
@@ -85,7 +84,7 @@ sap.ui.define([
 	QueryPanel.prototype.getP13nData = function (bOnlyActive) {
 		var aItems = [];
 		this._oListControl.getItems().forEach(function (oItem) {
-			var sKey = oItem.getContent()[0].getContent()[0]._key;
+			var sKey = this._getControlFromRow(oItem)._key;
 			if (sKey) {
 				var oField = this._getP13nModel().getProperty("/items").find(function (o) {
 					return o.name == sKey;
@@ -152,7 +151,7 @@ sap.ui.define([
 	};
 
 	QueryPanel.prototype._getModelEntry = function(oRow) {
-		var sKey = oRow.getContent()[0].getContent()[0]._key;
+		var sKey = this._getControlFromRow(oRow)._key;
 		var oField = this._getP13nModel().getProperty("/items").find(function (o) {
 			return o.name == sKey;
 		});
@@ -218,7 +217,7 @@ sap.ui.define([
 			this._addHover(oRow);
 		}
 
-		oRow.getContent()[0].getContent()[0]._key = oItem.name;
+		this._getControlFromRow(oRow)._key = oItem.name;
 
 		this._oListControl.addItem(oRow);
 
@@ -243,8 +242,7 @@ sap.ui.define([
 	QueryPanel.prototype._handleActivated = function(oHoveredItem) {
 		var oQueryRow = oHoveredItem.getContent()[0];
 		if (oQueryRow) {
-			var iItemLength = oQueryRow.getContent().length - 1;
-			var oButtonBox = oHoveredItem.getContent()[0].getContent()[iItemLength];
+			var oButtonBox = this._getControlFromRow(oHoveredItem, -1);
 
 			//Only add the buttons if 1) an hovered item is provided 2) the buttons are not already there
 			if (oHoveredItem && oButtonBox.getItems().length < 2) {
@@ -311,8 +309,7 @@ sap.ui.define([
 		var oListItem = oComboBox.getParent().getParent();
 		var bIsLastRow = this._oListControl.getItems().length - 1 == this._oListControl.getItems().indexOf(oListItem);
 
-		var aContent = oListItem.getContent()[0].getContent();
-		var oBtnContainer = aContent[aContent.length - 1];
+		var oBtnContainer = this._getControlFromRow(oListItem, -1);
 		oBtnContainer.setVisible(!(bIsLastRow && sNewKey == ""));
 
 		//Remove previous
@@ -350,14 +347,12 @@ sap.ui.define([
 						var bNewRowRequired = iQueries === 1 || iQueries == this.getP13nData(true).length;
 
 						this._oListControl.removeItem(oRow);
-						this._updatePresence(oRow.getContent()[0].getContent()[0]._key, false, undefined);
+						this._updatePresence(this._getControlFromRow(oRow)._key, false, undefined);
 						if (bNewRowRequired) {
 							this._addQueryRow();
-						} else {
-							//In case an item has been removed, focus the Select control of the new 'none' row
-							var iLastIndex = this._oListControl.getItems().length - 1;
-							this._oListControl.getItems()[iLastIndex].getContent()[0].getContent()[0].focus();
 						}
+						//In case an item has been removed, focus the Select control of the new 'none' row
+						this.getInitialFocusedControl().focus();
 
 						this._getP13nModel().checkUpdate(true);
 					}.bind(this)
@@ -394,6 +389,31 @@ sap.ui.define([
 			item: aRelevant[0]
 		});
 	};
+
+	QueryPanel.prototype.getInitialFocusedControl = function() {
+		var oRow = this._getRow(-1);
+		return this._getControlFromRow(oRow);
+	};
+
+	QueryPanel.prototype._getRow = function(iIndex) {
+		var aItems = this._oListControl.getItems();
+		if (iIndex < 0) {
+			iIndex = aItems.length + iIndex;
+		}
+		return aItems[iIndex];
+	};
+
+	QueryPanel.prototype._getControlFromRow = function(oRow, iIndex) {
+		var aContent = oRow.getContent()[0].getContent();
+		if (iIndex === undefined) {
+			iIndex = 0;
+		}
+		if (iIndex < 0) {
+			iIndex = aContent.length + iIndex;
+		}
+		return aContent[iIndex];
+	};
+
 
 	return QueryPanel;
 

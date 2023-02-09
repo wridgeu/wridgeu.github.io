@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,10 +42,12 @@ sap.ui.define([
 	 *
 	 *
 	 * With 1.63, large design of the control is supported by setting <code>sapMObjectStatusLarge</code> CSS class to the <code>ObjectStatus</code>.
+	 * With 1.110, Inner text wrapping could be enabled by adding <code>sapMObjectStatusLongText</code> CSS class to the <code>ObjectStatus</code>. This class can be added by using оObjectStatus.addStyleClass("sapMObjectStatusLongText");
+
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -115,12 +117,21 @@ sap.ui.define([
 				 *
 				 * @since 1.89
 				 */
-				emptyIndicatorMode: { type: "sap.m.EmptyIndicatorMode", group: "Appearance", defaultValue: EmptyIndicatorMode.Off }
+				emptyIndicatorMode: { type: "sap.m.EmptyIndicatorMode", group: "Appearance", defaultValue: EmptyIndicatorMode.Off },
+
+				/**
+				 * Еnables overriding of the default state announcement.
+				 *
+				 * @since 1.110
+				 */
+				stateAnnouncementText : {type : "string", group : "Misc"}
 			},
 			associations : {
 
 				/**
 				 * Association to controls / IDs, which describe this control (see WAI-ARIA attribute aria-describedby).
+				 *
+				 * <b>Note:</b> The additional description will take effect only if <code>active</code> property is set to <code>true</code>.
 				 */
 				ariaDescribedBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaDescribedBy"}
 			},
@@ -146,15 +157,13 @@ sap.ui.define([
 	 * @returns {string} The text compliant to the control state
 	 */
 	ObjectStatus.prototype._getStateText = function(sState) {
-		var sStateText;
-
-		if (sState !== ValueState.None) {
-			sStateText = ValueStateSupport.getAdditionalText(sState) ?
-				ValueStateSupport.getAdditionalText(sState) :
-				IndicationColorSupport.getAdditionalText(sState);
+		if (sState !== ValueState.None && this.isPropertyInitial("stateAnnouncementText")) {
+			return ValueStateSupport.getAdditionalText(sState)
+					? ValueStateSupport.getAdditionalText(sState)
+					: IndicationColorSupport.getAdditionalText(sState);
 		}
 
-		return sStateText;
+		return !this.isPropertyInitial("stateAnnouncementText") ? this.getStateAnnouncementText() : "";
 	};
 
 	/**
@@ -277,11 +286,13 @@ sap.ui.define([
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 *
-	 * @returns {object} Current accessibility state of the control
+	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control
 	 * @protected
 	 */
 	ObjectStatus.prototype.getAccessibilityInfo = function() {
-		var sState = ValueStateSupport.getAdditionalText(this.getState()),
+		var sState = this.isPropertyInitial("stateAnnouncementText")
+						? ValueStateSupport.getAdditionalText(this.getState())
+						: this.getStateAnnouncementText(),
 			sDescription;
 
 		if (this.getState() != ValueState.None) {
@@ -295,9 +306,11 @@ sap.ui.define([
 			(this.getTooltip() || "")
 		).trim();
 
-		return {
-			description: sDescription + (sDescription ? " " + sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("OBJECT_STATUS") : "")
-		};
+		sDescription = this._isActive()
+			? sDescription + (sDescription ? " " + sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("OBJECT_STATUS_ACTIVE") : "")
+			: sDescription;
+
+		return { description: sDescription };
 	};
 
 	ObjectStatus.prototype._isClickable = function(oEvent) {

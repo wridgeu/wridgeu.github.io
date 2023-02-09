@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,11 +34,12 @@ sap.ui.define(['./BarInPageEnabler'],
 	 * @param {sap.m.Toolbar} oToolbar An object representation of the control that should be rendered.
 	 */
 	ToolbarRenderer.writeAccessibilityState = function(oRm, oToolbar) {
-		var oAccInfo = {
-			role: oToolbar._getAccessibilityRole()
-		};
+		var sRole = oToolbar._getAccessibilityRole(),
+			oAccInfo = {
+				role: sRole
+			};
 
-		if (!oToolbar.getAriaLabelledBy().length) {
+		if (!oToolbar.getAriaLabelledBy().length && sRole) {
 			oAccInfo.labelledby = oToolbar.getTitleId();
 		}
 
@@ -46,7 +47,7 @@ sap.ui.define(['./BarInPageEnabler'],
 			oAccInfo.haspopup = oToolbar.getAriaHasPopup();
 		}
 
-		if (oToolbar._sAriaRoleDescription) {
+		if (oToolbar._sAriaRoleDescription && sRole) {
 			oAccInfo.roledescription = oToolbar._sAriaRoleDescription;
 		}
 

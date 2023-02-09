@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -1173,13 +1173,16 @@ sap.ui.define([
 	};
 
 	/**
-	 * Merges all GET requests that are marked as mergeable and have the same owner, resource path,
-	 * and query options besides $expand and $select. One request with the merged $expand and
-	 * $select is left in the queue and all merged requests get the response of this one remaining
-	 * request. For $mergeRequests, see parameter fnMergeRequests of {@link #request}.
+	 * Merges all GET requests that are marked as mergeable (via parameter mQueryOptions of
+	 * {@link #request}) and have the same owner, resource path, and query options besides $expand
+	 * and $select. One request with the merged $expand and $select is left in the queue and all
+	 * merged requests get the response of this one remaining request. For $mergeRequests, see
+	 * parameter fnMergeRequests of {@link #request}.
 	 *
 	 * @param {object[]} aRequests The batch queue
 	 * @returns {object[]} The adjusted batch queue
+	 *
+	 * @private
 	 */
 	_Requestor.prototype.mergeGetRequests = function (aRequests) {
 		var aResultingRequests = [],
@@ -1208,9 +1211,13 @@ sap.ui.define([
 			}
 		});
 		aResultingRequests.forEach(function (oRequest) {
-			if (oRequest.$queryOptions) {
-				oRequest.url
-					= that.addQueryString(oRequest.url, oRequest.$metaPath, oRequest.$queryOptions);
+			var mQueryOptions = oRequest.$queryOptions;
+
+			if (mQueryOptions) {
+				if (mQueryOptions.$expand && !mQueryOptions.$select.length) {
+					mQueryOptions.$select = Object.keys(mQueryOptions.$expand).sort().slice(0, 1);
+				}
+				oRequest.url = that.addQueryString(oRequest.url, oRequest.$metaPath, mQueryOptions);
 			}
 		});
 		aResultingRequests.iChangeSet = aRequests.iChangeSet;
@@ -1744,7 +1751,8 @@ sap.ui.define([
 	 * @param {object} [mQueryOptions]
 	 *   Query options if it is allowed to merge this request with another request having the same
 	 *   sResourcePath (only allowed for GET requests); the resulting resource path is the path from
-	 *   sResourcePath plus the merged query options; may only contain $expand and $select
+	 *   sResourcePath plus the merged query options; must contain $select (even if empty), may also
+	 *   contain $expand
 	 * @param {any} [vOwner]
 	 *   An additional precondition for the merging of GET requests: the owner must be identical.
 	 * @param {function(string[]):string[]} [fnMergeRequests]
@@ -1847,7 +1855,10 @@ sap.ui.define([
 			JSON.stringify(oPayload), sOriginalResourcePath
 		).then(function (oResponse) {
 			that.reportHeaderMessages(oResponse.resourcePath, oResponse.messages);
-			return that.doConvertResponse(oResponse.body, sMetaPath);
+			return that.doConvertResponse(
+				// Note: "text/plain" used for $count
+				typeof oResponse.body === "string" ? JSON.parse(oResponse.body) : oResponse.body,
+				sMetaPath);
 		});
 	};
 
@@ -1864,7 +1875,8 @@ sap.ui.define([
 		var oBatchRequest = _Batch.serializeBatchRequest(aRequests,
 				this.getGroupSubmitMode(sGroupId) === "Auto"
 					? "Group ID: " + sGroupId
-					: "Group ID (API): " + sGroupId
+					: "Group ID (API): " + sGroupId,
+				this.oModelInterface.isIgnoreETag()
 			);
 
 		return this.processOptimisticBatch(aRequests, sGroupId)
@@ -1942,7 +1954,8 @@ sap.ui.define([
 					headers : Object.assign({},
 						that.mPredefinedRequestHeaders,
 						that.mHeaders,
-						_Helper.resolveIfMatchHeader(mHeaders)),
+						_Helper.resolveIfMatchHeader(mHeaders,
+							that.oModelInterface.isIgnoreETag())),
 					method : sMethod
 				}).then(function (/*{object|string}*/vResponse, _sTextStatus, jqXHR) {
 					var sETag = jqXHR.getResponseHeader("ETag"),
@@ -2068,8 +2081,8 @@ sap.ui.define([
 	 * Waits until all group locks for the given group ID have been unlocked and submits the
 	 * requests associated with this group ID in one batch request. If only PATCH requests are
 	 * enqueued (see {@link #hasOnlyPatchesWithoutSideEffects}), this will delay the execution to
-	 * wait for potential side effect requests triggered by
-	 * {@link sap.ui.core.Control#event:validateFieldGroup}.
+	 * wait for potential side effect requests triggered by a
+	 * {@link sap.ui.core.Control#event:validateFieldGroup 'validateFieldGroup'} event.
 	 *
 	 * @param {string} sGroupId
 	 *   The group ID
@@ -2221,6 +2234,8 @@ sap.ui.define([
 	 *   A catch handler function expecting an <code>Error</code> instance. This function will call
 	 *   {@link sap.ui.model.odata.v4.ODataModel#reportError} if the error has not been reported
 	 *   yet
+	 * @param {function():boolean} oModelInterface.isIgnoreETag
+	 *   Tells whether an entity's ETag should be actively ignored (If-Match:*) for PATCH requests.
 	 * @param {function} oModelInterface.onCreateGroup
 	 *   A callback function that is called with the group name as parameter when the first
 	 *   request is added to a group

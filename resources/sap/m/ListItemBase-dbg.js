@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -78,7 +78,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -273,9 +273,6 @@ function(
 	// defines the root tag name for rendering purposes
 	ListItemBase.prototype.TagName = "li";
 
-	// enable the ACC announcement for "not selected"
-	ListItemBase.prototype._bAnnounceNotSelected = true;
-
 	// internal active state of the listitem
 	ListItemBase.prototype.init = function() {
 		this._active = false;
@@ -446,14 +443,15 @@ function(
 		}
 
 		if (this.getContentAnnouncement) {
-			aOutput.push((this.getContentAnnouncement(oBundle) || "").trim());
+			var sContentAnnouncement = (this.getContentAnnouncement(oBundle) || "").trim();
+			sContentAnnouncement && aOutput.push(sContentAnnouncement);
 		}
 
 		if (sTooltip) {
 			aOutput.push(sTooltip);
 		}
 
-		if (this._bAnnounceNotSelected && this.isSelectable() && !this.getSelected()) {
+		if (this.getListProperty("ariaRole") != "listbox" && this.isSelectable() && !this.getSelected()) {
 			aOutput.push(oBundle.getText("LIST_ITEM_NOT_SELECTED"));
 		}
 

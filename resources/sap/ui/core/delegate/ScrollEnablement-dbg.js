@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define([
 		 *
 		 * @protected
 		 * @alias sap.ui.core.delegate.ScrollEnablement
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 * @author SAP SE
 		 */
 		var ScrollEnablement = BaseObject.extend("sap.ui.core.delegate.ScrollEnablement", /** @lends sap.ui.core.delegate.ScrollEnablement.prototype */ {
@@ -77,6 +77,7 @@ sap.ui.define([
 				this._scrollY = 0;
 				this._scrollCoef = 0.9; // Approximation coefficient used to mimic page down and page up behaviour when [CTRL] + [RIGHT] and [CTRL] + [LEFT] is used
 				this._iLastMaxScrollTop = 0;
+				this._iScrollPaddingTop = 0;
 
 				initDelegateMembers(this);
 
@@ -220,6 +221,21 @@ sap.ui.define([
 				return this;
 			},
 			/**
+			 * Sets the top offset of the optimal viewing region of the scrollport:
+			 * the region used as the target region for placing things in view of the user.
+			 * This offset is required when the topmost part of the scroll container is overlapped
+			 * by other content (e.g. overlapped by the sticky header content of the scrollable page)
+			 *
+			 * @param {number} iValue
+			 * @private
+			 * @ui5-restricted sap.uxap.ObjectPageLayout, sap.f.DynamicPage
+			 */
+			setScrollPaddingTop : function(iValue) {
+				if (typeof iValue === 'number') {
+					this._iScrollPaddingTop = iValue;
+				}
+			},
+			/**
 			 * Scrolls to a specific position in scroll container.
 			 * @param {int} x Horizontal position of the scrollbar
 			 * @param {int} y Vertical position of the scrollbar
@@ -272,10 +288,12 @@ sap.ui.define([
 			 * @param {int[]} [aOffset=[0,0]]
 			 *           Specifies an additional left and top offset of the target scroll position, relative to
 			 *           the upper left corner of the DOM element
+			 * @param {boolean} [bSkipElementsInScrollport] The configuration of the parameter for scrolling only if the element is not in the view port -
+			 * i.e. if bSkipElementsInScrollport is set to true, there will be no scrolling if the element is already in the view port
 			 * @returns {this}
 			 * @protected
 			 */
-			scrollToElement: function(oElement, iTime, aOffset) {
+			scrollToElement: function(oElement, iTime, aOffset, bSkipElementsInScrollport) {
 				aOffset = aOffset || [0, 0];
 
 				// do nothing if _$Container is not a (grand)parent of oElement
@@ -284,6 +302,15 @@ sap.ui.define([
 					oElement.offsetParent.nodeName.toUpperCase() === "HTML") {
 						return this;
 				}
+
+				// the visible part of the scrollport is positioned below the
+				// <code>this._iScrollPaddingTop</code>, so we offset that padding as well
+				aOffset[1] -= this._iScrollPaddingTop;
+
+				if (bSkipElementsInScrollport && this._isInScrollport(oElement, aOffset)) {
+					return this;
+				}
+
 
 				var $Element = jQuery(oElement),
 					oScrollPosition = this.getChildPosition($Element),
@@ -797,6 +824,16 @@ sap.ui.define([
 						fnScrollEndCallback && fnScrollEndCallback();
 					}
 				}
+			},
+
+			//checks if the element is already visible in the view port
+			_isInScrollport: function(oElement, aOffset) {
+				var oElementRect = oElement.getBoundingClientRect(),
+					oContainerRect = this._$Container[0].getBoundingClientRect(),
+					iContainerRectTop = oContainerRect.top - aOffset[1];
+
+				return Math.ceil(oElementRect.top) >= Math.floor(iContainerRectTop)
+					&& Math.floor(oElementRect.bottom) <= Math.ceil(oContainerRect.bottom);
 			}
 		};
 

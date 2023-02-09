@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -782,15 +782,9 @@ sap.ui.define([
 				oBinding,
 				oAggregationInfo = this.getMetadata().getAggregation(sName),
 				fnModelChangeHandler = function(oEvent){
-					var sOldOwnerId = ManagedObject._sOwnerId;
-					try {
-						ManagedObject._sOwnerId = that._sOwnerId;
-						oAggregationInfo.update(that, oEvent.getParameter("reason"), {
-							detailedReason: oEvent.getParameter("detailedReason")
-						});
-					} finally {
-						ManagedObject._sOwnerId = sOldOwnerId;
-					}
+					oAggregationInfo.update(that, oEvent.getParameter("reason"), {
+						detailedReason: oEvent.getParameter("detailedReason")
+					});
 				},
 				fnModelRefreshHandler = function(oEvent){
 					oAggregationInfo.refresh(that, oEvent.getParameter("reason"));

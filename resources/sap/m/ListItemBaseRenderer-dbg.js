@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/InvisibleText", "sap/ui/core/InvisibleRenderer"],
-	function(library, Core, Device, InvisibleText, InvisibleRenderer) {
+sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/InvisibleText", "sap/ui/core/InvisibleRenderer", "sap/ui/core/Configuration"],
+	function(library, Core, Device, InvisibleText, InvisibleRenderer, Configuration) {
 	"use strict";
 
 
@@ -85,7 +85,7 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 		oModeControl.removeStyleClass("sapMLIBSelectAnimation sapMLIBUnselectAnimation");
 
 		// determine whether animation is necessary or not
-		if (!Core.getConfiguration().getAnimation() || !oLI.getListProperty("modeAnimationOn")) {
+		if (Core.getConfiguration().getAnimationMode() === Configuration.AnimationMode.none || !oLI.getListProperty("modeAnimationOn")) {
 			return;
 		}
 

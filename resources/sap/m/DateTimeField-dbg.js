@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -61,7 +61,7 @@ sap.ui.define([
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -203,6 +203,15 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Setter for property <code>dateValue</code>.
+	 *
+	 * The date and time in DateTimeField as JavaScript Date object.
+	 *
+	 * @param {Date} oDate A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
 	DateTimeField.prototype.setDateValue = function (oDate) {
 
 		if (!this._isValidDate(oDate)) {

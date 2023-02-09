@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @alias sap.m.Image
@@ -847,7 +847,8 @@ sap.ui.define([
 	 *
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
-	 * @returns {object} The <code>sap.m.Image</code> accessibility information
+	 * @returns {sap.ui.core.AccessibilityInfo}
+	 * The object contains the accessibility information for <code>sap.m.Image</code>
 	 */
 	Image.prototype.getAccessibilityInfo = function() {
 		var bHasPressListeners = this.hasListeners("press");

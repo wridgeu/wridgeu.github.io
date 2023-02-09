@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -67,6 +67,9 @@ sap.ui.define([
 		 */
 		var MenuButton = Control.extend("sap.m.MenuButton", /** @lends sap.m.MenuButton.prototype */ {
 			metadata : {
+				interfaces : [
+					"sap.m.IToolbarInteractiveControl"
+				],
 				library : "sap.m",
 				properties : {
 					/**
@@ -219,9 +222,6 @@ sap.ui.define([
 			if (this._sDefaultIcon) {
 				this._sDefaultIcon = null;
 			}
-			if (this._iInitialTextBtnContentWidth) {
-				this._iInitialTextBtnContentWidth = null;
-			}
 			if (this._lastActionItemId) {
 				this._lastActionItemId = null;
 			}
@@ -244,10 +244,6 @@ sap.ui.define([
 
 		};
 
-		MenuButton.prototype._needsWidth = function() {
-			return this._isSplitButton() && this.getWidth() === "";
-		};
-
 		/**
 		 * Gets the text button control DOM Element.
 		 * @returns {Element} The Element's DOM Element
@@ -258,34 +254,10 @@ sap.ui.define([
 		};
 
 		MenuButton.prototype.onAfterRendering = function() {
-			if (this._needsWidth() && sap.ui.getCore().isThemeApplied() && this._getTextBtnContentDomRef() && this._getInitialTextBtnWidth() > 0) {
-				this._getTextBtnContentDomRef().style.width = this._getInitialTextBtnWidth() + 'px';
-			}
 			if (this._activeButton) {
 				this._activeButton.$().attr("aria-expanded", "false");
 				this._activeButton = null;
 			}
-		};
-
-		MenuButton.prototype.onThemeChanged = function(oEvent) {
-			//remember the initial width of the text button and hardcode it in the dom
-			if (this._needsWidth() && this.getDomRef() && !this._iInitialTextBtnContentWidth && this._getTextBtnContentDomRef() && this._getInitialTextBtnWidth() > 0) {
-				this._getTextBtnContentDomRef().style.width = this._getInitialTextBtnWidth() + 'px';
-			}
-		};
-
-		/**
-		 * Gets the initial width of the text button control. To be used for 'split' mode only.
-		 * @returns {int} The width after the text button control was rendered for the first time and theme applied
-		 * @private
-		 */
-		MenuButton.prototype._getInitialTextBtnWidth = function() {
-			if (!this._iInitialTextBtnContentWidth) {
-				//round the width upward in order to prevent content overflow (ellipses)
-				this._iInitialTextBtnContentWidth = Math.ceil(this._getTextBtnContentDomRef().getBoundingClientRect().width);
-			}
-
-			return this._iInitialTextBtnContentWidth;
 		};
 
 		/**
@@ -776,6 +748,19 @@ sap.ui.define([
 				oOpeningMenuButton.$().attr("aria-controls", oMenu.getDomRefId());
 				oOpeningMenuButton.$().attr("aria-expanded", "true");
 			}
+		};
+
+		/**
+		 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+		 * Determines if the Control is interactive.
+		 *
+		 * @returns {boolean} If it is an interactive Control
+		 *
+		 * @private
+		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 */
+		MenuButton.prototype._getToolbarInteractive = function () {
+			return true;
 		};
 
 		/**

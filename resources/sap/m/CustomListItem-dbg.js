@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,7 +24,7 @@ sap.ui.define(['./ListItemBase', './library', './CustomListItemRenderer'],
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -42,7 +42,7 @@ sap.ui.define(['./ListItemBase', './library', './CustomListItemRenderer'],
 				 * <b>Note:</b> If defined, then only the provided custom accessibility description is announced when there is a focus on the list item.
 				 * @since 1.84
 				 */
-				accDescription: {tpye: "string", group: "Behavior"}
+				accDescription: {type: "string", group: "Behavior"}
 			},
 			aggregations : {
 

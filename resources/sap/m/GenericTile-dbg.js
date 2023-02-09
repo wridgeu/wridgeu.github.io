@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -81,7 +81,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -215,7 +215,7 @@ sap.ui.define([
 				 * @since 1.96
 				 * @experimental Since 1.96
 				*/
-				tileIcon: {type: "sap.ui.core.URI", multiple: false},
+				tileIcon: {type: "sap.ui.core.URI"},
 				/**
 				 * Background color of the GenericTile. Only applicable for IconMode.
 				 * @since 1.96
@@ -373,12 +373,23 @@ sap.ui.define([
 		this._oInvisibleText = new InvisibleText(this.getId() + "-ariaText");
 		this.setAggregation("_invisibleText", this._oInvisibleText, true);
 
-		this._oWarningIcon = new Icon(this.getId() + "-warn-icon", {
-			src: "sap-icon://notification",
+		this._oErrorIcon = new Icon(this.getId() + "-warn-icon", {
+			src: "sap-icon://error",
 			size: "1.375rem"
 		});
 
-		this._oWarningIcon.addStyleClass("sapMGTFtrFldIcnMrk");
+		this._oErrorIcon.addStyleClass("sapMGTFtrFldIcnMrk");
+		 //If parameter is not available synchronously it will be available through callback
+
+		var sErrorIconColor = Parameters.get({
+			name: "sapNegativeTextColor",
+			callback: function(sErrorIconColor) {
+				this._oErrorIcon.setColor(sErrorIconColor);
+			}.bind(this)
+        });
+        if (sErrorIconColor) {
+            this._oErrorIcon.setColor(sErrorIconColor);
+        }
 
 		this._oBusy = new HTML(this.getId() + "-overlay");
 		this._oBusy.setBusyIndicatorDelay(0);
@@ -566,7 +577,7 @@ sap.ui.define([
 		//stop any currently running queue
 		this._clearAnimationUpdateQueue();
 
-		this._oWarningIcon.destroy();
+		this._oErrorIcon.destroy();
 		if (this._oImage) {
 			this._oImage.destroy();
 		}
@@ -708,6 +719,11 @@ sap.ui.define([
 			this.getDomRef().setAttribute("aria-describedby",this.getAggregation("_invisibleText").getId());
 		}
 		this.onDragComplete();
+
+		//Removes the focus on the GenericTile if the parent is SlideTile
+		if (this.getDomRef() && this.getParent() && this.getParent().isA("sap.m.SlideTile")) {
+			this.getDomRef().setAttribute("tabindex","-1");
+		}
 	};
 	/**
 	 * Increases the height of the TileContent when the header-text has one line
@@ -1239,6 +1255,11 @@ sap.ui.define([
 			}
 		}
     };
+	GenericTile.prototype.onsaptabprevious = function() {
+		if (this._isIconMode() && this.getFrameType() === FrameType.TwoByHalf) {
+			this._oMoreIcon.removeStyleClass("sapMGTVisible");
+		}
+	};
 	GenericTile.prototype.onkeyup = function (event) {
 		if (!_isInnerTileButtonPressed(event, this)) {
 			var currentKey = keyPressed[event.keyCode];    //disable navigation to other tiles when one tile is selected

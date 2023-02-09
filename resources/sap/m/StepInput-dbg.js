@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,7 +44,7 @@ function(
 		// shortcut for sap.m.StepInputValidationMode
 		var StepInputValidationMode = library.StepInputValidationMode;
 
-		// shortcut fro sap.m.StepModes
+		// shortcut for sap.m.StepModes
 		var StepModeType = library.StepInputStepModeType;
 
 		/**
@@ -119,7 +119,7 @@ function(
 		 * @implements sap.ui.core.IFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -297,6 +297,11 @@ function(
 
 			renderer: StepInputRenderer
 		});
+
+		// get resource translation bundle;
+		var oLibraryResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		StepInput.STEP_INPUT_INCREASE_BTN_TOOLTIP = oLibraryResourceBundle.getText("STEP_INPUT_INCREASE_BTN");
+		StepInput.STEP_INPUT_DECREASE_BTN_TOOLTIP = oLibraryResourceBundle.getText("STEP_INPUT_DECREASE_BTN");
 
 		StepInput.INITIAL_WAIT_TIMEOUT = 500;
 		StepInput.ACCELLERATION = 0.8;
@@ -505,7 +510,8 @@ function(
 					noTabStop: true,
 					decorative: false,
 					press: this._handleButtonPress.bind(this, 1),
-					useIconTooltip: false
+					useIconTooltip: false,
+					alt: StepInput.STEP_INPUT_INCREASE_BTN_TOOLTIP
 				});
 
 			oIcon.getEnabled = function () {
@@ -538,7 +544,8 @@ function(
 					noTabStop: true,
 					decorative: false,
 					press: this._handleButtonPress.bind(this, -1),
-					useIconTooltip: false
+					useIconTooltip: false,
+					alt: StepInput.STEP_INPUT_DECREASE_BTN_TOOLTIP
 				});
 
 			oIcon.getEnabled = function () {
@@ -634,8 +641,15 @@ function(
 		 * @private
 		 */
 		StepInput.prototype._changeValueWithStep = function (fMultiplier) {
-			var fNewValue,
+			var iMultiplier,
+				fNewValue,
 				fDelta;
+
+			// calculate precision multiplier
+			if (isNaN(this._iValuePrecision)) {
+				this._iValuePrecision = this._getNumberPrecision(this.getValue());
+			}
+			iMultiplier = Math.pow(10, Math.max(this.getDisplayValuePrecision(), this._iValuePrecision));
 
 			if (isNaN(this._fTempValue) || this._fTempValue === undefined) {
 				this._fTempValue = this.getValue();
@@ -647,6 +661,11 @@ function(
 
 			// calculate new value
 			fNewValue = fMultiplier !== 0 ? this._calculateNewValue(fMultiplier) : this._fTempValue;
+
+			// fix value precision
+			if (fMultiplier === 0) {
+				fNewValue = Math.round(fNewValue * iMultiplier) / iMultiplier;
+			}
 
 			// save new temp value
 			if (fMultiplier !== 0 || fDelta !== 0 || this._bDelayedEventFire) {
@@ -770,6 +789,18 @@ function(
 
 		};
 
+		/**
+		 * Returns the precision of a number.
+		 * @param {float} fNumber The number whose precision is to be obtained
+		 * @returns {int} the precision of the number passed as parameter
+		 *
+		 */
+		 StepInput.prototype._getNumberPrecision = function(fNumber) {
+			var aNumberParts = !isNaN(fNumber) && fNumber !== null ? fNumber.toString().split('.') : [];
+
+			return aNumberParts.length > 1 ? aNumberParts[1].length : 0;
+		};
+
 		StepInput.prototype.setValueState = function(sValueState) {
 			this._bValueStatePreset = true;
 			this.setProperty("valueState", sValueState);
@@ -786,6 +817,8 @@ function(
 		 */
 		StepInput.prototype.setValue = function (oValue) {
 			var oResult;
+
+			this._iValuePrecision = this._getNumberPrecision(oValue);
 
 			if (isNaN(oValue) || oValue === null) {
 				oValue = this._getDefaultValue(undefined, this._getMax(), this._getMin());

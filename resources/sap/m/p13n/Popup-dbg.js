@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -30,14 +30,12 @@ sap.ui.define([
 	 * @class
 	 * This control can be used to show personalization-related content in different popup controls.
 	 *
-	 * @class
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
-	 * @experimental Since 1.97.
 	 * @since 1.97
 	 * @alias sap.m.p13n.Popup
 	 */
@@ -287,7 +285,19 @@ sap.ui.define([
 		var aPanels = this.getPanels();
 		var bUseContainer = aPanels.length > 1;
 		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+
+		var oInitialFocusedControl;
+		if (aPanels.length > 0) {
+			var oContent = aPanels[0];
+			oInitialFocusedControl = oContent.getInitialFocusedControl && oContent.getInitialFocusedControl();
+			if (!oInitialFocusedControl && bUseContainer) {
+				// focus at least the iconTabBar first item
+				oInitialFocusedControl = this._getContainer()._getTabBar().getItems()[0];
+			}
+		}
+
 		var oContainer = new Dialog(this.getId() + "-dialog", {
+			initialFocus: oInitialFocusedControl,
 			title: this.getTitle(),
 			horizontalScrolling: mDialogSettings.hasOwnProperty("horizontalScrolling") ? mDialogSettings.horizontalScrolling : false,
 			verticalScrolling: !bUseContainer,

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,7 +43,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @since 1.34
 	 *
 	 * @public
@@ -186,7 +186,6 @@ sap.ui.define([
 
 		var cTiles = this.getTiles().length,
 			sScope = this.getScope();
-		this._removeGTFocus();
 		this._iCurrAnimationTime = 0;
 		this._bAnimationPause = false;
 		// if the last displayed tile exists, then scrolls to this tile. Otherwise displays first tile.
@@ -442,7 +441,7 @@ sap.ui.define([
 			oSlideTile.addEventListener('focusout', function(){
 				if (!this.mouseDown) {
 					if (this.bIsPrevStateNormal) {
-						this._startAnimation();
+						this._startAnimation(true);
 					}
 					this._updatePausePlayIcon();
 				}
@@ -483,17 +482,6 @@ sap.ui.define([
 	 */
 	SlideTile.prototype._isFocusInsideST = function () {
 		return this.$()[0] === document.activeElement || this.$().find(document.activeElement).length;
-	};
-
-	/**
-	 * Removes the focus of tiles in SlideTile
-	 *
-	 * @private
-	 */
-	SlideTile.prototype._removeGTFocus = function () {
-		for (var i = 0; i < this.getTiles().length; i++) {
-			this.getTiles()[i].$().removeAttr("tabindex");
-		}
 	};
 
 	/**
@@ -544,10 +532,10 @@ sap.ui.define([
 
 	/**
 	 * Starts the animation
-	 *
+	 * @param {boolean} bIsFocusOut Checks if the focus is moving out
 	 * @private
 	 */
-	SlideTile.prototype._startAnimation = function () {
+	SlideTile.prototype._startAnimation = function (bIsFocusOut) {
 		var iDisplayTime = this.getDisplayTime() - this._iCurrAnimationTime;
 
 		clearTimeout(this._sTimerId);
@@ -556,7 +544,8 @@ sap.ui.define([
 		}.bind(this), iDisplayTime);
 		this._iStartTime = Date.now();
 		this._bAnimationPause = false;
-		if (this.getTiles()[this._iCurrentTile]) {
+		//Restricting the updation of aria text while focusing out because its causing the aria text to read twice
+		if (this.getTiles()[this._iCurrentTile] && !bIsFocusOut) {
 			this._setAriaDescriptor();
 		}
 	};

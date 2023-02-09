@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,8 +20,7 @@ sap.ui.define([], function () {
 	 */
 	NumericHeaderRenderer.render = function (oRm, oNumericHeader) {
 		var bLoading = oNumericHeader.isLoading(),
-			oError = oNumericHeader.getAggregation("_error"),
-			sTabIndex;
+			oError = oNumericHeader.getAggregation("_error");
 
 		oRm.openStart("div", oNumericHeader)
 			.class("sapFCardHeader")
@@ -39,26 +38,23 @@ sap.ui.define([], function () {
 			oRm.class("sapFCardHeaderError");
 		}
 
-		//Accessibility state
-		oRm.accessibilityState(oNumericHeader, {
-			role: oNumericHeader.getAriaRole(),
-			roledescription: { value: oNumericHeader.getAriaRoleDescription(), append: true }
-		});
 		oRm.openEnd();
 
 		oRm.openStart("div")
 			.attr("id", oNumericHeader.getId() + "-focusable")
 			.class("sapFCardHeaderContent");
 
-		if (oNumericHeader.getProperty("focusable")) {
-			sTabIndex = oNumericHeader._isInsideGridContainer() ? "-1" : "0";
-			oRm.attr("tabindex", sTabIndex);
+		if (oNumericHeader.getProperty("focusable") && !oNumericHeader._isInsideGridContainer()) {
+			oRm.attr("tabindex", "0");
 		}
 
-		oRm.accessibilityState({
-			labelledby: { value: oNumericHeader._getAriaLabelledBy(), append: true },
-			role: oNumericHeader.getFocusableElementAriaRole()
-		});
+		if (!oNumericHeader._isInsideGridContainer()) {
+			oRm.accessibilityState({
+				labelledby: {value: oNumericHeader._getAriaLabelledBy(), append: true},
+				role: oNumericHeader.getFocusableElementAriaRole(),
+				roledescription: oNumericHeader.getAriaRoleDescription()
+			});
+		}
 
 		oRm.openEnd();
 

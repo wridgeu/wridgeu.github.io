@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,45 +42,11 @@ sap.ui.define([
 		 * @hideconstructor
 		 * @public
 		 * @since 1.39.0
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 */
 		Context = BaseContext.extend("sap.ui.model.odata.v4.Context", {
 				constructor : constructor
 			});
-
-	/*
-	 * Fetches and formats the primitive value at the given path.
-	 *
-	 * @param {sap.ui.model.odata.v4.Context} oContext The context
-	 * @param {string} sPath The requested path, absolute or relative to this context
-	 * @param {boolean} [bExternalFormat]
-	 *   If <code>true</code>, the value is returned in external format using a UI5 type for the
-	 *   given property path that formats corresponding to the property's EDM type and constraints.
-	 * @param {boolean} [bCached]
-	 *   Whether to return cached values only and not trigger a request
-	 * @returns {sap.ui.base.SyncPromise} a promise on the formatted value
-	 */
-	function fetchPrimitiveValue(oContext, sPath, bExternalFormat, bCached) {
-		var oError,
-			aPromises = [oContext.fetchValue(sPath, null, bCached)],
-			sResolvedPath = oContext.oModel.resolve(sPath, oContext);
-
-		if (bExternalFormat) {
-			aPromises.push(
-				oContext.oModel.getMetaModel().fetchUI5Type(sResolvedPath));
-		}
-		return SyncPromise.all(aPromises).then(function (aResults) {
-			var oType = aResults[1],
-				vValue = aResults[0];
-
-			if (vValue && typeof vValue === "object") {
-				oError = new Error("Accessed value is not primitive: " + sResolvedPath);
-				oError.isNotPrimitive = true;
-				throw oError;
-			}
-			return bExternalFormat ? oType.formatValue(vValue, "string") : vValue;
-		});
-	}
 
 	//*********************************************************************************************
 	// Context
@@ -134,41 +100,6 @@ sap.ui.define([
 		this.bKeepAlive = false;
 		this.fnOnBeforeDestroy = undefined;
 	}
-
-	/**
-	 * Deletes the OData entity this context points to.
-	 *
-	 * @param {sap.ui.model.odata.v4.lib._GroupLock} [oGroupLock]
-	 *   A lock for the group ID to be used for the DELETE request; w/o a lock, no DELETE is sent.
-	 *   For a transient entity, the lock is ignored (use NULL)!
-	 * @param {object} [oETagEntity]
-	 *   An entity with the ETag of the binding for which the deletion was requested. This is
-	 *   provided if the deletion is delegated from a context binding with empty path to a list
-	 *   binding. W/o a lock, this is ignored.
-	 * @param {boolean} [bDoNotRequestCount]
-	 *   Whether not to request the new count from the server; useful in case of
-	 *   {@link #replaceWith} where it is known that the count remains unchanged; w/o a lock this
-	 *   should be true
-	 * @returns {Promise}
-	 *   A promise which is resolved without a result in case of success, or rejected with an
-	 *   instance of <code>Error</code> in case of failure
-	 * @throws {Error}
-	 *   If the cache promise for this binding is not yet fulfilled, or if the cache is shared
-	 *
-	 * @private
-	 * @see sap.ui.model.odata.v4.Context#delete
-	 */
-	Context.prototype._delete = function (oGroupLock, oETagEntity, bDoNotRequestCount) {
-		var that = this;
-
-		if (!oGroupLock) {
-			return this.oBinding._delete(null, "n/a", this, null, true);
-		}
-		return this.fetchCanonicalPath().then(function (sCanonicalPath) {
-			return that.oBinding._delete(oGroupLock, sCanonicalPath.slice(1), that, oETagEntity,
-				bDoNotRequestCount);
-		});
-	};
 
 	/**
 	 * Adjusts this context's path by replacing the given transient predicate with the given
@@ -351,8 +282,8 @@ sap.ui.define([
 	 * @since 1.41.0
 	 */
 	Context.prototype.delete = function (sGroupId, bDoNotRequestCount/*, bRejectIfNotFound*/) {
-		var oGroupLock = null,
-			oModel = this.oModel,
+		var oEditUrlPromise,
+			oGroupLock = null,
 			that = this;
 
 		if (this.isDeleted()) {
@@ -370,43 +301,39 @@ sap.ui.define([
 			}
 		}
 		if (sGroupId === null) {
+			oEditUrlPromise = SyncPromise.resolve();
 			bDoNotRequestCount = true;
 		} else {
 			_Helper.checkGroupId(sGroupId);
+			oEditUrlPromise = this.fetchCanonicalPath().then(function (sCanonicalPath) {
+				return sCanonicalPath.slice(1);
+			});
 			oGroupLock = this.oBinding.lockGroup(sGroupId, true, true);
 		}
 
-		this.oModel.getDependentBindings(this).forEach(function (oDependentBinding) {
-			oDependentBinding.setContext(undefined);
-		});
-
-		this.oDeletePromise = this._delete(
-			oGroupLock, /*oETagEntity*/null, bDoNotRequestCount
-		).then(function () {
-			var sResourcePathPrefix = that.sPath.slice(1);
-
-			// Messages have been updated via _Cache#_delete; "that" is already destroyed; remove
-			// all dependent caches in all bindings
-			oModel.getAllBindings().forEach(function (oBinding) {
-				oBinding.removeCachesAndMessages(sResourcePathPrefix, true);
-			});
-		}).catch(function (oError) {
-			if (oGroupLock) {
-				oGroupLock.unlock(true);
-			}
-			oModel.reportError("Failed to delete " + that.getPath(), sClassName, oError);
-			that.oDeletePromise = null;
-			that.checkUpdate();
-			throw oError;
-		});
-
-		return Promise.resolve(this.oDeletePromise);
+		return Promise.resolve(
+			oEditUrlPromise.then(function (sEditUrl) {
+				return that.oBinding.delete(oGroupLock, sEditUrl, that, /*oETagEntity*/null,
+					bDoNotRequestCount, function () {
+						that.oDeletePromise = null;
+					}
+				);
+			}).catch(function (oError) {
+				if (oGroupLock) {
+					oGroupLock.unlock(true);
+				}
+				throw oError;
+			})
+		);
 	};
 
 	/**
 	 * Destroys this context, that is, it removes this context from all dependent bindings and drops
 	 * references to binding and model, so that the context cannot be used anymore; it keeps path
 	 * and index for debugging purposes.
+	 *
+	 * <b>BEWARE:</b> Do not call this function! The lifetime of an OData V4 context is completely
+	 * controlled by its binding.
 	 *
 	 * @public
 	 * @see sap.ui.base.Object#destroy
@@ -433,6 +360,63 @@ sap.ui.define([
 		// context although the control still refers to it
 		this.oModel = undefined;
 		BaseContext.prototype.destroy.call(this);
+	};
+
+	/**
+	 * Deletes the OData entity this context points to.
+	 *
+	 * @param {sap.ui.model.odata.v4.lib._GroupLock} [oGroupLock]
+	 *   A lock for the group ID to be used for the DELETE request; w/o a lock, no DELETE is sent.
+	 *   For a transient entity, the lock is ignored (use NULL)!
+	 * @param {string} [sEditUrl]
+	 *   The entity's edit URL to be used for the DELETE request; only required with a lock
+	 * @param {string} sPath
+	 *   The path of the entity relative to this binding
+	 * @param {object} [oETagEntity]
+	 *   An entity with the ETag of the binding for which the deletion was requested. This is
+	 *   provided if the deletion is delegated from a context binding with empty path to a list
+	 *   binding. W/o a lock, this is ignored.
+	 * @param {sap.ui.model.odata.v4.ODataParentBinding} oBinding
+	 *   The binding to perform the deletion at
+	 * @param {function} fnCallback
+	 *  A function which is called immediately when an entity has been deleted from the cache, or
+	 *   when it was re-inserted; the index of the entity and an offset (-1 for deletion, 1 for
+	 *   re-insertion) are passed as parameter
+	 * @returns {sap.ui.base.SyncPromise}
+	 *   A promise which is resolved without a result in case of success, or rejected with an
+	 *   instance of <code>Error</code> in case of failure
+	 *
+	 * @private
+	 * @see sap.ui.model.odata.v4.Context#delete
+	 */
+	Context.prototype.doDelete = function (oGroupLock, sEditUrl, sPath, oETagEntity, oBinding,
+			fnCallback) {
+		var oModel = this.oModel,
+			that = this;
+
+		this.oDeletePromise = oBinding.deleteFromCache(
+			oGroupLock, sEditUrl, sPath, oETagEntity, fnCallback
+		).then(function () {
+			var sResourcePathPrefix = that.sPath.slice(1);
+
+			// Messages have been updated via _Cache#_delete; "that" is already destroyed; remove
+			// all dependent caches in all bindings
+			oModel.getAllBindings().forEach(function (oBinding) {
+				oBinding.removeCachesAndMessages(sResourcePathPrefix, true);
+			});
+		}).catch(function (oError) {
+			oModel.reportError("Failed to delete " + that.getPath(), sClassName, oError);
+			that.checkUpdate();
+			throw oError;
+		});
+
+		if (oGroupLock && this.oModel.isApiGroup(oGroupLock.getGroupId())) {
+			oModel.getDependentBindings(this).forEach(function (oDependentBinding) {
+				oDependentBinding.setContext(undefined);
+			});
+		}
+
+		return this.oDeletePromise;
 	};
 
 	/**
@@ -479,7 +463,7 @@ sap.ui.define([
 				this.doSetProperty(sPath, vValue, null, true, true) // early UI update
 					.catch(this.oModel.getReporter());
 
-				return oPromise.then(function (bSuccess) {
+				return SyncPromise.resolve(oPromise).then(function (bSuccess) {
 					// in case of success, wait until creation is completed because context path's
 					// key predicate is adjusted
 					return bSuccess && that.created();
@@ -549,6 +533,8 @@ sap.ui.define([
 							.catch(that.oModel.getReporter());
 						if (oBinding.fireCreateActivate(that)) {
 							that.bInactive = false;
+						} else {
+							that.bInactive = 1;
 						}
 					}
 
@@ -604,6 +590,41 @@ sap.ui.define([
 	 */
 	Context.prototype.fetchCanonicalPath = function () {
 		return this.oModel.getMetaModel().fetchCanonicalPath(this);
+	};
+
+	/**
+	 * Fetches and formats the primitive value at the given path.
+	 *
+	 * @param {string} sPath The requested path, absolute or relative to this context
+	 * @param {boolean} [bExternalFormat]
+	 *   If <code>true</code>, the value is returned in external format using a UI5 type for the
+	 *   given property path that formats corresponding to the property's EDM type and constraints.
+	 * @param {boolean} [bCached]
+	 *   Whether to return cached values only and not trigger a request
+	 * @returns {sap.ui.base.SyncPromise} a promise on the formatted value
+	 *
+	 * @private
+	 */
+	Context.prototype.fetchPrimitiveValue = function (sPath, bExternalFormat, bCached) {
+		var oError,
+			aPromises = [this.fetchValue(sPath, null, bCached)],
+			sResolvedPath = this.oModel.resolve(sPath, this);
+
+		if (bExternalFormat) {
+			aPromises.push(
+				this.oModel.getMetaModel().fetchUI5Type(sResolvedPath));
+		}
+		return SyncPromise.all(aPromises).then(function (aResults) {
+			var oType = aResults[1],
+				vValue = aResults[0];
+
+			if (vValue && typeof vValue === "object") {
+				oError = new Error("Accessed value is not primitive: " + sResolvedPath);
+				oError.isNotPrimitive = true;
+				throw oError;
+			}
+			return bExternalFormat ? oType.formatValue(vValue, "string") : vValue;
+		});
 	};
 
 	/**
@@ -841,7 +862,7 @@ sap.ui.define([
 		var oError, oSyncPromise;
 
 		this.oBinding.checkSuspended();
-		oSyncPromise = fetchPrimitiveValue(this, sPath, bExternalFormat, true);
+		oSyncPromise = this.fetchPrimitiveValue(sPath, bExternalFormat, true);
 
 		if (oSyncPromise.isRejected()) {
 			oSyncPromise.caught();
@@ -927,7 +948,9 @@ sap.ui.define([
 	 * unresolved bindings (see {@link sap.ui.model.Binding#isResolved}) which were dependent on
 	 * this context at the time the pending change was created. This includes the context itself
 	 * being {@link #isTransient transient} or {@link #delete deleted} on the client, but not yet on
-	 * the server. Since 1.98.0, {@link #isInactive inactive} contexts are ignored.
+	 * the server. Since 1.98.0, {@link #isInactive inactive} contexts are ignored, unless their
+	 * {@link sap.ui.model.odata.v4.ODataListBinding#event:createActivate activation} has been
+	 * prevented and therefore {@link #isInactive} returns <code>1</code>.
 	 *
 	 * @returns {boolean}
 	 *   Whether there are pending changes
@@ -936,7 +959,7 @@ sap.ui.define([
 	 * @since 1.53.0
 	 */
 	Context.prototype.hasPendingChanges = function () {
-		return this.isTransient()
+		return this.isTransient() && this.isInactive() !== true
 			|| this.oDeletePromise && this.oDeletePromise.isPending()
 			|| this.getBinding().hasPendingChangesForPath(this.sPath)
 			|| this.oModel.getDependentBindings(this).some(function (oDependentBinding) {
@@ -985,14 +1008,25 @@ sap.ui.define([
 	 * Returns whether this context is inactive. The result of this function can also be accessed
 	 * via instance annotation "@$ui5.context.isInactive" at the entity.
 	 *
-	 * @returns {boolean|undefined} <code>true</code> if this context is inactive,
-	 *   <code>false</code> if it was created in an inactive state and has been activated, and
+	 * Since 1.110.0, <code>1</code> is returned in case
+	 * {@link sap.ui.model.odata.v4.ODataListBinding#event:createActivate activation} has been
+	 * prevented. Note that
+	 * <ul>
+	 *   <li> it is truthy: <code>!!1 === true</code>,
+	 *   <li> it is almost like <code>true</code>: <code>1 == true</code>,
+	 *   <li> but it can easily be distinguished: <code>1 !== true</code>,
+	 *   <li> and <code>if (oContext.isInactive()) {...}</code> treats inactive contexts the same,
+	 *     no matter whether activation has been prevented or not.
+	 * </ul>
+	 *
+	 * @returns {boolean|number|undefined} <code>true</code> if this context is inactive,
+	 *   <code>false</code> if it was created in an inactive state and has been activated,
+	 *   <code>1</code> in case activation has been prevented (since 1.110.0), and
 	 *   <code>undefined</code> otherwise.
 	 *
 	 * @public
 	 * @see #isTransient
 	 * @see sap.ui.model.odata.v4.ODataListBinding#create
-	 * @see sap.ui.model.odata.v4.ODataListBinding#event:createActivate
 	 * @since 1.98.0
 	 */
 	Context.prototype.isInactive = function () {
@@ -1040,7 +1074,7 @@ sap.ui.define([
 	 * @param {object} oData
 	 *   The data to patch with
 	 * @returns {sap.ui.base.SyncPromise}
-	 *   A promise that is resolve without a result when the patch is done.
+	 *   A promise that is resolved without a result when the patch is done.
 	 *
 	 * @private
 	 */
@@ -1071,8 +1105,9 @@ sap.ui.define([
 	 * @throws {Error}
 	 *   If the group ID is not valid, if this context has pending changes or does not represent a
 	 *   single entity (see {@link sap.ui.model.odata.v4.ODataListBinding#getHeaderContext}), if the
-	 *   binding is not refreshable, if its root binding is suspended, or if the parameter
-	 *   <code>bAllowRemoval</code> is set for a context belonging to a context binding.
+	 *   binding is not refreshable or is a list binding with data aggregation, if its root binding
+	 *   is suspended, or if the parameter <code>bAllowRemoval</code> is set for a context belonging
+	 *   to a context binding.
 	 *
 	 * @public
 	 * @since 1.53.0
@@ -1242,7 +1277,7 @@ sap.ui.define([
 			return that.oBinding.fetchIfChildCanUseCache(that, sPath, SyncPromise.resolve({}))
 				.then(function (sReducedPath) {
 					if (sReducedPath) {
-						return fetchPrimitiveValue(that, sReducedPath, bExternalFormat);
+						return that.fetchPrimitiveValue(sReducedPath, bExternalFormat);
 					}
 
 					Log.error("Not a valid property path: " + sPath, undefined, sClassName);
@@ -1274,6 +1309,9 @@ sap.ui.define([
 		var oPromise;
 
 		_Helper.checkGroupId(sGroupId);
+		if (this.oBinding.mParameters.$$aggregation) {
+			throw new Error("Cannot refresh " + this + " when using data aggregation");
+		}
 		this.oBinding.checkSuspended();
 		if (this.hasPendingChanges()) {
 			throw new Error("Cannot refresh entity due to pending changes: " + this);
@@ -1590,9 +1628,14 @@ sap.ui.define([
 	 * @returns {Promise}
 	 *   A promise which is resolved without a defined result as soon as all changes in the context
 	 *   itself are canceled
-	 * @throws {Error}
-	 *   If the binding's root binding is suspended or if there is a change of this context which
-	 *   has been sent to the server and for which there is no response yet
+	 * @throws {Error} If
+	 * <ul>
+	 *   <li> the binding's root binding is suspended,
+	 *   <li> a change of this context has already been sent to the server and there is no response
+	 *     yet,
+	 *   <li> this context is transient but not inactive and therefore should rather be reset via
+	 *     {@link #delete}.
+	 * </ul>
 	 *
 	 * @experimental As of version 1.109.0
 	 * @public
@@ -1602,8 +1645,15 @@ sap.ui.define([
 				? [this.oDeletePromise.catch(function () { /*already handled in #delete*/ })]
 				: [];
 
+		if (this.isTransient() && !this.isInactive()) {
+			throw new Error("Cannot reset a transient context: " + this);
+		}
+
 		this.oBinding.checkSuspended();
 		this.oBinding.resetChangesForPath(this.sPath, aPromises);
+		if (this.bInactive === 1) {
+			this.bInactive = true;
+		}
 		return Promise.all(aPromises).then(function () {});
 	};
 

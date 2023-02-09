@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -161,7 +161,7 @@ sap.ui.define([
 			"sap.m.OverflowToolbarToggleButton": {
 				canOverflow: true,
 				listenForEvents: ["press"],
-				noInvalidationProps: ["enabled", "type", "pressed"]
+				noInvalidationProps: ["enabled", "type", "pressed", "accesskey"]
 			},
 			"sap.m.CheckBox": {
 				canOverflow: true,
@@ -171,7 +171,7 @@ sap.ui.define([
 			"sap.m.ToggleButton": {
 				canOverflow: true,
 				listenForEvents: ["press"],
-				noInvalidationProps: ["enabled", "pressed"]
+				noInvalidationProps: ["enabled", "pressed", "accesskey"]
 			},
 			"sap.m.ComboBox": {
 				canOverflow: true,

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -77,7 +77,7 @@ sap.ui.define([
 	 * If used inside the calendar the properties and aggregation are directly taken from the parent
 	 * (To not duplicate and sync DateRanges and so on...)
 	 * @extends sap.ui.core.Control
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -472,10 +472,10 @@ sap.ui.define([
 
 	};
 
-	/*
+	/**
 	 * Sets a date for the month.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {this} <code>this</code> for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	Month.prototype.setDate = function(oDate){
 		if (oDate) {
@@ -503,10 +503,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * displays the month of a given date without setting the focus
+	 * Displays the month of a given date without setting the focus.
 	 *
-	 * @param {object} oDate JavaScript date object for focused date.
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @param {Date} oDate JavaScript date object for focused date
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	Month.prototype.displayDate = function(oDate){
@@ -810,14 +810,14 @@ sap.ui.define([
 
 	};
 
-	/*
+	/**
 	 * Checks if a date have to be rendered as special date.
 	 *
 	 * In Month and OneMonthDatesRow on small screen scenarios only the special dates inside current month are marked as special.
 	 * In DatesRow and OneMonthDatesRow on large screen scenarios all special dates are rendered as such.
 	 *
-	 * @param {sap.ui.unified.calendar.CalendarDate} the date to be checked
-	 * @return {boolean} if the given date should be rendered as special date
+	 * @param {sap.ui.unified.calendar.CalendarDate} oDay the date to be checked
+	 * @returns {boolean} if the given date should be rendered as special date
 	 * @private
 	 */
 	Month.prototype._isSpecialDateMarkerEnabled = function(oDay) {
@@ -835,7 +835,7 @@ sap.ui.define([
 
 	/*
 	 * Checks if a date is selected and what kind of selected
-	 * @return {int} iSelected 0: not selected; 1: single day selected, 2: interval start, 3: interval end, 4: interval between, 5: one day interval (start = end)
+	 * @returns {int} iSelected 0: not selected; 1: single day selected, 2: interval start, 3: interval end, 4: interval between, 5: one day interval (start = end)
 	 * @private
 	 */
 	Month.prototype._checkDateSelected = function(oDate){
@@ -848,6 +848,9 @@ sap.ui.define([
 			i = 0,
 			oFocusedDate = this.getProperty("_focusedDate"),
 			bSelectionBetween = false,
+			oParent = this.getParent(),
+			iMonths = this._bCalendar && oParent.getMonths(),
+			bDifferentMonthDates,
 			oArrangedDates;
 
 		for (i = 0; i < aSelectedDates.length; i++) {
@@ -861,7 +864,9 @@ sap.ui.define([
 				oEndDate = oArrangedDates.endDate;
 			}
 
-			bSelectionBetween = this._isMarkingUnfinishedRangeAllowed() && oFocusedDate &&
+			bDifferentMonthDates = oFocusedDate && oStartDate && iMonths === 1 && oFocusedDate.getMonth() !== oStartDate.getMonth();
+
+			bSelectionBetween = this._isMarkingUnfinishedRangeAllowed() && oFocusedDate && !bDifferentMonthDates &&
 				(CalendarUtils._isBetween(oDate, oStartDate, oFocusedDate, true) || CalendarUtils._isBetween(oDate, oFocusedDate, oStartDate, true));
 
 			if (oStartDate && !oEndDate && oDate.isSame(oStartDate)) {
@@ -890,12 +895,12 @@ sap.ui.define([
 
 	};
 
-	/*
+	/**
 	 * Gets the type of a single date checking the specialDates aggregation
 	 * the first hit is used. The only exception is when one of the types is
 	 * NonWorking, then you can have both NonWorking and the other type.
-	 * @param {sap.ui.unified.calendar.CalendarDate} oDate
-	 * @return {object[]} an array that contains maximum 2 objects each with date type and tooltip defined in CalendarDayType
+	 * @param {sap.ui.unified.calendar.CalendarDate} oDate A CalendarDate
+	 * @returns {object[]} an array that contains maximum 2 objects each with date type and tooltip defined in CalendarDayType
 	 * @private
 	 */
 	Month.prototype._getDateTypes = function(oDate){
@@ -950,7 +955,7 @@ sap.ui.define([
 	 * Checks if a given date is enabled
 	 * beside the disabledDates aggregation the min. and max. date of the Calendar are used
 	 * @param {sap.ui.unified.calendar.CalendarDate} oDate the date to check
-	 * @return {boolean} Flag if enabled
+	 * @returns {boolean} Flag if enabled
 	 * @private
 	 */
 	Month.prototype._checkDateEnabled = function(oDate){
@@ -1357,10 +1362,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * checks if a date is focusable in the current rendered output.
+	 * Checks if a date is focusable in the current rendered output.
 	 * So if not rendered or in other month it is not focusable.
 	 *
-	 * @param {object} oDate JavaScript date object for focused date.
+	 * @param {Date} oDate JavaScript date object for focused date
 	 * @returns {boolean} flag if focusable
 	 * @public
 	 */
@@ -1380,7 +1385,7 @@ sap.ui.define([
 	 * when focus is being restored back (e.g. after rerendering), we focus the needed DOM element (in this case day)
 	 *
 	 * @param {object} oInfo the focus info
-	 * @returns {this} <code>this</code> for method chaining.
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	Month.prototype.applyFocusInfo = function(oInfo){
 		return this;
@@ -1546,7 +1551,7 @@ sap.ui.define([
 	 * 			Whether or not the first date should be focused.
 	 * 			<b>Note:</b> This should be set to <code>true</code> if week number is selected,
 	 * 			since that isn't a focusable element.
-	 * @returns {this} this For chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	Month.prototype._handleWeekSelection = function (oStartDate, bFocusStartDate) {
@@ -1577,7 +1582,7 @@ sap.ui.define([
 	 * or deselects them if they are already selected.
 	 *
 	 * @param {sap.ui.unified.calendar.CalendarDate} oEndDate The last of those days to be selected
-	 * @returns {this} this For chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	Month.prototype._handleConsecutiveDaysSelection = function (oEndDate) {
@@ -1678,7 +1683,7 @@ sap.ui.define([
 	 * @param {int} iWeekNumber Week's number
 	 * @param {sap.ui.unified.calendar.CalendarDate} oStartDate Week's start date
 	 * @param {sap.ui.unified.calendar.CalendarDate} oEndDate Week's end date
-	 * @returns {this} this For chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	Month.prototype._handleWeekSelectionByMultipleDays = function (iWeekNumber, oStartDate, oEndDate) {
@@ -1715,7 +1720,7 @@ sap.ui.define([
 	 * @param {int} iWeekNumber Week's number
 	 * @param {sap.ui.unified.calendar.CalendarDate} oStartDate Week's start date
 	 * @param {sap.ui.unified.calendar.CalendarDate} oEndDate Week's end date
-	 * @returns {this} this For chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	Month.prototype._handleWeekSelectionBySingleInterval = function(iWeekNumber, oStartDate, oEndDate) {
@@ -1784,7 +1789,7 @@ sap.ui.define([
 	 * @param {sap.ui.unified.calendar.CalendarDate} oStartDate Starting date
 	 * @param {sap.ui.unified.calendar.CalendarDate} oEndDate End date
 	 * @param {boolean} bSelect [bSelect=false] Whether to select or deselect the days
-	 * @returns {this} this For chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	Month.prototype._toggleDaysBetween = function (oStartDate, oEndDate, bSelect) {
@@ -1856,7 +1861,7 @@ sap.ui.define([
 	 * Selects a given date.
 	 * @param {sap.ui.unified.calendar.CalendarDate} oDate the date to select
 	 * @param {boolean} bMove Whether there is move mode
-	 * @return {boolean} true if the date was really selected, false otherwise
+	 * @returns {boolean} true if the date was really selected, false otherwise
 	 * @private
 	 */
 	Month.prototype._selectDay = function(oDate, bMove) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ sap.ui.define(["sap/ui/Device", "sap/m/library", "sap/ui/core/Configuration"], f
 				bEnabled = oSwitch.getEnabled(),
 				sName = oSwitch.getName(),
 				bAccessibilityEnabled = Configuration.getAccessibility(),
-				bAnimate = Configuration.getAnimation(),
+				sAnimationMode = Configuration.getAnimationMode(),
 				CSS_CLASS = SwitchRenderer.CSS_CLASS;
 
 			oRm.openStart("div", oSwitch);
@@ -64,7 +64,7 @@ sap.ui.define(["sap/ui/Device", "sap/m/library", "sap/ui/core/Configuration"], f
 			oRm.openStart("div", oSwitch.getId() + "-switch");
 			oRm.attr("aria-hidden", "true");
 			oRm.class(CSS_CLASS);
-			if (bAnimate) {
+			if (sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal) {
 				oRm.class(CSS_CLASS + "Trans");
 			}
 			oRm.class(bState ? CSS_CLASS + "On" : CSS_CLASS + "Off");

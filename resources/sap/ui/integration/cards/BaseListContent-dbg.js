@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @private
@@ -102,7 +102,11 @@ sap.ui.define([
 			return;
 		}
 
-		iNumberOfItems = this.getInnerList().getItems().length;
+		if (this.getInnerList().getItems) {
+			iNumberOfItems = this.getInnerList().getItems().length; // for the List and Table cards
+		} else {
+			iNumberOfItems = this.getInnerList().getContent().length; // for the Timeline card
+		}
 
 		iNewMinItems = Math.max(oLoadingPlaceholder.getMinItems(), iNumberOfItems);
 		oLoadingPlaceholder.setMinItems(iNewMinItems);

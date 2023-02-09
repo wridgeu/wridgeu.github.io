@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@
 			 *        feature - DO NOT USE IN PRODUCTIVE SCENARIOS!!
 			 *
 			 * @author Peter Muessig
-			 * @version 1.109.0
+			 * @version 1.110.0
 			 * @private
 			 * @alias sap.ui.core.plugin.LessSupport
 			 */
@@ -133,7 +133,7 @@
 					var ok = true;
 					var check;
 					for (var i = 0; i < aLibs.length; i++) {
-						check = ThemeHelper.checkStyle("less:" + aLibs[i], true);
+						check = ThemeHelper.checkAndRemoveStyle({ prefix: "less:", id: aLibs[i] });
 						if (check) {
 							jQuery(document.getElementById("sap-ui-theme-" + aLibs[i])).attr("data-sap-ui-ready", "true");
 						}

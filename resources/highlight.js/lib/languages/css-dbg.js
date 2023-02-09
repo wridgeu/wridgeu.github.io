@@ -748,6 +748,8 @@ sap.ui.define((function () { 'use strict';
       };
     }
 
-    return css;
+    var css_1 = css;
+
+    return css_1;
 
 }));

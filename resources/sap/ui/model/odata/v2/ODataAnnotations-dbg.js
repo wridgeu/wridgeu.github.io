@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class Annotation loader for OData V2 services
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @since 1.37.0
@@ -155,9 +155,7 @@ sap.ui.define([
 	 * @returns {object} The annotation data
 	 * @deprecated As of version 1.37.0, only kept for compatibility with V1 API, use {@link #getData} instead.
 	 */
-	ODataAnnotations.prototype.getAnnotationsData = function() {
-		return this._mAnnotations;
-	};
+	ODataAnnotations.prototype.getAnnotationsData = ODataAnnotations.prototype.getData;
 
 	/**
 	 * Returns a map of custom headers that are sent with every request to an annotation URL.

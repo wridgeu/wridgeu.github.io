@@ -1,6 +1,6 @@
 	/*!
 * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -144,7 +144,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -638,8 +638,8 @@ function(
 	 *
 	 * @override
 	 * @public
-	 * @param {object} oCustomTab The custom tab to be added
-	 * @returns {this} this pointer for chaining
+	 * @param {sap.m.ViewSettingsCustomTab} oCustomTab The custom tab to be added
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.addCustomTab = function (oCustomTab) {
 		var sId = oCustomTab.getId();
@@ -668,7 +668,7 @@ function(
 	 * @public
 	 * @override
 	 * @param {string} sStyleClass CSS class name to add
-	 * @returns {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.addStyleClass = function () {
 		var oDialog = this._getDialog();
@@ -682,7 +682,7 @@ function(
 	 * @public
 	 * @override
 	 * @param {string} sStyleClass CSS class name to remove
-	 * @returns {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.removeStyleClass = function () {
 		var oDialog = this._getDialog();
@@ -697,7 +697,7 @@ function(
 	 * @override
 	 * @param {string} sStyleClass CSS class name to add or remove
 	 * @param {boolean} [bAdd] Whether style class should be added (or removed); when this parameter is not given, the given style class will be toggled (removed, if present, and added if not present)
-	 * @returns {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.toggleStyleClass = function () {
 		var oDialog = this._getDialog();
@@ -722,7 +722,7 @@ function(
 	 * Forward method to the inner dialog method: getDomRef.
 	 * @public
 	 * @override
-	 * @return {Element|null} The Element's DOM Element, sub DOM Element or <code>null</code>
+	 * @returns {Element|null} The Element's DOM Element, sub DOM Element or <code>null</code>
 	 */
 	ViewSettingsDialog.prototype.getDomRef = function () {
 		// this is also called on destroy to remove the DOM element, therefore we directly check the reference instead of the internal getter
@@ -739,7 +739,7 @@ function(
 	 * @override
 	 * @public
 	 * @param {string} sTitle The title text for the dialog
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.setTitle = function(sTitle) {
 		this._getTitleLabel().setText(sTitle);
@@ -934,7 +934,7 @@ function(
 	/**
 	 * Returns the ManagedObjectObserver for the filterItems
 	 *
-	 * @return {sap.ui.base.ManagedObjectObserver} the filterItems observer object
+	 * @returns {sap.ui.base.ManagedObjectObserver} the filterItems observer object
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._getFilterItemsObserver = function () {
@@ -1073,7 +1073,7 @@ function(
 	 * Adds a reference to a specific title in the dialog's <code>aria-labelledby</code> attribute.
 	 *
 	 * @param {string} sNewTitleId Title's ID
-	 * @returns {this} this For method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._toggleDialogTitle = function (sNewTitleId) {
@@ -1133,7 +1133,7 @@ function(
 	 * @override
 	 * @public
 	 * @param {sap.m.ViewSettingsItem} oItem The item to be added to the aggregation
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.addSortItem = function(oItem) {
 		this.addAggregation("sortItems", oItem);
@@ -1155,7 +1155,7 @@ function(
 	 * @override
 	 * @public
 	 * @param {sap.m.ViewSettingsItem} oItem The item to be added to the group items
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.addGroupItem = function(oItem) {
 		this.addAggregation("groupItems", oItem);
@@ -1177,7 +1177,7 @@ function(
 	 * @override
 	 * @public
 	 * @param {sap.m.ViewSettingsItem} oItem The selected item or a string with the key
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.addPresetFilterItem = function(oItem) {
 		this.addAggregation("presetFilterItems", oItem);
@@ -1195,7 +1195,7 @@ function(
 	 * @public
 	 * @param {sap.m.ViewSettingsItem|string} vItemOrKey The selected item, the item's string key
 	 * or the item id
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.setSelectedSortItem = function(vItemOrKey) {
 		var aItems = this.getSortItems(),
@@ -1240,7 +1240,7 @@ function(
 	 * @public
 	 * @param {sap.m.ViewSettingsItem|string} vItemOrKey The selected item, the item's string key
 	 * or the item id
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.setSelectedGroupItem = function(vItemOrKey) {
 		var aItems = this.getGroupItems(),
@@ -1288,7 +1288,7 @@ function(
 	 * @override
 	 * @public
 	 * @param {sap.m.ViewSettingsItem|string|null} vItemOrKey The selected item or the item's key string
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.setSelectedPresetFilterItem = function(vItemOrKey) {
 		var aItems = this.getPresetFilterItems(),
@@ -1325,7 +1325,7 @@ function(
 	 * @param {string} [sPageId] The ID of the initial page to be opened in the dialog.
 	 *	The available values are "sort", "group", "filter" or IDs of custom tabs.
 	 *
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.open = function(sPageId) {
 		// add to static UI area manually because we don't have a renderer
@@ -1409,7 +1409,7 @@ function(
 	 * It can be used to create matching sorters and filters to apply the selected settings to the data.
 	 * @override
 	 * @public
-	 * @return {sap.m.ViewSettingsItem[]} An array of selected filter items
+	 * @returns {sap.m.ViewSettingsItem[]} An array of selected filter items
 	 */
 	ViewSettingsDialog.prototype.getSelectedFilterItems = function() {
 		var aSelectedFilterItems = [], aFilterItems = this.getFilterItems(), aSubFilterItems, bMultiSelect = true, i = 0, j;
@@ -1443,7 +1443,7 @@ function(
 	 * For custom and preset filters it will only add the filter name to the resulting string.
 	 *
 	 * @public
-	 * @return {string} The selected filter string
+	 * @returns {string} The selected filter string
 	 */
 	ViewSettingsDialog.prototype.getSelectedFilterString = function() {
 		var sFilterString = "",
@@ -1509,17 +1509,23 @@ function(
 	};
 
 	/**
+	 * @typedef {Object<string, boolean>} sap.m.SelectedFilterKeys
+	 * @description An object with item and sub-item keys
+	 * @public
+	 */
+
+	/**
 	 * Gets the selected filter object in format {key: boolean}.
 	 *
 	 * It can be used to create matching sorters and filters to apply the selected settings to the data.
 	 *
 	 * @public
-	 * @return {object} An object with item and sub-item keys
+	 * @returns {sap.m.SelectedFilterKeys} An object with item and sub-item keys
 	 * @deprecated as of version 1.42, replaced by <code>getSelectedFilterCompoundKeys</code> method
 	 */
 	ViewSettingsDialog.prototype.getSelectedFilterKeys = function() {
-		var oSelectedFilterKeys = {}, aSelectedFilterItems = this
-			.getSelectedFilterItems(), i = 0;
+		var oSelectedFilterKeys = {},
+			aSelectedFilterItems = this.getSelectedFilterItems(), i = 0;
 
 		for (; i < aSelectedFilterItems.length; i++) {
 			oSelectedFilterKeys[aSelectedFilterItems[i].getKey()] = aSelectedFilterItems[i]
@@ -1533,7 +1539,7 @@ function(
 	 * Gets the selected filter object in format { parent_key: { key: boolean, key2: boolean, ...}, ... }.
 	 *
 	 * @public
-	 * @return {object} An object with item and sub-item keys
+	 * @returns {Object<string, sap.m.SelectedFilterKeys>} An object with item and sub-item keys
 	 * @since 1.42
 	 */
 	ViewSettingsDialog.prototype.getSelectedFilterCompoundKeys = function() {
@@ -1576,11 +1582,11 @@ function(
 	 * <b>Note:</b> Do not use duplicated item keys with this method.
 	 *
 	 * @public
-	 * @param {object} oSelectedFilterKeys
+	 * @param {sap.m.SelectedFilterKeys} oSelectedFilterKeys
 	 *         A configuration object with filter item and sub item keys in the format: { key: boolean }.
 	 *         Setting boolean to true will set the filter to true, false or omitting an entry will set the filter to false.
 	 *         It can be used to set the dialog state based on presets.
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @deprecated as of version 1.42, replaced by <code>setSelectedFilterCompoundKeys</code> method
 	 */
 	ViewSettingsDialog.prototype.setSelectedFilterKeys = function(oSelectedFilterKeys) {
@@ -1650,11 +1656,11 @@ function(
 	 * Sets the selected filter object in format { parent_key: { key: boolean, key2: boolean, ...}, ... }.
 	 *
 	 * @public
-	 * @param {object} oSelectedFilterKeys
+	 * @param {Object<string, sap.m.SelectedFilterKeys>} oSelectedFilterKeys
 	 *         A configuration object with filter item and sub item keys in the format: { parent_key: { key: boolean, key2: boolean, ...}, ... }.
 	 *         Setting boolean to true will set the filter to true, false or omitting an entry will set the filter to false.
 	 *         It can be used to set the dialog state based on presets.
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @since 1.42
 	 */
 	ViewSettingsDialog.prototype.setSelectedFilterCompoundKeys = function(oSelectedFilterKeys) {
@@ -2148,7 +2154,7 @@ function(
 
 	/**
 	 * Create list item instance for each filter detail item.
-	 * @param {object} oItem Filter item instance for which the details should be displayed
+	 * @param {sap.m.ViewSettingsFilterItem} oItem Filter item instance for which the details should be displayed
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._initFilterDetailItems = function(oItem) {
@@ -2737,7 +2743,7 @@ function(
 
 	/**
 	 * Fetches a list of valid pages IDs - each page must have valid content.
-	 * @returns {Array} aValidPageIds List of valid page IDs
+	 * @returns {string[]} aValidPageIds List of valid page IDs
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._fetchValidPagesIds = function () {
@@ -2832,7 +2838,7 @@ function(
 	 *
 	 * @param {sap.ui.model.Model} oModel The model whose setter will be overwritten
 	 * @param {string} sName The name of the model
-	 * @returns {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.setModel = function (oModel, sName) {
 		// BCP 1570030370
@@ -2887,8 +2893,8 @@ function(
 	/**
 	 * Sets a callback that will check the ViewSettingsItem's text against the search query.
 	 * If a callback is set, <code>filterSearchOperator</code> property will be ignored, as it serves the same purpose.
-	 * @param {function} fnTest A function that accepts two parameters fnTest({string} query, {string} value) and returns boolean if the value satisfies the query.
-	 * @returns {this} this instance for chaining
+	 * @param {function(string, string): boolean} fnTest A function that accepts two parameters fnTest({string} query, {string} value) and returns boolean if the value satisfies the query.
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 * @since 1.42
 	 */
@@ -3027,8 +3033,8 @@ function(
 	/**
 	 * Creates the Select All checkbox.
 	 *
-	 * @param {Array} aFilterSubItems The detail filter items
-	 * @param oFilterDetailList The actual list created for the detail filter page
+	 * @param {sap.m.ViewSettingsItem[]} aFilterSubItems The detail filter items
+	 * @param {sap.m.List} oFilterDetailList The actual list created for the detail filter page
 	 * @returns {sap.m.CheckBox} A checkbox instance
 	 * @private
 	 */
@@ -3124,7 +3130,7 @@ function(
 	/**
 	 * Creates the filter items search field.
 	 *
-	 * @param {object} oFilterDetailList The actual list created for the detail filter page
+	 * @param {sap.m.List} oFilterDetailList The actual list created for the detail filter page
 	 * @returns {sap.m.SearchField} A search field instance
 	 * @private
 	 */
@@ -3141,7 +3147,7 @@ function(
 	/**
 	 * Sets visibility of filter detail items depending on both Search field and Show only selected button state
 	 *
-	 * @param {object} oFilterDetailList The actual list created for the detail filter page
+	 * @param {sap.m.List} oFilterDetailList The actual list created for the detail filter page
 	 * @param {boolean} bSkipSearch if <code>true</code>, skip the search field part (in initial phase)
 	 * @private
 	*/
@@ -3183,7 +3189,7 @@ function(
 
 	/**
 	 * Gets the function that will filter the ViewSettingsItem's text based on the search query.
-	 * @returns {Function} A string filter function
+	 * @returns {function(sap.m.StandardListItem): sap.m.StandardListItem} A string filter function
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._getStringFilter = function() {
@@ -3312,7 +3318,7 @@ function(
 	/**
 	 * Determines the number of pages (tabs).
 	 * @private
-	 * @return {int} iActivePages The number of pages in the dialog
+	 * @returns {int} iActivePages The number of pages in the dialog
 	 */
 	ViewSettingsDialog.prototype._calculateNumberOfPages = function () {
 		var iActivePages        = 0,
@@ -3343,7 +3349,7 @@ function(
 	/**
 	 * Determines if a sub header should be displayed or not.
 	 * @private
-	 * @return {boolean} Whether a sub header should be displayed
+	 * @returns {boolean} Whether a sub header should be displayed
 	 */
 	ViewSettingsDialog.prototype._hasSubHeader = function () {
 		return !(this._calculateNumberOfPages() < 2);
@@ -3363,9 +3369,9 @@ function(
 	/**
 	 * Gets an sap.m.ViewSettingsItem from a list of items by a given key.
 	 *
-	 * @param {array} aViewSettingsItems The list of sap.m.ViewSettingsItem objects to be searched
+	 * @param {sap.m.ViewSettingsItem[]} aViewSettingsItems The list of sap.m.ViewSettingsItem objects to be searched
 	 * @param {string} sKey The key of the searched item
-	 * @returns {*} The sap.m.ViewSettingsItem found in the list of items
+	 * @returns {sap.m.ViewSettingsItem} The sap.m.ViewSettingsItem found in the list of items
 	 * @private
 	 */
 	function getViewSettingsItemByKey(aViewSettingsItems, sKey) {
@@ -3388,10 +3394,10 @@ function(
 	 * If it does not succeed logs an error.
 	 *
 	 * @param {sap.m.ViewSettingsItem|string} vItemOrKey The searched item or its key
-	 * @param {array} aViewSettingsItems The list of sap.m.ViewSettingsItem objects to be searched
+	 * @param {sap.m.ViewSettingsItem[]} aViewSettingsItems The list of sap.m.ViewSettingsItem objects to be searched
 	 * @param {string} sErrorMessage If an error message is provided, it will be logged when the
 	 * item is not found
-	 * @returns {*} The sap.m.ViewSettingsItem found in the list of items
+	 * @returns {sap.m.ViewSettingsItem} The sap.m.ViewSettingsItem found in the list of items
 	 * @private
 	 */
 	function findViewSettingsItemByKey(vItemOrKey, aViewSettingsItems, sErrorMessage) {
@@ -3416,7 +3422,7 @@ function(
 	 * Checks if the item is an sap.m.ViewSettingsItem.
 	 *
 	 * @param {*} oItem The item to be validated
-	 * @returns {*|boolean} Returns true if the item is an sap.m.ViewSettingsItem
+	 * @returns {boolean} Returns true if the item is an sap.m.ViewSettingsItem
 	 * @private
 	 */
 	function validateViewSettingsItem(oItem) {
@@ -3522,7 +3528,7 @@ function(
 	 * Clears the selected filters and navigates to the filter overview page
 	 *
 	 * @public
-	 * @return {this} this pointer for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.clearFilters = function() {
 		// clear data and update selections
@@ -3585,7 +3591,7 @@ function(
 	/**
 	 * If there is selected sort item, returns its id,
 	 * unlike the original getter - that can return id or key.
-	 * @return {string} The selected ViewSettingsItem's id or any unknown string in the association
+	 * @returns {string} The selected ViewSettingsItem's id or any unknown string in the association
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._getSelectedSortItem = function() {
@@ -3601,7 +3607,7 @@ function(
 	/**
 	 * If there is selected group item, returns its id,
 	 * unlike the original getter - that can return id or key.
-	 * @return {string} The selected ViewSettingsItem's id or any unknown string in the association
+	 * @returns {string} The selected ViewSettingsItem's id or any unknown string in the association
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._getSelectedGroupItem = function() {
@@ -3678,7 +3684,7 @@ function(
 	 * Needed because of the not-bullet proof implementation of setBusy in sap.ui.core.Control
 	 * @public
 	 * @param {boolean} bBusy The busy state flag
-	 * @return {this} this Instance for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.setBusy = function (bBusy) {
 		this._getDialog().setBusy(bBusy);

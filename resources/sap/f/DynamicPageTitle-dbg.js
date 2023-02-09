@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -89,7 +89,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -169,7 +169,7 @@ sap.ui.define([
 				 * the <code>DynamicPageHeader</code> is in its collapsed (snapped) state.</li>
 				 * </ul>
 				 */
-				heading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null},
+				heading: {type: "sap.ui.core.Control", multiple: false},
 
 				/**
 				 * The <code>snappedHeading</code> is positioned in the <code>DynamicPageTitle</code> left area
@@ -189,7 +189,7 @@ sap.ui.define([
 				 *
 				 * @since 1.52
 				 */
-				snappedHeading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null},
+				snappedHeading: {type: "sap.ui.core.Control", multiple: false},
 
 				/**
 				 * The <code>expandedHeading</code> is positioned in the <code>DynamicPageTitle</code> left area
@@ -202,7 +202,7 @@ sap.ui.define([
 				 * <code>snappedHeading</code> to switch content when the header switches state.
 				 * @since 1.52
 				 */
-				expandedHeading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null},
+				expandedHeading: {type: "sap.ui.core.Control", multiple: false},
 
 				/**
 				 * The <code>DynamicPageTitle</code> actions.
@@ -1179,7 +1179,7 @@ sap.ui.define([
 	 */
 	DynamicPageTitle.prototype._toggleExpandButton = function (bToggle) {
 		this._setShowExpandButton(bToggle);
-		this._getExpandButton().$().toggleClass("sapUiHidden", !bToggle);
+		this._getExpandButton().toggleStyleClass("sapUiHidden", !bToggle);
 	};
 
 	/**

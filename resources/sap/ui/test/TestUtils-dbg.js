@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,8 +10,9 @@ sap.ui.define([
 	"sap/base/util/UriParameters",
 	"sap/ui/base/SyncPromise",
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Lib",
 	"sap/ui/core/Core" // provides sap.ui.getCore()
-], function (Log, merge, UriParameters, SyncPromise, jQuery) {
+], function (Log, merge, UriParameters, SyncPromise, jQuery, Library) {
 	"use strict";
 	/*global QUnit, sinon */
 	// Note: The dependency to Sinon.JS has been omitted deliberately. Most test files load it via
@@ -33,11 +34,7 @@ sap.ui.define([
 		mData = {},
 		rODataHeaders = /^(OData-Version|DataServiceVersion)$/,
 		bRealOData = sRealOData === "true" || sRealOData === "direct",
-		iRequestCount = 0,
 		fnOnRequest = null,
-		sOptimisticBatch = oUriParameters.get("optimisticBatch"),
-		bOptimisticBatch = sOptimisticBatch === null ? undefined : sOptimisticBatch === "true",
-		bSupportAssistant = oUriParameters.get("supportAssistant") === "true",
 		TestUtils;
 
 	if (bRealOData) {
@@ -140,38 +137,23 @@ sap.ui.define([
 		 * If the UI5 core is dirty, the function returns a promise that waits until the rendering
 		 * is finished.
 		 *
-		 * @returns {Promise|undefined}
-		 *   An optional promise that is resolved when the UI5 core is no longer dirty
+		 * @returns {Promise}
+		 *   A promise that is resolved when the UI5 core is no longer dirty
+		 *
+		 * @public
 		 */
 		awaitRendering : function () {
-			if (sap.ui.getCore().getUIDirty()) {
-				return new Promise(function (resolve) {
-					function check() {
-						if (sap.ui.getCore().getUIDirty()) {
-							setTimeout(check, 1);
-						} else {
-							resolve();
-						}
+			return new Promise(function (resolve) {
+				function check() {
+					if (sap.ui.getCore().getUIDirty()) {
+						setTimeout(check, 1);
+					} else {
+						resolve();
 					}
+				}
 
-					check();
-				});
-			}
-		},
-
-		/**
-		 * Checks that the given error is as expected.
-		 *
-		 * @param {object} assert - The QUnit "assert" object
-		 * @param {object} oError - The actual error instance
-		 * @param {function} fnConstructor - The expected error constructor
-		 * @param {string} sMessage - The expected error message
-		 * @throws {Error} - in case the given error is not as expected
-		 */
-		checkError : function (assert, oError, fnConstructor, sMessage) {
-			assert.strictEqual(oError.constructor, fnConstructor);
-			assert.strictEqual(oError.message, sMessage);
-			assert.strictEqual(oError.name, fnConstructor.name);
+				check();
+			});
 		},
 
 		/**
@@ -198,6 +180,7 @@ sap.ui.define([
 		 *
 		 * @see sap.ui.model.odata.v4.lib._Helper.createGetMethod
 		 * @see sap.ui.model.odata.v4.lib._Helper.createRequestMethod
+		 * @ui5-restricted sap.ui.model.odata.v4
 		 */
 		checkGetAndRequest: function (oTestContext, oTestee, assert, sMethodName, aArguments,
 				bThrow) {
@@ -268,6 +251,8 @@ sap.ui.define([
 		 *   actual value
 		 * @param {string} [sMessage]
 		 *   message text
+		 *
+		 * @public
 		 */
 		deepContains : function (oActual, oExpected, sMessage) {
 			pushDeeplyContains(oActual, oExpected, sMessage, true);
@@ -283,6 +268,8 @@ sap.ui.define([
 		 *   the actual value
 		 * @param {string} [sMessage]
 		 *   message text
+		 *
+		 * @public
 		 */
 		notDeepContains : function (oActual, oExpected, sMessage) {
 			pushDeeplyContains(oActual, oExpected, sMessage, false);
@@ -299,13 +286,13 @@ sap.ui.define([
 		 * POST requests ending on "/$batch" are handled automatically. They are expected to be
 		 * multipart-mime requests where each part is a DELETE, GET, PATCH, MERGE, or POST request.
 		 * The response has a multipart-mime message containing responses to these inner requests.
-		 * If an inner request is not a DELETE, a MERGE, a PATCH, or a POST and it is not found in
+		 * If an inner request is not a DELETE, a MERGE, a PATCH, or a POST, and it is not found in
 		 * the fixture, or its message is not JSON, it is responded with an error code.
 		 * The batch itself is always responded with code 200.
 		 *
 		 * "$batch" requests with an OData change set are supported, too. For each request in the
 		 * change set a response is searched in the fixture. As long as all responses are success
-		 * responses (code less than 400) a change set response is returned. Otherwise the first
+		 * responses (code less than 400) a change set response is returned. Otherwise, the first
 		 * error message is the response for the whole change set.
 		 *
 		 * All other POST requests with no matching response in the fixture are responded with code
@@ -361,6 +348,8 @@ sap.ui.define([
 		 *   Whether responses are created from the given fixture only, without defaults per method.
 		 * @returns {object}
 		 *   The SinonJS fake server instance
+		 *
+		 * @public
 		 */
 		useFakeServer : function (oSandbox, sBase, mFixture, aRegExps, sServiceUrl, bStrict) {
 			// a map from "method path" incl. service URL to a list of response objects with
@@ -379,7 +368,6 @@ sap.ui.define([
 				var oMultipart = multipart(sServiceBase, oRequest.requestBody),
 					mODataHeaders = getODataHeaders(oRequest);
 
-				iRequestCount += 1;
 				if (fnOnRequest) {
 					fnOnRequest(oRequest.requestBody);
 				}
@@ -745,7 +733,6 @@ sap.ui.define([
 			function respondFromFixture(oRequest) {
 				var oResponse = getResponseFromFixture(oRequest);
 
-				iRequestCount += 1;
 				if (fnOnRequest) {
 					fnOnRequest(oRequest.requestBody);
 				}
@@ -826,7 +813,8 @@ sap.ui.define([
 		 * If a test is wrapped by this function, you can test that locale-dependent texts are
 		 * created as expected, but avoid checking against the real message text. The function
 		 * ensures that every message retrieved using
-		 * <code>sap.ui.getCore().getLibraryResourceBundle().getText()</code> consists of the key
+		 * <code>sap.ui.getCore().getLibraryResourceBundle().getText()</code> or
+		 * <code>sap.ui.core.Lib#getResourceBundle().getText()</code> consists of the key
 		 * followed by all parameters referenced in the bundle's text in order of their numbers.
 		 *
 		 * The function uses <a href="http://sinonjs.org/docs/">Sinon.js</a> and expects that it
@@ -866,6 +854,8 @@ sap.ui.define([
 		 * @param {function} fnCodeUnderTest
 		 *   the code under test
 		 * @since 1.27.1
+		 *
+		 * @public
 		 */
 		withNormalizedMessages : function (fnCodeUnderTest) {
 			var oSandbox;
@@ -877,22 +867,24 @@ sap.ui.define([
 			}
 
 			try {
-				var oCore = sap.ui.getCore(),
-					fnGetBundle = oCore.getLibraryResourceBundle;
+				var fnGetBundle = Library.prototype._loadResourceBundle;
 
-				oSandbox.stub(oCore, "getLibraryResourceBundle").returns({
-					getText : function (sKey, aArgs) {
-						var sResult = sKey,
-							sText = fnGetBundle.call(oCore).getText(sKey),
-							i;
+				oSandbox.stub(Library.prototype, "_loadResourceBundle").callsFake(function() {
+					var oResourceBundle = fnGetBundle.apply(this, [arguments[0], true /* sync */]);
+					return {
+						getText : function (sKey, aArgs) {
+							var sResult = sKey,
+								sText = oResourceBundle.getText(sKey),
+								i;
 
-						for (i = 0; i < 10; i += 1) {
-							if (sText.indexOf("{" + i + "}") >= 0) {
-								sResult += " " + (i >= aArgs.length ? "{" + i + "}" : aArgs[i]);
+							for (i = 0; i < 10; i += 1) {
+								if (sText.indexOf("{" + i + "}") >= 0) {
+									sResult += " " + (i >= aArgs.length ? "{" + i + "}" : aArgs[i]);
+								}
 							}
+							return sResult;
 						}
-						return sResult;
-					}
+					};
 				});
 
 				fnCodeUnderTest.apply(this);
@@ -902,17 +894,10 @@ sap.ui.define([
 		},
 
 		/**
-		 * @returns {boolean|undefined}
-		 *   <code>true</code> if optimistic batch should be used, <code>undefined</code> if not
-		 *   specified.
-		 */
-		isOptimisticBatch : function () {
-			return bOptimisticBatch;
-		},
-
-		/**
 		 * @returns {boolean}
 		 *   <code>true</code> if the real OData service is used.
+		 *
+		 * @public
 		 */
 		isRealOData : function () {
 			if (sRealOData === "proxy") {
@@ -922,31 +907,15 @@ sap.ui.define([
 		},
 
 		/**
-		 * @returns {boolean}
-		 *   <code>true</code> if the support assistant shall be used.
-		 */
-		isSupportAssistant : function () {
-			return bSupportAssistant;
-		},
-
-		/**
 		 * Returns the realOData query parameter so that it can be forwarded to an embedded test
 		 *
 		 * @returns {string}
 		 *  the realOData query parameter or "" if none was given
+		 *
+		 * @public
 		 */
 		getRealOData : function () {
 			return sRealOData ? "&realOData=" + sRealOData : "";
-		},
-
-		/**
-		 * Returns the number of server requests within {@link .useFakeServer} since the latest
-		 * {@link #resetRequestCount}.
-		 *
-		 * @returns {number} The number of requests
-		 */
-		getRequestCount : function () {
-			return iRequestCount;
 		},
 
 		/**
@@ -956,6 +925,8 @@ sap.ui.define([
 		 * Pass <code>null</code> to remove the listener.
 		 *
 		 * @param {function(string)} [fnCallback] - The function
+		 *
+		 * @ui5-restricted sap.ui.model.odata.v4
 		 */
 		onRequest : function (fnCallback) {
 			fnOnRequest = fnCallback;
@@ -978,13 +949,6 @@ sap.ui.define([
 		},
 
 		/**
-		 * Resets the counter for server requests within {@link .useFakeServer}.
-		 */
-		resetRequestCount : function () {
-			iRequestCount = 0;
-		},
-
-		/**
 		 * Returns the value which has been stored with the given key using {@link #setData} and
 		 * resets it.
 		 *
@@ -992,6 +956,8 @@ sap.ui.define([
 		 *   The key
 		 * @returns {object}
 		 *   The value
+		 *
+		 * @public
 		 */
 		retrieveData : function (sKey) {
 			var vValue = mData[sKey];
@@ -1008,6 +974,8 @@ sap.ui.define([
 		 *   The key
 		 * @param {object} vValue
 		 *   The value
+		 *
+		 * @public
 		 */
 		setData : function (sKey, vValue) {
 			mData[sKey] = vValue;
@@ -1023,7 +991,8 @@ sap.ui.define([
 		 * @param {object} oSandbox
 		 *   a Sinon sandbox as created using <code>sinon.sandbox.create()</code>
 		 * @param {map} mFixture
-		 *   the fixture for {@link sap.ui.test.TestUtils.useFakeServer}.
+		 *   the fixture for {@link sap.ui.test.TestUtils.useFakeServer}, automatically run through
+		 *   {@link sap.ui.test.TestUtils.normalizeFixture}.
 		 * @param {string} [sSourceBase="sap/ui/core/qunit/odata/v4/data"]
 		 *   The base path for <code>source</code> values in the fixture. The path must be in the
 		 *   project's test folder, typically it should start with "sap".
@@ -1033,11 +1002,10 @@ sap.ui.define([
 		 * @param {object[]} [aRegExps]
 		 *   The regular expression array for {@link sap.ui.test.TestUtils.useFakeServer}
 		 *
+		 * @public
 		 * @see #.isRealOData
 		 */
 		setupODataV4Server : function (oSandbox, mFixture, sSourceBase, sFilterBase, aRegExps) {
-			var mResultingFixture = {};
-
 			if (this.isRealOData()) {
 				return;
 			}
@@ -1046,6 +1014,24 @@ sap.ui.define([
 			} else if (sFilterBase.slice(-1) !== "/") {
 				sFilterBase += "/";
 			}
+			TestUtils.useFakeServer(oSandbox, sSourceBase || "sap/ui/core/qunit/odata/v4/data",
+				TestUtils.normalizeFixture(mFixture, sFilterBase), aRegExps,
+				sFilterBase !== "/" ? sFilterBase : undefined);
+		},
+
+		/**
+		 * Normalizes the given fixture by adding method "GET" and prefix for relative filter URLs.
+		 *
+		 * @param {map} mFixture
+		 *   the fixture for {@link sap.ui.test.TestUtils.useFakeServer}.
+		 * @param {string} [sFilterBase="/"]
+		 *   A base path for relative filter URLs in <code>mFixture</code>.
+		 * @returns {map}
+		 *   The normalized fixture
+		 */
+		normalizeFixture : function (mFixture, sFilterBase) {
+			var mResultingFixture = {};
+
 			Object.keys(mFixture).forEach(function (sRequest) {
 				var aMatches = rRequestKey.exec(sRequest),
 					sMethod,
@@ -1063,8 +1049,8 @@ sap.ui.define([
 				}
 				mResultingFixture[sMethod + " " + sUrl] = mFixture[sRequest];
 			});
-			TestUtils.useFakeServer(oSandbox, sSourceBase || "sap/ui/core/qunit/odata/v4/data",
-				mResultingFixture, aRegExps, sFilterBase !== "/" ? sFilterBase : undefined);
+
+			return mResultingFixture;
 		},
 
 		/**

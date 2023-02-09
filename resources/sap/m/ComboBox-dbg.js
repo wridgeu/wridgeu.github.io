@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -106,7 +106,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -117,6 +117,9 @@ sap.ui.define([
 		 */
 		var ComboBox = ComboBoxBase.extend("sap.m.ComboBox", /** @lends sap.m.ComboBox.prototype */ {
 			metadata: {
+				interfaces : [
+					"sap.m.IToolbarInteractiveControl"
+				],
 				library: "sap.m",
 				designtime: "sap/m/designtime/ComboBox.designtime",
 				properties: {
@@ -150,6 +153,16 @@ sap.ui.define([
 						type: "boolean",
 						group: "Misc",
 						defaultValue: false
+					},
+
+					/**
+					 * Indicates whether the picker is opened.
+					 * @private
+					 */
+					 _open: {
+						type: "boolean",
+						defaultValue: false,
+						visibility: "hidden"
 					}
 				},
 				associations: {
@@ -483,6 +496,12 @@ sap.ui.define([
 				this.clearSelection();
 				this.setValue(sValue);
 			}
+
+			if (this.getShowClearIcon()) {
+				this._getClearIcon().setVisible(this.shouldShowClearIcon());
+			} else if (this._oClearIcon) {
+				this._getClearIcon().setVisible(false);
+			}
 		};
 
 		/**
@@ -566,7 +585,7 @@ sap.ui.define([
 			var oSelectedItem = this.getSelectedItem(),
 				oSelectedListItem = ListHelpers.getListItem(oSelectedItem);
 
-			if (this.bProcessingLoadItemsEvent && (this.getItems().length === 0)) {
+			if (this.bProcessingLoadItemsEvent && !this.bItemsUpdated && (this.getItems().length === 0)) {
 				return;
 			}
 
@@ -661,7 +680,12 @@ sap.ui.define([
 			// if the loadItems event is being processed,
 			// we need to open the dropdown list to show the busy indicator
 			if (this.bProcessingLoadItemsEvent && (this.getPickerType() === "Dropdown")) {
-				this.open();
+
+				if (this.isOpen() && !this.getValue()) {
+					this.close();
+				} else {
+					this.open();
+				}
 			}
 
 			if (this.getLastFocusedListItem()) {
@@ -852,23 +876,15 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.onBeforeOpen = function() {
 			ComboBoxBase.prototype.onBeforeOpen.apply(this, arguments);
-			var fnPickerTypeBeforeOpen = this["onBeforeOpen" + this.getPickerType()],
-				oDomRef = this.getFocusDomRef();
+			var fnPickerTypeBeforeOpen = this["onBeforeOpen" + this.getPickerType()];
 
-				this.setProperty("open", true);
+				this.setProperty("_open", true);
 
 			// the dropdown list can be opened by calling the .open() method (without
 			// any end user interaction), in this case if items are not already loaded
 			// and there is an {@link #loadItems} event listener attached, the items should be loaded
 			if (this.hasLoadItemsEventListeners() && !this.bProcessingLoadItemsEvent) {
 				this.loadItems();
-			}
-
-			if (oDomRef) {
-
-				// expose a parent/child contextual relationship to assistive technologies,
-				// notice that the "aria-controls" attribute is set when the popover opened.
-				oDomRef.setAttribute("aria-controls", this.getPicker().getId());
 			}
 
 			// call the hook to add additional content to the list
@@ -926,12 +942,7 @@ sap.ui.define([
 			ComboBoxBase.prototype.onBeforeClose.apply(this, arguments);
 			var oDomRef = this.getFocusDomRef();
 
-			this.setProperty("open", false);
-
-			if (oDomRef) {
-				// notice that the "aria-controls" attribute is removed when the popover is closed.
-				oDomRef.removeAttribute("aria-controls");
-			}
+			this.setProperty("_open", false);
 
 			if (document.activeElement === oDomRef) {
 				this.updateFocusOnClose();
@@ -1924,6 +1935,19 @@ sap.ui.define([
 
 				this.fireChangeEvent(null, mParam);
 			}
+		};
+
+		/**
+		 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+		 * Determines if the Control is interactive.
+		 *
+		 * @returns {boolean} If it is an interactive Control
+		 *
+		 * @private
+		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 */
+		ComboBox.prototype._getToolbarInteractive = function () {
+			return true;
 		};
 
 		return ComboBox;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,6 +22,7 @@ sap.ui.define([
 	'sap/ui/unified/calendar/CustomYearPicker',
 	'sap/ui/unified/calendar/IndexPicker',
 	'sap/ui/core/Configuration',
+	'sap/ui/core/date/CalendarWeekNumbering',
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/InvisibleText',
@@ -45,6 +46,7 @@ function(
 	CustomYearPicker,
 	IndexPicker,
 	Configuration,
+	CalendarWeekNumbering,
 	CalendarDate,
 	IconPool,
 	InvisibleText,
@@ -94,7 +96,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @private
@@ -131,12 +133,19 @@ function(
 				pickerTextInSecondaryType : { type : "string", group : "Data" },
 
 				/**
+				 * Defines the calendar week numbering used for display.
+				 * @private
+				 * @since 1.110.0
+				 */
+				calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
+
+				/**
 				 * If set, the calendar type is used for display.
 				 * If not set, the calendar type of the global configuration is used.
 				 * @private
 				 * @since 1.108.0
 				 */
-				_primaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance", defaultValue : null},
+				_primaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
 
 				/**
 				 * If set, the days are also displayed in this calendar type
@@ -144,7 +153,7 @@ function(
 				 * @privates
 				 * @since 1.109.0
 				 */
-				_secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance", defaultValue : null}
+				_secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"}
 
 			},
 
@@ -308,6 +317,7 @@ function(
 		});
 		oCalendarPicker = new Calendar(sOPHId + "-Cal", {
 			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_RANGE_PICKER"),
+			calendarWeekNumbering: this.getCalendarWeekNumbering(),
 			primaryCalendarType: sCalendarType
 		});
 		oCalendarPicker.attachEvent("select", this._handlePickerDateSelect, this);
@@ -361,6 +371,7 @@ function(
 					if (oPicker.displayDate) {
 						oPicker.displayDate(oDate);
 					}
+					oPicker.setCalendarWeekNumbering && oPicker.setCalendarWeekNumbering(this.getCalendarWeekNumbering());
 					this._openCalendarPickerPopup(oPicker);
 				}
 			}.bind(this)

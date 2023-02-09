@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,6 +31,8 @@ function(
 
 	var ToolbarDesign = library.ToolbarDesign,
 		ToolbarStyle = library.ToolbarStyle;
+
+	var MIN_INTERACTIVE_CONTROLS = 2;
 
 	/**
 	 * Constructor for a new <code>Toolbar</code>.
@@ -72,7 +74,7 @@ function(
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -402,7 +404,13 @@ function(
 
 	// gets called when any content property is changed
 	Toolbar.prototype._onContentPropertyChanged = function(oEvent) {
-		if (oEvent.getParameter("name") != "width") {
+		var oPropName = oEvent.getParameter("name");
+
+		if (oPropName === "visible") {
+			this.invalidate();
+		}
+
+		if (oPropName != "width") {
 			return;
 		}
 
@@ -413,13 +421,31 @@ function(
 	};
 
 	Toolbar.prototype._getAccessibilityRole = function () {
-		var sRole = this._getRootAccessibilityRole();
+		var sRootAccessibilityRole = this._getRootAccessibilityRole(),
+			sRole = sRootAccessibilityRole;
 
 		if (this.getActive()) {
 			sRole = "button";
+		// Custom root accessibility roles (like 'heading' for Dialog and 'group' for FacetFilter are preserved).
+		// Also when accessibility is disabled, role "none" is preserved.
+		} else if (this._getToolbarInteractiveControlsCount() < MIN_INTERACTIVE_CONTROLS && sRootAccessibilityRole === "toolbar") {
+			sRole = "";
 		}
 
 		return sRole;
+	};
+
+	/**
+	 *
+	 * @returns {number} Toolbar interactive Controls count
+	 * @private
+	 */
+	Toolbar.prototype._getToolbarInteractiveControlsCount = function () {
+		return this.getContent().filter(function (oControl) {
+			return oControl.getVisible()
+				&& oControl.isA("sap.m.IToolbarInteractiveControl")
+				&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
+		}).length;
 	};
 
 	Toolbar.prototype.getAccessibilityInfo = function () {

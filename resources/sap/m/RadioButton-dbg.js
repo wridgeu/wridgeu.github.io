@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -91,7 +91,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -100,7 +100,10 @@ function(
 	 */
 	var RadioButton = Control.extend("sap.m.RadioButton", /** @lends sap.m.RadioButton.prototype */ {
 		metadata : {
-			interfaces : ["sap.ui.core.IFormContent"],
+			interfaces : [
+				"sap.ui.core.IFormContent",
+				"sap.m.IToolbarInteractiveControl"
+			],
 			library : "sap.m",
 			properties : {
 				/**
@@ -447,7 +450,7 @@ function(
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
-	 * @returns {object} The <code>sap.m.RadioButton</code> accessibility information
+	 * @returns {sap.ui.core.AccessibilityInfo} The <code>sap.m.RadioButton</code> accessibility information
 	 */
 	RadioButton.prototype.getAccessibilityInfo = function() {
 		var oBundle = Core.getLibraryResourceBundle("sap.m");
@@ -506,11 +509,10 @@ function(
 	// #############################################################################
 	/**
 	* Pseudo event for pseudo 'select' event... space, enter, ... without modifiers (Ctrl, Alt or Shift)
-	* @param {object} oEvent - provides information for the event
+	* @param {jQuery.Event} oEvent - provides information for the event
 	* @public
 	*/
 	RadioButton.prototype.onsapselect = function(oEvent) {
-
 		oEvent.preventDefault();
 		this.ontap(oEvent);
 	};
@@ -624,6 +626,19 @@ function(
 				oControl.setSelected(false);
 			}
 		}
+	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	RadioButton.prototype._getToolbarInteractive = function () {
+		return true;
 	};
 
 	// Private properties setter generation

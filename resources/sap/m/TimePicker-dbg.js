@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -144,7 +144,7 @@ function(
 		 * @extends sap.m.DateTimeField
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -356,7 +356,7 @@ function(
 		 * the <code>dateValue</code> will be instantiated according to the parsed
 		 * <code>value</code>.
 		 *
-		 * @returns {object} the value of property <code>dateValue</code>
+		 * @returns {Date} the value of property <code>dateValue</code>
 		 * @public
 		 * @name sap.m.TimePicker#getDateValue
 		 * @function
@@ -414,9 +414,9 @@ function(
 				id: this.getId() + "-icon",
 				src: this.getIconSrc(),
 				noTabStop: true,
-				title: "",
 				decorative: false,
-				useIconTooltip: false
+				useIconTooltip: false,
+				alt: this._oResourceBundle.getText("OPEN_PICKER_TEXT")
 			});
 
 			// indicates whether the clock picker is still open
@@ -621,9 +621,10 @@ function(
 				sFormattedDate;
 
 			var oCurrentDateValue = this._getFormatter(true).parse(sInputValue) || oDateValue;
-			var sDisplayFormattedValue = this._getFormatter(true).format(oCurrentDateValue);
-
-			oClocks.setValue(sDisplayFormattedValue);
+			if (oCurrentDateValue) {
+				var sDisplayFormattedValue = this._getFormatter(true).format(oCurrentDateValue);
+				oClocks.setValue(sDisplayFormattedValue);
+			}
 
 			sFormattedDate = this._getPickerParser().format(oDateValue || new Date(),
 				Configuration.getTimezone());
@@ -808,7 +809,7 @@ function(
 		 * Sets the minutes step of clocks and inputs.
 		 *
 		 * @param {int} step The step used to generate values for the minutes clock/input
-		 * @returns {*} this
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 * @public
 		 */
 		TimePicker.prototype.setMinutesStep = function(step) {
@@ -830,7 +831,7 @@ function(
 		 * Sets the seconds step of clocks and inputs.
 		 *
 		 * @param {int} step The step used to generate values for the seconds clock/input
-		 * @returns {this} <code>this</code> to allow method chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 * @public
 		 */
 		TimePicker.prototype.setSecondsStep = function(step) {
@@ -852,7 +853,7 @@ function(
 		 * Sets the title label inside the picker.
 		 *
 		 * @param {string} title A title
-		 * @returns {this} <code>this</code> to allow method chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 */
 		TimePicker.prototype.setTitle = function(title) {
 			var oClocks = this._getClocks();
@@ -869,7 +870,7 @@ function(
 		/**
 		 * Handles data validation.
 		 *
-		 * @param {object} oDate JavaScript date object
+		 * @param {Date} oDate JavaScript date object
 		 * @private
 		 */
 		 TimePicker.prototype._handleDateValidation = function (oDate) {
@@ -900,7 +901,7 @@ function(
 		 * Recommended usage is to not use it with am/pm format.
 		 *
 		 * @param {boolean} bSupport2400
-		 * @returns {this} this instance, used for chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 * @public
 		 */
 		TimePicker.prototype.setSupport2400 = function (bSupport2400) {
@@ -925,7 +926,7 @@ function(
 		 *
 		 * @param {string} sDisplayFormat display format to set
 		 * @public
-		 * @returns {this} this instance, used for chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 */
 		 TimePicker.prototype.setDisplayFormat = function (sDisplayFormat) {
 			var oClocks = this._getClocks(),
@@ -967,7 +968,7 @@ function(
 		 *
 		 * @override
 		 * @param {string} sValue New value
-		 * @returns {this} this instance, used for chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 * @public
 		 */
 		TimePicker.prototype.setValue = function(sValue) {
@@ -1059,8 +1060,8 @@ function(
 		 * Sets the value of the date.
 		 *
 		 * @public
-		 * @param {object} oDate date object
-		 * @returns {this} this instance, used for chaining
+		 * @param {Date} oDate A JavaScript date
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 */
 		 TimePicker.prototype.setDateValue = function(oDate) {
 			this._initMask();
@@ -1074,7 +1075,7 @@ function(
 		 * Necessary for translation and auto-complete of the day periods, such as AM and PM.
 		 *
 		 * @param {string} sLocaleId A locale identifier like 'en_US'
-		 * @returns {this} this instance, used for chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 * @public
 		 */
 		TimePicker.prototype.setLocaleId = function(sLocaleId) {
@@ -2252,7 +2253,7 @@ function(
 
 		/**
 		 * @see sap.ui.core.Control#getAccessibilityInfo
-		 * @returns {object} Current accessibility state of the control.
+		 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control.
 		 * @protected
 		 */
 		TimePicker.prototype.getAccessibilityInfo = function() {
@@ -2352,7 +2353,7 @@ function(
 		 * </ul>
 		 *
 		 * @param {object} [mArguments] The arguments to pass along with the event
-		 * @return {this} <code>this</code> to allow method chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 * @protected
 		 * @name sap.m.TimePicker#fireChange
 		 * @function

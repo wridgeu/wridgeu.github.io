@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -82,10 +82,11 @@ sap.ui.define([
 
 	CarouselRenderer._renderOpeningDiv = function (oRM, oCarousel) {
 		var sTooltip = oCarousel.getTooltip_AsString();
-
+		var sBackgroundDesign = "sapMCrslBackground-" + oCarousel.getBackgroundDesign();
 		//Outer carousel div
 		oRM.openStart("div", oCarousel)
 			.class("sapMCrsl")
+			.class(sBackgroundDesign)
 			.class("sapMCrslFluid") // sapMCrslFluid is originally from mobify-carousel
 			.style("width", oCarousel.getWidth())
 			.style("height", oCarousel.getHeight())

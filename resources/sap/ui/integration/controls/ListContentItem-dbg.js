@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -10,18 +10,23 @@ sap.ui.define([
 	"sap/m/Avatar",
 	"sap/m/AvatarShape",
 	"sap/m/AvatarSize",
-	"sap/m/StandardListItem"
+	"sap/m/ListItemBase",
+	"sap/ui/core/Core",
+	"sap/ui/core/library"
 ], function (
 	library,
 	ListContentItemRenderer,
 	Avatar,
 	AvatarShape,
 	AvatarSize,
-	StandardListItem
+	ListItemBase,
+	Core,
+	coreLibrary
 ) {
 	"use strict";
 
 	var AttributesLayoutType = library.AttributesLayoutType;
+	var ValueState = coreLibrary.ValueState;
 
 	/**
 	 * Constructor for a new ListContentItem.
@@ -31,19 +36,34 @@ sap.ui.define([
 	 *
 	 * @class
 	 *
-	 * @extends sap.m.StandardListItem
+	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.integration.controls.ListContentItem
 	 */
-	var ListContentItem = StandardListItem.extend("sap.ui.integration.controls.ListContentItem", {
+	var ListContentItem = ListItemBase.extend("sap.ui.integration.controls.ListContentItem", {
 		metadata: {
 			library: "sap.ui.integration",
 			properties: {
+				/**
+				 * Defines the title of the list item.
+				 */
+				title: { type: "string", group: "Misc", defaultValue: null },
+
+				/**
+				 * Defines the additional information for the title.
+				 */
+				description: { type: "string", group: "Misc", defaultValue: null },
+
+				/**
+				 * Defines the list item icon.
+				 */
+				icon: { type: "sap.ui.core.URI", group: "Misc", defaultValue: null },
+
 				/**
 				 * Defines an alt text for the avatar or icon.
 				 * @since 1.82
@@ -75,14 +95,29 @@ sap.ui.define([
 				iconBackgroundColor: { type: "sap.m.AvatarColor" },
 
 				/**
-				 * Defines the layout type of the attributes.
-				 */
-				attributesLayoutType: { type: "sap.ui.integration.AttributesLayoutType", defaultValue: AttributesLayoutType.TwoColumns },
-
-				/**
 				 * Defines whether the icon should be visible.
 				 */
-				iconVisible: { type: "boolean", defaultValue: true }
+				iconVisible: { type: "boolean", defaultValue: true },
+
+				/**
+				 * Defines an additional information text.
+				 */
+				info: { type : "string", group: "Misc", defaultValue: null },
+
+				/**
+				 * Defines the value state of the information text.
+				 */
+				infoState: { type : "sap.ui.core.ValueState", group: "Misc", defaultValue: ValueState.None },
+
+				/**
+				 * Defines if info state icon should be shown.
+				 */
+				showInfoStateIcon: { type: "boolean", defaultValue: false },
+
+				/**
+				 * Defines the layout type of the attributes.
+				 */
+				attributesLayoutType: { type: "sap.ui.integration.AttributesLayoutType", defaultValue: AttributesLayoutType.TwoColumns }
 			},
 			aggregations: {
 				microchart: { type: "sap.ui.integration.controls.Microchart", multiple: false },
@@ -99,6 +134,79 @@ sap.ui.define([
 		},
 		renderer: ListContentItemRenderer
 	});
+
+	ListContentItem.getLinesCount = function (oConfiguration) {
+		var iLines = 1; // at least 1 line for the mandatory title
+
+		if (oConfiguration.description) {
+			iLines += 1;
+		}
+
+		if (oConfiguration.attributes) {
+			if (oConfiguration.attributesLayoutType === AttributesLayoutType.OneColumn) {
+				iLines = oConfiguration.attributes.length;
+			} else {
+				iLines += Math.ceil(oConfiguration.attributes.length / 2);
+			}
+		}
+
+		if (oConfiguration.chart) {
+			iLines += 1;
+		}
+
+		return iLines;
+	};
+
+	ListContentItem.prototype.getLinesCount = function () {
+		var iLines = 1; // at least 1 line for the mandatory title
+
+		if (this.getDescription()) {
+			iLines += 1;
+		}
+
+		if (this.getAttributesLayoutType() === AttributesLayoutType.OneColumn) {
+			iLines += this._getVisibleAttributes().length;
+		} else {
+			iLines += Math.ceil(this._getVisibleAttributes().length / 2);
+		}
+
+		if (this.getMicrochart()) {
+			iLines += 1;
+		}
+
+		return iLines;
+	};
+
+	/**
+	 * ListItemBase hook
+	 * @override
+	 */
+	ListContentItem.prototype.getContentAnnouncement = function () {
+		var sInfoState = this.getInfoState(),
+			sTitle = this.getTitle(),
+			sDescription = this.getDescription(),
+			aOutput = [],
+			sInfo = this.getInfo(),
+			oMBundle = Core.getLibraryResourceBundle("sap.m");
+
+		if (sTitle) {
+			aOutput.push(sTitle);
+		}
+
+		if (sDescription) {
+			aOutput.push(sDescription);
+		}
+
+		if (sInfo) {
+			aOutput.push(sInfo);
+		}
+
+		if (sInfoState != ValueState.None && sInfoState !== this.getHighlight()) {
+			aOutput.push(oMBundle.getText("LIST_ITEM_STATE_" + sInfoState.toUpperCase()));
+		}
+
+		return aOutput.join(" . ").trim();
+	};
 
 	ListContentItem.prototype._getAvatar = function () {
 		var oAvatar = this.getAggregation("_avatar");

@@ -256,7 +256,7 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 
 /* busyIndicator should not block the toolbars if <table> is set busy */
 .sapMSticky > .sapMListTbl > .sapUiLocalBusyIndicator {
-	z-index: 1;
+	z-index: 3;
 }
 
 /* define outline for the block layer */
@@ -384,8 +384,8 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 	color: @sapUiListActiveTextColor;
 }
 
-.sapMColumnHeaderActive > .sapMColumnHeaderContent {
-	cursor: default;
+.sapMColumnHeaderActive, .sapMColumnHeaderActive > .sapMColumnHeaderContent {
+	cursor: pointer;
 }
 
 .sapMColumnHeaderFocusable:focus {
@@ -420,7 +420,7 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 .sapMTableRowCustomFocus:focus {
 	outline: none;
 
-	.sapMListTblCell > :first-child {
+	.sapMListTblCell:not(.sapMListTblCellDup) > :first-child {
 		position: relative;
 	}
 
@@ -467,18 +467,21 @@ html[data-sap-ui-browser^='ff'] .sapMTableRowCustomFocus:focus > :not(.sapMListT
 }
 
 /* overwrite text control styles */
-.sapUiSizeCompact .sapMListTblCell {
+.sapMListTblCell {
 	.sapMLnk,
 	.sapMText,
 	.sapMLabel,
 	.sapMObjectNumber,
 	.sapMObjectIdentifier,
 	.sapMObjStatus {
-		vertical-align: middle;
 		line-height: 1.4;
 
 		.sapMObjStatusText {
 			line-height: inherit;
+		}
+
+		.sapUiSizeCompact & {
+			vertical-align: middle;
 		}
 	}
 	.sapMFlexItem .sapMText {

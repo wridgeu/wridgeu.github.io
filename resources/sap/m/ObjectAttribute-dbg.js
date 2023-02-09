@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 	 * <code>text</code> property is styled and acts as a link. In this case the <code>text</code>
 	 * property must also be set, as otherwise there will be no link displayed for the user.
 	 * @extends sap.ui.core.Control
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public

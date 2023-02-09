@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @ui5-restricted
@@ -153,7 +153,7 @@ sap.ui.define([
 			oList.attachEvent("updateFinished", this._listUpdateFinishedHandler);
 
 			if (this.isServerSide()) {
-				oContent.getAggregation("_loadingProvider")._oContentPlaceholder.addDelegate({
+				oContent.getAggregation("_loadingPlaceholder").addDelegate({
 					onAfterRendering: this.onPlaceholderAfterRendering.bind(this)
 				});
 			}

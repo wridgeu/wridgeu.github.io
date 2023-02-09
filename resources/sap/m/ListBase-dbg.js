@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	"sap/ui/Device",
 	"sap/ui/core/Core",
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
 	"sap/ui/core/InvisibleText",
 	"sap/ui/core/LabelEnablement",
 	"sap/ui/core/delegate/ItemNavigation",
@@ -24,7 +25,6 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/InvisibleMessage",
 	"sap/m/table/Util",
-	"sap/ui/dom/jquery/control", // jQuery Plugin "control"
 	"sap/ui/dom/jquery/Selectors", // jQuery custom selectors ":sapTabbable"
 	"sap/ui/dom/jquery/Aria" // jQuery Plugin "addAriaLabelledBy", "removeAriaLabelledBy"
 ],
@@ -33,6 +33,7 @@ function(
 	Device,
 	Core,
 	Control,
+	Element,
 	InvisibleText,
 	LabelEnablement,
 	ItemNavigation,
@@ -96,7 +97,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -2427,7 +2428,7 @@ function(
 		var $LastFocused = jQuery(aNavigationDomRefs[iLastFocusedIndex]);
 
 		// find related item control to get tabbables
-		var oRelatedControl = $LastFocused.control(0) || {};
+		var oRelatedControl = Element.closestTo($LastFocused[0]) || {};
 		var $Tabbables = oRelatedControl.getTabbables ? oRelatedControl.getTabbables() : $LastFocused.find(":sapTabbable");
 
 		// get the last tabbable item or itself and focus

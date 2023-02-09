@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -102,7 +102,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @private
@@ -181,7 +181,14 @@ sap.ui.define([
 					 * Acceptable range is from 1 to 6.
 					 * @since 1.99
 					 */
-					scaleFactor: {type: "float", group: "Data", defaultValue: 1}
+					scaleFactor: {type: "float", group: "Data", defaultValue: 1},
+
+					/**
+			 	 	* If set, the calendar week numbering is used for display.
+					 * If not set, the calendar week numbering of the global configuration is used.
+					 * @since 1.110.0
+					 */
+					calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 				},
 				aggregations: {
 
@@ -349,7 +356,8 @@ sap.ui.define([
 				oDatesRow = new DatesRow(this.getId() + "-columnHeaders", {
 					showDayNamesLine: false,
 					showWeekNumbers: false,
-					startDate: oStartDate
+					startDate: oStartDate,
+					calendarWeekNumbering: this.getCalendarWeekNumbering()
 				}).addStyleClass("sapMSinglePCColumnHeader"),
 				iDelay = (60 - oStartDate.getSeconds()) * 1000,
 				sTimePattern = this._getCoreLocaleData().getTimePattern("medium");
@@ -401,6 +409,13 @@ sap.ui.define([
 			}
 
 			this._oInvisibleMessage = InvisibleMessage.getInstance();
+		};
+
+		SinglePlanningCalendarGrid.prototype.setCalendarWeekNumbering = function (sCalendarWeekNumbering){
+			this.setProperty("calendarWeekNumbering",sCalendarWeekNumbering);
+			var oDatesRow = this.getAggregation("_columnHeaders");
+			oDatesRow.setCalendarWeekNumbering(sCalendarWeekNumbering);
+			return this;
 		};
 
 		SinglePlanningCalendarGrid.prototype.onmousedown = function(oEvent) {
@@ -758,6 +773,7 @@ sap.ui.define([
 					oBrowserEvent.dataTransfer.setDragImage(getResizeGhost(), 0, 0);
 
 					var oGrid = oEvent.getParameter("target"),
+						bIsRtl = Configuration.getRTL(),
 						aIntervalPlaceholders = oGrid.getAggregation("_intervalPlaceholders"),
 						oFirstIntervalRectangle = aIntervalPlaceholders[0].getDomRef().getBoundingClientRect(),
 						iIntervalHeight = oFirstIntervalRectangle.height,
@@ -770,10 +786,9 @@ sap.ui.define([
 					if (this._iColumns === 1) {
 						iIntervalIndex = iIndexInColumn;
 					} else {
-						var iHeaderSize = 64,
-							iBordersWidth = 2,
-							iIntervalWidth = Math.floor(aIntervalPlaceholders[0].getDomRef().getBoundingClientRect().width) - iBordersWidth,
-							iColumnsFromStart = Math.floor(Math.floor((oBrowserEvent.offsetX - iHeaderSize)) / iIntervalWidth),
+						var iHeaderWidthSize = bIsRtl ? 0 : this.getDomRef().querySelector(".sapMSinglePCRowHeaders").getClientRects()[0].width,
+							iIntervalWidth = oGrid._aGridCells[0].getClientRects()[0].width,
+							iColumnsFromStart = Math.floor(Math.floor((oBrowserEvent.offsetX - iHeaderWidthSize)) / iIntervalWidth),
 							iIntervalsInColumn = aIntervalPlaceholders.length / this._iColumns;
 
 						iIntervalIndex = iIndexInColumn + ((iColumnsFromStart) * iIntervalsInColumn);
@@ -2103,32 +2118,43 @@ sap.ui.define([
 			}
 		};
 
-		SinglePlanningCalendarGrid.prototype._createAppointmentsDndPlaceholders = function (oStartDate, iColumns) {
+		SinglePlanningCalendarGrid.prototype._createAppointmentsMatrix = function (oStartDate, index) {
+			var oColumnCalDate = new CalendarDate(oStartDate.getFullYear(), oStartDate.getMonth(), oStartDate.getDate() + index);
 			var iStartHour = this._getVisibleStartHour(),
-				iEndHour = this._getVisibleEndHour();
+			iEndHour = this._getVisibleEndHour();
+
+			if (!this._dndPlaceholdersMap[oColumnCalDate]) {
+				this._dndPlaceholdersMap[oColumnCalDate] = [];
+			}
+
+			for (var j = iStartHour; j <= iEndHour; j++) {
+				var aDndForTheDay = this._dndPlaceholdersMap[oColumnCalDate],
+					iYear = oColumnCalDate.getYear(),
+					iMonth = oColumnCalDate.getMonth(),
+					iDate = oColumnCalDate.getDate(),
+					iCurrentScale = this.getScaleFactor() * 2,
+					iTimeSlot = 60 / iCurrentScale * 60;
+
+				for (var y = 0; y < iCurrentScale; y++) {
+					aDndForTheDay.push(this._createAppointmentsDndPlaceHolder(new UniversalDate(iYear, iMonth, iDate, j, 0, iTimeSlot * y)));
+				}
+			}
+		};
+
+		SinglePlanningCalendarGrid.prototype._createAppointmentsDndPlaceholders = function (oStartDate, iColumns) {
+			var bIsRtl = Configuration.getRTL(),
+				i;
 
 			this._dndPlaceholdersMap = {};
 			this.destroyAggregation("_intervalPlaceholders");
 
-			for (var i = 0; i < iColumns; i++) {
-				var oColumnCalDate = new CalendarDate(oStartDate.getFullYear(), oStartDate.getMonth(), oStartDate.getDate() + i);
-
-				if (!this._dndPlaceholdersMap[oColumnCalDate]) {
-					this._dndPlaceholdersMap[oColumnCalDate] = [];
+			if (bIsRtl) {
+				for (i = iColumns - 1; i >= 0; i--) {
+					this._createAppointmentsMatrix(oStartDate, i);
 				}
-
-				for (var j = iStartHour; j <= iEndHour; j++) {
-					var aDndForTheDay = this._dndPlaceholdersMap[oColumnCalDate],
-						iYear = oColumnCalDate.getYear(),
-						iMonth = oColumnCalDate.getMonth(),
-						iDate = oColumnCalDate.getDate(),
-						iCurrentScale = this.getScaleFactor() * 2,
-						iTimeSlot = 60 / iCurrentScale * 60;
-
-					for (var y = 0; y < iCurrentScale; y++) {
-						aDndForTheDay.push(this._createAppointmentsDndPlaceHolder(new UniversalDate(iYear, iMonth, iDate, j, 0, iTimeSlot * y)));
-					}
-
+			} else {
+				for (i = 0; i <  iColumns; i++) {
+					this._createAppointmentsMatrix(oStartDate, i);
 				}
 			}
 		};

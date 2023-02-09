@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,6 +42,9 @@ function(
 	// shortcut for sap.m.AvatarColor
 	var AvatarColor = library.AvatarColor;
 
+	// shortcut for sap.m.LinkAccessibleRole
+	var LinkAccessibleRole = library.LinkAccessibleRole;
+
 	// shortcut for sap.ui.core.Priority
 	var Priority = coreLibrary.Priority;
 
@@ -64,7 +67,7 @@ function(
 	 * @extends sap.m.NotificationListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -157,43 +160,6 @@ function(
 		this._updateShowMoreButtonVisibility();
 	};
 
-	NotificationListItem.prototype.onkeydown = function(event) {
-
-		if (event.target !== this.getDomRef()) {
-			return;
-		}
-
-		var notificationGroup = this.getParent(),
-			visibleItems,
-			groupIndex;
-
-		if (!notificationGroup || !notificationGroup.isA('sap.m.NotificationListGroup')) {
-			return;
-		}
-
-		visibleItems = notificationGroup.getVisibleItems();
-		groupIndex = visibleItems.indexOf(this);
-
-		switch (event.which) {
-			case KeyCodes.ARROW_UP:
-				if (groupIndex === 0) {
-					return;
-				}
-
-				var previousIndex = groupIndex - 1;
-				visibleItems[previousIndex].focus();
-				break;
-			case KeyCodes.ARROW_DOWN:
-				var nextIndex = groupIndex + 1;
-				if (nextIndex === visibleItems.length) {
-					return;
-				}
-
-				visibleItems[nextIndex].focus();
-				break;
-		}
-	};
-
 	NotificationListItem.prototype.exit = function() {
 		NotificationListBase.prototype.exit.apply(this, arguments);
 
@@ -232,6 +198,7 @@ function(
 
 		if (!showMoreButton) {
 			showMoreButton = new Link(this.getId() + '-showMoreButton', {
+				accessibleRole: LinkAccessibleRole.Button,
 				text: this.getTruncate() ? EXPAND_TEXT : COLLAPSE_TEXT,
 				press: function () {
 					var truncate = !this.getTruncate();

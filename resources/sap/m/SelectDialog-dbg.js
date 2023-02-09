@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,7 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/library',
 	'./SelectDialogBase',
+	'sap/ui/core/Element',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/InvisibleMessage',
 	'sap/ui/core/UIArea',
@@ -34,6 +35,7 @@ function(
 	library,
 	CoreLibrary,
 	SelectDialogBase,
+	Element,
 	InvisibleText,
 	InvisibleMessage,
 	UIArea,
@@ -58,6 +60,9 @@ function(
 
 	// shortcut for sap.ui.core.InvisibleMessageMode
 	var InvisibleMessageMode = CoreLibrary.InvisibleMessageMode;
+
+	// shortcut for sap.ui.core.InvisibleMessageMode
+	var TitleLevel = CoreLibrary.TitleLevel;
 
 	/**
 	 * Constructor for a new SelectDialog.
@@ -121,7 +126,7 @@ function(
 	 * @extends sap.m.SelectDialogBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -219,7 +224,14 @@ function(
 			 * @since 1.72
 			 * @public
 			 */
-			titleAlignment : {type : "sap.m.TitleAlignment", group : "Misc", defaultValue : TitleAlignment.Auto}
+			titleAlignment : {type : "sap.m.TitleAlignment", group : "Misc", defaultValue : TitleAlignment.Auto},
+
+			/**
+			 * Allows overriding the SearchField's default placeholder text. If not set, the word "Search" in the current local language or English will be used as a placeholder.
+			 * @since 1.110
+			 * @public
+			 */
+			searchPlaceholder: {type: "string", group: "Appearance"}
 		},
 		defaultAggregation : "items",
 		aggregations : {
@@ -400,7 +412,7 @@ function(
 			titleAlignment: this.getTitleAlignment(),
 			contentMiddle: [
 				new Title(this.getId()  + "-dialog-title", {
-					level: "H2"
+					level: TitleLevel.H1
 				})
 			]
 		});
@@ -413,7 +425,7 @@ function(
 			contentHeight: "2000px",
 			subHeader: this._oSubHeader,
 			content: [this._oBusyIndicator, this._oList],
-			leftButton: this._getCancelButton(),
+			beginButton: this._getCancelButton(),
 			draggable: this.getDraggable() && Device.system.desktop,
 			resizable: this.getResizable() && Device.system.desktop,
 			escapeHandler: function (oPromiseWrapper) {
@@ -729,6 +741,30 @@ function(
 	 */
 	SelectDialog.prototype.getNoDataText = function () {
 		return this._oList.getNoDataText();
+	};
+
+	/**
+	 * Set the internal SearchField's placeholder property
+	 * @override
+	 * @public
+	 * @param {string} sSearchPlaceholder The placeholder text
+	 * @returns {this} <code>this</code> pointer for chaining
+	 */
+	SelectDialog.prototype.setSearchPlaceholder = function (sSearchPlaceholder) {
+		this.setProperty("searchPlaceholder", sSearchPlaceholder);
+		this._oSearchField.setPlaceholder(sSearchPlaceholder);
+
+		return this;
+	};
+
+	/**
+	 * Get the internal SearchField's placeholder property
+	 * @override
+	 * @public
+	 * @returns {string} the current placeholder text
+	 */
+	SelectDialog.prototype.getSearchPlaceholder = function () {
+		return this._oSearchField.getPlaceholder();
 	};
 
 	/**
@@ -1063,10 +1099,12 @@ function(
 				that._oList.destroyItems(); // fixes creating list items with duplicate ids
 				that._oList.setGrowing(false);
 				oBindings.filter([]);
-				that._oList.setGrowing(that.getGrowing());
+
 				that._oList.attachEventOnce("updateFinished", function () {
 					that._oSelectedItem = that._oList.getSelectedItem();
 					that._aSelectedItems = that._oList.getSelectedItems();
+
+					that._oList.setGrowing(that.getGrowing());
 
 					that._fireConfirmAndUpdateSelection();
 				});
@@ -1307,7 +1345,7 @@ function(
 	SelectDialog.prototype._getListItemsEventDelegates = function () {
 		var fnEventDelegate = function (oEvent) {
 
-			var oListItem = jQuery(oEvent.target).closest(".sapMLIB").control()[0];
+			var oListItem = Element.closestTo(jQuery(oEvent.target).closest(".sapMLIB")[0]);
 
 			if (oListItem._eventHandledByControl) {
 				return;

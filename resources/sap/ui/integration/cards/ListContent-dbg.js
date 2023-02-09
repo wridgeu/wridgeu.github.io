@@ -1,28 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseListContent",
 	"./ListContentRenderer",
 	"sap/ui/util/openWindow",
-	"sap/ui/core/ResizeHandler",
 	"sap/m/library",
 	"sap/m/List",
-	"sap/m/ObjectStatus",
+	"sap/ui/integration/controls/ObjectStatus",
 	"sap/ui/integration/library",
 	"sap/ui/integration/util/BindingHelper",
 	"sap/ui/integration/util/BindingResolver",
 	"sap/ui/integration/controls/Microchart",
 	"sap/ui/integration/controls/MicrochartLegend",
 	"sap/ui/integration/controls/ListContentItem",
-	"sap/ui/integration/controls/ActionsStrip"
+	"sap/ui/integration/controls/ActionsStrip",
+	"sap/ui/integration/cards/list/MicrochartsResizeHelper"
 ], function (
 	BaseListContent,
 	ListContentRenderer,
 	openWindow,
-	ResizeHandler,
 	mLibrary,
 	List,
 	ObjectStatus,
@@ -32,7 +31,8 @@ sap.ui.define([
 	Microchart,
 	MicrochartLegend,
 	ListContentItem,
-	ActionsStrip
+	ActionsStrip,
+	MicrochartsResizeHelper
 ) {
 	"use strict";
 
@@ -68,7 +68,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @private
@@ -134,18 +134,10 @@ sap.ui.define([
 			this._oItemTemplate = null;
 		}
 
-		if (this._iMicrochartsResizeHandler) {
-			ResizeHandler.deregister(this._iMicrochartsResizeHandler);
-			this._iMicrochartsResizeHandler = undefined;
+		if (this._oMicrochartsResizeHelper) {
+			this._oMicrochartsResizeHelper.destroy();
+			this._oMicrochartsResizeHelper = null;
 		}
-	};
-
-	/**
-	 * @override
-	 */
-	ListContent.prototype.onAfterRendering = function () {
-		BaseListContent.prototype.onAfterRendering.apply(this, arguments);
-		this._resizeMicrocharts();
 	};
 
 	/**
@@ -286,13 +278,14 @@ sap.ui.define([
 		var mItem = oConfiguration.item,
 			oList = this._getList(),
 			bIsSkeleton = this.isSkeleton(),
+			oObjectStatus,
 			mSettings = {
-				iconDensityAware: false,
 				title: mItem.title && (mItem.title.value || mItem.title),
 				description: mItem.description && (mItem.description.value || mItem.description),
 				highlight: mItem.highlight,
 				info: mItem.info && mItem.info.value,
 				infoState: mItem.info && mItem.info.state,
+				showInfoStateIcon: mItem.info && mItem.info.showStateIcon,
 				attributes: []
 			};
 
@@ -305,10 +298,10 @@ sap.ui.define([
 			mSettings.iconInitials = mItem.icon.initials || mItem.icon.text;
 			mSettings.iconVisible = mItem.icon.visible;
 
-			if (mSettings.title && mSettings.description) {
-				mSettings.iconSize = AvatarSize.S;
-			} else {
+			if (ListContentItem.getLinesCount(mItem) === 1) {
 				mSettings.iconSize = AvatarSize.XS;
+			} else {
+				mSettings.iconSize = AvatarSize.S;
 			}
 
 			mSettings.iconSize = mItem.icon.size || mSettings.iconSize;
@@ -321,12 +314,15 @@ sap.ui.define([
 
 		if (mItem.attributes) {
 			mItem.attributes.forEach(function (attr) {
-				mSettings.attributes.push(new ObjectStatus({
+				oObjectStatus = new ObjectStatus({
 					text: attr.value,
 					state: attr.state,
 					emptyIndicatorMode: EmptyIndicatorMode.On,
-					visible: attr.visible
-				}));
+					visible: attr.visible,
+					showStateIcon: attr.showStateIcon
+				});
+
+				mSettings.attributes.push(oObjectStatus);
 			});
 		}
 
@@ -387,29 +383,9 @@ sap.ui.define([
 			this.awaitEvent(LEGEND_COLORS_LOAD);
 		}
 
+		this._oMicrochartsResizeHelper = new MicrochartsResizeHelper(this._oList);
+
 		return oChart;
-	};
-
-	/**
-	 * @private
-	 */
-	 ListContent.prototype._resizeMicrocharts = function () {
-		var $charts = this.$().find(".sapUiIntMicrochartChart"),
-			iShortestWidth = Number.MAX_VALUE;
-
-		if ($charts.length === 0) {
-			return;
-		}
-
-		$charts.each(function (iIndex, oChartWrapper) {
-			iShortestWidth = Math.min(iShortestWidth, oChartWrapper.offsetWidth);
-		});
-
-		$charts.find(".sapUiIntMicrochartChartInner").css("max-width", iShortestWidth + "px");
-
-		if (!this._iMicrochartsResizeHandler) {
-			this._iMicrochartsResizeHandler = ResizeHandler.register(this, this._resizeMicrocharts.bind(this));
-		}
 	};
 
 	/**
@@ -422,7 +398,6 @@ sap.ui.define([
 		var oList = this._getList();
 		mItems.forEach(function (oItem) {
 			var oListItem = new ListContentItem({
-				iconDensityAware: false,
 				title: oItem.title ? oItem.title : "",
 				description: oItem.description ? oItem.description : "",
 				icon: oItem.icon ? oItem.icon : "",

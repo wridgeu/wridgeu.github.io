@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,6 +39,7 @@ sap.ui.define([
 	'./library',
 	'sap/ui/thirdparty/jquery',
 	'sap/ui/core/Configuration',
+	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/dom/jquery/Focusable' // provides jQuery.fn.firstFocusableDomRef
 ], function(
 		InvisibleText,
@@ -73,7 +74,8 @@ sap.ui.define([
 		StandardDynamicDateOption,
 		library,
 		jQuery,
-		Configuration
+		Configuration,
+		CalendarUtils
 	) {
 		"use strict";
 
@@ -123,7 +125,7 @@ sap.ui.define([
 		 * is opened. The dialog is closed via a date time period value selection or by pressing the "Cancel" button.
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -356,7 +358,7 @@ sap.ui.define([
 			};
 
 			this._oInput._getValueHelpIcon().setDecorative(false);
-			this._oInput._getValueHelpIcon().resetProperty("alt");
+
 			this._oInput.addDelegate(this._onBeforeInputRenderingDelegate, this);
 
 			this.setAggregation("_input", this._oInput, false);
@@ -688,6 +690,10 @@ sap.ui.define([
 			var oPrevValue = this.getValue();
 			var bValid = sInputValue.trim() === "" || !!oVal;
 
+			if (this._isDateRange(oVal)) {
+				this._swapDates(oVal.values);
+			}
+
 			if (!bValid) {
 				this.setValue({ operator: "PARSEERROR", values: [oResourceBundle.getText("DDR_WRONG_VALUE"), sInputValue] });
 			} else {
@@ -695,6 +701,27 @@ sap.ui.define([
 			}
 
 			this.fireChange({ value: this.getValue(), prevValue: oPrevValue, valid: bValid });
+		};
+
+		/**
+		 * Checks if the <code>value</code> property operator corresponds to a date range.
+		 * @param {object} oValue The control value
+		 * @returns {boolean} True in case of a date range
+		 * @private
+		 */
+		DynamicDateRange.prototype._isDateRange = function(oValue) {
+			return Boolean(oValue && (oValue.operator === "DATERANGE" || oValue.operator === "DATETIMERANGE"));
+		};
+
+		/**
+		 * Swaps the start and end date of the value if the start date is after the end date.
+		 * @param {array} aValues The control value array
+		 * @private
+		 */
+		DynamicDateRange.prototype._swapDates = function(aValues) {
+			if (aValues.length > 1 && aValues[0].getTime() > aValues[1].getTime()) {
+				aValues.reverse();
+			}
 		};
 
 		DynamicDateRange.prototype._enhanceInputValue = function(sFormattedValue, oVal) {
@@ -991,7 +1018,11 @@ sap.ui.define([
 			}
 
 			for (var i = 0; i < aValueDates.length; i++) {
-				aResultDates[i] = this._convertDate(aValueDates[i], bTimezone);
+				aResultDates[i] = CalendarUtils._createUTCDate(this._convertDate(aValueDates[i], bTimezone), true);
+			}
+
+			if (this._isDateRange(oOutputValue)) {
+				this._swapDates(aResultDates);
 			}
 
 			if (aResultDates) {
@@ -999,7 +1030,7 @@ sap.ui.define([
 					|| this._oSelectedOption.getKey() === "FROM" || this._oSelectedOption.getKey() === "TO") {
 					aResultDates.push(null);
 				}
-				sFormattedDates = this._getDatesLabelFormatter().format(aResultDates);
+				sFormattedDates = this._getDatesLabelFormatter().format(aResultDates, true);
 				this._getDatesLabel().setText(oResourceBundle.getText("DDR_INFO_DATES", [sFormattedDates]));
 			}
 		};
@@ -1237,6 +1268,10 @@ sap.ui.define([
 				if (this._oOutput.values[i] instanceof Date) {
 					this._oOutput.values[i] = this._convertDate(aValueDates[i], sTimezone);
 				}
+			}
+
+			if (this._isDateRange(this._oOutput)) {
+				this._swapDates(this._oOutput.values);
 			}
 
 			var prevValue = this.getValue();

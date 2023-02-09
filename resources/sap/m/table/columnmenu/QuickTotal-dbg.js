@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,25 +16,27 @@ sap.ui.define([
 	"use strict";
 
 	/**
-	 * Constructor for a new QuickTotal.
+	 * Constructor for a new <code>QuickTotal</code>.
 	 *
-	 * @param {string} [sId] ID for the new QuickTotal, generated automatically if no ID is given
-	 * @param {object} [mSettings] Initial settings for the new QuickTotal
+	 * @param {string} [sId] ID for the new <code>QuickTotal</code>, generated automatically if no ID is given
+	 * @param {object} [mSettings] Initial settings for the new <code>QuickTotal</code>
 	 *
 	 * @class
-	 * Quick action - total
+	 * The <code>QuickTotal</code> class is used for quick totalling for the <code>sap.m.table.columnmenu.Menu</code>.
+	 * It can be used to specify control- and application-specific quick actions for totalling.
 	 *
 	 * @extends sap.m.table.columnmenu.QuickActionBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
-	 * @private
-	 * @experimental
+	 * @public
+	 * @since 1.110
 	 *
 	 * @alias sap.m.table.columnmenu.QuickTotal
 	 */
 	var QuickTotal = QuickActionBase.extend("sap.m.table.columnmenu.QuickTotal", {
+
 		metadata: {
 			library: "sap.m",
 			aggregations: {

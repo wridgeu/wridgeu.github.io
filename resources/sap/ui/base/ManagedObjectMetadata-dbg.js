@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,8 @@ sap.ui.define([
 	'sap/base/util/ObjectPath',
 	'sap/base/strings/escapeRegExp',
 	'sap/base/util/merge',
-	'sap/base/util/isPlainObject'
+	'sap/base/util/isPlainObject',
+	'sap/ui/core/Lib'
 ],
 function(
 	DataType,
@@ -23,7 +24,8 @@ function(
 	ObjectPath,
 	escapeRegExp,
 	merge,
-	isPlainObject
+	isPlainObject,
+	Library
 ) {
 	"use strict";
 
@@ -73,7 +75,7 @@ function(
 	 *
 	 *
 	 * @author Frank Weigel
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @since 0.8.6
 	 * @alias sap.ui.base.ManagedObjectMetadata
 	 * @extends sap.ui.base.Metadata
@@ -1314,7 +1316,7 @@ function(
 	 * @since 1.54
 	 *
 	 * @private
-	 * @ui5-restricted SAPUI5 Distribution libraries only
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @experimental As of 1.54, this method is still in an experimental state. Its signature might change or it might be removed
 	 *   completely. Controls should prefer to declare aggregation forwarding in the metadata for the aggregation. See property
 	 *   <code>forwarding</code> in the documentation of {@link sap.ui.base.ManagedObject.extend ManagedObject.extend}.
@@ -1795,7 +1797,7 @@ function(
 		//preload the designtime data for the library
 		var sLibrary = oMetadata.getLibraryName(),
 			sPreload = sap.ui.getCore().getConfiguration().getPreload(),
-			oLibrary = sap.ui.getCore().getLoadedLibraries()[sLibrary];
+			oLibrary = Library.all()[sLibrary];
 		if (oLibrary && oLibrary.designtime) {
 			var oPromise;
 			if (sPreload === "async" || sPreload === "sync") {

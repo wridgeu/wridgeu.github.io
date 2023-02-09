@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	"sap/ui/core/Core",
 	"./library",
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
 	"sap/m/ToggleButton",
 	"sap/ui/core/InvisibleText",
 	"sap/m/Toolbar",
@@ -21,13 +22,13 @@ sap.ui.define([
 	"sap/ui/Device",
 	"./OverflowToolbarRenderer",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery",
 	"sap/ui/dom/jquery/Focusable" // jQuery Plugin "lastFocusableDomRef"
 ], function(
 	coreLibrary,
 	oCore,
 	library,
 	Control,
+	Element,
 	ToggleButton,
 	InvisibleText,
 	Toolbar,
@@ -38,8 +39,7 @@ sap.ui.define([
 	IconPool,
 	Device,
 	OverflowToolbarRenderer,
-	Log,
-	jQuery
+	Log
 ) {
 	"use strict";
 
@@ -129,7 +129,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -1099,7 +1099,7 @@ sap.ui.define([
 	 */
 	OverflowToolbar.prototype._popOverClosedHandler = function () {
 		this._getOverflowButton().setPressed(false); // Turn off the toggle button
-		if (jQuery(document.activeElement).control(0)) {
+		if (Element.closestTo(document.activeElement)) {
 			return;
 		}
 		this._getOverflowButton().focus();
@@ -1124,6 +1124,21 @@ sap.ui.define([
 			this._bOverflowButtonNeeded = bValue;
 		}
 		return this;
+	};
+
+	/**
+	 *
+	 * @returns {number} Toolbar interactive Controls count
+	 * @private
+	 */
+	OverflowToolbar.prototype._getToolbarInteractiveControlsCount = function () {
+		var aInteractiveControlsRendered = this._getVisibleAndNonOverflowContent().filter(function(oControl) {
+			return this._getControlPriority(oControl) !== OverflowToolbarPriority.AlwaysOverflow
+				&& oControl.isA("sap.m.IToolbarInteractiveControl")
+				&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
+		}, this);
+
+		return this._getOverflowButtonNeeded() ? aInteractiveControlsRendered.length + 1 : aInteractiveControlsRendered.length;
 	};
 
 	/***************************************AGGREGATIONS AND LISTENERS******************************************/

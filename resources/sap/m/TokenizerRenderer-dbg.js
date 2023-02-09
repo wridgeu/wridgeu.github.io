@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
@@ -24,12 +24,14 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 	 * @param {sap.m.Tokenizer} oControl an object representation of the control that should be rendered
 	 */
 	TokenizerRenderer.render = function(oRm, oControl){
+		var aTokens = oControl.getTokens();
+
 		//write the HTML into the render manager
-		if (oControl.getParent() && oControl.getParent().isA(["sap.m.MultiInput", "sap.m.MultiComboBox"])) {
-			oRm.openStart("div", oControl);
-		} else {
-			oRm.openStart("div", oControl);
-			this._renderTabIndex(oRm, oControl);
+		oRm.openStart("div", oControl);
+
+
+		if (oControl.getEffectiveTabIndex()) {
+			oRm.attr("tabindex", "0");
 		}
 
 
@@ -43,7 +45,6 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 			oRm.class("sapMTokenizerDisabled");
 		}
 
-		var aTokens = oControl.getTokens();
 		if (!aTokens.length) {
 			oRm.class("sapMTokenizerEmpty");
 			oRm.attr("aria-hidden", "true");
@@ -135,21 +136,6 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 			oRm.class("sapUiHidden");
 		}
 		oRm.openEnd().close("span");
-	};
-
-	/**
-	 * Callback for specific rendering of Tokenizer tabindex attribute.
-	 *
-	 * @param {sap.ui.core.RenderManager}
-	 *            oRm the RenderManager currently rendering this control
-	 * @param {sap.m.Tokenizer}
-	 *            oControl the Tokenizer that should be rendered
-	 * @private
-	 *
-	 * @ui5-restricted sap.ui.mdc.field.TokenizerDisplayRenderer
-	 */
-	TokenizerRenderer._renderTabIndex = function(oRm, oControl) {
-		oRm.attr("tabindex", "0");
 	};
 
 	/**

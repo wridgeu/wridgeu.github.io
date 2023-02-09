@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -105,7 +105,7 @@ function(library,
 	 * @implements sap.ui.core.IFormContent, sap.m.IHyphenation
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -196,6 +196,19 @@ function(library,
 
 	ExpandableText.prototype.onBeforeRendering = function() {
 		this._updateAriaLabelledByText();
+	};
+
+	ExpandableText.prototype._onAfterLinkRendering = function() {
+		var oShowMoreLinkDomRef;
+
+		if (!this._isExpandable() ||
+			this.getOverflowMode() === ExpandableTextOverflowMode.Popover) {
+			return;
+		}
+
+		oShowMoreLinkDomRef = this._getShowMoreLink().getDomRef();
+		oShowMoreLinkDomRef.setAttribute("aria-expanded", this.getProperty("expanded"));
+		oShowMoreLinkDomRef.setAttribute("aria-controls", this.getId() + "-string");
 	};
 
 	/**
@@ -350,6 +363,10 @@ function(library,
 				}.bind(this)
 			});
 
+			showMoreLink.addEventDelegate({
+				onAfterRendering: this._onAfterLinkRendering
+			}, this);
+
 			this.setAggregation("_showMoreLink", showMoreLink, true);
 		}
 
@@ -364,17 +381,12 @@ function(library,
 	};
 
 	ExpandableText.prototype._updateAriaLabelledByText = function (bExpanded) {
-		var sAriaText;
+		var sAriaText = "";
 
 		bExpanded = bExpanded || this.getProperty("expanded");
 
-		switch (this.getOverflowMode()) {
-			case ExpandableTextOverflowMode.Popover:
-				sAriaText = oRb.getText(bExpanded ? "EXPANDABLE_TEXT_SHOW_LESS_POPOVER_ARIA_LABEL" : "EXPANDABLE_TEXT_SHOW_MORE_POPOVER_ARIA_LABEL");
-				break;
-			default:
-				sAriaText = oRb.getText(bExpanded ? "EXPANDABLE_TEXT_SHOW_LESS_ARIA_LABEL" : "EXPANDABLE_TEXT_SHOW_MORE_ARIA_LABEL");
-				break;
+		if (this.getOverflowMode() === ExpandableTextOverflowMode.Popover) {
+			sAriaText = oRb.getText(bExpanded ? "EXPANDABLE_TEXT_SHOW_LESS_POPOVER_ARIA_LABEL" : "EXPANDABLE_TEXT_SHOW_MORE_POPOVER_ARIA_LABEL");
 		}
 
 		this.getAggregation("_ariaLabelledBy").setText(sAriaText);
@@ -394,7 +406,7 @@ function(library,
 	 * Gets the accessibility information for the text.
 	 *
 	 * @protected
-	 * @returns {object} Accessibility information for the text.
+	 * @returns {sap.ui.core.AccessibilityInfo} Accessibility information for the text.
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 */
 	ExpandableText.prototype.getAccessibilityInfo = function () {

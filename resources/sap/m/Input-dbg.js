@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -157,7 +157,7 @@ function(
 	 * @extends sap.m.InputBase
 	 * @implements sap.ui.core.IAccessKeySupport
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -167,7 +167,8 @@ function(
 	var Input = InputBase.extend("sap.m.Input", /** @lends sap.m.Input.prototype */ {
 		metadata : {
 			interfaces : [
-				"sap.ui.core.IAccessKeySupport"
+				"sap.ui.core.IAccessKeySupport",
+				"sap.m.IToolbarInteractiveControl"
 			],
 			library : "sap.m",
 			properties : {
@@ -849,7 +850,7 @@ function(
 		}
 
 		this._sSelectedValue = sNewValue;
-
+		this.setSelectionUpdatedFromList(false);
 		this.updateInputField(sNewValue);
 
 		// don't continue if the input is destroyed after firing change event through updateInputField
@@ -1065,7 +1066,7 @@ function(
 		}
 
 		this._sSelectedValue = sNewValue;
-
+		this.setSelectionUpdatedFromList(false);
 		this.updateInputField(sNewValue);
 
 		// don't continue if the input is destroyed after firing change event through updateInputField
@@ -1074,11 +1075,11 @@ function(
 		}
 
 		if (!(this.isMobileDevice() && this.isA("sap.m.MultiInput") && this._isMultiLineMode)) {
-			this.setSelectionUpdatedFromList(false);
 			this._closeSuggestionPopup();
 		}
 
 		this._bSelectingItem = false;
+		this._resetTypeAhead();
 	};
 
 	/**
@@ -1408,11 +1409,9 @@ function(
 		if (this._isSuggestionsPopoverOpen()) {
 			// mark the event as already handled
 			oEvent.originalEvent._sapui_handledByControl = true;
-			this._setProposedItemText(null);
-			this.setSelectionUpdatedFromList(false);
-			this._closeSuggestionPopup();
+			this._revertPopupSelection();
 
-			// restore the initial value that was there before suggestion dialog
+			// revert autocompleted value on desktop
 			if (this._getTypedInValue() !== this.getValue()) {
 				this.setValue(this._getTypedInValue());
 			}
@@ -1507,13 +1506,13 @@ function(
 		}
 
 		// Inform InputBase to fire the change event on Input only when focus doesn't go into the suggestion popup
-		if (!bFocusInPopup) {
+		if (!bFocusInPopup && !this.isMobileDevice()) {
 			InputBase.prototype.onsapfocusleave.apply(this, arguments);
 		}
 
 		this.bValueHelpRequested = false;
 
-		if (!this._getProposedItemText() && this.isMobileDevice()) {
+		if (!this._getProposedItemText() || this.isMobileDevice()) {
 			return;
 		}
 
@@ -1956,6 +1955,10 @@ function(
 		// In that case the second DOM update of the invisible text element
 		// do not occur if it is synchronous. BCP #2070466087
 		setTimeout(function () {
+			if (!this.getSuggestionItems().length && !this._hasTabularSuggestions()) {
+				return this.$("SuggDescr").text("");
+			}
+
 			// add items to list
 			if (iNumItems === 1) {
 				sAriaText = oRb.getText("INPUT_SUGGESTIONS_ONE_HIT");
@@ -2201,6 +2204,8 @@ function(
 			value: "",
 			selectedItem: null
 		};
+		var oListDelegate;
+		var oList = oInput._getSuggestionsPopover() && oInput._getSuggestionsPopover().getItemsContainer();
 
 		// check if typeahead is already performed
 		if ((oInput && oInput.getValue().toLowerCase()) === (this._getProposedItemText() && this._getProposedItemText().toLowerCase())) {
@@ -2224,6 +2229,26 @@ function(
 				}
 				return bHasTabularSuggestions ? oInput._getRowResultFunction()(oItem) : oItem.getText();
 			};
+
+		// If there are no items yet - perform the type-ahead on a later stage.
+		// Attach a listener to the list for when they are available, in case they are being dynamically loaded.
+		if (this.isMobileDevice() && oList && !aItems.length) {
+			oListDelegate = {
+				onBeforeRendering: function() {
+					if (oList.getItems().length) {
+						this._handleTypeAhead(oInput);
+					}
+				},
+				onAfterRendering: function() {
+					if (oList.getItems().length) {
+						oList.removeDelegate(oListDelegate);
+					}
+				}
+			};
+			oList.addDelegate(oListDelegate, this);
+
+			return;
+		}
 
 		var aItemsToSelect = typeAhead(sValue, this, aItems, function (oItem) {
 			return this._formatTypedAheadValue(fnExtractText(oItem));
@@ -2839,7 +2864,23 @@ function(
 
 	Input.prototype.forwardEventHandlersToSuggPopover = function (oSuggPopover) {
 		oSuggPopover.setOkPressHandler(this._closeSuggestionPopup.bind(this));
-		oSuggPopover.setCancelPressHandler(this._closeSuggestionPopup.bind(this));
+		oSuggPopover.setCancelPressHandler(this._revertPopupSelection.bind(this));
+	};
+
+
+	Input.prototype._revertPopupSelection = function () {
+		var oSuggestionPopover = this._getSuggestionsPopover(),
+			oPopupInput = oSuggestionPopover && oSuggestionPopover.getInput();
+
+		this._setProposedItemText(null);
+		this.setSelectionUpdatedFromList(false);
+
+		// revert the typed in value on mobile to prevent change on close
+		if (this.isMobileDevice()) {
+			oPopupInput && oPopupInput.setDOMValue(this.getLastValue());
+		}
+
+		this._closeSuggestionPopup();
 	};
 
 	/**
@@ -2971,12 +3012,22 @@ function(
 						return;
 					}
 
+					var oSelectedItem = oList && oList.getSelectedItem();
+
+					if (this._getProposedItemText() && oSelectedItem) {
+						this.setSelectionUpdatedFromList(true);
+					}
+
+					if (this.getSelectionUpdatedFromList()) {
+						this.updateSelectionFromList(oSelectedItem);
+					}
+
 					if (Table && !(oList instanceof Table)) {
 						oList.destroyItems();
 					} else {
 						oList.removeSelections(true);
 					}
-				})
+				}, this)
 				.attachAfterOpen(function () {
 					this._triggerSuggest(this.getValue());
 					this._refreshListItems();
@@ -2996,7 +3047,7 @@ function(
 		} else {
 			oPopover
 				.attachAfterClose(function() {
-					var oList = this._getSuggestionsPopover().getItemsContainer();
+					var oList = oSuggPopover.getItemsContainer();
 					var oSelectedItem = oList && oList.getSelectedItem();
 					var oDomRef = this.getDomRef();
 
@@ -3402,6 +3453,20 @@ function(
 	Input.prototype._getProposedItemText = function () {
 		return this._sProposedItemText;
 	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	Input.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
 
 	return Input;
 

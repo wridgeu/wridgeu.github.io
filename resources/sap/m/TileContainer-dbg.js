@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,14 +9,13 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
 	'sap/ui/core/Core',
+	'sap/ui/core/Element',
 	'sap/ui/core/IconPool',
 	'sap/ui/Device',
 	'sap/ui/core/ResizeHandler',
 	'./TileContainerRenderer',
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
-	// jQuery Plugin "control"
-	"sap/ui/dom/jquery/control",
 	// jQuery custom selectors ':sapTabbable'
 	"sap/ui/dom/jquery/Selectors"
 ],
@@ -24,6 +23,7 @@ function(
 	library,
 	Control,
 	oCore,
+	Element,
 	IconPool,
 	Device,
 	ResizeHandler,
@@ -46,7 +46,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -1977,7 +1977,7 @@ function(
 	 * @private
 	 */
 	TileContainer.prototype._handleAriaActiveDescendant = function () {
-		var oActiveElement = jQuery(document.activeElement).control(0);
+		var oActiveElement = Element.closestTo(document.activeElement);
 		if (oActiveElement && oActiveElement.isA("sap.m.Tile") && oActiveElement.getParent() === this) {
 			this.getDomRef().setAttribute("aria-activedescendant", oActiveElement.getId());
 		}

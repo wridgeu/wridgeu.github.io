@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -120,7 +120,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.109.0
+		* @version 1.110.0
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -683,8 +683,7 @@ sap.ui.define([
 				this._bContentChanged = false;
 				oNavContent = this._getSingleNavContent();
 				oPageContent = this._getSinglePageContent();
-				// TODO: migration not possible. jQuery.sap.simulateMobileOnDesktop is a testing flag which should not be used.
-				if (oNavContent && !this.getModal() && !Device.system.phone && !jQuery.sap.simulateMobileOnDesktop) {
+				if (oNavContent && !this.getModal() && !Device.system.phone) {
 					//gain the focus back to popover in order to prevent the autoclose of the popover
 					oNavContent.attachEvent("afterNavigate", function (oEvent) {
 						var oDomRef = this.getDomRef();
@@ -1900,7 +1899,7 @@ sap.ui.define([
 		 */
 		Popover.prototype._getContentDimensionsCss = function (oPosParams) {
 			var oCSS = {},
-				iActualContentHeight = oPosParams._$content.height(),
+				iActualContentHeight = oPosParams._$content[0].getBoundingClientRect().height,
 				iMaxContentWidth = this._getMaxContentWidth(oPosParams),
 				iMaxContentHeight = this._getMaxContentHeight(oPosParams);
 

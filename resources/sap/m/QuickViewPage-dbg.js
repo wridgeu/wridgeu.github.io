@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -100,7 +100,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -137,7 +137,7 @@ sap.ui.define([
 				/**
 				 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
 				 */
-				crossAppNavCallback : { type: "object", group: "Misc" },
+				crossAppNavCallback: { type: "object", group: "Misc" },
 
 				/**
 				 * Specifies the text displayed under the header of the content section.
@@ -179,6 +179,31 @@ sap.ui.define([
 		},
 		renderer: QuickViewPageRenderer
 	});
+
+	/**
+	 * Sets a new value for property {@link #setCrossAppNavCallback crossAppNavCallback}.
+	 *
+	 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
+	 *
+	 * When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.
+	 *
+	 * @method
+	 * @param {function(): {target: object, params: object}} [oCrossAppNavCallback] New value for property <code>crossAppNavCallback</code>
+	 * @public
+	 * @name sap.m.QuickViewPage#setCrossAppNavCallback
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+	 */
+
+	/**
+	 * Gets current value of property {@link #getCrossAppNavCallback crossAppNavCallback}.
+	 *
+	 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
+	 *
+	 * @method
+	 * @returns {function(): {target: object, params: object}} Value of property <code>crossAppNavCallback</code>
+	 * @public
+	 * @name sap.m.QuickViewPage#getCrossAppNavCallback
+	 */
 
 	QuickViewPage.prototype.init =  function() {
 		//see API docu for sap.ushell.services.CrossApplicationNavigation

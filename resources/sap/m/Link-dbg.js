@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -86,7 +86,7 @@ function(
 	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent, sap.ui.core.ITitleContent, sap.ui.core.IAccessKeySupport
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -100,7 +100,8 @@ function(
 				"sap.ui.core.IShrinkable",
 				"sap.ui.core.IFormContent",
 				"sap.ui.core.ITitleContent",
-				"sap.ui.core.IAccessKeySupport"
+				"sap.ui.core.IAccessKeySupport",
+				"sap.m.IToolbarInteractiveControl"
 			],
 			library : "sap.m",
 			designtime: "sap/m/designtime/Link.designtime",
@@ -450,7 +451,7 @@ function(
 	 *
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
-	 * @returns {object} The <code>sap.m.Link</code>  accessibility information
+	 * @returns {sap.ui.core.AccessibilityInfo} The <code>sap.m.Link</code>  accessibility information
 	 */
 	Link.prototype.getAccessibilityInfo = function() {
 		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
@@ -506,6 +507,20 @@ function(
 		// than the link's text. For this reason a self-reference should be added in such cases.
 		return !bAlreadyHasSelfReference && (aAriaLabelledBy.length > 0 || bHasReferencingLabels || bAllowEnhancingByParent);
 	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	Link.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
 
 	var setRefLabelsHighlightAccKeysRef = function (bHighlightAccKeysRef) {
 		var aLabels = this.getAriaLabelledBy();

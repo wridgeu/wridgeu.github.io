@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -145,7 +145,7 @@ function(
 	 * </ul>
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @extends sap.m.ComboBoxBase
@@ -1285,6 +1285,12 @@ function(
 		if (this.getValueState() !== ValueState.Error) {
 			this._sInitialValueState = this.getValueState();
 		}
+
+		if (this.getShowClearIcon()) {
+			this._getClearIcon().setVisible(this.shouldShowClearIcon());
+		} else if (this._oClearIcon) {
+			this._getClearIcon().setVisible(false);
+		}
 	};
 
 	/**
@@ -1378,7 +1384,14 @@ function(
 	 */
 	MultiComboBox.prototype.onBeforeOpen = function() {
 		ComboBoxBase.prototype.onBeforeOpen.apply(this, arguments);
-		var fnPickerTypeBeforeOpen = this["_onBeforeOpen" + this.getPickerType()];
+		var fnPickerTypeBeforeOpen = this["_onBeforeOpen" + this.getPickerType()],
+			oDomRef = this.getFocusDomRef();
+
+		if (oDomRef) {
+			// expose a parent/child contextual relationship to assistive technologies,
+			// notice that the "aria-controls" attribute is set when the popover opened.
+			oDomRef.setAttribute("aria-controls", this.getPicker().getId());
+		}
 
 		// add the active state to the MultiComboBox's field
 		this.addContent();
@@ -2139,6 +2152,8 @@ function(
 		oTokenizer.addEventDelegate({
 			onAfterRendering: this._onAfterRenderingTokenizer
 		}, this);
+
+		oTokenizer.setShouldRenderTabIndex(false);
 
 		return oTokenizer;
 	};

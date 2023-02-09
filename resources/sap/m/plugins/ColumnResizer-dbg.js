@@ -1,22 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./PluginBase",
 	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/core/InvisibleText",
 	"sap/ui/Device",
 	"sap/m/ColumnPopoverActionItem",
 	"sap/m/table/columnmenu/QuickAction",
 	"sap/m/Button",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/dom/jquery/control", // jQuery Plugin "control"
 	"sap/ui/dom/jquery/Aria" // jQuery Plugin "aria"
 ], function(PluginBase,
 	Core,
+	Element,
 	InvisibleText,
 	Device,
 	ColumnPopoverActionItem,
@@ -39,7 +40,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @since 1.91
@@ -124,7 +125,7 @@ sap.ui.define([
 	 */
 	ColumnResizer.prototype._updateAriaDescribedBy = function(sAction) {
 		this._aResizables.forEach(function(oResizable) {
-			var oResizableControl = jQuery(oResizable).control(0, true);
+			var oResizableControl = Element.closestTo(oResizable, true);
 			var oFocusDomRef = oResizableControl && oResizableControl.getFocusDomRef();
 			jQuery(oFocusDomRef)[sAction + "AriaDescribedBy"](InvisibleText.getStaticId("sap.m", "COLUMNRESIZER_RESIZABLE"));
 		});
@@ -346,14 +347,14 @@ sap.ui.define([
 	 */
 	ColumnResizer.prototype._startResizeSession = function(iIndex) {
 		oSession.$CurrentColumn = jQuery(this._aResizables[iIndex]);
-		oSession.oCurrentColumn = oSession.$CurrentColumn.control(0, true);
+		oSession.oCurrentColumn = Element.closestTo(oSession.$CurrentColumn[0], true);
 		oSession.fCurrentColumnWidth = oSession.$CurrentColumn.width();
 		oSession.iMaxDecrease = this._getColumnMinWidth(oSession.oCurrentColumn) - oSession.fCurrentColumnWidth;
 		oSession.iEmptySpace = this.getConfig("emptySpace", this.getControl());
 
 		if (oSession.iEmptySpace != -1) {
 			oSession.$NextColumn = jQuery(this._aResizables[iIndex + 1]);
-			oSession.oNextColumn = oSession.$NextColumn.control(0, true);
+			oSession.oNextColumn = Element.closestTo(oSession.$NextColumn[0], true);
 			oSession.fNextColumnWidth = oSession.$NextColumn.width() || 0;
 			oSession.iMaxIncrease = oSession.iEmptySpace + oSession.fNextColumnWidth - this._getColumnMinWidth(oSession.oNextColumn);
 		} else {
@@ -396,7 +397,7 @@ sap.ui.define([
 		// when any column is resized, then make all visible columns have fixed width
 		this.getConfig("fixAutoWidthColumns") && this._aResizables.forEach(function(oResizable) {
 			var $Resizable = jQuery(oResizable),
-				oColumn = $Resizable.control(0, true),
+				oColumn = Element.closestTo(oResizable, true),
 				sWidth = oColumn.getWidth();
 
 			if (sWidth && sWidth.toLowerCase() != "auto") {
@@ -506,9 +507,8 @@ sap.ui.define([
 		}
 
 		return new QuickAction({
-			label: Core.getLibraryResourceBundle("sap.m").getText("table.COLUMN_MENU_RESIZE"),
 			content: new Button({
-				icon: "sap-icon://resize-horizontal",
+				text: Core.getLibraryResourceBundle("sap.m").getText("table.COLUMNMENU_RESIZE"),
 				press: function() {
 					oColumnMenu.close();
 					this.startResizing(oColumn.getDomRef());

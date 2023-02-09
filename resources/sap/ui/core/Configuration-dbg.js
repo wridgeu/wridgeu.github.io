@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,7 +44,7 @@ sap.ui.define([
 	// Singleton instance for configuration
 	var oConfiguration;
 	var M_SETTINGS;
-	var VERSION = "1.109.0";
+	var VERSION = "1.110.0";
 
 	// Helper Functions
 	function detectLanguage() {
@@ -420,13 +420,15 @@ sap.ui.define([
 				if (oUriParams.has('sap-timezone')) {
 					// validate the IANA timezone ID, but do not trigger a localizationChanged event
 					// because the initialization should not trigger a "*Changed" event
-					Log.warning("Timezone configuration cannot be changed at the moment");
 					var sTimezone = oUriParams.get('sap-timezone');
 					if (checkTimezone(sTimezone)) {
 						/*
 						TODO Timezone Configuration: re-activate following line when re-enabling Configuration#setTimezone
 						this.timezone = sTimezone;
 						*/
+						this._experimentalTimezone = sTimezone;
+					} else {
+						this._experimentalTimezone = undefined;
 					}
 				}
 
@@ -784,8 +786,9 @@ sap.ui.define([
 		},
 
 		/**
-		 * <b>Note: Due to compatibility considerations, this function will always return the timezone of the browser/host system
-		 * in this release</b>
+		 * <b>Note: Due to compatibility considerations, the time zone can only be changed for test
+		 * purposes via the <code>sap-timezone</code> URL parameter. If this parameter is not set,
+		 * the time zone of the browser/host system is returned.</b>
 		 *
 		 * Retrieves the configured IANA timezone ID.
 		 *
@@ -796,7 +799,7 @@ sap.ui.define([
 		getTimezone : function () {
 			// TODO Timezone Configuration: re-activate following line when re-enabling Configuration#setTimezone
 			// return this.getValue("timezone");
-			return TimezoneUtil.getLocalTimezone();
+			return this._experimentalTimezone || TimezoneUtil.getLocalTimezone();
 		},
 
 		/**
@@ -1859,7 +1862,7 @@ sap.ui.define([
 		 * @returns {any} Value of the configuration parameter, will be of the type specified in M_SETTINGS
 		 *
 		 * @private
-	 	 * @ui5-restricted sap.ui.core.Core jquery.sap.global
+	 	 * @ui5-restricted sap.ui.core.Core, jquery.sap.global
 	 	 * @since 1.106
 		 */
 		getValue: function(sName) {

@@ -2,7 +2,7 @@
 /* eslint-disable valid-jsdoc */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -211,6 +211,21 @@ sap.ui.define([
 		createAndAddCustomData: function(oControl, sCustomDataKey, sValue) {
 			oControl.setAttributeNS(CUSTOM_DATA_NS, "custom.data.via.modifier:" + sCustomDataKey, XmlTreeModifier._escapeCurlyBracketsInString(sValue));
 			return Promise.resolve();
+		},
+
+		/**
+		 * @inheritDoc
+		 */
+		getCustomDataInfo: function(oControl, sCustomDataKey) {
+			var oCustomData = oControl.attributes["custom.data.via.modifier:" + sCustomDataKey];
+			if (oCustomData) {
+				return {
+					customData: oCustomData,
+					customDataValue: oCustomData.value
+				};
+			} else {
+				return {};
+			}
 		},
 
 		/**

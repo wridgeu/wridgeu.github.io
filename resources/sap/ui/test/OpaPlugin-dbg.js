@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,6 +21,7 @@ sap.ui.define([
 	'sap/base/util/extend',
 	'sap/base/util/ObjectPath',
 	'sap/ui/thirdparty/jquery',
+	'sap/ui/Global',
 	'sap/ui/base/Object',
 	'sap/ui/core/Element',
 	'sap/ui/core/mvc/View',
@@ -28,7 +29,7 @@ sap.ui.define([
 	'sap/ui/test/matchers/MatcherFactory',
 	'sap/ui/test/pipelines/MatcherPipeline',
 	'sap/ui/test/_OpaLogger'
-], function (extend, ObjectPath, $, UI5Object, UI5Element, View, Ancestor, MatcherFactory,
+], function (extend, ObjectPath, $, Global, UI5Object, UI5Element, View, Ancestor, MatcherFactory,
 			MatcherPipeline, _OpaLogger) {
 
 		/**
@@ -558,7 +559,7 @@ sap.ui.define([
 			 * @public
 			 */
 			getControlConstructor : function (sControlType) {
-				if (sap.ui.lazyRequire._isStub(sControlType)) {
+				if (isLazyStub(sControlType)) {
 					this._oLogger.debug("The control type " + sControlType + " is currently a lazy stub.");
 					return null;
 				}
@@ -644,6 +645,24 @@ sap.ui.define([
 				return sUnprefixedControlId;
 			}
 		});
+
+		/**
+		 * Checks whether the given class name is still a lazy stub.
+		 * In future, there won't be lazy stubs, that's the default implementation of this helper.
+		 * Only when sap.ui.lazyRequire._isStub still exists, this method will check something.
+		 * @param {string} sClassName
+		 * @private
+		 */
+		var isLazyStub = function isLazyStub(sClassName) {
+			return false;
+		};
+
+		/**
+		 * @deprecated since 1.56 as lazy loading implies sync loading
+		 */
+		if ( Global.lazyRequire && typeof Global.lazyRequire._isStub === "function" ) {
+			isLazyStub = Global.lazyRequire._isStub;
+		}
 
 		/**
 		 * Creates a filter function that returns true when a given element

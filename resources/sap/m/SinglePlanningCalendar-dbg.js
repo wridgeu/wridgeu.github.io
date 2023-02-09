@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,8 @@ sap.ui.define([
 	'sap/ui/unified/DateTypeRange',
 	'sap/ui/unified/library',
 	'sap/ui/base/ManagedObjectObserver',
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/date/CalendarWeekNumbering"
 ],
 function(
 	library,
@@ -43,7 +44,8 @@ function(
 	DateTypeRange,
 	unifiedLibrary,
 	ManagedObjectObserver,
-	jQuery
+	jQuery,
+	CalendarWeekNumbering
 ) {
 	"use strict";
 
@@ -102,7 +104,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -210,10 +212,19 @@ function(
 				 *
 				 * Note: This property will only have effect in Week view and Month view of the SinglePlanningCalendar,
 				 * but it wouldn't have effect in WorkWeek view.
+				 * This property should not be used with the calendarWeekNumbering property.
 				 *
 				 * @since 1.98
 				 */
-				firstDayOfWeek : {type : "int", group : "Appearance", defaultValue : -1}
+				firstDayOfWeek : {type : "int", group : "Appearance", defaultValue : -1},
+
+				/**
+			 	 * If set, the calendar week numbering is used for display.
+				 * If not set, the calendar week numbering of the global configuration is used.
+				 * Note: This property should not be used with firstDayOfWeek property.
+				 * @since 1.110.0
+				 */
+				calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 			},
 
 			aggregations : {
@@ -503,6 +514,11 @@ function(
 	SinglePlanningCalendar.prototype.onBeforeRendering = function () {
 		// We can apply/remove sticky classes even before the control is rendered.
 		this._toggleStickyClasses();
+
+		if (this.getFirstDayOfWeek() !== -1 && this.getCalendarWeekNumbering()) {
+			Log.warning("Both properties firstDayOfWeek and calendarWeekNumbering should not be used at the same time!");
+		}
+
 	};
 
 	/**
@@ -541,7 +557,7 @@ function(
 	 * Called when the navigation toolbar changes its width or height.
 	 *
 	 * @param oEvent The resize event
-	 * @returns {this} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._onHeaderResize = function (oEvent) {
@@ -581,6 +597,12 @@ function(
 		return this;
 	};
 
+	/**
+	 * Sets the start date of the grid.
+	 * @param {Date} oDate A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
 	SinglePlanningCalendar.prototype.setStartDate = function (oDate) {
 		this.setProperty("startDate", oDate);
 		this._alignColumns();
@@ -631,7 +653,7 @@ function(
 	/**
 	 * Applies or removes sticky classes based on <code>stickyMode</code>'s value.
 	 *
-	 * @returns {this} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._toggleStickyClasses = function () {
@@ -647,7 +669,7 @@ function(
 	 * Makes sure that the column headers are offset in such a way, that they are positioned right
 	 * after the navigation toolbar.
 	 *
-	 * @returns {this} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._adjustColumnHeadersTopOffset = function () {
@@ -842,7 +864,7 @@ function(
 	/**
 	 * Returns the ManagedObjectObserver for the views
 	 *
-	 * @return {sap.ui.base.ManagedObjectObserver} the views observer object
+	 * @returns {sap.ui.base.ManagedObjectObserver} the views observer object
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._getViewsObserver = function () {
@@ -963,11 +985,28 @@ function(
 		return this;
 	};
 
+	SinglePlanningCalendar.prototype.setCalendarWeekNumbering = function(sCalendarWeekNumbering) {
+		this.setProperty("calendarWeekNumbering", sCalendarWeekNumbering);
+		this.getViews().forEach(function (oView) {
+			oView.setCalendarWeekNumbering(sCalendarWeekNumbering);
+		});
+		var oHeader = this._getHeader(),
+			oPicker = oHeader.getAggregation("_calendarPicker") ? oHeader.getAggregation("_calendarPicker") : oHeader._oPopup.getContent()[0],
+			oMonthGrid = this.getAggregation("_mvgrid");
+
+		oMonthGrid.setCalendarWeekNumbering(this.getCalendarWeekNumbering());
+		oPicker.setCalendarWeekNumbering(this.getCalendarWeekNumbering());
+
+		this._alignColumns();
+
+		return this;
+	};
+
 	/**
 	 * Switches the visibility of the SegmentedButton in the _header and aligns the columns in the grid after an
 	 * operation (add, insert, remove, removeAll, destroy) with the views is performed.
 	 *
-	 * @returns {this} this for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._alignView = function () {
@@ -1067,7 +1106,7 @@ function(
 	 * If the SinglePlanningCalendar has only one view added to its view aggregation, the button is not visible.
 	 * Otherwise, it is displayed in the _header.
 	 *
-	 * @returns {this} this for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._switchViewButtonVisibility = function () {
@@ -1082,7 +1121,7 @@ function(
 	/**
 	 * Attaches handlers to the events in the _header aggregation.
 	 *
-	 * @returns {this} this for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._attachHeaderEvents = function () {
@@ -1119,7 +1158,7 @@ function(
 	/**
 	 * Attaches handlers to the events in the _grid aggregation.
 	 *
-	 * @returns {this} this for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._attachGridEvents = function () {
@@ -1331,7 +1370,7 @@ function(
 			endDate: oRangeDates.oEndDate.toLocalJSDate()
 		});
 
-		oCalPicker.removeAllSelectedDates();
+		oCalPicker.destroySelectedDates();
 		oCalPicker.addSelectedDate(oSelectedRange);
 	};
 
@@ -1479,7 +1518,7 @@ function(
 	 * @param {string} sHandler the handler ID
 	 * @param {Object} oObject
 	 * @param {Function} fnHandler
-	 * @returns {this} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._registerResizeHandler = function (sHandler, oObject, fnHandler) {
@@ -1493,7 +1532,7 @@ function(
 	/**
 	 * De-registers resize handler.
 	 * @param {string} sHandler the handler ID
-	 * @returns {this} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._deRegisterResizeHandler = function (sHandler) {

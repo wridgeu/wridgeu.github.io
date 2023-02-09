@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ function(
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -43,6 +43,31 @@ function(
 	});
 
 	NotificationList.prototype.onItemFocusIn = function() { };
+
+	NotificationList.prototype.setItemFocusable  = function() { };
+
+	NotificationList.prototype._startItemNavigation = function () {
+		ListBase.prototype._startItemNavigation.call(this);
+
+		if (this._oItemNavigation) {
+			this._oItemNavigation.setTableMode(false);
+		}
+	};
+
+	NotificationList.prototype.setNavigationItems = function(oItemNavigation, oNavigationRoot) {
+		var aItems = [],
+			aGroupItems = oNavigationRoot.querySelectorAll(":scope > .sapMNLGroup"),
+			aListItems = oNavigationRoot.querySelectorAll(":scope > .sapMNLI");
+
+		aGroupItems.forEach(function (oGroupItem) {
+			aItems.push(oGroupItem);
+			aItems = aItems.concat(Array.from(oGroupItem.querySelectorAll(".sapMNLI")));
+		});
+
+		aItems = aItems.concat(Array.from(aListItems));
+
+		oItemNavigation.setItemDomRefs(aItems);
+	};
 
 	return NotificationList;
 });

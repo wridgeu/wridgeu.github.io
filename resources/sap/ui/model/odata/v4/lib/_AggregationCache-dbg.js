@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,28 +50,34 @@ sap.ui.define([
 			bHasGrandTotal) {
 		var fnCount = function () {}, // no specific handling needed for "UI5__count" here
 			fnLeaves = null,
+			fnResolve,
 			that = this;
 
 		_Cache.call(this, oRequestor, sResourcePath, mQueryOptions, true);
 
 		this.oAggregation = oAggregation;
-		this.sDownloadUrl = oAggregation.hierarchyQualifier
-			? "n/a"
-			: _Cache.prototype.getDownloadUrl.call(this, "");
+		this.sDownloadUrl = _Cache.prototype.getDownloadUrl.call(this, "");
 		this.aElements = [];
 		this.aElements.$byPredicate = {};
 		this.aElements.$count = undefined;
 		this.aElements.$created = 0; // required for _Cache#drillDown (see _Cache.from$skip)
-		this.oLeavesPromise = undefined;
-		if (mQueryOptions.$count && oAggregation.groupLevels.length) {
-			mQueryOptions.$$leaves = true; // do this after #getDownloadUrl
-			this.oLeavesPromise = new SyncPromise(function (resolve) {
-				fnLeaves = function (oLeaves) {
-					// Note: count is of type Edm.Int64, represented as a string in OData responses;
-					// $count should be a number and the loss of precision is acceptable
-					resolve(parseInt(oLeaves.UI5__leaves));
-				};
-			});
+		this.oCountPromise = undefined;
+		if (mQueryOptions.$count) {
+			if (oAggregation.hierarchyQualifier) {
+				this.oCountPromise = new SyncPromise(function (resolve) {
+					fnResolve = resolve;
+				});
+				this.oCountPromise.$resolve = fnResolve;
+			} else if (oAggregation.groupLevels.length) {
+				mQueryOptions.$$leaves = true; // do this after #getDownloadUrl
+				this.oCountPromise = new SyncPromise(function (resolve) {
+					fnLeaves = function (oLeaves) {
+						// Note: count has type Edm.Int64, represented as string in OData responses;
+						// $count should be a number and the loss of precision is acceptable
+						resolve(parseInt(oLeaves.UI5__leaves));
+					};
+				});
+			}
 		}
 		this.oFirstLevel = this.createGroupLevelCache(null, bHasGrandTotal || !!fnLeaves);
 		this.requestSideEffects = this.oFirstLevel.requestSideEffects; // @borrows ...
@@ -472,8 +478,8 @@ sap.ui.define([
 		var that = this;
 
 		if (sPath === "$count") {
-			if (this.oLeavesPromise) {
-				return this.oLeavesPromise;
+			if (this.oCountPromise) {
+				return this.oCountPromise;
 			}
 			if (this.oAggregation.hierarchyQualifier || this.oAggregation.groupLevels.length) {
 				Log.error("Failed to drill-down into $count, invalid segment: $count",
@@ -491,39 +497,6 @@ sap.ui.define([
 
 				return that.drillDown(that.aElements, sPath, oGroupLock);
 			});
-	};
-
-	/**
-	 * Determines the list of visible elements determined by the given predicates. All other
-	 * elements are replaced by placeholders (lazily).
-	 *
-	 * @param {string[]} aPredicates
-	 *   The key predicates of the elements to request side effects for
-	 * @returns {object[]}
-	 *   The list of visible elements
-	 *
-	 * @private
-	 * @see sap.ui.model.odata.v4.lib._CollectionCache#filterVisibleElements
-	 * @see sap.ui.model.odata.v4.lib._CollectionCache#requestSideEffects
-	 */
-	_AggregationCache.prototype.filterVisibleElements = function (aPredicates) {
-		var mPredicates = {}, // a set of the predicates (as map to true) to speed up the search
-			that = this;
-
-		aPredicates.forEach(function (sPredicate) {
-			mPredicates[sPredicate] = true;
-		});
-
-		return this.aElements.filter(function (oElement, i) {
-			var sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
-
-			if (mPredicates[sPredicate]) {
-				_AggregationHelper.markSplicedStale(oElement);
-				return true; // keep and request
-			}
-
-			that.replaceByPlaceholder(i, oElement, sPredicate);
-		});
 	};
 
 	/**
@@ -573,9 +546,16 @@ sap.ui.define([
 	 * @see sap.ui.model.odata.v4.lib._Cache#getDownloadQueryOptions
 	 */
 	_AggregationCache.prototype.getDownloadQueryOptions = function (mQueryOptions) {
-		return _AggregationHelper.buildApply(this.oAggregation,
-			_AggregationHelper.filterOrderby(mQueryOptions, this.oAggregation),
-			0, true);
+		if (this.oAggregation.hierarchyQualifier) {
+			if ("$count" in mQueryOptions) {
+				mQueryOptions = Object.assign({}, mQueryOptions); // shallow clone
+				delete mQueryOptions.$count;
+			}
+		} else {
+			mQueryOptions = _AggregationHelper.filterOrderby(mQueryOptions, this.oAggregation);
+		}
+
+		return _AggregationHelper.buildApply(this.oAggregation, mQueryOptions, 0, true);
 	};
 
 	/**
@@ -588,10 +568,57 @@ sap.ui.define([
 
 	/**
 	 * @override
+	 * @see sap.ui.model.odata.v4.lib._Cache#getValue
+	 */
+	_AggregationCache.prototype.getValue = function (sPath) {
+		var oSyncPromise;
+
+		oSyncPromise = this.fetchValue(_GroupLock.$cached, sPath);
+		if (oSyncPromise.isFulfilled()) {
+			return oSyncPromise.getResult();
+		}
+		oSyncPromise.caught();
+	};
+
+	/**
+	 * @override
 	 * @see sap.ui.model.odata.v4.lib._Cache#isDeletingInOtherGroup
 	 */
 	_AggregationCache.prototype.isDeletingInOtherGroup = function (_sGroupId) {
 		return false;
+	};
+
+	/**
+	 * Determines the list of elements determined by the given predicates. All other elements are
+	 * replaced by placeholders (lazily).
+	 *
+	 * @param {string[]} aPredicates
+	 *   The key predicates of the elements to request side effects for
+	 * @returns {object[]}
+	 *   The list of elements for the given predicates
+	 *
+	 * @private
+	 * @see sap.ui.model.odata.v4.lib._CollectionCache#keepOnlyGivenElements
+	 * @see sap.ui.model.odata.v4.lib._CollectionCache#requestSideEffects
+	 */
+	_AggregationCache.prototype.keepOnlyGivenElements = function (aPredicates) {
+		var mPredicates = {}, // a set of the predicates (as map to true) to speed up the search
+			that = this;
+
+		aPredicates.forEach(function (sPredicate) {
+			mPredicates[sPredicate] = true;
+		});
+
+		return this.aElements.filter(function (oElement, i) {
+			var sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
+
+			if (mPredicates[sPredicate]) {
+				_AggregationHelper.markSplicedStale(oElement);
+				return true; // keep and request
+			}
+
+			that.replaceByPlaceholder(i, oElement, sPredicate);
+		});
 	};
 
 	/**
@@ -672,6 +699,7 @@ sap.ui.define([
 				}
 			}
 			aReadPromises.push(
+				this.readCount(oGroupLock),
 				this.readFirst(iFirstLevelIndex, iFirstLevelLength, iPrefetchLength,
 					oGroupLock, fnDataRequested));
 		} else {
@@ -713,7 +741,42 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns a promise to be resolved with an OData object for the first range of data requested.
+	 * Reads the count of data (in case of a recursive hierarchy), taking the current filter and
+	 * search into account.
+	 *
+	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
+	 *   A lock for the group to associate the requests with;
+	 *   {@link sap.ui.model.odata.v4.lib._GroupLock#getUnlockedCopy} still needs to be called!
+	 * @returns {sap.ui.base.SyncPromise|undefined}
+	 *   A promise resolving without a defined result when the read is finished, or rejecting in
+	 *   case of an error; <code>undefined</code> in case no count needs to be read
+	 * @throws {Error}
+	 *   If group ID is '$cached'. The error has a property <code>$cached = true</code>
+	 *
+	 * @private
+	 */
+	_AggregationCache.prototype.readCount = function (oGroupLock) {
+		var fnResolve = this.oCountPromise && this.oCountPromise.$resolve,
+			sResourcePath = this.sResourcePath + "/$count",
+			sSeparator = "?";
+
+		if (fnResolve) {
+			delete this.oCountPromise.$resolve;
+			if (this.mQueryOptions.$filter) {
+				sResourcePath += "?$filter=" + this.mQueryOptions.$filter;
+				sSeparator = "&";
+			}
+			if (this.oAggregation.search) {
+				sResourcePath += sSeparator + "$search=" + this.oAggregation.search;
+			}
+
+			return this.oRequestor.request("GET", sResourcePath, oGroupLock.getUnlockedCopy())
+				.then(fnResolve); // Note: $count is already of type number here
+		}
+	};
+
+	/**
+	 * Reads the first range of data being requested.
 	 *
 	 * @param {number} iStart
 	 *   The start index of the range
@@ -1010,8 +1073,13 @@ sap.ui.define([
 			bIsExpanded,
 			iLevel = 1,
 			sLimitedDescendantCountProperty = oAggregation.$LimitedDescendantCountProperty,
-			sPredicate = _Helper.getKeyPredicate(oElement, sMetaPath, mTypeForMetaPath);
+			sPredicate;
 
+		if (!(sMetaPath in mTypeForMetaPath)) {
+			return undefined; // nested object
+		}
+
+		sPredicate = _Helper.getKeyPredicate(oElement, sMetaPath, mTypeForMetaPath);
 		_Helper.setPrivateAnnotation(oElement, "predicate", sPredicate);
 		switch (oElement[sDrillStateProperty]) {
 			case "expanded":

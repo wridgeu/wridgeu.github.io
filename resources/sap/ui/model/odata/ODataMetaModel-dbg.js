@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -13,6 +13,7 @@ sap.ui.define([
 	"sap/ui/base/BindingParser",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/base/SyncPromise",
+	"sap/ui/model/_Helper",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/ClientContextBinding",
 	"sap/ui/model/Context",
@@ -24,7 +25,7 @@ sap.ui.define([
 	"sap/ui/model/json/JSONTreeBinding",
 	"sap/ui/performance/Measurement"
 ], function (Utils, Log, extend, isEmptyObject, UriParameters, BindingParser, ManagedObject,
-		SyncPromise, BindingMode, ClientContextBinding, Context, FilterProcessor, MetaModel,
+		SyncPromise, _Helper, BindingMode, ClientContextBinding, Context, FilterProcessor, MetaModel,
 		JSONListBinding, JSONModel, JSONPropertyBinding, JSONTreeBinding, Measurement) {
 	"use strict";
 
@@ -208,7 +209,7 @@ sap.ui.define([
 	 * {@link #loaded loaded} has been resolved!
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @alias sap.ui.model.odata.ODataMetaModel
 	 * @extends sap.ui.model.MetaModel
 	 * @public
@@ -229,7 +230,7 @@ sap.ui.define([
 					oData = JSON.parse(JSON.stringify(oMetadata.getServiceMetadata()));
 					that.oModel = new JSONModel(oData);
 					that.oModel.setDefaultBindingMode(that.sDefaultBindingMode);
-					Utils.merge(oAnnotations ? oAnnotations.getAnnotationsData() : {}, oData, that);
+					Utils.merge(oAnnotations ? oAnnotations.getData() : {}, oData, that);
 					Measurement.end(sPerformanceLoad);
 				}
 
@@ -1139,18 +1140,19 @@ sap.ui.define([
 	 * Requests the currency customizing based on the code list reference given in the entity
 	 * container's <code>com.sap.vocabularies.CodeList.v1.CurrencyCodes</code> annotation. The
 	 * corresponding HTTP request uses the HTTP headers obtained via
-	 * {@link sap.ui.model.odata.v2.ODataModel#getHttpHeaders} from this meta model's data model.
+	 * {@link sap.ui.model.odata.v2.ODataModel#getHeaders} from this meta model's data model.
 	 *
 	 * @returns {Promise}
 	 *   A promise resolving with the currency customizing, which is a map from the currency key to
 	 *   an object with the following properties:
 	 *   <ul>
-	 *     <li>StandardCode: The language-independent standard code (e.g. ISO) for the currency as
-	 *       referred to via the <code>com.sap.vocabularies.CodeList.v1.StandardCode</code>
-	 *       annotation on the currency's key, if present
-	 *     <li>Text: The language-dependent text for the currency as referred to via the
-	 *       <code>com.sap.vocabularies.Common.v1.Text</code> annotation on the currency's key
-	 *     <li>UnitSpecificScale: The decimals for the currency as referred to via the
+	 *     <li><code>StandardCode</code>: The language-independent standard code (e.g. ISO) for the
+	 *       currency as referred to via the
+	 *       <code>com.sap.vocabularies.CodeList.v1.StandardCode</code> annotation on the currency's
+	 *       key, if present
+	 *     <li><code>Text</code>: The language-dependent text for the currency as referred to via
+	 *       the <code>com.sap.vocabularies.Common.v1.Text</code> annotation on the currency's key
+	 *     <li><code>UnitSpecificScale</code>: The decimals for the currency as referred to via the
 	 *       <code>com.sap.vocabularies.Common.v1.UnitSpecificScale</code> annotation on the
 	 *       currency's key; entries where this would be <code>null</code> are ignored, and an error
 	 *       is logged
@@ -1160,30 +1162,32 @@ sap.ui.define([
 	 *   It is rejected if the code list URL is not "./$metadata", there is not exactly one code
 	 *   key, or if the customizing cannot be loaded.
 	 *
-	 * @ui5-restricted sap.ui.table, sap.ui.export.Spreadsheet, sap.ui.comp
-	 * @see #requestUnitsOfMeasure
+	 * @public
+	 * @see {@link #requestUnitsOfMeasure}
 	 * @since 1.88.0
 	 */
 	ODataMetaModel.prototype.requestCurrencyCodes = function () {
-		return Promise.resolve(this.fetchCodeList("CurrencyCodes"));
+		return Promise.resolve(this.fetchCodeList("CurrencyCodes")).then(function (mCodeList) {
+			return mCodeList ? _Helper.merge({}, mCodeList) : mCodeList;
+		});
 	};
 
 	/**
 	 * Requests the unit customizing based on the code list reference given in the entity
 	 * container's <code>com.sap.vocabularies.CodeList.v1.UnitOfMeasure</code> annotation. The
 	 * corresponding HTTP request uses the HTTP headers obtained via
-	 * {@link sap.ui.model.odata.v2.ODataModel#getHttpHeaders} from this meta model's data model.
+	 * {@link sap.ui.model.odata.v2.ODataModel#getHeaders} from this meta model's data model.
 	 *
 	 * @returns {Promise}
 	 *   A promise resolving with the unit customizing, which is a map from the unit key to an
 	 *   object with the following properties:
 	 *   <ul>
-	 *     <li>StandardCode: The language-independent standard code (e.g. ISO) for the unit as
-	 *       referred to via the <code>com.sap.vocabularies.CodeList.v1.StandardCode</code>
+	 *     <li><code>StandardCode</code>: The language-independent standard code (e.g. ISO) for the
+	 *       unit as referred to via the <code>com.sap.vocabularies.CodeList.v1.StandardCode</code>
 	 *       annotation on the unit's key, if present
-	 *     <li>Text: The language-dependent text for the unit as referred to via the
+	 *     <li><code>Text</code>: The language-dependent text for the unit as referred to via the
 	 *       <code>com.sap.vocabularies.Common.v1.Text</code> annotation on the unit's key
-	 *     <li>UnitSpecificScale: The decimals for the unit as referred to via the
+	 *     <li><code>UnitSpecificScale</code>: The decimals for the unit as referred to via the
 	 *       <code>com.sap.vocabularies.Common.v1.UnitSpecificScale</code> annotation on the unit's
 	 *       key; entries where this would be <code>null</code> are ignored, and an error is logged
 	 *   </ul>
@@ -1192,12 +1196,14 @@ sap.ui.define([
 	 *   It is rejected if the code list URL is not "./$metadata", there is not exactly one code
 	 *   key, or if the customizing cannot be loaded.
 	 *
-	 * @ui5-restricted sap.ui.table, sap.ui.export.Spreadsheet, sap.ui.comp
-	 * @see #requestCurrencyCodes
+	 * @public
+	 * @see {@link #requestCurrencyCodes}
 	 * @since 1.88.0
 	 */
 	ODataMetaModel.prototype.requestUnitsOfMeasure = function () {
-		return Promise.resolve(this.fetchCodeList("UnitsOfMeasure"));
+		return Promise.resolve(this.fetchCodeList("UnitsOfMeasure")).then(function (mCodeList) {
+			return mCodeList ? _Helper.merge({}, mCodeList) : mCodeList;
+		});
 	};
 
 	/**

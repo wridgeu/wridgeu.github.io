@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ sap.ui.define([
 	/**
 	 * @namespace sap.ui.test.generic.Utils
 	 * @private
-	 * @ui5-restricted Only for DIST layer libraries
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	var Utils = {
 		/**

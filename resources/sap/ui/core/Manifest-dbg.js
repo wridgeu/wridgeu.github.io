@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,6 +18,7 @@ sap.ui.define([
 	'sap/base/util/isPlainObject',
 	'sap/base/util/LoaderExtensions',
 	'sap/ui/core/Configuration',
+	'sap/ui/core/Lib',
 	'./_UrlResolver'
 ],
 	function(
@@ -33,6 +34,7 @@ sap.ui.define([
 		isPlainObject,
 		LoaderExtensions,
 		Configuration,
+		Library,
 		_UrlResolver
 	) {
 	"use strict";
@@ -141,7 +143,7 @@ sap.ui.define([
 	 * @class The Manifest class.
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @alias sap.ui.core.Manifest
 	 * @since 1.33.0
 	 */
@@ -525,7 +527,7 @@ sap.ui.define([
 					for (var sLib in mLibraries) {
 						if (!mLibraries[sLib].lazy) {
 							Log.info("Component \"" + sComponentName + "\" is loading library: \"" + sLib + "\"");
-							aPromises.push(sap.ui.getCore().loadLibrary(sLib, {async: bAsync}));
+							aPromises.push(Library._load(sLib, {sync: !bAsync}));
 						}
 					}
 				}

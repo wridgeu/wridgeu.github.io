@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	'./InvisibleText',
 	'./library',
 	"./IconRenderer",
+	"./Lib",
 	"sap/ui/events/KeyCodes",
 	"sap/base/Log",
 	"sap/base/util/each"
@@ -25,6 +26,7 @@ sap.ui.define([
 		InvisibleText,
 		library,
 		IconRenderer,
+		Library,
 		KeyCodes,
 		Log,
 		each
@@ -73,7 +75,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @since 1.11.1
@@ -582,7 +584,7 @@ sap.ui.define([
 
 		return {
 			role: bHasPressListeners ? "button" : "img",
-			type: sap.ui.getCore().getLibraryResourceBundle("sap.ui.core").getText(bHasPressListeners ? "ACC_CTR_TYPE_BUTTON" : "ACC_CTR_TYPE_IMAGE"),
+			type: Library.get("sap.ui.core").getResourceBundle().getText(bHasPressListeners ? "ACC_CTR_TYPE_BUTTON" : "ACC_CTR_TYPE_IMAGE"),
 			description: this.getAlt() || this.getTooltip_AsString() || (oIconInfo ? oIconInfo.text || oIconInfo.name : ""),
 			focusable: bHasPressListeners
 		};

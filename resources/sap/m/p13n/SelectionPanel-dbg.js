@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -48,10 +48,9 @@ sap.ui.define([
 	 * @extends sap.m.p13n.BasePanel
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
-	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.SelectionPanel
 	 */
@@ -100,6 +99,9 @@ sap.ui.define([
 				/**
 				 * An optional callback that may be used to display additional custom content in each selectable item.
 				 * This factory can be toggled by executing the {@link sap.m.p13n.SelectionPanel#showFactory} method.
+				 *
+				 * <b>Note:</b>: The <code>getIdForLabel</code> method can be imlplemented on the returned control instance
+				 * to return a focusable children control to provide the <code>labelFor</code> reference for the associated text.
 				 */
 				itemFactory: {
 					type: "function"
@@ -132,7 +134,12 @@ sap.ui.define([
 	SelectionPanel.prototype._getListTemplate = function() {
 		var oColumnListItem = new ColumnListItem({
 			selected: "{" + this.P13N_MODEL + ">" + this.PRESENCE_ATTRIBUTE + "}",
-			type: ListType.Active,
+			type: {
+				path: this.P13N_MODEL + ">" + this.PRESENCE_ATTRIBUTE,
+				formatter: function(bSelected) {
+					return bSelected ? ListType.Active : ListType.Inactive;
+				}
+			},
 			cells: [
 				new VBox({
 					items: [
@@ -256,7 +263,9 @@ sap.ui.define([
 		}
 		//Store (new) hovered item and set its icon to visible: false + add move buttons to it
 		var oIcon = oHoveredItem.getCells()[1].getItems()[0];
-		oIcon.setVisible(false);
+		if (oHoveredItem.getSelected()) {
+			oIcon.setVisible(false);
+		}
 		this._oHoveredItem = oHoveredItem;
 		this._updateEnableOfMoveButtons(oHoveredItem, false);
 		this._addMoveButtons(oHoveredItem);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -500,7 +500,7 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Conf
 				oRm.openStart("div", oControl.getId() + "-failed-icon");
 				oRm.class("sapMGenericTileFtrFldIcn");
 				oRm.openEnd();
-				oRm.renderControl(oControl._oWarningIcon);
+				oRm.renderControl(oControl._oErrorIcon);
 				oRm.close("div");
 
 				if (!oControl._isInActionScope() && !oControl._bShowActionsView) {

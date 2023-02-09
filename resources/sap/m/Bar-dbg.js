@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -57,7 +57,7 @@ sap.ui.define([
 	 * @implements sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -478,7 +478,7 @@ sap.ui.define([
 	/**
 	 * Gets the available Bar contexts from the BarInPageEnabler and adds the additional contexts from BarInAnyContentEnabler.
 	 *
-	 * @returns {Object} with all available contexts
+	 * @returns {sap.m.BarContexts} with all available contexts
 	 */
 	BarInAnyContentEnabler.prototype.getContext = function() {
 		var oParentContexts = BarInPageEnabler.prototype.getContext.call();
@@ -493,7 +493,7 @@ sap.ui.define([
 	/**
 	 * Gets the available Bar contexts.
 	 *
-	 * @returns {Object} with all available contexts
+	 * @returns {sap.m.BarContexts} with all available contexts
 	 * @protected
 	 * @function
 	 */

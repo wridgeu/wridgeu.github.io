@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -55,7 +55,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -67,7 +67,8 @@ function(
 
 			interfaces : [
 				"sap.ui.core.IFormContent",
-				"sap.m.IOverflowToolbarContent"
+				"sap.m.IOverflowToolbarContent",
+				"sap.m.IToolbarInteractiveControl"
 			],
 			library : "sap.m",
 			designtime: "sap/m/designtime/SegmentedButton.designtime",
@@ -935,7 +936,7 @@ function(
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {object} Current accessibility state of the control
+	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control
 	 * @protected
 	 */
 	 SegmentedButton.prototype.getAccessibilityInfo = function() {
@@ -1040,6 +1041,16 @@ function(
 		return this.getButtons().filter(function(oButton) {
 			return oButton.getVisible();
 		});
+	};
+
+	/**
+	 * Determines if it is interactive Control
+	 *
+	 * @private
+	 * @returns {boolean} If it is an interactive Control
+	 */
+	 SegmentedButton.prototype._getToolbarInteractive = function () {
+		return true;
 	};
 
 	SegmentedButton.prototype.clone = function () {

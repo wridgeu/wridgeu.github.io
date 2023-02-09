@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -263,11 +263,11 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/thirdpart
 	GenericTileLineModeRenderer._renderFailedIcon = function(oRm, oControl) {
 		if (oControl.getState() === LoadState.Failed) {
 			if (oControl._isCompact()) {
-				oControl._oWarningIcon.setSize("1.25rem");
+				oControl._oErrorIcon.setSize("1.25rem");
 			} else {
-				oControl._oWarningIcon.setSize("1.375rem");
+				oControl._oErrorIcon.setSize("1.375rem");
 			}
-			oRm.renderControl(oControl._oWarningIcon.addStyleClass("sapMGTLineModeFailedIcon"));
+			oRm.renderControl(oControl._oErrorIcon.addStyleClass("sapMGTLineModeFailedIcon"));
 		}
 	};
 

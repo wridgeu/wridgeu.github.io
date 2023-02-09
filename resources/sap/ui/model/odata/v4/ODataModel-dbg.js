@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -68,6 +68,7 @@ sap.ui.define([
 			dataReceived : true,
 			dataRequested : true,
 			messageChange : true,
+			propertyChange : true,
 			sessionTimeout : true
 		},
 		mSupportedParameters = {
@@ -162,10 +163,12 @@ sap.ui.define([
 		 *   Whether <code>&lt;edmx:Reference></code> and <code>&lt;edmx:Include></code> directives
 		 *   are supported in order to load schemas on demand from other $metadata documents and
 		 *   include them into the current service ("cross-service references").
-		 * @param {string} mParameters.synchronizationMode
-		 *   Controls synchronization between different bindings which refer to the same data for
+		 * @param {string} [mParameters.synchronizationMode]
+		 *   (Controls synchronization between different bindings which refer to the same data for
 		 *   the case data changes in one binding. Must be set to 'None' which means bindings are
-		 *   not synchronized at all; all other values are not supported and lead to an error.
+		 *   not synchronized at all; all other values are not supported and lead to an error.)
+		 *   <b>deprecated:</b> As of version 1.110.0, this parameter is optional; see also
+		 *   {@link topic:648e360fa22d46248ca783dc6eb44531 Data Reuse}
 		 * @param {string} [mParameters.updateGroupId]
 		 *   The group ID that is used for update requests. If no update group ID is specified,
 		 *   <code>mParameters.groupId</code> is used. Valid update group IDs are
@@ -218,7 +221,7 @@ sap.ui.define([
 		 * @extends sap.ui.model.Model
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 */
 		ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */{
@@ -256,7 +259,8 @@ sap.ui.define([
 		// do not pass any parameters to Model
 		Model.call(this);
 
-		if (!mParameters || mParameters.synchronizationMode !== "None") {
+		mParameters = mParameters || {};
+		if ("synchronizationMode" in mParameters && mParameters.synchronizationMode !== "None") {
 			throw new Error("Synchronization mode must be 'None'");
 		}
 		sODataVersion = mParameters.odataVersion || "4.0";
@@ -323,6 +327,7 @@ sap.ui.define([
 			throw new Error("Value for sharedRequests must be true");
 		}
 		this.bSharedRequests = mParameters.sharedRequests === true;
+		this.bIgnoreETag = false;
 
 		// BEWARE: do not share mHeaders between _MetadataRequestor and _Requestor!
 		this.mHeaders = {"Accept-Language" : sLanguageTag};
@@ -346,6 +351,9 @@ sap.ui.define([
 			getMessagesByPath : this.getMessagesByPath.bind(this),
 			getOptimisticBatchEnabler : this.getOptimisticBatchEnabler.bind(this),
 			getReporter : this.getReporter.bind(this),
+			isIgnoreETag : function () {
+				return that.bIgnoreETag;
+			},
 			onCreateGroup : function (sGroupId) {
 				if (that.isAutoGroup(sGroupId)) {
 					that.addPrerenderingTask(that._submitBatch.bind(that, sGroupId, true));
@@ -417,7 +425,7 @@ sap.ui.define([
 	 * each 'dataRequested' event, a 'dataReceived' event is fired.
 	 *
 	 * If a back-end request is successful, the event has almost no parameters. For compatibility
-	 * with {@link sap.ui.model.Binding#event:dataReceived}, an event parameter
+	 * with {@link sap.ui.model.Binding#event:dataReceived 'dataReceived'}, an event parameter
 	 * <code>data : {}</code> is provided: "In error cases it will be undefined", but otherwise it
 	 * is not. For additional property requests, the absolute path to the entity is also available.
 	 *
@@ -499,11 +507,34 @@ sap.ui.define([
 	 */
 
 	/**
-	 * The 'propertyChange' event is not supported by this model.
+	 * The <code>propertyChange</code> event is fired whenever one of this model's property bindings
+	 * successfully {@link sap.ui.model.odata.v4.ODataPropertyBinding#setValue changes its value}
+	 * due to {@link sap.ui.model.BindingMode.TwoWay two-way} data binding. This does not apply to
+	 * {@link sap.ui.model.odata.v4.Context#setProperty} which represents controller code changes,
+	 * not user input.
+	 *
+	 * @param {sap.ui.base.Event} oEvent
+	 * @param {object} oEvent.getParameters()
+	 * @param {sap.ui.model.Context} [oEvent.getParameters().context]
+	 *   The property binding's {@link sap.ui.model.Binding#getContext context}, if available
+	 * @param {string} oEvent.getParameters().path
+	 *   The property binding's {@link sap.ui.model.Binding#getPath path}
+	 * @param {Promise} [oEvent.getParameters().promise]
+	 *   A promise on the outcome of the PATCH request, much like
+	 *   {@link sap.ui.model.odata.v4.Context#setProperty} provides it for
+	 *   <code>bRetry === true</code>; missing in case there is no PATCH
+	 * @param {sap.ui.model.ChangeReason} oEvent.getParameters().reason
+	 *   The reason for the property change: always <code>sap.ui.model.ChangeReason.Binding</code>
+	 * @param {string} oEvent.getParameters().resolvedPath
+	 *   The property binding's {@link sap.ui.model.Binding#getResolvedPath resolved path}
+	 * @param {any} oEvent.getParameters().value
+	 *   The property binding's new
+	 *   {@link sap.ui.model.odata.v4.ODataPropertyBinding#getValue value}
 	 *
 	 * @event sap.ui.model.odata.v4.ODataModel#propertyChange
 	 * @public
-	 * @since 1.37.0
+	 * @see sap.ui.model.Model#propertyChange
+	 * @since 1.110.0
 	 */
 
 	/**
@@ -2000,8 +2031,11 @@ sap.ui.define([
 	 * Returns <code>true</code> if there are pending changes, which can be updates, created
 	 * entities (see {@link sap.ui.model.odata.v4.ODataListBinding#create}) or entity deletions
 	 * (see {@link sap.ui.model.odata.v4.Context#delete}) that have not yet been successfully sent
-	 * to the server. Since 1.98.0, {@link sap.ui.model.odata.v4.Context#isInactive inactive}
-	 * contexts are ignored.
+	 * to the server. Those changes can be either sent via {@link #submitBatch} or reset via
+	 * {@link #resetChanges}. Since 1.98.0,
+	 * {@link sap.ui.model.odata.v4.Context#isInactive inactive} contexts are ignored, even when
+	 * their {@link sap.ui.model.odata.v4.ODataListBinding#event:createActivate activation} has been
+	 * prevented.
 	 *
 	 * @param {string} [sGroupId]
 	 *   A group ID as specified in {@link sap.ui.model.odata.v4.ODataModel}, except group IDs
@@ -2490,6 +2524,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @see sap.ui.model.odata.v4.ODataModel#constructor
+	 * @see #hasPendingChanges
 	 * @since 1.39.0
 	 */
 	ODataModel.prototype.resetChanges = function (sGroupId) {
@@ -2553,6 +2588,21 @@ sap.ui.define([
 	};
 
 	/**
+	 * Tells whether an entity's ETag should be actively ignored (If-Match:*) for PATCH requests.
+	 * Ignored if there is no ETag. Decided at the point in time when the PATCH is actually being
+	 * sent.
+	 *
+	 * @param {boolean} bIgnoreETag - Whether an entity's ETag should be actively ignored
+	 *
+	 * @private
+	 * @since 1.110.0
+	 * @ui5-restricted sap.fe
+	 */
+	ODataModel.prototype.setIgnoreETag = function (bIgnoreETag) {
+		this.bIgnoreETag = bIgnoreETag;
+	};
+
+	/**
 	 * Method not supported
 	 *
 	 * @throws {Error}
@@ -2567,7 +2617,7 @@ sap.ui.define([
 
 	/**
 	 * Getter for the optimistic batch enabler callback function; see
-	 * {@link sap.ui.model.odata.v4.ODataModel#setOptimisticBatchEnabler}.
+	 * {@link #setOptimisticBatchEnabler}.
 	 *
 	 *
 	 * @returns {function(string)}
@@ -2619,7 +2669,7 @@ sap.ui.define([
 	 *
 	 * @experimental As of version 1.100.0
 	 * @private
-	 * @see cleanUpOptimisticBatch
+	 * @see #cleanUpOptimisticBatch
 	 * @ui5-restricted sap.fe
 	 */
 	ODataModel.prototype.setOptimisticBatchEnabler = function (fnOptimisticBatchEnabler) {
@@ -2646,6 +2696,10 @@ sap.ui.define([
 	 * only a single change set is used; this method is useful to repeat failed updates or creates
 	 * (see {@link sap.ui.model.odata.v4.ODataListBinding#create}) together with all other requests
 	 * for the given group ID in one batch request.
+	 *
+	 * {@link #resetChanges} can be used to reset all pending changes instead. After that, or when
+	 * the promise returned by this method is fulfilled, {@link #hasPendingChanges} will not report
+	 * pending changes anymore.
 	 *
 	 * @param {string} sGroupId
 	 *   A valid group ID as specified in {@link sap.ui.model.odata.v4.ODataModel}.

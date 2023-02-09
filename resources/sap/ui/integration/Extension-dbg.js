@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -48,7 +48,7 @@ sap.ui.define([
 				},
 
 				/**
-				 * The formatters, which can be used in the manifest.
+				 * The formatters that can be used in the manifest.
 				 * @experimental since 1.79
 				 */
 				formatters: {
@@ -122,23 +122,47 @@ sap.ui.define([
 		if (this._oCard) {
 			this._oCard._refreshActionsMenu();
 		}
+
+		return this;
 	};
 
 	/**
-	 * See generated JSDoc
+	 * Sets current value of property {@link #setFormatters formatters}.
+	 *
+	 * The formatters that can be used in the manifest.
+	 * When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.
+	 *
+	 * @method
+	 * @param {Object<string, function>} [aFormatters] New value of property <code>formatters</code>
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+	 * @public
+	 * @name sap.ui.integration.Extension#setFormatters
 	 */
 	Extension.prototype.setFormatters = function (aFormatters) {
 		this.setProperty("formatters", aFormatters);
 
 		if (!this._oCard) {
-			return;
+			return this;
 		}
 
 		if (!this._oCard._bApplyManifest ||
 			this._oCard.getAggregation("_extension") !== this) {
 			Log.error("Extension formatters must be set before the initialization of the card. Do this inside Extension#init().");
 		}
+
+		return this;
 	};
+
+	/**
+	 * Gets current value of property {@link #getFormatters formatters}.
+	 *
+	 * The formatters that can be used in the manifest.
+	 *
+	 * @method
+	 * @returns {Object<string, function>|undefined} Value of property <code>formatters</code>
+	 * @public
+	 * @name sap.ui.integration.Extension#getFormatters
+	 */
 
 	/**
 	 * Called after the card is initialized.

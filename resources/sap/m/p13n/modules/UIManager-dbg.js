@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,14 +28,14 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @private
 	 *
 	 * @since 1.104
 	 * @alias sap.m.p13n.modules.UIManager
 	 */
-	var UIManager = BaseObject.extend("sap.m.p13n.UIManager", {
+	var UIManager = BaseObject.extend("sap.m.p13n.modules.UIManager", {
 		constructor: function(oAdaptationProvider) {
 
 			if (oUIManager) {
@@ -78,7 +78,7 @@ sap.ui.define([
 
 					//if there is no title provided and only one panel created, use it's title as the Popup title
 					var sTitle;
-					if (!mSettings.title && aPanelKeys.length === 1) {
+					if (!mSettings.title && aPanelKeys.length === 1 && aInitializedPanels.length > 0) {
 						sTitle = aInitializedPanels[0].getTitle();
 					} else {
 						sTitle = mSettings.title || oResourceBundle.getText("p13n.VIEW_SETTINGS");
@@ -231,7 +231,7 @@ sap.ui.define([
 	 * @param {sap.m.AdaptationProvider} oAdaptationProvider Object implementing the <code>sap.m.AdaptationProvider</code> interface to provide personalization capabilites.
 	 */
 	UIManager._checkValidInterface = function(oAdaptationProvider) {
-		if (!oAdaptationProvider || !oAdaptationProvider.isA("sap.m.p13n.AdaptationProvider")){
+		if (!oAdaptationProvider || !oAdaptationProvider.isA("sap.m.p13n.modules.AdaptationProvider")){
 			throw Error("The UIManager singleton must not be accessed without an AdaptationProvider interface!");
 		}
 	};

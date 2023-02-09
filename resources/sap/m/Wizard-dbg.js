@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -93,7 +93,7 @@ sap.ui.define([
 		 *
 		 * @extends sap.ui.core.Control
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -247,7 +247,7 @@ sap.ui.define([
 		Wizard.prototype.onBeforeRendering = function () {
 			var oStep = this._getStartingStep();
 
-			if (!this._isMinStepCountReached() || this._isMaxStepCountExceeded()) {
+			if (!this._isStepCountInRange()) {
 				Log.error("The Wizard is supposed to handle from 3 to 8 steps.");
 			}
 
@@ -280,7 +280,7 @@ sap.ui.define([
 		 * @param {sap.m.WizardStep} oStep [optional] The step to be rendered.
 		 * @private
 		 */
-		Wizard.prototype._renderPageMode = function (oStep) {
+		Wizard.prototype._renderPageMode = function (oStep, bFocusFirstStepElement) {
 			var iCurrentStepIndex, oCurrentStep, oRenderManager;
 
 			if (this.getRenderMode() !== WizardRenderMode.Page) {
@@ -300,6 +300,10 @@ sap.ui.define([
 				this._updateStepTitleNumber(oCurrentStep, iCurrentStepIndex));
 			oRenderManager.flush(this.getDomRef("step-container"));
 			oRenderManager.destroy();
+
+			if (bFocusFirstStepElement) {
+				this._focusFirstStepElement(oStep);
+			}
 		};
 
 		/**
@@ -443,7 +447,7 @@ sap.ui.define([
 				return this;
 			} else if (this.getRenderMode() === WizardRenderMode.Page) {
 				fnUpdateProgressNavigator.call(this);
-				this._renderPageMode(oStep);
+				this._renderPageMode(oStep, bFocusFirstStepElement);
 
 				return this;
 			}
@@ -585,7 +589,7 @@ sap.ui.define([
 		 * @public
 		 */
 		Wizard.prototype.addStep = function (oWizardStep) {
-			if (this._isMaxStepCountExceeded()) {
+			if (this._isMaxStepCountReached()) {
 				Log.error("The Wizard is supposed to handle up to 8 steps.");
 				return this;
 			}
@@ -907,7 +911,7 @@ sap.ui.define([
 		 * @returns {boolean} True if the max step count is reached
 		 * @private
 		 */
-		Wizard.prototype._isMaxStepCountExceeded = function () {
+		Wizard.prototype._isMaxStepCountReached = function () {
 			var iStepCount = this._getStepCount();
 
 			if (this.getEnableBranching()) {
@@ -918,14 +922,18 @@ sap.ui.define([
 		};
 
 		/**
-		 * Checks whether the minimum step count is reached.
-		 * @returns {boolean} True if the min step count is reached
+		 * Checks if steps count is in the valid range
+		 * @returns {boolean} True if the step count is in the valid range
 		 * @private
 		 */
-		Wizard.prototype._isMinStepCountReached = function () {
+		Wizard.prototype._isStepCountInRange = function () {
 			var iStepCount = this._getStepCount();
 
-			return iStepCount >= Wizard.CONSTANTS.MINIMUM_STEPS;
+			if (iStepCount < Wizard.CONSTANTS.MINIMUM_STEPS || (!this.getEnableBranching() && iStepCount > Wizard.CONSTANTS.MAXIMUM_STEPS)) {
+				return false;
+			}
+
+			return true;
 		};
 
 		/**

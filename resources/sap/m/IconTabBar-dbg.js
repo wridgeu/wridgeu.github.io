@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -94,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.ObjectHeaderContainer, sap.f.IDynamicPageStickyContent
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @alias sap.m.IconTabBar
@@ -455,7 +455,7 @@ sap.ui.define([
 	 * Sets the ariaTexts property.
 	 *
 	 * @public
-	 * @param {object} oAriaTexts New value for ariaTexts.
+	 * @param {{headerLabel: string, headerDescription: string}} oAriaTexts New value for ariaTexts.
 	 * @returns {this} this Reference to this in order to allow method chaining
 	 */
 	IconTabBar.prototype.setAriaTexts = function (oAriaTexts) {
@@ -470,6 +470,19 @@ sap.ui.define([
 
 		return this;
 	};
+
+	/**
+	 * Gets current value of property {@link #getAriaTexts ariaTexts}.
+	 *
+	 * Specifies optional texts for the screen reader.
+	 *
+	 * The given object can contain the following keys: <code>headerLabel</code> - text to serve as a label for the header, <code>headerDescription</code> - text to serve as a description for the header.
+	 *
+	 * @method
+	 * @returns {{headerLabel: string, headerDescription: string}|null} Value of property <code>ariaTexts</code>
+	 * @public
+	 * @name sap.m.IconTabBar#getAriaTexts
+	 */
 
 	IconTabBar.prototype.addStyleClass = function (sClass, bSuppressRerendering) {
 		var oIconTabHeader = this._getIconTabHeader();

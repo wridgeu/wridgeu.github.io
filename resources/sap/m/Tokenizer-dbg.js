@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	'sap/m/ResponsivePopover',
 	'sap/ui/core/Core',
 	'sap/ui/core/Control',
+	'sap/ui/core/Element',
 	'sap/ui/core/delegate/ScrollEnablement',
 	'sap/ui/Device',
 	'sap/ui/core/InvisibleText',
@@ -23,9 +24,6 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/EnabledPropagator",
 	"sap/ui/core/theming/Parameters",
-	"sap/ui/thirdparty/jquery",
-	// jQuery Plugin "control"
-	"sap/ui/dom/jquery/control",
 	// jQuery Plugin "scrollLeftRTL"
 	"sap/ui/dom/jquery/scrollLeftRTL"
 ],
@@ -37,6 +35,7 @@ sap.ui.define([
 		ResponsivePopover,
 		Core,
 		Control,
+		Element,
 		ScrollEnablement,
 		Device,
 		InvisibleText,
@@ -46,9 +45,7 @@ sap.ui.define([
 		KeyCodes,
 		Log,
 		EnabledPropagator,
-		Parameters,
-		jQuery,
-		scrollLeftRTL
+		Parameters
 	) {
 	"use strict";
 
@@ -78,7 +75,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -257,6 +254,7 @@ sap.ui.define([
 		this.allowTextSelection(false);
 		this._oTokensWidthMap = {};
 		this._oIndicator = null;
+		this._bShouldRenderTabIndex = null;
 		this._oScroller = new ScrollEnablement(this, this.getId() + "-scrollContainer", {
 			horizontal : true,
 			vertical : false,
@@ -515,7 +513,7 @@ sap.ui.define([
 	 * Toggles the popover.
 	 *
 	 * @private
-	 * @ui5-restricted for sap.m.MultiInput, sap.m.MultiComboBox
+	 * @ui5-restricted sap.m.MultiInput, sap.m.MultiComboBox
 	 */
 	Tokenizer.prototype._togglePopup = function (oPopover) {
 		var oOpenByDom,
@@ -1060,7 +1058,7 @@ sap.ui.define([
 	Tokenizer.prototype._selectRange = function (bForwardSection) {
 		var oRange = {},
 			oTokens = this._getVisibleTokens(),
-			oFocusedControl = jQuery(document.activeElement).control()[0],
+			oFocusedControl = Element.closestTo(document.activeElement),
 			iTokenIndex = oTokens.indexOf(oFocusedControl);
 
 		if (!oFocusedControl || !oFocusedControl.isA("sap.m.Token")) {
@@ -1240,7 +1238,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oFocusedElement = jQuery(document.activeElement).control()[0];
+		var oFocusedElement = Element.closestTo(document.activeElement);
 
 		// oFocusedElement could be undefined since the focus element might not correspond to an SAPUI5 Control
 		var index = oFocusedElement ? aTokens.indexOf(oFocusedElement) : -1;
@@ -1288,7 +1286,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oFocusedElement = jQuery(document.activeElement).control()[0];
+		var oFocusedElement = Element.closestTo(document.activeElement);
 
 		// oFocusedElement could be undefined since the focus element might not correspond to an SAPUI5 Control
 		var index = oFocusedElement ? aTokens.indexOf(oFocusedElement) : -1;
@@ -1497,6 +1495,26 @@ sap.ui.define([
 	};
 
 	/**
+	 * Method for handling the state for tabindex rendering
+	 *
+	 * @param {boolean} bShouldRenderTabIndex If tabindex should be rendered
+	 * @protected
+	 */
+	Tokenizer.prototype.setShouldRenderTabIndex = function (bShouldRenderTabIndex) {
+		this._bShouldRenderTabIndex = bShouldRenderTabIndex;
+	};
+
+	/**
+	 * Flag indicating if tabindex attribute should be rendered
+	 *
+	 * @returns {boolean} True if tabindex should be rendered and false if not
+	 * @protected
+	 */
+	Tokenizer.prototype.getEffectiveTabIndex = function () {
+		return this._bShouldRenderTabIndex === null ? !!this.getTokens().length : this._bShouldRenderTabIndex;
+	};
+
+	/**
 	 * Handle the focus event on the control.
 	 *
 	 * @param {jQuery.Event} oEvent The occuring event
@@ -1560,6 +1578,7 @@ sap.ui.define([
 		this._oTokensWidthMap = null;
 		this._oIndicator = null;
 		this._aTokenValidators = null;
+		this._bShouldRenderTabIndex = null;
 	};
 
 	/**

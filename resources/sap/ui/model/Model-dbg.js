@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -51,7 +51,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.message.MessageProcessor
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.Model
@@ -565,7 +565,7 @@ sap.ui.define([
 	 *   The path of the property
 	 * @param {sap.ui.model.Context} [oEvent.getParameters.context]
 	 *   The binding context (if available)
-	 * @param {object} oEvent.getParameters.value
+	 * @param {any} oEvent.getParameters.value
 	 *   The current value of the property
 	 * @public
 	 * @since 1.40

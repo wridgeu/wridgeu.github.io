@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
 	'sap/ui/core/CustomData',
+	'sap/ui/core/Element',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/core/InvisibleText',
@@ -50,6 +51,7 @@ sap.ui.define([
 		library,
 		Control,
 		CustomData,
+		Element,
 		IconPool,
 		ItemNavigation,
 		InvisibleText,
@@ -170,7 +172,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IShrinkable
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -1019,7 +1021,7 @@ sap.ui.define([
 		var oItems = this.oItemNavigation.aItemDomRefs,
 			iCurrentFocusIndex = this.oItemNavigation.getFocusedIndex(),
 			iNexFucusIndex = iCurrentFocusIndex - 1 >= 0 ? iCurrentFocusIndex - 1 : iCurrentFocusIndex,
-			oNextTarget = jQuery(oItems[iNexFucusIndex]).control(0),
+			oNextTarget = Element.closestTo(oItems[iNexFucusIndex]),
 			iScrollOffset = this._calculateScrollIntoView(oNextTarget);
 
 		this._scroll(iScrollOffset, SCROLL_DURATION);
@@ -1045,7 +1047,7 @@ sap.ui.define([
 		var oItems = this.oItemNavigation.aItemDomRefs,
 			iCurrentFocusIndex = this.oItemNavigation.getFocusedIndex(),
 			iNexFucusIndex = oItems.length > iCurrentFocusIndex + 1 ? iCurrentFocusIndex + 1 : iCurrentFocusIndex,
-			oNextTarget = jQuery(oItems[iNexFucusIndex]).control(0),
+			oNextTarget = Element.closestTo(oItems[iNexFucusIndex]),
 			iScrollToPosition = this._calculateScrollIntoView(oNextTarget);
 
 		this._scroll(iScrollToPosition, SCROLL_DURATION);

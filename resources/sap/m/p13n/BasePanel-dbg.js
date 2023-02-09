@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,12 +22,11 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @abstract
 	 *
-	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.BasePanel
 	 */
@@ -145,6 +144,13 @@ sap.ui.define([
 		this._oListControl.setMultiSelectMode("ClearAll");
 	};
 
+	BasePanel.prototype.onAfterRendering = function() {
+		if (!this._oResizeObserver) {
+			this._oResizeObserver = new ResizeObserver(this._onResize.bind(this));
+		}
+		this._oResizeObserver.observe(this.getDomRef());
+	};
+
 	/**
 	 * Can be overwritten if a different wrapping control is required for the inner content.
 	 */
@@ -159,7 +165,6 @@ sap.ui.define([
 	/**
 	 * P13n <code>Item</code> object type.
 	 *
-	 * @type {sap.m.p13n.Item}
 	 * @static
 	 * @constant
 	 * @typedef {object} sap.m.p13n.Item
@@ -336,6 +341,16 @@ sap.ui.define([
 		return this._oMoveBottomButton;
 	};
 
+	BasePanel.prototype._onResize = function(aResizeEntity) {
+		var oDomRect = aResizeEntity[0].contentRect;
+		if (this._oMoveTopBtn) {
+			this._oMoveTopBtn.setVisible(oDomRect.width > 400);
+		}
+		if (this._oMoveBottomButton) {
+			this._oMoveBottomButton.setVisible(oDomRect.width > 400);
+		}
+	};
+
 	BasePanel.prototype._createInnerListControl = function() {
 		return new Table(this.getId() + "-innerP13nList", Object.assign(this._getListControlConfig(), {
 			headerToolbar: new OverflowToolbar({
@@ -415,6 +430,18 @@ sap.ui.define([
 				})
 			});
 		}
+		return this._oSearchField;
+	};
+
+	/**
+	 * Getter for the initial focusable <code>control</code> on the panel.
+	 *
+	 * @returns {control} Control instance which could get the focus.
+	 *
+	 * @private
+	 * @ui5-restricted sap.m, sap.ui.mdc
+	 */
+	BasePanel.prototype.getInitialFocusedControl = function() {
 		return this._oSearchField;
 	};
 
@@ -680,6 +707,7 @@ sap.ui.define([
 
 	BasePanel.prototype.exit = function() {
 		Control.prototype.exit.apply(this, arguments);
+		this._oResizeObserver = null;
 		this._bFocusOnRearrange = null;
 		this._oHoveredItem = null;
 		this._oSelectionBindingInfo = null;

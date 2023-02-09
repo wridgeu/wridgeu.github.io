@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,7 @@ sap.ui.define([
 	'sap/base/util/merge',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/base/ManagedObjectRegistry',
+	'sap/ui/core/Lib',
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/thirdparty/URI',
 	'sap/ui/performance/trace/Interaction',
@@ -36,6 +37,7 @@ sap.ui.define([
 	merge,
 	ManagedObject,
 	ManagedObjectRegistry,
+	Library,
 	ResizeHandler,
 	URI,
 	Interaction,
@@ -198,31 +200,6 @@ sap.ui.define([
 
 	}
 
-
-	/**
-	 * Calls the function <code>fn</code> once and marks all ManagedObjects
-	 * created during that call as "owned" by the given ID.
-	 *
-	 * @param {function} fn Function to execute
-	 * @param {string} sOwnerId Id of the owner
-	 * @param {Object} [oThisArg=undefined] Value to use as <code>this</code> when executing <code>fn</code>
-	 * @return {any} result of function <code>fn</code>
-	 */
-	function runWithOwner(fn, sOwnerId, oThisArg) {
-
-		assert(typeof fn === "function", "fn must be a function");
-
-		var oldOwnerId = ManagedObject._sOwnerId;
-		try {
-			ManagedObject._sOwnerId = sOwnerId;
-			return fn.call(oThisArg);
-		} finally {
-			ManagedObject._sOwnerId = oldOwnerId;
-		}
-
-	}
-
-
 	/**
 	 * Creates and initializes a new Component with the given <code>sId</code> and
 	 * settings.
@@ -248,7 +225,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @alias sap.ui.core.Component
 	 * @since 1.9.2
 	 */
@@ -402,6 +379,43 @@ sap.ui.define([
 			}, sComponentId);
 		}
 	});
+
+	/**
+	 * Creates a new subclass of class <code>sap.ui.core.Component</code> with name
+	 * <code>sClassName</code> and enriches it with the information contained in <code>oClassInfo</code>.
+	 *
+	 * <code>oClassInfo</code> might contain the same kind of information as described in
+	 * {@link sap.ui.base.ManagedObject.extend}, plus the <code>manifest</code> property in the 'metadata'
+	 * object literal, indicating that the component configuration should be read from a manifest.json file.
+	 *
+	 * @param {string} sClassName
+	 *            Qualified name of the newly created class
+	 * @param {object} [oClassInfo]
+	 *            Object literal with information about the class
+	 * @param {sap.ui.core.Component.MetadataOptions} [oClassInfo.metadata]
+	 *            The metadata object describing the class.
+	 *            See {@link sap.ui.core.Component.MetadataOptions MetadataOptions} for the values allowed in every extend.
+	 * @param {function} [FNMetaImpl=sap.ui.core.ComponentMetadata]
+	 *            Constructor function for the metadata object. If not given, it defaults to an
+	 *            internal subclass of <code>sap.ui.core.ComponentMetadata</code>.
+	 * @returns {function} The created class / constructor function
+	 * @name sap.ui.core.Component.extend
+	 * @function
+	 * @static
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.base.ManagedObject.MetadataOptions} sap.ui.core.Component.MetadataOptions
+	 *
+	 * The structure of the "metadata" object which is passed when inheriting from sap.ui.core.Component using its static "extend" method.
+	 * See {@link sap.ui.core.Component.extend} for details on its usage.
+	 *
+	 * @property {"json"} [manifest]  When set to the string literal "json", this property indicates that the component configuration
+	 *            should be read from a manifest.json file which is assumed to exist next to the Component.js file.
+	 *
+	 * @public
+	 */
 
 	/**
 	 * Executes the given callback function for each sap.ui.core.Element whose owner-component
@@ -713,7 +727,7 @@ sap.ui.define([
 			throw new Error("Execute 'runAsOwner' on an inactive owner component is not supported. Component: '" +
 				this.getMetadata().getName() + "' with id '" + this.getId() + "'.");
 		}
-		return runWithOwner(fn, this.getId());
+		return ManagedObject.runWithOwner(fn, this.getId());
 	};
 
 	// ---- ----
@@ -2589,7 +2603,7 @@ sap.ui.define([
 					});
 				};
 				return loadDependenciesAndIncludes(oClass.getMetadata()).then(function () {
-					return runWithOwner(function() {
+					return ManagedObject.runWithOwner(function() {
 						return createInstance(oClass);
 					}, sCurrentOwnerId);
 				});
@@ -3022,7 +3036,7 @@ sap.ui.define([
 						Array.prototype.push.apply(aLibs, oTransitiveDependencies.dependencies);
 
 						// load library preload for every transitive dependency
-						return sap.ui.getCore().loadLibraries( aLibs, { preloadOnly: true } ).catch(errorLogging(oTransitiveDependencies.library, true));
+						return Library._load( aLibs, { preloadOnly: true } ).catch(errorLogging(oTransitiveDependencies.library, true));
 					} else {
 						sPreloadName = sController.replace(/\./g, "/") + (http2 ? '-h2-preload.js' : '-preload.js'); // URN
 						return sap.ui.loader._.loadJSResourceAsync(sPreloadName).catch(errorLogging(sPreloadName, true));
@@ -3059,8 +3073,8 @@ sap.ui.define([
 				}
 				if (aLibs.length > 0) {
 					Log.info("Component \"" + sComponentName + "\" is loading libraries: \"" + aLibs.join(", ") + "\"");
-					fnCollect(sap.ui.getCore().loadLibraries(aLibs, {
-						async: bAsync
+					fnCollect(Library._load(aLibs, {
+						sync: !bAsync
 					}));
 				}
 			}
@@ -3152,7 +3166,7 @@ sap.ui.define([
 			if ( Array.isArray(hints.libs) ) {
 				libs = hints.libs.map(processOptions).filter(identity);
 				phase1Preloads.push(
-					sap.ui.getCore().loadLibraries( libs, { preloadOnly: true } )
+					Library._load( libs, { preloadOnly: true } )
 				);
 			}
 
@@ -3162,7 +3176,7 @@ sap.ui.define([
 			phase1Preloads = Promise.all( phase1Preloads );
 			if ( libs && !mOptions.preloadOnly ) {
 				phase1Preloads = phase1Preloads.then( function() {
-					return sap.ui.getCore().loadLibraries( libs );
+					return Library._load( libs );
 				});
 			}
 			collect( phase1Preloads );

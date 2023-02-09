@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -154,7 +154,7 @@ sap.ui.define([
 	 * the close event), or select Cancel.
 	 *
 	 * @extends sap.m.DateTimeField
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -182,7 +182,7 @@ sap.ui.define([
 				 * If not set, the dates are only displayed in the primary calendar type
 				 * @since 1.34.1
 				 */
-				secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance", defaultValue : null},
+				secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
 
 				/**
 				 * Minimum date that can be shown and selected in the <code>DatePicker</code>. This must be a JavaScript date object.
@@ -353,7 +353,7 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {object} the value of property <code>dateValue</code>
+	 * @returns {Date} the value of property <code>dateValue</code>
 	 * @public
 	 * @name sap.m.DatePicker#getDateValue
 	 * @function
@@ -377,7 +377,8 @@ sap.ui.define([
 			src: this.getIconSrc(),
 			noTabStop: true,
 			decorative: false,
-			useIconTooltip: false
+			useIconTooltip: false,
+			alt: oResourceBundle.getText("OPEN_PICKER_TEXT")
 		});
 
 		// idicates whether the picker is still open
@@ -489,7 +490,7 @@ sap.ui.define([
 	 * Sets the displayFormat of the DatePicker.
 	 *
 	 * @param {string} sDisplayFormat  new value for <code>displayFormat</code>
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	 DatePicker.prototype.setDisplayFormat = function(sDisplayFormat) {
@@ -511,7 +512,7 @@ sap.ui.define([
 	 * Defines the width of the DatePicker. Default value is 100%
 	 *
 	 * @param {string} sWidth  new value for <code>width</code>
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DatePicker.prototype.setWidth = function(sWidth) {
@@ -660,7 +661,7 @@ sap.ui.define([
 	 * This prevents unwanted automatic corrections of wrong input.
 	 *
 	 * @param {string} sValue The new value of the input.
-	 * @return {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 * @name sap.m.DatePicker#setValue
 	 * @function
@@ -685,6 +686,11 @@ sap.ui.define([
 		return oDate;
 	};
 
+	/**
+	 * Set minimum date that can be shown and selected in the <code>DatePicker</code>. This must be a JavaScript date object.
+	 * @param {Date} oDate A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 */
 	DatePicker.prototype.setMinDate = function(oDate) {
 
 		if (!this._isValidDate(oDate)) {
@@ -726,6 +732,11 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Set maximum date that can be shown and selected in the <code>DatePicker</code>. This must be a JavaScript date object.
+	 * @param {Date} oDate A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 */
 	DatePicker.prototype.setMaxDate = function(oDate) {
 
 		if (!this._isValidDate(oDate)) {
@@ -890,7 +901,7 @@ sap.ui.define([
 	 *
 	 * @since 1.38.5
 	 * @param {sap.ui.unified.DateTypeRange} oSpecialDate the specialDate to add; if empty, nothing is added
-	 * @return {this} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DatePicker.prototype.addSpecialDate = function(oSpecialDate){
@@ -913,7 +924,7 @@ sap.ui.define([
 	 * @param {int} iIndex the 0-based index the <code>specialDate</code> should be inserted at;
 	 *              for a negative value of <code>iIndex</code>, the <code>specialDate</code> is inserted at position 0;
 	 *              for a value greater than the current size of the aggregation, the <code>specialDate</code> is inserted at the last position
-	 * @return {this} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DatePicker.prototype.insertSpecialDate = function(oSpecialDate, iIndex){
@@ -972,7 +983,7 @@ sap.ui.define([
 	 * @since 1.38.5
 	 * @param {sap.ui.core.ID | sap.ui.unified.CalendarLegend} oLegend ID of an element which becomes the new target of this <code>legend</code> association;
 	 *                                                         alternatively, an element instance may be given
-	 * @return {this} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DatePicker.prototype.setLegend = function(oLegend){
@@ -1384,7 +1395,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {object} Current accessibility state of the control.
+	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control.
 	 * @protected
 	 */
 	DatePicker.prototype.getAccessibilityInfo = function() {
@@ -1702,7 +1713,7 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @param {object} [mArguments] the arguments to pass along with the event.
-	 * @return {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @protected
 	 * @name sap.m.DatePicker#fireChange
 	 * @function

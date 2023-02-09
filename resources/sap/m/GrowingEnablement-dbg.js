@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,6 +11,7 @@ sap.ui.define([
 	'sap/m/library',
 	'sap/ui/model/ChangeReason',
 	'sap/ui/base/ManagedObjectMetadata',
+	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/core/HTML',
 	'sap/m/CustomListItem',
 	'sap/base/security/encodeXML',
@@ -23,6 +24,7 @@ sap.ui.define([
 		library,
 		ChangeReason,
 		ManagedObjectMetadata,
+		ManagedObjectObserver,
 		HTML,
 		CustomListItem,
 		encodeXML,
@@ -90,6 +92,10 @@ sap.ui.define([
 			if (this._oRM) {
 				this._oRM.destroy();
 				this._oRM = null;
+			}
+			if (this._oObserver) {
+				this._oObserver.disconnect();
+				this._oObserver = null;
 			}
 
 			this.clearItemsPool();
@@ -162,6 +168,12 @@ sap.ui.define([
 
 			if (bPageSizeOnly) {
 				return;
+			}
+
+			// destroy the observer on rebind
+			if (this._oObserver) {
+				this._oObserver.disconnect();
+				this._oObserver = null;
 			}
 
 			// if the template invalidates, then also clear the itemsPool
@@ -445,13 +457,21 @@ sap.ui.define([
 				return;
 			}
 
-			var oBindingInfo = this._oControl.getBindingInfo("items"),
-				// limit the number of items in the pool to 100, since have too many items in the pool is also not performant
-				iLimit = this._iLimit <= 100 ? this._iLimit : 100;
-			if (oBindingInfo && oBindingInfo.template) {
-				for (var i = 0; i < iLimit; i++) {
-					this._aItemsPool.push(oBindingInfo.factory());
-				}
+			var oBindingInfo = this._oControl.getBindingInfo("items");
+			var oTemplate = oBindingInfo.template;
+			if (!oTemplate) {
+				return;
+			}
+
+			// limit the number of items in the pool to 100, since have too many items in the pool is also not performant
+			for (var i = 0, iLimit = Math.min(this._iLimit, 100); i < iLimit; i++) {
+				this._aItemsPool.push(oBindingInfo.factory());
+			}
+
+			if (oTemplate.getCells) {
+				// items pool is not usable when the template is changed e.g. p13n removes/insert cells instead of rebind
+				this._oObserver = new ManagedObjectObserver(this.clearItemsPool.bind(this));
+				this._oObserver.observe(oTemplate, { aggregations: ["cells"] });
 			}
 		},
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,21 +50,14 @@ sap.ui.define([
 	 * <li>{@link sap.m.p13n.GroupController GroupController}: Used to define a list of groupable properties</li>
 	 * </ul>
 	 *
-	 * The following persistence layers can be chosen for personalization services:
+	 * Can be used in combination with <code>sap.ui.fl.variants.VariantManagement</code> to persist a state in variants using <code>sap.ui.fl</code> capabilities.</li>
 	 *
-	 * <ul>
-	 * <li>{@link sap.m.p13n.modification.FlexModificationHandler FlexModificationHandler}: Used in combination with <code>sap.ui.fl.variants.VariantManagement</code> to persist a state in variants using <code>sap.ui.fl</code> capabilities.</li>
-	 * <li>{@link sap.m.p13n.modification.LocalStorageModificationHandler LocalStorageModificationHandler}: Used to store a personalization state in the local storage</li>
-	 * <li>{@link sap.m.p13n.modification.ModificationHandler ModificationHandler}: Used by default - this handler will not persist a state.</li>
-	 * </ul>
-	 *
-	 * @namespace
+	 * @class
 	 * @alias sap.m.p13n.Engine
-	 * @extends sap.m.p13n.AdaptationProvider
+	 * @extends sap.m.p13n.modules.AdaptationProvider
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 * @since 1.104
 	 */
 	var Engine = AdaptationProvider.extend("sap.m.p13n.Engine", {
@@ -100,9 +93,10 @@ sap.ui.define([
 	 * @property {sap.m.p13n.ModificationHandler} modification The desired <code>{@link sap.m.p13n.modification.ModificationHandler ModificationHandler}</code> instance that is used for persistence.
 	 * @property {sap.m.p13n.MetadataHelper} helper The <code>{@link sap.m.p13n.modification.MetadataHelper MetadataHelper}</code> to provide metadata-specific information.
 	 * @property {object} controller A map of arbitrary keys that contain a controller instance as value. The key must be unique and needs to be provided for later access when using <code>Engine</code> functionality specific for one controller type.
-	 *
+	 */
+
+	/**
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 *
 	 * @param {sap.ui.core.Control} oControl The control instance to be registered for adaptation
 	 * @param {sap.m.p13n.EngineRegistrationConfig} oConfig The Engine registration configuration
@@ -171,7 +165,6 @@ sap.ui.define([
 	 * such as the registered controllers, are destroyed.
 	 *
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 *
 	 * @param {sap.ui.core.Control} oControl The registered control instance
 	 */
@@ -198,7 +191,6 @@ sap.ui.define([
 	 * Opens the personalization dialog.
 	 *
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 *
 	 *
 	 * @param {sap.ui.core.Control} oControl The control instance that is personalized
@@ -221,7 +213,6 @@ sap.ui.define([
 	 * The event handler is fired every time a user triggers a personalization change for a control instance during runtime.
 	 *
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 *
 	 * @param {function} fnStateEventHandler The handler function to call when the event occurs
 	 * @returns {this} Returns <code>this</code> to allow method chaining
@@ -235,7 +226,6 @@ sap.ui.define([
 	 * The passed parameters must match those used for registration with {@link sap.m.p13n.Engine#attachStateChange} beforehand.
 	 *
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 *
 	 * @param {function} fnStateEventHandler The handler function to detach from the event
 	 * @returns {this} Returns <code>this</code> to allow method chaining
@@ -248,7 +238,6 @@ sap.ui.define([
 	 * This method can be used to trigger a reset to the provided control instance.
 	 *
 	 * @public
-	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
 	 *
 	 * @param {sap.ui.core.Control} oControl The related control instance
 	 * @param {string} aKeys The key for the affected configuration
@@ -270,6 +259,14 @@ sap.ui.define([
 			selector: oControl
 		};
 
+		if (aKeys) {
+			var aChangeTypes = [];
+			aKeys.forEach(function(sKey){
+				aChangeTypes = aChangeTypes.concat(Object.values(this.getController(oControl, sKey).getChangeOperations()));
+			}.bind(this));
+			oResetConfig.changeTypes = [].concat.apply([], aChangeTypes);
+		}
+
 		var oModificationSetting = this._determineModification(oControl);
 		return oModificationSetting.handler.reset(oResetConfig, oModificationSetting.payload).then(function(){
 			this.stateHandlerRegistry.fireChange(oControl);
@@ -277,7 +274,9 @@ sap.ui.define([
 			return this.initAdaptation(oControl, aKeys).then(function(oPropertyHelper){
 				aKeys.forEach(function(sKey){
 					var oController = this.getController(oControl, sKey);
-					oController.update(oPropertyHelper);
+					if (this.hasActiveP13n(oControl)) {
+						oController.update(oPropertyHelper);
+					}
 				}.bind(this));
 			}.bind(this));
 		}.bind(this));
@@ -297,11 +296,10 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.core.Control} oControl The registered control instance
 	 * @param {object} oState The state object
-	 * @param {boolean} bApplyAbsolute Defines whether the state should be an additional delta of the current control state
 	 *
 	 * @returns {Promise} A Promise resolving after the state has been applied
 	 */
-	 Engine.prototype.applyState = function(oControl, oState, bApplyAbsolute) {
+	 Engine.prototype.applyState = function(oControl, oState) {
 
 		//Call retrieve only to ensure that the control is initialized and enabled for modification
 		return this.retrieveState(oControl).then(function(oCurrentState){
@@ -322,7 +320,8 @@ sap.ui.define([
 				var oController = this.getController(oControl, sControllerKey);
 
 				if (!oController){
-					//TODO: p13nMode <> register <> StateUtil key alignment
+					//In case no controller can be found, skip change creation & appliance
+					//to avoid errors and react gracefully
 					return;
 				}
 
@@ -331,7 +330,7 @@ sap.ui.define([
 					key: sControllerKey,
 					state: oController.sanityCheck(oState[sControllerKey]),
 					suppressAppliance: true,
-					applyAbsolute: bApplyAbsolute
+					applyAbsolute: false
 				});
 
 				aStatePromise.push(oStatePromise);
@@ -449,7 +448,7 @@ sap.ui.define([
 		var bSuppressCallback = !!mDiffParameters.suppressAppliance;
 
 		if (!sKey || !mDiffParameters.control || !vNewState) {
-			throw new Error("To create changes via Engine, atleast a 1)Control 2)Key and 3)State needs to be provided.");
+			return Promise.resolve([]);
 		}
 
 		var fDeltaHandling = function() {
@@ -573,7 +572,7 @@ sap.ui.define([
 	 * This method can be used in the designtime metadata of the control
 	 * for key user personalization.
 	 *
-	 * @ui5-restricted
+	 * @ui5-restricted sap.ui.mdc
 	 *
 	 * @param {sap.ui.core.Control} oControl The registered control instance
 	 * @param {object} mPropertyBag The property bag provided in the settings action
@@ -1201,24 +1200,28 @@ sap.ui.define([
 
 			var oController = this.getController(oControl, sControllerKey);
 
-			var p = this.createChanges({
-				control: oControl,
-				key: sControllerKey,
-				state: oController.getP13nData(),
-				suppressAppliance: true,
-				applyAbsolute: true
-			})
-			.then(function(aItemChanges){
+			var vP13nData = oController.getP13nData();
+			if (vP13nData) {
+				var p = this.createChanges({
+					control: oControl,
+					key: sControllerKey,
+					state: vP13nData,
+					suppressAppliance: true,
+					applyAbsolute: true
+				})
+				.then(function(aItemChanges){
 
-				return oController.getBeforeApply().then(function(aChanges){
+					return oController.getBeforeApply().then(function(aChanges){
 
-					var aComulatedChanges = aChanges ? aChanges.concat(aItemChanges) : aItemChanges;
-					return aComulatedChanges;
+						var aComulatedChanges = aChanges ? aChanges.concat(aItemChanges) : aItemChanges;
+						return aComulatedChanges;
 
+					});
 				});
-			});
 
-			pChanges.push(p);
+				pChanges.push(p);
+			}
+
 		}.bind(this));
 
 		return Promise.all(pChanges).then(function(aChangeMatrix){
@@ -1239,10 +1242,11 @@ sap.ui.define([
 	};
 
 	/**
+	 * This method is the central point of access to the Engine Singleton.
+	 *
 	 * @private
 	 * @ui5-restricted sap.m
 	 *
-	 * This method is the central point of access to the Engine Singleton.
 	 * @returns {sap.m.p13n.Engine} The Engine instance
 	 */
 	Engine.getInstance = function() {

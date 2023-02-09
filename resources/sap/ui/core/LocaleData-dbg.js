@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,6 +8,25 @@
 sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', './Locale', 'sap/base/assert', 'sap/base/util/LoaderExtensions', "sap/ui/core/Configuration"],
 	function(extend, BaseObject, CalendarType, Locale, assert, LoaderExtensions, Configuration) {
 	"use strict";
+
+	var rEIgnoreCase = /e/i,
+		/*
+		* With the upgrade of the CLDR to version 41 some unit keys have changed.
+		* For compatibility reasons this map is used for formatting units.
+		* It maps a legacy unit key to its renamed key.
+		*/
+		mLegacyUnit2CurrentUnit = {
+			"acceleration-meter-per-second-squared": "acceleration-meter-per-square-second",
+			"concentr-milligram-per-deciliter": "concentr-milligram-ofglucose-per-deciliter",
+			"concentr-part-per-million": "concentr-permillion",
+			"consumption-liter-per-100kilometers": "consumption-liter-per-100-kilometer",
+			"pressure-millimeter-of-mercury": "pressure-millimeter-ofhg",
+			"pressure-pound-per-square-inch": "pressure-pound-force-per-square-inch",
+			"pressure-inch-hg": "pressure-inch-ofhg",
+			"torque-pound-foot": "torque-pound-force-foot"
+		},
+		rNumberInScientificNotation = /^([+-]?)((\d+)(?:\.(\d+))?)[eE]([+-]?\d+)$/,
+		rTrailingZeroes = /0+$/;
 
 	/**
 	 * Creates an instance of LocaleData for the given locale.
@@ -18,7 +37,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @public
 	 * @alias sap.ui.core.LocaleData
 	 */
@@ -513,7 +532,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w/W), Day-Of-Week (E/e/c), Day (d/D),
 		 * Hour (h/H/k/K/), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
 		 *
-		 * See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+		 * See https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
 		 *
 		 * @param {string} sSkeleton the wanted skeleton format for the datetime pattern
 		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
@@ -582,7 +601,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w/W), Day-Of-Week (E/e/c), Day (d/D),
 		 * Hour (h/H/k/K/), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
 		 *
-		 * See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+		 * See https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
 		 *
 		 * @param {string} sSkeleton the wanted skeleton format for the datetime pattern
 		 * @param {object|string} vGreatestDiff is either a string which represents the symbol matching the greatest difference in the two dates to format or an object which contains key-value pairs.
@@ -1095,7 +1114,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * $100,000.00
 		 * ($100,000.00)
 		 *
-		 * @see http://cldr.unicode.org/translation/numbers-currency/number-patterns
+		 * @see https://cldr.unicode.org/translation/numbers-currency/number-patterns
 		 *
 		 * @param {string} sContext the context of the currency pattern (standard or accounting)
 		 * @returns {string} The pattern
@@ -1388,11 +1407,15 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 						oTimeEntry = oScale[sEntry];
 						iSign = sEntry.substr(18) === "past" ? -1 : 1;
 						aPluralCategories.forEach(function(sKey) { // eslint-disable-line no-loop-func
-							aPatterns.push({
-								scale: sScale,
-								sign: iSign,
-								pattern: oTimeEntry["relativeTimePattern-count-" + sKey]
-							});
+							var sPattern = oTimeEntry["relativeTimePattern-count-" + sKey];
+
+							if (sPattern) {
+								aPatterns.push({
+									scale: sScale,
+									sign: iSign,
+									pattern: sPattern
+								});
+							}
 						});
 					}
 				}
@@ -1695,7 +1718,12 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * @since 1.54
 		 */
 		getUnitFormat: function (sUnit) {
-			return this._get("units", "short", sUnit);
+			var oResult = this._get("units", "short", sUnit);
+
+			if (!oResult && mLegacyUnit2CurrentUnit[sUnit]) {
+				oResult = this._get("units", "short", mLegacyUnit2CurrentUnit[sUnit]);
+			}
+			return oResult;
 		},
 
 		/**
@@ -1810,9 +1838,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * @since 1.28.6
 		 */
 		getPreferredCalendarType: function() {
-			var sCalendarPreference = this._get("calendarPreference"),
-				aCalendars = sCalendarPreference ? sCalendarPreference.split(" ") : [],
-				sCalendarName, sType, i;
+			var sCalendarName, sType, i,
+				aCalendars = this._get("calendarPreference") || [];
 
 			for ( i = 0 ; i < aCalendars.length ; i++ ) {
 				// No support for calendar subtypes (islamic) yet, so ignore part after -
@@ -1877,13 +1904,23 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					fnTest = this._parsePluralRule(oPlurals[sCategory]);
 					this._pluralTest[sCategory] = fnTest;
 				}
-				if (fnTest(sNumber)) {
+				if (fnTest(sNumber).bMatch) {
 					return sCategory;
 				}
 			}
 			return "other";
 		},
 
+		/**
+		 * Parses a language plural rule as specified in
+		 * https://unicode.org/reports/tr35/tr35-numbers.html#table-plural-operand-meanings
+		 *
+		 * @param {string} sRule The plural rule as a string
+		 * @returns {function(string)} A function to determine for a number given as string parameter if it matches the
+		 *   plural rule.
+		 *
+		 * @private
+		 */
 		_parsePluralRule: function(sRule) {
 
 			var OP_OR = "or",
@@ -1897,6 +1934,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 				OPD_T = "t",
 				OPD_V = "v",
 				OPD_W = "w",
+				OPD_C = "c",
+				OPD_E = "e",
 				RANGE = "..",
 				SEP = ",";
 
@@ -2002,6 +2041,14 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					return function(o) {
 						return o.w;
 					};
+				} else if (accept(OPD_C)) {
+					return function(o) {
+						return o.c;
+					};
+				} else if (accept(OPD_E)) {
+					return function(o) {
+						return o.c; // c is an alias for e
+					};
 				} else {
 					throw new Error("Unknown operand: " + consume());
 				}
@@ -2034,31 +2081,80 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 				throw new Error("Not completely parsed");
 			}
 			return function(sValue) {
-				var iDotPos = sValue.indexOf("."),
-					sDecimal, sFraction, sFractionNoZeros, o;
+				var iDotPos, iExponent, sFraction, sFractionNoZeros, sInteger, o,
+					iExponentPos = sValue.search(rEIgnoreCase);
 
+				iExponent = iExponentPos < 0 ? 0 : parseInt(sValue.slice(iExponentPos + 1));
+				sValue = LocaleData.convertToDecimal(sValue);
+
+				iDotPos = sValue.indexOf(".");
 				if (iDotPos === -1) {
-					sDecimal = sValue;
+					sInteger = sValue;
 					sFraction = "";
 					sFractionNoZeros = "";
 				} else {
-					sDecimal = sValue.substr(0, iDotPos);
-					sFraction = sValue.substr(iDotPos + 1);
-					sFractionNoZeros = sFraction.replace(/0+$/, '');
+					sInteger = sValue.slice(0, iDotPos);
+					sFraction = sValue.slice(iDotPos + 1);
+					sFractionNoZeros = sFraction.replace(rTrailingZeroes, '');
 				}
 
 				o = {
 					n: parseFloat(sValue),
-					i: parseInt(sDecimal),
+					i: parseInt(sInteger),
 					v: sFraction.length,
 					w: sFractionNoZeros.length,
-					f: parseInt(sFraction),
-					t: parseInt(sFractionNoZeros)
+					f: sFraction === "" ? 0 : parseInt(sFraction),
+					t: sFractionNoZeros === "" ? 0 : parseInt(sFractionNoZeros),
+					c: iExponent
 				};
-				return fnOr(o);
+				return {bMatch: fnOr(o), oOperands: o};
 			};
 		}
 	});
+
+	/**
+	 * Returns the non-scientific (=decimal) notation of the given numeric value which does not contain an exponent
+	 * value.
+	 * For numbers with a magnitude (ignoring sign) greater than or equal to 1e+21 or less than 1e-6, a conversion is
+	 * required, as Number#toString formats these in scientific notation.
+	 *
+	 * @param {float|string} vValue
+	 *   A number such as 10.1 or a string containing a number based on radix 10
+	 * @return {string} The number in decimal notation
+	 *
+	 * @private
+	 * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/toString#description
+	 */
+	LocaleData.convertToDecimal = function (vValue) {
+		var iIntegerLength, iExponent, iFractionLength, bNegative, iNewIntegerLength, aResult,
+			sValue = String(vValue);
+
+		if (!sValue.includes("e") && !sValue.includes("E")) {
+			return sValue;
+		}
+
+		aResult = sValue.match(rNumberInScientificNotation);
+		bNegative = aResult[1] === "-";
+		sValue = aResult[2].replace(".", "");
+		iIntegerLength = aResult[3] ? aResult[3].length : 0;
+		iFractionLength = aResult[4] ? aResult[4].length : 0;
+		iExponent = parseInt(aResult[5]);
+
+		iNewIntegerLength = iIntegerLength + iExponent;
+		if (iExponent > 0) {
+			sValue = iExponent < iFractionLength
+				? sValue.slice(0, iNewIntegerLength) + "." + sValue.slice(iNewIntegerLength)
+				: sValue = sValue.padEnd(iNewIntegerLength, "0");
+		} else {
+			sValue = -iExponent < iIntegerLength
+				? sValue = sValue.slice(0, iNewIntegerLength) + "." + sValue.slice(iNewIntegerLength)
+				: sValue = "0." + sValue.padStart(iFractionLength - iExponent, "0");
+		}
+		if (bNegative) {
+			sValue = "-" + sValue;
+		}
+		return sValue;
+	};
 
 	var mCLDRSymbolGroups = {
 		"Era": { field: "era", index: 0 },
@@ -2254,7 +2350,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					} else if ( value === null ) {
 						// 'null' is used by the delta tooling as a marker that a value must not be taken form the fallback
 						delete obj[name];
-					} else if ( typeof value === 'object' && typeof fallbackValue === 'object' ) {
+					} else if ( typeof value === 'object' && typeof fallbackValue === 'object' && !Array.isArray(value) ) {
 						// both values are objects, merge them recursively
 						merge(value, fallbackValue);
 					}

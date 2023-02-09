@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -24,13 +24,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.integration
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @since 1.62
 	 * @public
 	 */
 	var thisLib = sap.ui.getCore().initLibrary({
 		name: "sap.ui.integration",
-		version: "1.109.0",
+		version: "1.110.0",
 		dependencies: [
 			"sap.ui.core",
 			"sap.f",
@@ -53,7 +53,8 @@ sap.ui.define([
 		],
 		elements: [
 			"sap.ui.integration.ActionDefinition",
-			"sap.ui.integration.Host"
+			"sap.ui.integration.Host",
+			"sap.ui.integration.Extension"
 		],
 		// define the custom elements that can be used in this library
 		customElements: {

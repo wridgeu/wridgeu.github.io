@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -25,7 +25,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
@@ -173,6 +173,43 @@ sap.ui.define([
 			}
 		});
 
+		/**
+		 * Sets a new value for property {@link #setResolveDestination resolveDestination}.
+		 *
+		 * A function that resolves the given destination name to a URL.
+
+		 * The Card calls this function when it needs to send a request to a destination. Function returns the URL to which the request is sent.
+
+		 * If a card depends on a destination, but this callback is not implemented, an error will be logged.
+
+		 * The callback receives <code>destinationName</code> as parameter and returns a string with the URL. Or alternatively the callback may return a <code>Promise</code> with the URL as an argument.
+		 *
+		 * When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.
+		 *
+		 * @method
+		 * @param {function(string, sap.ui.integration.widgets.Card): (string|Promise<string>)} [fnResolveDestination] New value for property <code>resolveDestination</code>
+		 * @public
+		 * @name sap.ui.integration.Host#setResolveDestination
+		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 */
+
+		/**
+		 * Gets current value of property {@link #getResolveDestination resolveDestination}.
+		 *
+		 * A function that resolves the given destination name to a URL.
+		 *
+		 * The Card calls this function when it needs to send a request to a destination. Function returns the URL to which the request is sent.
+		 *
+		 * If a card depends on a destination, but this callback is not implemented, an error will be logged.
+		 *
+		 * The callback receives <code>destinationName</code> as parameter and returns a string with the URL. Or alternatively the callback may return a <code>Promise</code> with the URL as an argument.
+		 *
+		 * @method
+		 * @returns {function(string, sap.ui.integration.widgets.Card): (string|Promise<string>)|undefined} Value of property <code>resolveDestination</code>
+		 * @public
+		 * @name sap.ui.integration.Host#getResolveDestination
+		 */
+
 		Host.prototype.init = function () {
 			this._handlePostMessageBound = this._handlePostMessage.bind(this);
 		};
@@ -182,8 +219,7 @@ sap.ui.define([
 		 *
 		 * @param {string} sDestinationName The name of the destination.
 		 * @param {sap.ui.integration.widgets.Card} oCard The card that depends on the destination.
-		 * Most often the name which is used in the SAP Cloud Platform.
-		 * @returns {Promise} A promise which resolves with the URL of the destination.
+		 * @returns {Promise<string>} A promise which resolves with the URL of the destination.
 		 *
 		 * @public
 		 */
@@ -211,8 +247,8 @@ sap.ui.define([
 		/**
 		 * Resolves the CSRF token and returns a Promise with its value.
 		 *
-		 * @param {object} mCSRFTokenConfig The CSRF token configuration.
-		 * @returns {Promise} A promise which resolves the CSRF token to its value.
+		 * @param {{data: object}} mCSRFTokenConfig The CSRF token configuration.
+		 * @returns {Promise<string>} A promise which resolves the CSRF token to its value.
 		 * @experimental since 1.97
 		 * @abstract
 		 * @public
@@ -222,11 +258,12 @@ sap.ui.define([
 		};
 
 		/**
-		 * This functions is called when a CSRF token is fetched.
+		 * This function is called when a CSRF token is fetched.
 		 *
-		 * @param {object} mCSRFTokenConfig The CSRF token configuration.
-		 * @param {Promise} pCSRFTokenValuePromise A promise which resolves the CSRF token to its value.
+		 * @param {{data: object}} mCSRFTokenConfig The CSRF token configuration.
+		 * @param {Promise<string>} pCSRFTokenValuePromise A promise which resolves the CSRF token to its value.
 		 * @experimental since 1.97
+		 * @abstract
 		 * @public
 		 */
 		Host.prototype.csrfTokenFetched = function (mCSRFTokenConfig, pCSRFTokenValuePromise) {
@@ -234,10 +271,11 @@ sap.ui.define([
 		};
 
 		/**
-		 * This functions is called when a CSRF token has expired.
+		 * This function is called when a CSRF token has expired.
 		 *
-		 * @param {object} mCSRFTokenConfig The CSRF token configuration.
+		 * @param {{data: object}} mCSRFTokenConfig The CSRF token configuration.
 		 * @experimental since 1.97
+		 * @abstract
 		 * @public
 		 */
 		Host.prototype.csrfTokenExpired = function (mCSRFTokenConfig) {
@@ -271,7 +309,7 @@ sap.ui.define([
 		 * }
 		 *
 		 * @param {string} sPath The path to a context
-		 * @returns {Promise} A promise which resolves with the value of this context.
+		 * @returns {Promise<null>} A promise which resolves with the value of this context.
 		 * @since 1.83
 		 *
 		 * @public
@@ -290,7 +328,7 @@ sap.ui.define([
 		 *    "name": "DestinationName"
 		 * }
 		 *
-		 * @returns {Promise} A promise which resolves with the list of destinations.
+		 * @returns {Promise<object[]>} A promise which resolves with the list of destinations.
 		 * @since 1.83
 		 *
 		 * @public
@@ -320,7 +358,7 @@ sap.ui.define([
 		 *
 		 * The context information and texts should be translated as they appear in the design-time UI of the Card Editor.
 		 *
-		 * @returns {Promise} A promise which contains the context structure.
+		 * @returns {Promise<object>} A promise which contains the context structure.
 		 * @since 1.83
 		 * @public
 		 */

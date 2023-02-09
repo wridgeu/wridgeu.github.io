@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -143,7 +143,7 @@ sap.ui.define([
 	 * mobile devices, it opens in full screen.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -392,10 +392,6 @@ sap.ui.define([
 	DateTimePicker.prototype._formatValueAndUpdateOutput = function(oDate, sValue) {
 		delete this._prefferedValue;
 
-		if (!this.getDomRef()) {
-			return;
-		}
-
 		// convert to output
 		var sOutputValue = oDate ? this._formatValue(oDate) : sValue;
 		if (!oDate) {
@@ -405,6 +401,10 @@ sap.ui.define([
 				this._prefferedValue = sFallbackValue;
 				sOutputValue = sFallbackValue;
 			}
+		}
+
+		if (!this.getDomRef()) {
+			return;
 		}
 
 		if (this._bPreferUserInteraction) {
@@ -657,9 +657,13 @@ sap.ui.define([
 			oBinding = this.getBinding("value") || this.getBinding("dateValue"),
 			oBindingType = oBinding && oBinding.getType && oBinding.getType();
 
-		if (bDisplayFormat || !this._getTimezone() ||
-			(oBindingType && !oBindingType.isA(["sap.ui.model.odata.type.DateTimeWithTimezone"]))) {
+		if (bDisplayFormat || !this._getTimezone()
+			|| (oBindingType && !oBindingType.isA(["sap.ui.model.odata.type.DateTimeWithTimezone"]))) {
 			oFormatOptions.showTimezone = false;
+		}
+
+		if (!bDisplayFormat && oBindingType && oBindingType.isA(["sap.ui.model.odata.type.DateTimeWithTimezone"])) {
+			oFormatOptions.showTimezone = true;
 		}
 
 		if (oFormatOptions.relative === undefined) {
@@ -806,7 +810,7 @@ sap.ui.define([
 	/**
 	 * Tries to parse the value to see if it is a timezone only string.
 	 * @param {string} sValue A value string
-	 * @return {string|null} An empty string indicating success or null
+	 * @returns {string|null} An empty string indicating success or null
 	 * @private
 	 */
 	DateTimePicker.prototype._fallbackParse = function(sValue) {
@@ -1042,7 +1046,7 @@ sap.ui.define([
 	 * @name sap.m.DateTimePicker#getDateValue
 	 * @function
 	 * @public
-	 * @returns {object}
+	 * @returns {Date} A JavaScript Date
 	 * @since 1.102
 	 */
 
@@ -1054,7 +1058,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {object} Current accessibility state of the control
+	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control
 	 * @protected
 	 */
 	DateTimePicker.prototype.getAccessibilityInfo = function() {

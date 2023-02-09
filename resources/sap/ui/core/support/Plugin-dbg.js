@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 *
 	 * @abstract
 	 * @extends sap.ui.base.Object
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @private
 	 * @ui5-restricted
 	 * @alias sap.ui.core.support.Plugin

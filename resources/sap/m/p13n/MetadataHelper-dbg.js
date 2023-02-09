@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,9 +12,9 @@ sap.ui.define([
     /**
      * The <code>MetadataHelper</code> entity offers utility functionality for providing service metadata during the <code>Engine#register</code> process.
      *
+     * @class
 	 * @author SAP SE
 	 * @public
-     * @experimental Since 1.104.
 	 * @alias sap.m.p13n.MetadataHelper
      */
     var MetadataHelper = BaseObject.extend("sap.m.p13n.MetadataHelper", {

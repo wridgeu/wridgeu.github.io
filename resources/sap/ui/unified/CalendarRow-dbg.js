@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -86,7 +86,7 @@ sap.ui.define([
 	 * @class
 	 * A calendar row with a header and appointments. The Appointments will be placed in the defined interval.
 	 * @extends sap.ui.core.Control
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -463,6 +463,11 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Set the start date of the row
+	 * @param {Date} [oStartDate] Start date, as JavaScript Date object, of the row
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 */
 	CalendarRow.prototype.setStartDate = function(oStartDate){
 
 		if (!oStartDate) {
@@ -483,6 +488,11 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Returns the start date of the row.
+	 * @returns {sap.ui.core.date.UniversalDate} in UTC timezone
+	 * @private
+	 */
 	CalendarRow.prototype._getStartDate = function(){
 
 		if (!this._oUTCStartDate) {
@@ -667,7 +677,7 @@ sap.ui.define([
 	 * of each <code>CalendarRow</code>.
 	 *
 	 * @param {jQuery.Event} oEvent The event object of the resize handler.
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	CalendarRow.prototype.handleResize = function(oEvent) {
@@ -697,7 +707,7 @@ sap.ui.define([
 	 * it is better if the container triggers the interval once and then calls this function
 	 * of each <code>CalendarRow</code>.
 	 *
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	CalendarRow.prototype.updateCurrentTimeVisualization = function() {
@@ -813,7 +823,7 @@ sap.ui.define([
 	 * Focus the given <code>CalendarAppointment</code> in the <code>CalendarRow</code>.
 	 *
 	 * @param {sap.ui.unified.CalendarAppointment} oAppointment Appointment to be focused.
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	CalendarRow.prototype.focusAppointment = function(oAppointment) {
@@ -837,8 +847,8 @@ sap.ui.define([
 	 * Focus the <code>CalendarAppointment</code> in the <code>CalendarRow</code> that is nearest to
 	 * the given date.
 	 *
-	 * @param {object} oDate Javascript Date object.
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @param {Date} oDate Javascript Date object.
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	CalendarRow.prototype.focusNearestAppointment = function(oDate) {

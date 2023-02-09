@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -39,7 +39,7 @@ sap.ui.define([
 	"sap/m/IllustratedMessageSize",
 	"sap/ui/integration/util/Utils",
 	"sap/ui/integration/util/ParameterMap",
-	"sap/ui/performance/Measurement",
+	"sap/ui/integration/util/Measurement",
 	"sap/m/HBox",
 	"sap/m/library"
 ], function (
@@ -125,14 +125,6 @@ sap.ui.define([
 
 	var MODULE_PREFIX = "module:";
 
-	function measurementStartTime() {
-		if (performance && performance.now) {
-			return "Start since page load: " + performance.now();
-		}
-
-		return "";
-	}
-
 	/**
 	 * Constructor for a new <code>Card</code>.
 	 *
@@ -190,7 +182,7 @@ sap.ui.define([
 	 * @extends sap.f.CardBase
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 * @public
 	 * @constructor
 	 * @see {@link topic:5b46b03f024542ba802d99d67bc1a3f4 Cards}
@@ -523,7 +515,7 @@ sap.ui.define([
 		 * @experimental since 1.79
 		 * @public
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 * @borrows sap.ui.integration.widgets.Card#getDomRef as getDomRef
 		 * @borrows sap.ui.integration.widgets.Card#setVisible as setVisible
 		 * @borrows sap.ui.integration.widgets.Card#getParameters as getParameters
@@ -693,12 +685,12 @@ sap.ui.define([
 	 * @private
 	 */
 	Card.prototype.onAfterRendering = function () {
-		if (Measurement.getActive() && this._isManifestReady) {
-			if (!Measurement.getMeasurement(this._sPerformanceId + "firstRenderingWithStaticData").end) {
+		if (this._isManifestReady) {
+			if (!Measurement.hasEnded(this._sPerformanceId + "firstRenderingWithStaticData")) {
 				Measurement.end(this._sPerformanceId + "firstRenderingWithStaticData");
 			}
 
-			if (this._bDataReady && !Measurement.getMeasurement(this._sPerformanceId + "firstRenderingWithDynamicData").end) {
+			if (this._bDataReady && !Measurement.hasEnded(this._sPerformanceId + "firstRenderingWithDynamicData")) {
 				Measurement.end(this._sPerformanceId + "firstRenderingWithDynamicData");
 			}
 		}
@@ -827,7 +819,7 @@ sap.ui.define([
 	 * Instantiates a Card Manifest and applies it.
 	 *
 	 * @private
-	 * @param {Object|string} vManifest The manifest URL or the manifest JSON.
+	 * @param {object|string} vManifest The manifest URL or the manifest JSON.
 	 * @param {string} sBaseUrl The base URL of the manifest.
 	 */
 	Card.prototype.createManifest = function (vManifest, sBaseUrl) {
@@ -844,14 +836,21 @@ sap.ui.define([
 			this._oCardManifest.destroy();
 		}
 
-		Measurement.start(this._sPerformanceId + "initManifest", "Load and initialize manifest. " + measurementStartTime());
-		Measurement.start(this._sPerformanceId + "firstRenderingWithStaticData", "First rendering with static data (includes initManifest). " + measurementStartTime());
-		Measurement.start(this._sPerformanceId + "firstRenderingWithDynamicData","First rendering with dynamic card level data (includes firstRenderingWithStaticData). " + measurementStartTime());
+		Measurement.start(this._sPerformanceId + "initManifest", "Load and initialize manifest.");
+		Measurement.start(this._sPerformanceId + "firstRenderingWithStaticData", "First rendering with static data (includes initManifest).");
+		Measurement.start(this._sPerformanceId + "firstRenderingWithDynamicData","First rendering with dynamic card level data (includes firstRenderingWithStaticData).");
 
 		this._oCardManifest = new CardManifest("sap.card", vManifest, sBaseUrl, this.getManifestChanges());
 
 		this._oCardManifest
 			.load(mOptions)
+			.then(function () {
+				if (this.isDestroyed()) {
+					throw new Error(CARD_DESTROYED_ERROR);
+				}
+
+				return this._oCardManifest.loadDependenciesAndIncludes();
+			}.bind(this))
 			.then(function () {
 				if (this.isDestroyed()) {
 					throw new Error(CARD_DESTROYED_ERROR);
@@ -1274,6 +1273,8 @@ sap.ui.define([
 			this._oDataProviderFactory = null;
 			this._oDataProvider = null;
 		}
+
+		this._setLoadingProviderState(false);
 	};
 
 	/**
@@ -1355,7 +1356,7 @@ sap.ui.define([
 	 * @public
 	 * @experimental Since 1.77
 	 * @param {string} sPath The path to return a value for.
-	 * @returns {Object} The value at the specified path.
+	 * @returns {any} The value at the specified path.
 	 */
 	Card.prototype.getManifestEntry = function (sPath) {
 		if (!this._isManifestReady) {
@@ -1401,7 +1402,7 @@ sap.ui.define([
 	 * Resolves the destination and returns its URL.
 	 * @public
 	 * @param {string} sKey The destination's key used in the configuration.
-	 * @returns {Promise} A promise which resolves with the URL of the destination.
+	 * @returns {Promise<string>} A promise which resolves with the URL of the destination.
 	 */
 	Card.prototype.resolveDestination = function (sKey) {
 		return this._oDestinations.getUrl(sKey);
@@ -2174,7 +2175,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @experimental Since 1.73
-	 * @returns {Promise} Promise resolves after the designtime configuration is loaded.
+	 * @returns {Promise<object>} Promise resolves after the designtime configuration is loaded.
 	 */
 	Card.prototype.loadDesigntime = function () {
 		if (this._oDesigntime) {
@@ -2351,14 +2352,14 @@ sap.ui.define([
 	 * @public
 	 * @experimental since 1.79
 	 * @param {object} oConfiguration The configuration of the request.
-	 * @param {string} oConfiguration.URL The URL of the resource.
+	 * @param {string} oConfiguration.url The URL of the resource.
 	 * @param {string} [oConfiguration.mode="cors"] The mode of the request. Possible values are "cors", "no-cors", "same-origin".
 	 * @param {string} [oConfiguration.method="GET"] The HTTP method. Possible values are "GET", "POST".
-	 * @param {Object} [oConfiguration.parameters] The request parameters. If the method is "POST" the parameters will be put as key/value pairs into the body of the request.
+	 * @param {object} [oConfiguration.parameters] The request parameters. If the method is "POST" the parameters will be put as key/value pairs into the body of the request.
 	 * @param {string} [oConfiguration.dataType="json"] The expected Content-Type of the response. Possible values are "xml", "json", "text", "script", "html", "jsonp". Note: Complex Binding is not supported when a dataType is provided. Serialization of the response to an object is up to the developer.
-	 * @param {Object} [oConfiguration.headers] The HTTP headers of the request.
+	 * @param {object} [oConfiguration.headers] The HTTP headers of the request.
 	 * @param {boolean} [oConfiguration.withCredentials=false] Indicates whether cross-site requests should be made using credentials.
-	 * @returns {Promise} Resolves when the request is successful, rejects otherwise.
+	 * @returns {Promise<any>} Resolves when the request is successful, rejects otherwise.
 	 */
 	Card.prototype.request = function (oConfiguration) {
 		return this.processDestinations(oConfiguration).then(function (oResult) {

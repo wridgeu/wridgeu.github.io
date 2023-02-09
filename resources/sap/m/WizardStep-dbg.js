@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * <li>If the execution needs to branch after a given step, you should set all possible next steps in the <code>subsequentSteps</code> aggregation.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -206,6 +206,24 @@ sap.ui.define([
 
 		return this;
 	};
+
+	/**
+	 * Sets the title property of the WizardStep.
+	 * @param {string} sNewTitle The new WizardStep title.
+	 * @returns {sap.m.WizardStep} this instance for method chaining.
+	 * @public
+	 */
+	WizardStep.prototype.setTitle = function (sNewTitle) {
+		var oWizard = this._getWizardParent();
+
+		this.setProperty("title", sNewTitle);
+		if (oWizard) {
+			oWizard._updateProgressNavigator();
+		}
+
+		return this;
+	};
+
 	/**
 	 * setVisible shouldn't be used on wizard steps.
 	 * If you need to show/hide steps based on some condition - use the branching property instead.
@@ -248,10 +266,7 @@ sap.ui.define([
 	WizardStep.prototype._getWizardParent = function () {
 		var oParent = this.getParent();
 
-		while (!(oParent instanceof sap.m.Wizard)) {
-			if (oParent === null) {
-				return null;
-			}
+		while (oParent && !oParent.isA("sap.m.Wizard")) {
 			oParent = oParent.getParent();
 		}
 

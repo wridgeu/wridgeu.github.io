@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,6 @@ sap.ui.define([
 	"sap/m/inputUtils/completeTextSelected",
 	"sap/ui/events/KeyCodes",
 	'sap/ui/core/InvisibleText',
-	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos"
 ],
@@ -42,8 +41,7 @@ function(
 	containsOrEquals,
 	completeTextSelected,
 	KeyCodes,
-	InvisibleText,
-	jQuery
+	InvisibleText
 ) {
 		"use strict";
 
@@ -107,7 +105,7 @@ function(
 	* @implements sap.ui.core.ISemanticFormContent
 	*
 	* @author SAP SE
-	* @version 1.109.0
+	* @version 1.110.0
 	*
 	* @constructor
 	* @public
@@ -260,6 +258,8 @@ function(
 			this.destroyTokens();
 			this.updateAggregation("tokens");
 		};
+
+		oTokenizer.setShouldRenderTabIndex(false);
 
 		this.setAggregation("tokenizer", oTokenizer);
 
@@ -1470,7 +1470,7 @@ function(
 	MultiInput.prototype.forwardEventHandlersToSuggPopover = function (oSuggPopover) {
 		oSuggPopover.setShowSelectedPressHandler(this._handleShowSelectedPress.bind(this));
 		oSuggPopover.setOkPressHandler(this._handleConfirmation.bind(this, true));
-		oSuggPopover.setCancelPressHandler(this._handleCancelPress.bind(this));
+		oSuggPopover.setCancelPressHandler(this._revertPopupSelection.bind(this));
 	};
 
 	// Handles "Enter" key press and OK button press
@@ -1486,11 +1486,6 @@ function(
 
 		// Fire through the MultiInput Popup's input value and save it
 		this.onChange(oEvent, null, oPopupInput.getValue());
-	};
-
-	MultiInput.prototype._handleCancelPress  = function (oEvent) {
-		this._getSuggestionsPopover().getInput().setDOMValue(this.getLastValue());
-		this._closeSuggestionPopup();
 	};
 
 	MultiInput.prototype._handleShowSelectedPress = function (oEvent) {

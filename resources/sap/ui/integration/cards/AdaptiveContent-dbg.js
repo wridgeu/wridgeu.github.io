@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -37,7 +37,7 @@ sap.ui.define([
 		 * @extends sap.ui.integration.cards.BaseContent
 		 *
 		 * @author SAP SE
-		 * @version 1.109.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @private
@@ -66,13 +66,6 @@ sap.ui.define([
 			this.setComponentsReady(false);
 			this._bAdaptiveCardElementsReady = false;
 			this._setupCardContent();
-
-			Core.attachThemeChanged(function () {
-				if (this.getDomRef()) {
-					this._adjustHostConfig();
-					this.invalidate();
-				}
-			}.bind(this));
 		};
 
 		AdaptiveContent.prototype.onAfterRendering = function () {
@@ -174,6 +167,13 @@ sap.ui.define([
 
 		AdaptiveContent.prototype.getConfiguration = function () {
 			return this._oCardConfig;
+		};
+
+		AdaptiveContent.prototype.onThemeChanged = function () {
+			if (this.getDomRef() && AdaptiveCards) {
+				this._adjustHostConfig();
+				this.invalidate();
+			}
 		};
 
 		/**

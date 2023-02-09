@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control', './ToolbarSeparatorRenderer']
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.109.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -70,9 +70,10 @@ sap.ui.define(['./library', 'sap/ui/core/Control', './ToolbarSeparatorRenderer']
 
 	/**
 	 * Sets the behavior of the <code>ToolbarSeparator</code> inside an <code>OverflowToolbar</code> configuration.
+	 * Required by the {@link sap.m.IOverflowToolbarContent} interface.
 	 *
 	 * @public
-	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
+	 * @returns {sap.m.OverflowToolbarConfig} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 * @since 1.65
 	 */
 
