@@ -1,3 +1,5 @@
+"use strict";
+
 sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sap/ui/core/ComponentSupport", "sap/ui/core/date/Gregorian"], function (UIComponent, sap_ui_Device, __deviceModelCreator, sap_ui_core_ComponentSupport, sap_ui_core_date_Gregorian) {
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;

@@ -1,3 +1,5 @@
+"use strict";
+
 sap.ui.define(["sap/ui/core/Fragment", "sap/ui/core/syncStyleClass", "sap/ui/model/json/JSONModel", "sap/ui/base/Object"], function (Fragment, syncStyleClass, JSONModel, Object) {
   /**
    * @namespace sapmarco.projectpages.classes

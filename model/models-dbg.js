@@ -1,3 +1,5 @@
+"use strict";
+
 sap.ui.define(["sap/ui/Device", "sap/ui/model/json/JSONModel"], function (Device, JSONModel) {
   /**
    * @namespace sapmarco.projectpages.model

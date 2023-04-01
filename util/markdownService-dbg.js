@@ -1,3 +1,5 @@
+"use strict";
+
 sap.ui.define(["highlight.js/lib/core", "highlight.js/lib/languages/javascript", "highlight.js/lib/languages/xml", "highlight.js/lib/languages/css", "highlight.js/lib/languages/shell", "highlight.js/lib/languages/bash", "highlight.js/lib/languages/json", "marked"], function (__hljs, __js, __xml, __css, __shell, __bash, __json, __marked) {
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;

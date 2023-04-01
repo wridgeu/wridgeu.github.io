@@ -1,3 +1,5 @@
+"use strict";
+
 sap.ui.define([], function () {
   /**
    * Fetch the markdown content

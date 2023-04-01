@@ -1,2 +1,2 @@
-sap.ui.define(["./Base.controller"],function(e){function n(e){return e&&e.__esModule&&typeof e.default!=="undefined"?e.default:e}const o=n(e);const t=o.extend("sapmarco.projectpages.controller.ShellController",{});return t});
+"use strict";sap.ui.define(["./Base.controller"],function(e){function t(e){return e&&e.__esModule&&typeof e.default!=="undefined"?e.default:e}const n=t(e);const o=n.extend("sapmarco.projectpages.controller.ShellController",{});return o});
 //# sourceMappingURL=Shell.controller.js.map

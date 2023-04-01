@@ -1,3 +1,5 @@
+"use strict";
+
 sap.ui.define(["sap/ui/core/Core", "sap/ui/core/mvc/Controller", "sap/ui/core/routing/History", "sap/ui/core/UIComponent", "../classes/VersionDialog"], function (Core, Controller, History, UIComponent, __VersionDialog) {
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
