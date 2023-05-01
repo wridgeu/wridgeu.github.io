@@ -64,7 +64,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -540,7 +540,7 @@ function(
 	 * Handles the change event.
 	 *
 	 * @protected
-	 * @param {object} oEvent
+	 * @param {jQuery.Event} oEvent The event
 	 * @param {object} [mParameters] Additional event parameters to be passed in to the change event handler if the
 	 * value has changed
 	 * @param {string} sNewValue Passed value on change
@@ -769,7 +769,7 @@ function(
 	 * Returns an object representing the serialized focus information.
 	 * To be overwritten by subclasses.
 	 *
-	 * @returns {object} An object representing the serialized focus information.
+	 * @returns {sap.ui.core.FocusInfo} An object representing the serialized focus information.
 	 * @protected
 	 */
 	InputBase.prototype.getFocusInfo = function() {
@@ -801,7 +801,7 @@ function(
 	 * Applies the focus info.
 	 * To be overwritten by subclasses.
 	 *
-	 * @param {object} oFocusInfo
+	 * @param {sap.ui.core.FocusInfo} oFocusInfo An object representing the serialized focus information.
 	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @protected
 	 */
@@ -1150,7 +1150,7 @@ function(
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {object} The accessibility information for this <code>InputBase</code>
+	 * @returns {sap.ui.core.AccessibilityInfo} The accessibility information for this <code>InputBase</code>
 	 * @protected
 	 */
 	InputBase.prototype.getAccessibilityInfo = function() {

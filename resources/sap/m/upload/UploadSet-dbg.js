@@ -47,7 +47,7 @@ sap.ui.define([
 	 * and requests, unified behavior of instant and deferred uploads, as well as improved progress indication.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @constructor
 	 * @public
 	 * @since 1.63
@@ -871,6 +871,9 @@ sap.ui.define([
 	UploadSet.prototype.setUploadEnabled = function (bEnable) {
 		if (bEnable !== this.getUploadEnabled()) {
 			this.getDefaultFileUploader().setEnabled(bEnable); // TODO: This can go, FileUploader doesn't upload anymore
+			if (this._oUploadButton) {
+				this._oUploadButton.setEnabled(bEnable);
+			}
 			this.setProperty("uploadEnabled", bEnable, false);
 		}
 		return this;

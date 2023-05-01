@@ -57,7 +57,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @private
@@ -564,7 +564,15 @@ sap.ui.define([
 			// Use high level getter for aggregation - getItems(), getContent(), ...
 			// Some controls like ListBase override the getter and it should be used.
 			oAggregation = oControl.getMetadata().getAggregation(sAggregation).get(oControl);
-			oParamsModel.setProperty("/visibleItems", oAggregation.length);
+
+			var sVisibleItemsCount = oAggregation.length;
+			oAggregation.forEach(function (oItem) {
+				if (oItem.isA("sap.m.GroupHeaderListItem")){
+					sVisibleItemsCount -= 1;
+				}
+			});
+
+			oParamsModel.setProperty("/visibleItems", sVisibleItemsCount);
 		});
 
 		oObserver.observe(oControl, {
@@ -658,9 +666,11 @@ sap.ui.define([
 
 	/**
 	* @private
-	* @ui5-restricted
- 	*/
-	BaseContent.prototype.validateControls = function () { };
+	* @ui5-restricted sap.ui.integration
+	* @param {boolean} bShowValueState Defines if the input controls should display their value state
+	* @param {boolean} bSkipFiringStateChangedEvent Defines if the firing of stateChanged event should not happen
+	 */
+	BaseContent.prototype.validateControls = function (bShowValueState, bSkipFiringStateChangedEvent) { };
 
 	BaseContent.prototype.getCardInstance = function () {
 		return Core.byId(this.getCard());

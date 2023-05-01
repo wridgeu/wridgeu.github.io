@@ -10,6 +10,8 @@ sap.ui.define([
     "sap/ui/Device",
     "sap/ui/core/Control",
 	"sap/ui/core/library",
+	"sap/ui/core/IconPool",
+	"sap/ui/core/theming/Parameters",
     "sap/m/ToggleButton",
     "sap/m/Button",
     "./DynamicPageHeaderRenderer",
@@ -19,6 +21,8 @@ sap.ui.define([
 	Device,
 	Control,
 	CoreLibrary,
+	IconPool,
+	ThemeParameters,
 	ToggleButton,
 	Button,
 	DynamicPageHeaderRenderer,
@@ -58,7 +62,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 *
 		 * @constructor
 		 * @public
@@ -353,6 +357,17 @@ sap.ui.define([
 				pinButton: oPinButton,
 				collapseButton: oCollapseButton
 			};
+		};
+
+		/**
+		 * Sets the icon of the pin button depending on the current theme
+		 */
+		DynamicPageHeader.prototype.onThemeChanged = function () {
+			var sIcon = IconPool.getIconURI(ThemeParameters.get({
+				name: "_sap_f_DynamicPageHeader_PinButton_Icon"
+			}));
+
+			this._getPinButton().setIcon(sIcon);
 		};
 
 		return DynamicPageHeader;

@@ -47,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -269,6 +269,15 @@ sap.ui.define([
 	};
 
 	Column.prototype.onsapenter = Column.prototype.onsapspace;
+
+	Column.prototype.oncontextmenu = function (oEvent) {
+		var oMenu = this._getHeaderMenuInstance();
+
+		if (oMenu) {
+			oMenu.openBy(this);
+			oEvent.preventDefault();
+		}
+	};
 
 	Column.prototype.invalidate = function() {
 		var oParent = this.getParent();
@@ -698,7 +707,7 @@ sap.ui.define([
 	// hence overwriting the getFocusDomRef to restore the focus on the active column header
 	Column.prototype.getFocusDomRef = function() {
 		var oParent = this.getParent();
-		if (oParent && (oParent.bActiveHeaders || oParent.bFocusableHeaders || this.getAssociation("headerMenu"))) {
+		if (oParent && (oParent.bActiveHeaders || oParent.bFocusableHeaders || this.getHeaderMenu())) {
 			var oColumnDomRef = this.getDomRef();
 			if (oColumnDomRef) {
 				return oColumnDomRef.firstChild;
@@ -729,7 +738,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Column.prototype._getHeaderMenuInstance = function () {
-		return sap.ui.getCore().byId(this.getAssociation("headerMenu"));
+		return sap.ui.getCore().byId(this.getHeaderMenu());
 	};
 
 	Column.prototype.setHeader = function (oControl) {

@@ -159,6 +159,7 @@ sap.ui.define((function () { 'use strict';
       "window",
       "document",
       "localStorage",
+      "sessionStorage",
       "module",
       "global" // Node.js
     ];
@@ -327,6 +328,19 @@ sap.ui.define((function () { 'use strict';
           subLanguage: 'css'
         }
       };
+      const GRAPHQL_TEMPLATE = {
+        begin: 'gql`',
+        end: '',
+        starts: {
+          end: '`',
+          returnEnd: false,
+          contains: [
+            hljs.BACKSLASH_ESCAPE,
+            SUBST
+          ],
+          subLanguage: 'graphql'
+        }
+      };
       const TEMPLATE_STRING = {
         className: 'string',
         begin: '`',
@@ -388,6 +402,7 @@ sap.ui.define((function () { 'use strict';
         hljs.QUOTE_STRING_MODE,
         HTML_TEMPLATE,
         CSS_TEMPLATE,
+        GRAPHQL_TEMPLATE,
         TEMPLATE_STRING,
         // Skip numbers when they are part of a variable name
         { match: /\$\d+/ },
@@ -605,7 +620,7 @@ sap.ui.define((function () { 'use strict';
       };
 
       return {
-        name: 'Javascript',
+        name: 'JavaScript',
         aliases: ['js', 'jsx', 'mjs', 'cjs'],
         keywords: KEYWORDS$1,
         // this will be extended by TypeScript
@@ -622,6 +637,7 @@ sap.ui.define((function () { 'use strict';
           hljs.QUOTE_STRING_MODE,
           HTML_TEMPLATE,
           CSS_TEMPLATE,
+          GRAPHQL_TEMPLATE,
           TEMPLATE_STRING,
           COMMENT,
           // Skip numbers when they are part of a variable name
@@ -761,6 +777,8 @@ sap.ui.define((function () { 'use strict';
     }
 
     var javascript_1 = javascript;
+
+    Object.defineProperty(javascript_1, "__" + "esModule", { value: true });
 
     return javascript_1;
 

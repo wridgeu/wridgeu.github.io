@@ -105,7 +105,7 @@ function(
 	* @implements sap.ui.core.ISemanticFormContent
 	*
 	* @author SAP SE
-	* @version 1.110.0
+	* @version 1.112.0
 	*
 	* @constructor
 	* @public
@@ -255,8 +255,15 @@ function(
 
 		/* Backward compatibility */
 		oTokenizer.updateTokens = function () {
+			var oDomRef = that.getDomRef();
+
 			this.destroyTokens();
 			this.updateAggregation("tokens");
+
+			// trigger tokenizer's focus handling only if focus is already applied to the Multi Input
+			if (oDomRef && oDomRef.contains(document.activeElement)) {
+				that.bTokensUpdated = true;
+			}
 		};
 
 		oTokenizer.setShouldRenderTabIndex(false);
@@ -394,6 +401,19 @@ function(
 		this._registerResizeHandler();
 
 		Input.prototype.onAfterRendering.apply(this, arguments);
+
+		// if tokens are updated via binding focus the newly bound tokens based on last state
+		if (this.bTokensUpdated && this.bDeletePressed) {
+			var aTokens = oTokenizer.getTokens();
+
+			if (aTokens[this.iFocusedIndexBeforeUpdate]) {
+				aTokens[this.iFocusedIndexBeforeUpdate].focus();
+			} else {
+				this.focus();
+			}
+		}
+
+		this.bTokensUpdated = false;
 	};
 
 	/**
@@ -425,6 +445,11 @@ function(
 		var oFirstRemovedToken = aDeletingTokens[0];
 
 		iIndex = this.getTokens().indexOf(bBackspace ? oFirstRemovedToken : oLastRemovedToken);
+
+		// store these for after rendering
+		// used to focus correct token when aggregation is bound
+		this.iFocusedIndexBeforeUpdate = iIndex;
+		this.bDeletePressed = !bBackspace;
 
 		oTokenizer.focusToken(iIndex, oOptions, function () {
 			this.focus();
@@ -1364,7 +1389,7 @@ function(
 	 * In case of added token it will not reset the value.
 	 *
 	 * @protected
-	 * @param {object} oEvent Event object
+	 * @param {jQuery.Event} oEvent Event object
 	 * @param {object} [mParameters] Additional event parameters to be passed in to the change event handler if * the value has changed
 	 * @param {string} sNewValue Passed value on change
 	 * @returns {boolean|undefined} true when change event is fired
@@ -1396,7 +1421,7 @@ function(
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {object} The accessibility object
+	 * @returns {sap.ui.core.AccessibilityInfo} The accessibility object
 	 * @protected
 	 */
 	MultiInput.prototype.getAccessibilityInfo = function () {

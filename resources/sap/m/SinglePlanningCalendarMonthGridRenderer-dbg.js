@@ -15,7 +15,8 @@ sap.ui.define([
 	'sap/ui/unified/library',
 	"sap/ui/core/date/CalendarUtils",
 	'sap/ui/core/Locale',
-	"sap/ui/core/Configuration"
+	"sap/ui/core/Configuration",
+	"sap/ui/core/date/UI5Date"
 	],
 	function(
 		CalendarDate,
@@ -28,7 +29,8 @@ sap.ui.define([
 		unifiedLibrary,
 		CalendarDateUtils,
 		Locale,
-		Configuration
+		Configuration,
+		UI5Date
 		) {
 		"use strict";
 
@@ -154,7 +156,7 @@ sap.ui.define([
 			var aSpecialDates = oControl._getSpecialDates(),
 				aDayTypes = Month.prototype._getDateTypes.call(oControl, oDay),
 				oFormat = oControl._getDateFormatter(),
-				bToday = oDay.isSame(CalendarDate.fromLocalJSDate(new Date())),
+				bToday = oDay.isSame(CalendarDate.fromLocalJSDate(UI5Date.getInstance())),
 				oType,
 				sLegendItemType;
 
@@ -392,7 +394,7 @@ sap.ui.define([
 				sCalendarType = Core.getConfiguration().getCalendarType(),
 				aWeekDays = oLocaleData.getDaysStandAlone("abbreviated", sCalendarType),
 				aWeekDaysWide = oLocaleData.getDaysStandAlone("wide", sCalendarType),
-				oStartDate = new Date(oControl.getStartDate()),
+				oStartDate = UI5Date.getInstance(oControl.getStartDate()),
 				oFirstRenderedDate,
 				iDayIndex;
 

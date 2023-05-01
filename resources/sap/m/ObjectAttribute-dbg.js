@@ -10,13 +10,14 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/library',
 	'sap/m/Text',
+	'sap/ui/core/Element',
 	'sap/ui/events/KeyCodes',
 	'./ObjectAttributeRenderer',
 	'sap/base/Log',
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/core/Core'
 ],
-function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer, Log, ManagedObjectObserver, oCore) {
+function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttributeRenderer, Log, ManagedObjectObserver, oCore) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
@@ -42,7 +43,7 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 	 * <code>text</code> property is styled and acts as a link. In this case the <code>text</code>
 	 * property must also be set, as otherwise there will be no link displayed for the user.
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -317,6 +318,26 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 	 */
 	ObjectAttribute.prototype.getPopupAnchorDomRef = function() {
 		return this.getDomRef("text");
+	};
+
+	/**
+	 * @see sap.ui.core.Element.prototype.getFocusDomRef
+	 * @protected
+	 * @override
+	 * @returns {Element|null} Returns the DOM Element that should get the focus or <code>null</code>
+	 */
+	ObjectAttribute.prototype.getFocusDomRef = function() {
+		var oDomRef = this.getDomRef();
+
+		if (oDomRef) {
+			if (this._isSimulatedLink()) {
+				return oDomRef.querySelector(".sapMObjectAttributeText");
+			} else if (this._isClickable()) {
+				return this.getAggregation("customContent").getDomRef();
+			}
+		}
+
+		return Element.prototype.getFocusDomRef.apply(this, arguments);
 	};
 
 	ObjectAttribute.prototype._isSimulatedLink = function () {

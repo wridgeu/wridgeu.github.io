@@ -79,7 +79,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @alias sap.ui.core.Control
 	 */
 	var Control = Element.extend("sap.ui.core.Control", /** @lends sap.ui.core.Control.prototype */ {
@@ -333,6 +333,12 @@ sap.ui.define([
 			return;
 		}
 
+		// Mark the control that it is in a dirty state and requires rendering.
+		// This flag will be used by the RenderManager to determine whether the rendering
+		// is necessary for the child controls while they are getting rendered with their parents.
+		// This will be cleared by the RenderManager when the control is rendered completely.
+		this._bNeedsRendering = true;
+
 		if ( this.bOutput && (oUIArea = this.getUIArea()) ) {
 			// if this control has been rendered before (bOutput)
 			// and if it is contained in a UIArea (!!oUIArea)
@@ -391,6 +397,7 @@ sap.ui.define([
 	 * @protected
 	 */
 	Control.prototype.rerender = function() {
+		this._bNeedsRendering = true;
 		UIArea.rerenderControl(this);
 	};
 
@@ -517,8 +524,8 @@ sap.ui.define([
 	 *
 	 * Use {@link #detachBrowserEvent} to remove the event handler(s) again.
 	 *
-	 * @param {string} [sEventType] A string containing one or more JavaScript event types, such as "click" or "blur".
-	 * @param {function} [fnHandler] A function to execute each time the event is triggered.
+	 * @param {string} sEventType A string containing one or more JavaScript event types, such as "click" or "blur".
+	 * @param {function} fnHandler A function to execute each time the event is triggered.
 	 * @param {object} [oListener] The object, that wants to be notified, when the event occurs
 	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
@@ -558,8 +565,8 @@ sap.ui.define([
 	 * Note: listeners are only removed, if the same combination of event type, callback function
 	 * and context object is given as in the call to <code>attachBrowserEvent</code>.
 	 *
-	 * @param {string} [sEventType] A string containing one or more JavaScript event types, such as "click" or "blur".
-	 * @param {function} [fnHandler] The function that is to be no longer executed.
+	 * @param {string} sEventType A string containing one or more JavaScript event types, such as "click" or "blur".
+	 * @param {function} fnHandler The function that is to be no longer executed.
 	 * @param {object} [oListener] The context object that was given in the call to <code>attachBrowserEvent</code>.
 	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
@@ -970,7 +977,8 @@ sap.ui.define([
 
 		if (bBlocked) {
 			this.addDelegate(oRenderingDelegate, false, this);
-		} else {
+		} else if (!this.getBusy()) {
+			// only remove delegate if control is not still in "busy" state
 			this.removeDelegate(oRenderingDelegate);
 		}
 
@@ -1040,7 +1048,11 @@ sap.ui.define([
 			Interaction.notifyShowBusyIndicator(this);
 			this.addDelegate(oRenderingDelegate, false, this);
 		} else {
-			this.removeDelegate(oRenderingDelegate);
+			// only remove the delegate if the control is not still in "blocked" state
+			if (!this.getProperty("blocked")) {
+				this.removeDelegate(oRenderingDelegate);
+			}
+
 			//If there is a pending delayed call we clear it
 			if (this._busyIndicatorDelayedCallId) {
 				clearTimeout(this._busyIndicatorDelayedCallId);

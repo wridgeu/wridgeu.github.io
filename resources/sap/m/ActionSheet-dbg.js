@@ -72,7 +72,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -297,7 +297,7 @@ sap.ui.define([
 	 * It can be not only a UI5 control, but also an existing DOM reference. The side of the placement depends on the <code>placement</code> property set in the Popover (on tablet and desktop).
 	 * On other platforms, ActionSheet behaves as a standard dialog and this parameter is ignored because dialog is aligned to the screen.
 	 *
-	 * @param {object} oControl The control to which the ActionSheet is opened
+	 * @param {sap.ui.core.Control|HTMLElement} oControl The control to which the ActionSheet is opened
 	 *
 	 * @public
 	 */

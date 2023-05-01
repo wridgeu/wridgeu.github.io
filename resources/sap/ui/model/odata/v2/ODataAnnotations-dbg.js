@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class Annotation loader for OData V2 services
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @public
 	 * @since 1.37.0
@@ -741,6 +741,7 @@ sap.ui.define([
 				mSource.xml = oXHR.responseText;
 
 				if (oXHR.getResponseHeader("Last-Modified")) {
+					// no need to use UI5Date.getInstance as only the UTC timestamp is relevant
 					mSource.lastModified = new Date(oXHR.getResponseHeader("Last-Modified"));
 				}
 

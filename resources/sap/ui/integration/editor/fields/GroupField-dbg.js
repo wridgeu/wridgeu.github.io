@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.GroupField
 	 * @author SAP SE
 	 * @since 1.106.0
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @private
 	 * @experimental since 1.106.0
 	 * @ui5-restricted

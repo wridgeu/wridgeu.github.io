@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/core/Control", 	"sap/ui/fl/variants/VariantManagement", "sap/ui/fl/apply/api/ControlVariantApplyAPI", "sap/m/p13n/enum/PersistenceMode", "sap/ui/layout/VerticalLayout"
-], function(CoreControl, VariantManagement, ControlVariantApplyAPI, mode, VerticalLayout) {
+	"sap/ui/core/Control", 	"sap/ui/fl/variants/VariantManagement", "sap/ui/fl/apply/api/ControlVariantApplyAPI", "sap/m/p13n/enum/PersistenceMode", "sap/ui/layout/VerticalLayout", "sap/ui/core/UIArea", "sap/ui/core/Core"
+], function(CoreControl, VariantManagement, ControlVariantApplyAPI, mode, VerticalLayout, UIArea, Core) {
 	"use strict";
 
 	/**
@@ -15,6 +15,7 @@ sap.ui.define([
 	 * For example, this controller can be used for <code>sap.ui.mdc</code> controls.
 	 *
 	 * @class
+	 * @private
 	 * @ui5-restricted sap.ui.mdc, sap.fe
 	 *
 	 * @since 1.104
@@ -93,8 +94,10 @@ sap.ui.define([
 				this.getDomRef().setAttribute("aria-hidden", true);
 			};
 
-			var oStatic = sap.ui.getCore().getUIArea(sap.ui.getCore().getStaticAreaRef());
-			oStatic.addContent(this._oWrapper);
+			var oStaticAreaRef = Core.getStaticAreaRef();
+			var oStatic = UIArea.registry.get(oStaticAreaRef.id);
+			oStatic.addContent(this._oWrapper, true);
+			Core.createRenderManager().render(this._oWrapper, oStaticAreaRef);
 		}
 
 		return this;
@@ -103,7 +106,7 @@ sap.ui.define([
 	PersistenceProvider.prototype.addFor = function (sControlId) {
 		this.addAssociation("for", sControlId);
 
-		var oVM = sap.ui.getCore().byId(this.getId() + "--vm");
+		var oVM = Core.byId(this.getId() + "--vm");
 		if (this.getMode() === mode.Transient && oVM) {
 			oVM.addFor(sControlId);
 		}
@@ -114,7 +117,7 @@ sap.ui.define([
 	PersistenceProvider.prototype.removeFor = function (sControlId) {
 		this.removeAssociation("for", sControlId);
 
-		var oVM = sap.ui.getCore().byId(this.getId() + "--vm");
+		var oVM = Core.byId(this.getId() + "--vm");
 		if (this.getMode() === mode.Transient && oVM) {
 			oVM.removeFor(sControlId);
 		}
@@ -148,7 +151,7 @@ sap.ui.define([
 	 * @ui5-restricted sap.m.p13n
 	 */
 	PersistenceProvider.prototype.reinitialize = function () {
-		var oVM = sap.ui.getCore().byId(this.getId() + "--vm");
+		var oVM = Core.byId(this.getId() + "--vm");
 		if (this.getMode() === mode.Transient && oVM) {
 			var oVariantModel = this.getModel(ControlVariantApplyAPI.getVariantModelName());
 			oVM.setModel(oVariantModel, ControlVariantApplyAPI.getVariantModelName());
@@ -158,7 +161,8 @@ sap.ui.define([
 
 	PersistenceProvider.prototype.exit = function () {
 		if (this._oWrapper) {
-			var oStatic = sap.ui.getCore().getUIArea(sap.ui.getCore().getStaticAreaRef());
+			var oStaticAreaRef = Core.getStaticAreaRef();
+			var oStatic = UIArea.registry.get(oStaticAreaRef.id);
 			oStatic.removeContent(this._oWrapper);
 
 			this._oWrapper.destroy();

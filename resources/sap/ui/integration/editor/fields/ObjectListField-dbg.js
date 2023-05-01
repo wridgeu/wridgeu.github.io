@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.ObjectListField
 	 * @author SAP SE
 	 * @since 1.100.0
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @private
 	 * @experimental since 1.100.0
 	 * @ui5-restricted

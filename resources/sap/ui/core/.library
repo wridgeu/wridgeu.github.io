@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.110.0</version>
+  <version>1.112.0</version>
 
   <documentation>The SAPUI5 Core Runtime.
 
@@ -180,13 +180,13 @@
             <copyright>2014 jQuery Foundation and other contributors</copyright>
             <pattern partial="true" otherContent="SAP" explanation="zIndex.js is overall written by SAP, but contains an implementation of the function 'fnzIndex' which is taken from jQuery UI Datepicker 1.11.1">sap/ui/dom/jquery/zIndex.js</pattern>
         </lib>
-        <lib name="qunit" displayName="QUnit" npmName="n/a" version="1.18.0" hash="a91331fed4313c15851f69d3d484d087" homepage="https://qunitjs.com" id="73554900106100002636">
+        <lib name="qunit" displayName="QUnit" npmName="n/a" version="1.18.0" hash="2172c9592fe6e9d5ef3bdf665cf88ba9" homepage="https://qunitjs.com" id="73554900106100002636">
             <license url="http://jQuery.org/license" type="MIT" />
             <copyright>jQuery Foundation and other contributors</copyright>
             <pattern>sap/ui/thirdparty/qunit.css</pattern>
             <pattern>sap/ui/thirdparty/qunit.js</pattern>
         </lib>
-        <lib name="qunit-2" displayName="QUnit 2" npmName="n/a" version="2.3.2" hash="5a663d008c04935ce54d7b13987fde53" homepage="https://qunitjs.com" id="73555000106100006951">
+        <lib name="qunit-2" displayName="QUnit 2" npmName="n/a" version="2.3.2" hash="0fc7923d362acc8a91a6b849fcc978ee" homepage="https://qunitjs.com" id="73555000106100006951">
             <license url="http://jQuery.org/license" type="MIT" />
             <copyright>jQuery Foundation and other contributors</copyright>
             <pattern>sap/ui/thirdparty/qunit-2.css</pattern>
@@ -203,7 +203,7 @@
             <copyright>OpenJS Foundation and other contributors</copyright>
             <pattern>sap/ui/thirdparty/jquery-compat.js</pattern>
         </lib>
-        <lib name="jquery_mobile" displayName="jQuery Mobile" npmName="n/a" version="1.3.1" hash="ce7f0d13341afe624e75cf797f43192f" homepage="http://jquerymobile.com" id="73554900106100002438">
+        <lib name="jquery_mobile" displayName="jQuery Mobile" npmName="n/a" version="1.3.1" hash="353b22bfd4f4c0fabb02c05a36b93efb" homepage="http://jquerymobile.com" id="73554900106100002438">
             <license url="http://jQuery.org/license" type="MIT" />
             <copyright>2010, 2013 jQuery Foundation, Inc. and other contributors</copyright>
             <pattern>sap/ui/thirdparty/jquery-mobile-custom.js</pattern>

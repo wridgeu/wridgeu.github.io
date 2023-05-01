@@ -24,13 +24,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.integration
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @since 1.62
 	 * @public
 	 */
 	var thisLib = sap.ui.getCore().initLibrary({
 		name: "sap.ui.integration",
-		version: "1.110.0",
+		version: "1.112.0",
 		dependencies: [
 			"sap.ui.core",
 			"sap.f",
@@ -202,6 +202,35 @@ sap.ui.define([
 		 * @public
 		 */
 		Content: "Content"
+	};
+
+	/**
+	 * Preview modes for <code>{@link sap.ui.integration.widgets.Card}</code>.
+	 * Helpful in scenarios when the end user is choosing or configuring a card.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @experimental since 1.112
+	 * @since 1.112
+	 */
+	thisLib.CardPreviewMode = {
+		/**
+		 * Card displays real data.
+		 * @public
+		 */
+		Off: "Off",
+
+		/**
+		 * Card displays mocked data, loaded using a data request as configured in the manifest.
+		 * @public
+		 */
+		MockData: "MockData",
+
+		/**
+		 * Card displays abstract preview. No data requests are made.
+		 * @public
+		 */
+		Abstract: "Abstract"
 	};
 
 	/**

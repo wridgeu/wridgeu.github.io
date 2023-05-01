@@ -10,6 +10,18 @@ sap.ui.define([
 	"use strict";
 
 	/**
+	 * P13n <code>Item</code> object type.
+	 *
+	 * @static
+	 * @constant
+	 * @typedef {object} sap.m.p13n.Item
+	 * @property {string} name The unique key of the item
+	 * @property {string} label The label describing the personalization item
+	 * @property {boolean} visible Defines the selection state of the personalization item
+	 * @public
+	 */
+
+	/**
 	 * Constructor for a new <code>BasePanel</code>.
 	 *
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
@@ -22,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @public
 	 * @abstract
@@ -51,6 +63,18 @@ sap.ui.define([
 				enableReorder: {
 					type: "boolean",
 					defaultValue: true
+				},
+
+				/**
+				 * Determines whether the panel has a fixed width.
+				 *
+				 * @private
+				 * @ui5-restricted sap.ui.mdc
+				 */
+				_useFixedWidth: {
+					type: "boolean",
+					defaultValue: false,
+					visibility: "hidden"
 				}
 			},
 			aggregations: {
@@ -84,17 +108,19 @@ sap.ui.define([
 				 * This event is fired if any change has been made within the <code>BasePanel</code> control.
 				 */
 				change: {
-					/**
-					 * The reason why the panel state has changed, for example, items have been added, removed, or moved.
-					 */
-					reason: {
-						type: "string"
-					},
-					/**
-					 * An object containing information about the specific item that has been changed.
-					 */
-					item: {
-						type: "sap.m.p13n.Item|sap.m.p13n.Item[]"
+					parameters: {
+						/**
+						 * The reason why the panel state has changed, for example, items have been added, removed, or moved.
+						 */
+						reason: {
+							type: "string"
+						},
+						/**
+						 * An object containing information about the specific item that has been changed.
+						 */
+						item: {
+							type: "sap.m.p13n.Item"
+						}
 					}
 				}
 			}
@@ -104,6 +130,9 @@ sap.ui.define([
 			render: function(oRm, oControl) {
 				oRm.openStart("div", oControl);
 				oRm.style("height", "100%");
+				if (oControl.getProperty("_useFixedWidth")) {
+					oRm.style("width", oControl.getWidth());
+				}
 				oRm.openEnd();
 				oRm.renderControl(oControl.getAggregation("_content"));
 				oRm.close("div");
@@ -124,6 +153,7 @@ sap.ui.define([
 
 	//defines the name of the attribute describing the presence/active state
 	BasePanel.prototype.PRESENCE_ATTRIBUTE = "visible";
+	BasePanel.prototype.WIDTH = "30rem";
 
 	BasePanel.prototype.init = function() {
 		Control.prototype.init.apply(this, arguments);
@@ -132,7 +162,7 @@ sap.ui.define([
 		this._oP13nModel.setSizeLimit(10000);
 		this.setModel(this._oP13nModel, this.P13N_MODEL);
 
-	    // list is necessary to set the template + model on
+		// list is necessary to set the template + model on
 		this._oListControl = this._createInnerListControl();
 
 		// Determines whether the rearranged item should be focused
@@ -161,18 +191,6 @@ sap.ui.define([
 			]
 		}));
 	};
-
-	/**
-	 * P13n <code>Item</code> object type.
-	 *
-	 * @static
-	 * @constant
-	 * @typedef {object} sap.m.p13n.Item
-	 * @property {string} name The unique key of the item
-	 * @property {string} label The label describing the personalization item
-	 * @property {boolean} visible Defines the selection state of the personalization item
-	 * @public
-	 */
 
 	/**
 	 * Sets the personalization state of the panel instance.
@@ -233,6 +251,17 @@ sap.ui.define([
 	 */
 	BasePanel.prototype.getMessageStrip = function(){
 		return this._oMessageStrip;
+	};
+
+	/**
+	 * Getter for the fixed panel width
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.mdc
+	 * @returns {string} The fixed panel width
+	 */
+	BasePanel.prototype.getWidth = function() {
+		return this.WIDTH;
 	};
 
 	/**
@@ -436,7 +465,7 @@ sap.ui.define([
 	/**
 	 * Getter for the initial focusable <code>control</code> on the panel.
 	 *
-	 * @returns {control} Control instance which could get the focus.
+	 * @returns {sap.ui.core.Control} Control instance which could get the focus.
 	 *
 	 * @private
 	 * @ui5-restricted sap.m, sap.ui.mdc

@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.ItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @public
 	 * @since 1.110
@@ -60,6 +60,7 @@ sap.ui.define([
 				 */
 				showCancelButton: {type: "boolean", defaultValue: true}
 			},
+			defaultAggregation : "content",
 			aggregations: {
 				/**
 				 * Defines the content that is shown when navigating to the item.

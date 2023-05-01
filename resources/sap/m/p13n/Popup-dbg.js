@@ -14,12 +14,16 @@ sap.ui.define([
 	"sap/m/ResponsivePopover",
 	"sap/m/p13n/Container",
 	"sap/m/p13n/AbstractContainerItem",
-	"sap/m/library"
-], function(Control, Button, Bar, Title, MessageBox, Device, Dialog, ResponsivePopover, Container, AbstractContainerItem, mLibrary) {
+	"sap/m/library",
+	"sap/ui/core/library"
+], function(Control, Button, Bar, Title, MessageBox, Device, Dialog, ResponsivePopover, Container, AbstractContainerItem, mLibrary, coreLibrary) {
 	"use strict";
 
 	//Shortcut to sap.m.P13nPopupMode
 	var P13nPopupMode = mLibrary.P13nPopupMode;
+
+	//Shortcut to sap.ui.core.TitleLevel
+	var TitleLevel = coreLibrary.TitleLevel;
 
 	/**
 	 * Constructor for a new <code>Popup</code>.
@@ -33,7 +37,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @public
 	 * @since 1.97
@@ -92,11 +96,13 @@ sap.ui.define([
 				 * This event is fired after the dialog has been closed.
 				 */
 				close: {
-					/**
-					 * The corresponding reason for closing the dialog (Ok & Cancel).
-					 */
-					reason: {
-						type: "string"
+					parameters: {
+						/**
+						 * The corresponding reason for closing the dialog (Ok & Cancel).
+						 */
+						reason: {
+							type: "string"
+						}
 					}
 				}
 			}
@@ -349,7 +355,8 @@ sap.ui.define([
 			oBar = new Bar({
 				contentLeft: [
 					new Title({
-						text: sTitle
+						text: sTitle,
+						level: TitleLevel.H1
 					})
 				]
 			});

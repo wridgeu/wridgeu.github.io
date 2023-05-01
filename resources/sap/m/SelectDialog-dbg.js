@@ -126,7 +126,7 @@ function(
 	 * @extends sap.m.SelectDialogBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -362,6 +362,7 @@ function(
 					})
 				]
 			}),
+			ariaLabelledBy: SelectDialogBase.getInvisibleText(),
 			selectionChange: this._selectionChange.bind(this),
 			updateStarted: this._updateStarted.bind(this),
 			updateFinished: this._updateFinished.bind(this)
@@ -1076,6 +1077,7 @@ function(
 		this._oList.getItems().forEach(function (oItem) {
 			oItem.addEventDelegate(this._getListItemsEventDelegates());
 		}, this);
+
 	};
 
 	/**

@@ -40,7 +40,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @public
 	 * @since 1.91
@@ -166,7 +166,7 @@ sap.ui.define([
 	};
 
 	ColumnResizer.prototype._onmousemove = function(oEvent) {
-		if (bResizing) {
+		if (bResizing || this.getControl().getBusy() || this.getControl().getBlocked()) {
 			return;
 		}
 

@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(function() {
+sap.ui.define(["sap/ui/core/Core"], function(Core) {
 	"use strict";
 
 	/**
@@ -33,15 +33,14 @@ sap.ui.define(function() {
 		}
 
 		return new Promise(function(resolve /*, reject*/) {
-			var oCore = sap.ui.getCore();
-			if (oCore.isThemeApplied()) {
+			if (Core.isThemeApplied()) {
 				resolve();
 			} else {
 				var themeChanged = function() {
 					resolve();
-					oCore.detachThemeChanged(themeChanged);
+					Core.detachThemeChanged(themeChanged);
 				};
-				oCore.attachThemeChanged(themeChanged);
+				Core.attachThemeChanged(themeChanged);
 			}
 		});
 	};

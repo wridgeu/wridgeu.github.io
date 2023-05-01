@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @ui5-restricted
@@ -184,6 +184,7 @@ sap.ui.define([
 
 	Paginator.prototype.sliceData = function() {
 		var oCard = this.getCard(),
+			oPaginatorModel = this.getModel("paginator"),
 			oContent,
 			oCardLoadingProvider,
 			oContentLoadingProvider,
@@ -207,13 +208,18 @@ sap.ui.define([
 		}
 
 		if (bIsServerSide && bIsPageChanged) {
-			// changing the model is triggering data update
-			// so there is no need to call "refreshData" method
-			this.getModel("paginator").setData({
+			oPaginatorModel.setData({
 				skip: iStartIndex,
 				size: this.getPageSize(),
 				pageIndex: this.getPageNumber()
 			});
+
+			// if the paginator model doesn't have bindings,
+			// we need to call "refreshAllData" method,
+			// otherwise don't call it
+			if (!oPaginatorModel.getBindings().length) {
+				oCard.refreshAllData();
+			}
 
 			if (this._hasAnimation()) {
 				oContentLoadingProvider.setAwaitPagination(true);

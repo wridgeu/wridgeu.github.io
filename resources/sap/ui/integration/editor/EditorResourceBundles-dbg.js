@@ -11,20 +11,20 @@ sap.ui.define([
 	"use strict";
 
 	/**
-	 * @class
+	 * @class Resource Bundles of Editor
 	 * @alias sap.ui.integration.editor.EditorResourceBundles
 	 * @author SAP SE
 	 * @since 1.94.0
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @private
 	 * @experimental since 1.94.0
 	 * @ui5-restricted
 	 */
 	var EditorResourceBundles = (function () {
-
 		var _aEditorResourceBundles,
 			_aLanguageList,
-			_sResourceBundleURL;
+			_sResourceBundleURL,
+            _aSupportedLocales;
 		LoaderExtensions.loadResource("sap/ui/integration/editor/languages.json", {
 			dataType: "json",
 			failOnError: false,
@@ -54,7 +54,15 @@ sap.ui.define([
 						supportedLocales: aFallbacks
 					});
 				}
-				_aEditorResourceBundles[p] = {"language": _aLanguageList[p], "resourceBundle": oResourceBundleTemp};
+                var oResourceBundleObject = {
+                    "language": _aLanguageList[p],
+                    "resourceBundle": oResourceBundleTemp,
+                    "isSupportedLocale": true
+                };
+                if (Array.isArray(_aSupportedLocales) && !_aSupportedLocales.includes(p) && !_aSupportedLocales.includes(p.replace('-', '_'))) {
+                    oResourceBundleObject.isSupportedLocale = false;
+                }
+				_aEditorResourceBundles[p] = oResourceBundleObject;
 			}
 			return _aEditorResourceBundles;
 		}
@@ -65,6 +73,12 @@ sap.ui.define([
 			},
 			setResourceBundleURL: function(sResourceBundleURL) {
 				_sResourceBundleURL = sResourceBundleURL;
+			},
+            getSupportedLocales: function() {
+				return _aSupportedLocales;
+			},
+			setSupportedLocales: function(aSupportedLocales) {
+				_aSupportedLocales = aSupportedLocales;
 			},
 			getInstance: function () {
 				if (!_aEditorResourceBundles) {

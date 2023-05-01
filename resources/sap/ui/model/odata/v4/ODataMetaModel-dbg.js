@@ -157,7 +157,7 @@ sap.ui.define([
 		 * @hideconstructor
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 */
 		ODataMetaModel = MetaModel.extend("sap.ui.model.odata.v4.ODataMetaModel", {
 				constructor : constructor
@@ -211,7 +211,7 @@ sap.ui.define([
 	 *   A namespace, for example "foo.bar.", of a schema.
 	 * @param {function} fnLog
 	 *   The log function
-	 * @returns {object|SyncPromise|undefined}
+	 * @returns {object|sap.ui.base.SyncPromise|undefined}
 	 *   The schema, or a promise which is resolved without details or rejected with an error, or
 	 *   <code>undefined</code>.
 	 * @throws {Error}
@@ -2372,7 +2372,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * @deprecated As of 1.37.0, use {@link #getObject}.
+	 * Use {@link #getObject}.
+	 *
 	 * @function
 	 * @public
 	 * @see sap.ui.model.Model#getProperty
@@ -3016,8 +3017,7 @@ sap.ui.define([
 	 * @see #getUI5Type
 	 * @since 1.37.0
 	 */
-	ODataMetaModel.prototype.requestUI5Type
-		= _Helper.createRequestMethod("fetchUI5Type");
+	ODataMetaModel.prototype.requestUI5Type = _Helper.createRequestMethod("fetchUI5Type");
 
 	/**
 	 * Request unit customizing based on the code list reference given in the entity container's

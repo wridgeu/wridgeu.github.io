@@ -33,7 +33,7 @@ sap.ui.define([
 		 * Resolves a binding syntax based on a provided model and path.
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 *
 		 * @private
 		 * @ui5-restricted sap.ushell
@@ -50,10 +50,11 @@ sap.ui.define([
 		 * @param {string} [sPath] The path to take.
 		 * @param {number} iCurrentLevel The current level of recursion.
 		 * @param {number} iMaxLevel The maximum level of recursion.
+		 * @param {boolean} [bBindingInfosOnly] Set to true if it should resolve only binding infos, without resolving strings.
 		 * @private
 		 * @returns {*} The resolved value.
 		 */
-		function process(vValue, vModelOrObject, sPath, iCurrentLevel, iMaxLevel) {
+		function process(vValue, vModelOrObject, sPath, iCurrentLevel, iMaxLevel, bBindingInfosOnly) {
 
 			if (iCurrentLevel === iMaxLevel) {
 				Log.warning("BindingResolver maximum level processing reached. Please check for circular dependencies.");
@@ -63,7 +64,7 @@ sap.ui.define([
 			// iterates arrays
 			if (Array.isArray(vValue)) {
 				return vValue.map(function(vItem) {
-					return process(vItem, vModelOrObject, sPath, iCurrentLevel + 1, iMaxLevel);
+					return process(vItem, vModelOrObject, sPath, iCurrentLevel + 1, iMaxLevel, bBindingInfosOnly);
 				});
 			}
 
@@ -71,13 +72,18 @@ sap.ui.define([
 			if (vValue && isPlainObject(vValue) && !BindingResolver.isBindingInfo(vValue)) {
 				var oNewObj = {};
 				for (var sProp in vValue) {
-					oNewObj[sProp] = process(vValue[sProp], vModelOrObject, sPath, iCurrentLevel + 1, iMaxLevel);
+					oNewObj[sProp] = process(vValue[sProp], vModelOrObject, sPath, iCurrentLevel + 1, iMaxLevel, bBindingInfosOnly);
 				}
 				return oNewObj;
 			}
 
-			// resolves strings that might contain binding syntax or objects that are binding infos
-			if (typeof vValue === "string" || (typeof vValue === "object" && BindingResolver.isBindingInfo(vValue))) {
+			// resolves strings that might contain binding syntax
+			if (typeof vValue === "string" && !bBindingInfosOnly) {
+				return resolveBinding(vValue, vModelOrObject, sPath);
+			}
+
+			// resolve objects that are binding infos
+			if (typeof vValue === "object" && BindingResolver.isBindingInfo(vValue)) {
 				return resolveBinding(vValue, vModelOrObject, sPath);
 			}
 
@@ -135,16 +141,17 @@ sap.ui.define([
 		 * @param {*} vValue The value to resolve.
 		 * @param {*} vModelOrObject The model.
 		 * @param {string} [sPath] The path to the referenced entity which is going to be used as a binding context.
+		 * @param {boolean} [bBindingInfosOnly] Set to true if it should resolve only binding infos, without resolving strings.
 		 * @private
 		 * @ui5-restricted sap.ushell
 		 * @returns {*} The resolved value.
 		 */
-		BindingResolver.resolveValue = function (vValue, vModelOrObject, sPath) {
+		BindingResolver.resolveValue = function (vValue, vModelOrObject, sPath, bBindingInfosOnly) {
 			var iCurrentLevel = 0,
 				iMaxLevel = 30;
 
 			if (vModelOrObject) {
-				return process(vValue, vModelOrObject, sPath, iCurrentLevel, iMaxLevel);
+				return process(vValue, vModelOrObject, sPath, iCurrentLevel, iMaxLevel, bBindingInfosOnly);
 			} else {
 				return vValue;
 			}

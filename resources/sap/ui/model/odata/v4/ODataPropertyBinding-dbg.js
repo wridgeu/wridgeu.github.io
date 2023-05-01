@@ -42,7 +42,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getUpdateGroupId as #getUpdateGroupId
@@ -738,7 +738,7 @@ sap.ui.define([
 	 *     <li> the new value is not primitive.
 	 *     <li> no value has been read before and the binding does not have the parameter
 	 *       <code>$$noPatch</code>.
-	 *     <li> the binding is not relative to a {@link sap.ui.model.odata.v4.Context}.
+	 *     <li> the binding is not relative to an {@link sap.ui.model.odata.v4.Context}.
 	 *     <li> the binding has the parameter <code>$$noPatch</code> and a group ID has been given.
 	 *   </ul>
 	 *
@@ -826,6 +826,14 @@ sap.ui.define([
 	// @override sap.ui.model.Binding#suspend
 	ODataPropertyBinding.prototype.suspend = function () {
 		throw new Error("Unsupported operation: suspend");
+	};
+
+	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.ODataBinding#updateAfterCreate
+	 */
+	ODataPropertyBinding.prototype.updateAfterCreate = function () {
+		return this.checkUpdateInternal();
 	};
 
 	/**

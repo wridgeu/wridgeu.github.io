@@ -56,7 +56,7 @@ sap.ui.define([
 	 * @alias sap.m.p13n.Engine
 	 * @extends sap.m.p13n.modules.AdaptationProvider
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @public
 	 * @since 1.104
 	 */
@@ -88,11 +88,10 @@ sap.ui.define([
 	 * The registration is a precondition for using <code>Engine</code> functionality for a control instance.
 	 * Once the control instance has been registered, it can be passed to the related <code>Engine</code>
 	 * methods that always expect a control instance as parameter. Only registered control instances can be used for personalization through the <code>Engine</code>.
-	 *
+	 * @public
 	 * @typedef {object} sap.m.p13n.EngineRegistrationConfig
-	 * @property {sap.m.p13n.ModificationHandler} modification The desired <code>{@link sap.m.p13n.modification.ModificationHandler ModificationHandler}</code> instance that is used for persistence.
 	 * @property {sap.m.p13n.MetadataHelper} helper The <code>{@link sap.m.p13n.modification.MetadataHelper MetadataHelper}</code> to provide metadata-specific information.
-	 * @property {object} controller A map of arbitrary keys that contain a controller instance as value. The key must be unique and needs to be provided for later access when using <code>Engine</code> functionality specific for one controller type.
+	 * @property {Object<string,sap.m.p13n.SelectionController>} controller A map of arbitrary keys that contain a controller instance as value. The key must be unique and needs to be provided for later access when using <code>Engine</code> functionality specific for one controller type.
 	 */
 
 	/**
@@ -202,7 +201,7 @@ sap.ui.define([
 	 * @param {object} [mSettings.contentHeight] Height configuration for the related popup container
 	 * @param {object} [mSettings.contentWidth] Width configuration for the related popup container
 	 *
-	 * @returns {Promise} Promise resolving in the <code>sap.m.p13n.Popup</code> instance
+	 * @returns {Promise<sap.m.p13n.Popup>} Promise resolving in the <code>sap.m.p13n.Popup</code> instance
 	 */
 	Engine.prototype.show = function(oControl, vPanelKeys, mSettings) {
 		return this.uimanager.show(oControl, vPanelKeys, mSettings);
@@ -214,7 +213,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 *
-	 * @param {function} fnStateEventHandler The handler function to call when the event occurs
+	 * @param {function(sap.ui.base.Event):void} fnStateEventHandler The handler function to call when the event occurs
 	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 */
 	Engine.prototype.attachStateChange = function(fnStateEventHandler) {
@@ -227,7 +226,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 *
-	 * @param {function} fnStateEventHandler The handler function to detach from the event
+	 * @param {function(sap.ui.base.Event):void} fnStateEventHandler The handler function to detach from the event
 	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 */
 	Engine.prototype.detachStateChange = function(fnStateEventHandler) {
@@ -242,7 +241,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.Control} oControl The related control instance
 	 * @param {string} aKeys The key for the affected configuration
 	 *
-	 * @returns {Promise} A Promise resolving once the reset is completed
+	 * @returns {Promise<null>} A Promise resolving once the reset is completed
 	 */
 	Engine.prototype.reset = function(oControl, aKeys) {
 
@@ -274,14 +273,18 @@ sap.ui.define([
 			return this.initAdaptation(oControl, aKeys).then(function(oPropertyHelper){
 				aKeys.forEach(function(sKey){
 					var oController = this.getController(oControl, sKey);
-					if (this.hasActiveP13n(oControl)) {
-						oController.update(oPropertyHelper);
-					}
+					oController.update(oPropertyHelper);
 				}.bind(this));
 			}.bind(this));
 		}.bind(this));
 	};
 
+	/**
+	 *
+	 * @public
+	 * @typedef {object} sap.m.p13n.State
+	 * @property {Object<string,Object[]>} controller A map of arbitrary keys that contain a controller instance as value. The key must be unique and needs to be provided for later access when using <code>Engine</code> functionality specific for one controller type.
+	 */
 
 	/**
 	 * Applies a state to a control by passing an object that contains the
@@ -295,9 +298,9 @@ sap.ui.define([
 	 * }
 	 *
 	 * @param {sap.ui.core.Control} oControl The registered control instance
-	 * @param {object} oState The state object
+	 * @param {sap.m.p13n.State} oState The state object
 	 *
-	 * @returns {Promise} A Promise resolving after the state has been applied
+	 * @returns {Promise<sap.m.p13n.State>} A Promise resolving after the state has been applied
 	 */
 	 Engine.prototype.applyState = function(oControl, oState) {
 
@@ -363,9 +366,9 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @experimental Since 1.104. Please note that the API of this control is not yet finalized!
-	 * @param {object} oControl The control instance implementing IxState to retrieve the externalized state
+	 * @param {sap.ui.core.Control} oControl The control instance implementing IxState to retrieve the externalized state
 	 *
-	 * @returns {Promise} A Promise resolving in the current control state
+	 * @returns {Promise<sap.m.p13n.State>} A Promise resolving in the current control state
 	 */
 	Engine.prototype.retrieveState = function(oControl) {
 
@@ -424,13 +427,14 @@ sap.ui.define([
 	 * <code>Engine#createChanges</code> can be used to programmatically trigger the creation
 	 * of a set of changes based on the current control state and the provided state.
 	 *
+	 * @private
 	 * @ui5-restricted
 	 *
 	 * @param {object} mDiffParameters A map defining the configuration to create the changes
 	 * @param {sap.ui.core.Control} mDiffParameters.control The control instance that should be adapted
 	 * @param {string} mDiffParameters.key The key used to retrieve the related controller
 	 * @param {object} mDiffParameters.state The state that is applied to the provided control instance
-	 * @param {sap.ui.mdc.p13n.ProcessingStrategy} [mDiffParameters.applyAbsolute] Determines about the comparison algorithm between two states
+	 * @param {sap.m.p13n.enum.ProcessingStrategy} [mDiffParameters.applyAbsolute] Determines about the comparison algorithm between two states
 	 * @param {boolean} [mDiffParameters.stateBefore] If the state should be diffed manually;
 	 * for example, if "A" exists in the control state, but is not mentioned in the new state provided in the
 	 * mDiffParameters.state then the absolute appliance decides whether to remove "A" or to keep it.
@@ -1009,24 +1013,8 @@ sap.ui.define([
 		var aPersistenceProvider = aPPResults.length ? aPPResults : undefined;
 		var sHandlerMode = aPersistenceProvider ? aPersistenceProvider[0].getMode() : "Standard";
 
-		var mHandlerMode = {
-			//During preprocessing, it might be necessary to calculate the modification handler instance
-			//without an initialized control instance --> use flex as default
-			undefined: FlexModificationHandler,
-			Global: FlexModificationHandler,
-			Transient: FlexModificationHandler,
-			Standard: FlexModificationHandler,
-			Auto: FlexModificationHandler
-		};
-
-		var ModificiationHandler = mHandlerMode[sHandlerMode];
-
-		if (!ModificiationHandler) {
-			throw new Error("Please provide a valid ModificationHandler! - valid Modification handlers are:" + Object.keys(mHandlerMode));
-		}
-
 		var oModificationSetting = {
-			handler: ModificiationHandler.getInstance(),
+			handler: FlexModificationHandler.getInstance(),
 			payload: {
 				hasVM: aVMResults && aVMResults.length > 0,
 				hasPP: aPPResults && aPPResults.length > 0,

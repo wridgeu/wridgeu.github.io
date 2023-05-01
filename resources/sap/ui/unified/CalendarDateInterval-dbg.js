@@ -21,7 +21,9 @@ sap.ui.define([
 	"sap/ui/core/CalendarType",
 	"sap/ui/core/Core",
 	"sap/base/Log",
-	"./DateRange"
+	"./DateRange",
+	"sap/ui/core/date/UI5Date"
+
 ], function(
 	CalendarUtils,
 	Calendar,
@@ -38,7 +40,8 @@ sap.ui.define([
 	CalendarType,
 	Core,
 	Log,
-	DateRange
+	DateRange,
+    UI5Date
 ) {
 	"use strict";
 
@@ -56,7 +59,7 @@ sap.ui.define([
 	 * @class
 	 * <code>CalendarDateInterval</code> only visualizes the dates in a one-line interval and allows the selection of a single day.
 	 * @extends sap.ui.unified.Calendar
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -321,7 +324,7 @@ sap.ui.define([
 			sAriaLabel = oTexts.sAriaLabel,
 			oHeader = this.getAggregation("header");
 		var oLocaleData = this._getLocaleData();
-		var oEndDate = CalendarDate.fromLocalJSDate(new Date(oDate.toLocalJSDate().getTime() + (this._getDays() - 1) * 24 * 60 * 60 * 1000), this.getPrimaryCalendarType());
+		var oEndDate = CalendarDate.fromLocalJSDate(UI5Date.getInstance(oDate.toLocalJSDate().getTime() + (this._getDays() - 1) * 24 * 60 * 60 * 1000), this.getPrimaryCalendarType());
 		oEndDate.setDate(1); // always use the first of the month to have stable year in Japanese calendar
 		var sDelimiter = oLocaleData.getIntervalPattern().replace("{0}", "").replace("{1}", "");
 		var sEndYear = this._oYearFormat.format(oEndDate.toUTCJSDate(), true);
@@ -352,7 +355,7 @@ sap.ui.define([
 		var oStartDate = this.getStartDate(),
 			oCalPicker = this._getCalendar(),
 			oSelectedRange = new DateRange(),
-			oEndDate = new Date(oStartDate.getTime());
+			oEndDate = UI5Date.getInstance(oStartDate.getTime());
 
 		oEndDate.setDate(oEndDate.getDate() + this._getDays() - 1);
 		oSelectedRange.setStartDate(oStartDate);
@@ -432,13 +435,13 @@ sap.ui.define([
 		var oMinDate = this.getMinDate();
 		if (oMinDate && oStartDate.getTime() < oMinDate.getTime()) {
 			Log.warning("startDate < minDate -> minDate as startDate set", this);
-			oStartDate = new Date(oMinDate.getTime());
+			oStartDate = UI5Date.getInstance(oMinDate.getTime());
 		}
 
 		var oMaxDate = this.getMaxDate();
 		if (oMaxDate && oStartDate.getTime() > oMaxDate.getTime()) {
 			Log.warning("startDate > maxDate -> maxDate as startDate set", this);
-			oStartDate = new Date(oMaxDate.getTime());
+			oStartDate = UI5Date.getInstance(oMaxDate.getTime());
 		}
 
 		this.setProperty("startDate", oStartDate, true);

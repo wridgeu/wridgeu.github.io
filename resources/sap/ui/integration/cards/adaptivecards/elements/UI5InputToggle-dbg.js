@@ -19,7 +19,7 @@ sap.ui.define([
 	 * <code>ui5-checkbox</code> web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @private
 	 * @since 1.74

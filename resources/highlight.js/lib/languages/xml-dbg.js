@@ -247,6 +247,8 @@ sap.ui.define((function () { 'use strict';
 
     var xml_1 = xml;
 
+    Object.defineProperty(xml_1, "__" + "esModule", { value: true });
+
     return xml_1;
 
 }));

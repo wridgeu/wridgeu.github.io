@@ -40,7 +40,7 @@ sap.ui.define([
 	'sap/ui/thirdparty/jquery',
 	'sap/ui/core/Configuration',
 	'sap/ui/unified/calendar/CalendarUtils',
-	'sap/ui/dom/jquery/Focusable' // provides jQuery.fn.firstFocusableDomRef
+	"sap/ui/core/CustomData"
 ], function(
 		InvisibleText,
 		Element,
@@ -75,7 +75,8 @@ sap.ui.define([
 		library,
 		jQuery,
 		Configuration,
-		CalendarUtils
+		CalendarUtils,
+		CustomData
 	) {
 		"use strict";
 
@@ -125,7 +126,7 @@ sap.ui.define([
 		 * is opened. The dialog is closed via a date time period value selection or by pressing the "Cancel" button.
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 *
 		 * @constructor
 		 * @public
@@ -252,11 +253,15 @@ sap.ui.define([
 							"TODATETIME",
 							"YEARTODATE",
 							"DATETOYEAR",
+							"LASTMINUTES",
+							"LASTHOURS",
 							"LASTDAYS",
 							"LASTWEEKS",
 							"LASTMONTHS",
 							"LASTQUARTERS",
 							"LASTYEARS",
+							"NEXTMINUTES",
+							"NEXTHOURS",
 							"NEXTDAYS",
 							"NEXTWEEKS",
 							"NEXTMONTHS",
@@ -298,7 +303,15 @@ sap.ui.define([
 					 *
 					 * @since 1.105
 					 */
-					 hideInput: { type: "boolean", group: "Misc", defaultValue: false }
+					 hideInput: { type: "boolean", group: "Misc", defaultValue: false },
+
+					  /**
+					 * If set, the calendar week numbering is used for display.
+					 * If not set, the calendar week numbering of the global configuration is used.
+					 * @since 1.111.0
+					 */
+
+					calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 
 				},
 				aggregations: {
@@ -339,6 +352,16 @@ sap.ui.define([
 		});
 
 		MessageMixin.call(DynamicDateRange.prototype);
+
+		var aDateTimeOperators = [
+			"LASTHOURS",
+			"LASTMINUTES",
+			"NEXTHOURS",
+			"NEXTMINUTES"
+		];
+
+		var aLastOptions = ["LASTMINUTES", "LASTHOURS", "LASTDAYS", "LASTWEEKS", "LASTMONTHS", "LASTQUARTERS", "LASTYEARS"];
+		var aNextOptions = ["NEXTMINUTES", "NEXTHOURS", "NEXTDAYS", "NEXTWEEKS", "NEXTMONTHS", "NEXTQUARTERS", "NEXTYEARS"];
 
 		DynamicDateRange.prototype.init = function() {
 			this._oInput = new DynamicDateRangeInput(this.getId() + "-input", {
@@ -404,14 +427,19 @@ sap.ui.define([
 			this._oInput.setValueState(this.getValueState());
 			this._oInput.setValueStateText(this.getValueStateText());
 
-			this.setValue(this._substitudeMissingValue(this.getValue()));
+			this.setValue(this._substituteMissingValue(this.getValue()));
 		};
 
+		/**
+		 * Setter for the <code>value</code> control property.
+		 * @param {sap.m.DynamicDateRangeValue} oValue A <code>sap.m.DynamicDateRangeValue</code>
+		 * @returns {this} Reference to <code>this</code> for method chaining
+		 */
 		DynamicDateRange.prototype.setValue = function(oValue) {
 			var sOptionKey = oValue && oValue.operator;
 
-			// substutude the semantically equivalent values
-			oValue = this._substitudeValue(oValue);
+			// substitute the semantically equivalent values
+			oValue = this._substituteValue(oValue);
 
 			this.setProperty("value", oValue);
 			this._oSelectedOption = DynamicDateUtil.getOption(sOptionKey);
@@ -610,25 +638,85 @@ sap.ui.define([
 			});
 		};
 
-		DynamicDateRange.prototype._getDatesLabelFormatter = function() {
-			var oFormatOptions,
-				aValueHelpTypes = this._oSelectedOption ? this._oSelectedOption.getValueHelpUITypes() : [],
+		DynamicDateRange.prototype._getValueHelpTypeForFormatter = function() {
+			var	sOptionKey = this._oSelectedOption ? this._oSelectedOption.getKey() : '',
+				aLastOptionsSelectedIndex = aLastOptions.indexOf(sOptionKey),
+				aNextOptionsSelectedIndex = aNextOptions.indexOf(sOptionKey),
+				aPopupContent = this._oNavContainer ? this._oNavContainer.getPages()[1].getContent()[3] || [] : [],
+				aButtons = aPopupContent.getButtons ? aPopupContent.getButtons() : [],
+				aSuggestionItems = this.getAggregation('_input').getAggregation('suggestionItems'),
+				oValue = this.getValue(),
+				oCustomData,
+				aPopupContent,
+				aButtons,
+				aValueHelpTypes,
+				sType,
+				iButtonSelectedIndex,
+				sRealOptionKey,
+				sSuggestionOptionKey;
+
+			if (
+				!oValue &&
+				(!aButtons[0] || !aButtons[0].getDomRef()) &&
+				aSuggestionItems && aSuggestionItems.length &&
+				aSuggestionItems[aSuggestionItems.length - 1].getCustomData
+			) {
+				oCustomData = aSuggestionItems[aSuggestionItems.length - 1].getCustomData()[0];
+			}
+
+			if (oCustomData) {
+				sSuggestionOptionKey = oCustomData.getValue();
+				aLastOptionsSelectedIndex = aDateTimeOperators.indexOf(sSuggestionOptionKey);
+				aNextOptionsSelectedIndex = aDateTimeOperators.indexOf(sSuggestionOptionKey);
+			}
+
+			if (oCustomData && sSuggestionOptionKey) {
+				if (aDateTimeOperators.indexOf(sSuggestionOptionKey) > -1) {
+					sType = 'datetime';
+					return sType;
+				}
+			}
+
+			//if option requires extra formatting.
+			if (this._oNavContainer && aButtons.length && (aLastOptionsSelectedIndex > -1 || aNextOptionsSelectedIndex > -1)) {
+				iButtonSelectedIndex = aButtons[0].getParent().getSelectedIndex();
+				if (aLastOptionsSelectedIndex > -1) {
+					sRealOptionKey = aLastOptions[iButtonSelectedIndex];
+				} else if (aNextOptionsSelectedIndex > -1) {
+					sRealOptionKey = aNextOptions[iButtonSelectedIndex];
+				}
+				aValueHelpTypes = this._oSelectedOption ? this._oSelectedOption.getValueHelpUITypes() : [];
 				sType = aValueHelpTypes && aValueHelpTypes.length ? aValueHelpTypes[0].getType() : "";
 
-			if (!this._oDatesLabelFormatter) {
-				switch (sType) {
-					case "datetime":
-						oFormatOptions = Object.create(this._getFormatter()._dateTimeFormatter.oFormatOptions);
-						oFormatOptions.singleIntervalValue = true;
-						oFormatOptions.interval = true;
-						this._oDatesLabelFormatter = DateFormat.getDateTimeInstance(oFormatOptions);
-						break;
-					default:
-						oFormatOptions = Object.create(this._getFormatter()._dateFormatter.oFormatOptions);
-						oFormatOptions.singleIntervalValue = true;
-						oFormatOptions.interval = true;
-						this._oDatesLabelFormatter = DateFormat.getInstance(oFormatOptions);
+				if (aDateTimeOperators.indexOf(sRealOptionKey) > -1) {
+					sType = 'datetime';
 				}
+
+				return sType;
+			}
+
+			aValueHelpTypes = this._oSelectedOption ? this._oSelectedOption.getValueHelpUITypes() : [];
+
+			return aValueHelpTypes && aValueHelpTypes.length ? aValueHelpTypes[0].getType() : "";
+		};
+
+		DynamicDateRange.prototype._getDatesLabelFormatter = function() {
+			var oFormatOptions,
+				sType = this._getValueHelpTypeForFormatter();
+
+			switch (sType) {
+				case "datetime":
+					oFormatOptions = Object.create(this._getFormatter()._dateTimeFormatter.oFormatOptions);
+					oFormatOptions.singleIntervalValue = true;
+					oFormatOptions.interval = true;
+					this._oDatesLabelFormatter = DateFormat.getDateTimeInstance(oFormatOptions);
+
+					break;
+				default:
+					oFormatOptions = Object.create(this._getFormatter()._dateFormatter.oFormatOptions);
+					oFormatOptions.singleIntervalValue = true;
+					oFormatOptions.interval = true;
+					this._oDatesLabelFormatter = DateFormat.getInstance(oFormatOptions);
 			}
 
 			return this._oDatesLabelFormatter;
@@ -652,19 +740,27 @@ sap.ui.define([
 		 * @private
 		 */
 		DynamicDateRange.prototype._addSuggestionItem = function(oSuggestValue) {
-			var bTimezone = this._checkFormatterUTCTimezone(oSuggestValue);
-			var aValueDates = DynamicDateUtil.toDates(oSuggestValue);
+			var aValueDates = DynamicDateRange.toDates(oSuggestValue, this.getCalendarWeekNumbering());
 			var aResultingDates = [];
 			for (var i = 0; i < aValueDates.length; i++) {
-				aResultingDates[i] = this._convertDate(aValueDates[i], bTimezone);
+				aResultingDates[i] = aValueDates[i];
 			}
 
 			var oItem = new ListItem({
 				text: DynamicDateUtil.getOption(oSuggestValue.operator).format(oSuggestValue, this._getFormatter()),
-				additionalText: this._getDatesLabelFormatter().format(aResultingDates)
+				additionalText: '',
+				customData: [
+					new CustomData({
+						key : "operator",
+						value: oSuggestValue.operator
+					})
+				]
 			});
 
 			this._oInput.addSuggestionItem(oItem);
+
+			// Called after addSuggestionItem because the suggested items are needed in _getDatesLabelFormatter.
+			oItem.setAdditionalText(this._getDatesLabelFormatter().format(aResultingDates));
 		};
 
 		/**
@@ -705,7 +801,7 @@ sap.ui.define([
 
 		/**
 		 * Checks if the <code>value</code> property operator corresponds to a date range.
-		 * @param {object} oValue The control value
+		 * @param {sap.m.DynamicDateRangeValue} oValue A <code>sap.m.DynamicDateRangeValue</code>
 		 * @returns {boolean} True in case of a date range
 		 * @private
 		 */
@@ -715,7 +811,7 @@ sap.ui.define([
 
 		/**
 		 * Swaps the start and end date of the value if the start date is after the end date.
-		 * @param {array} aValues The control value array
+		 * @param {Array<Date>} aValues An array of JS Dates
 		 * @private
 		 */
 		DynamicDateRange.prototype._swapDates = function(aValues) {
@@ -751,47 +847,18 @@ sap.ui.define([
 		};
 
 		DynamicDateRange.prototype._toDatesString = function(oValue) {
-			var bTimezone = this._checkFormatterUTCTimezone(oValue);
-			var aValueDates = DynamicDateUtil.toDates(oValue);
+			var aValueDates = DynamicDateRange.toDates(oValue, this.getCalendarWeekNumbering());
 			var aDates = [];
 			for (var i = 0; i < aValueDates.length; i++) {
-				aDates[i] = this._convertDate(aValueDates[i], bTimezone);
+				aDates[i] = aValueDates[i];
 			}
-
 			return this._getDatesLabelFormatter().format(aDates);
-		};
-
-		DynamicDateRange.prototype._convertDate = function(oDate, bUTCTimezone) {
-			var sFormattedDate = this._getPickerParser().format(oDate, TimezoneUtil.getLocalTimezone());
-			var sFormatTimezone = bUTCTimezone ? "UTC" : Configuration.getTimezone();
-			var oParts = this._getPickerParser().parse(
-				sFormattedDate,
-				sFormatTimezone
-			);
-			var oNewDate = oParts ? new Date(oParts[0].getTime()) : oParts;
-
-			return oNewDate;
-		};
-
-		DynamicDateRange.prototype._reverseConvertDate = function(oDate) {
-			var sFormattedDate = this._getPickerParser().format(
-				oDate,
-				Configuration.getTimezone()
-			);
-			var oParts = this._getPickerParser().parse(
-				sFormattedDate,
-				TimezoneUtil.getLocalTimezone()
-			);
-			var oNewDate = oParts ? new Date(oParts[0].getTime()) : oParts;
-
-			return oNewDate;
 		};
 
 		DynamicDateRange.prototype._getPickerParser = function() {
 			if (!this._calendarParser) {
 				this._calendarParser = DateFormat.getDateTimeWithTimezoneInstance({ showTimezone: false });
 			}
-
 			return this._calendarParser;
 		};
 
@@ -1007,18 +1074,18 @@ sap.ui.define([
 
 		DynamicDateRange.prototype._updateDatesLabel = function() {
 			var oOutputValue = this._oSelectedOption.getValueHelpOutput(this),
-				bTimezone = this._checkFormatterUTCTimezone(oOutputValue),
 				aResultDates = [],
-				sFormattedDates;
+				sFormattedDates,
+				sSelectedOptionKey;
 
-			var aValueDates = DynamicDateUtil.toDates(oOutputValue);
+			var aValueDates = DynamicDateRange.toDates(oOutputValue, this.getCalendarWeekNumbering());
 
 			if (!oOutputValue || !oOutputValue.operator || !DynamicDateUtil.getOption(oOutputValue.operator)) {
 				return;
 			}
 
 			for (var i = 0; i < aValueDates.length; i++) {
-				aResultDates[i] = CalendarUtils._createUTCDate(this._convertDate(aValueDates[i], bTimezone), true);
+				aResultDates[i] = CalendarUtils._createUTCDate(aValueDates[i], true);
 			}
 
 			if (this._isDateRange(oOutputValue)) {
@@ -1026,8 +1093,13 @@ sap.ui.define([
 			}
 
 			if (aResultDates) {
-				if (this._oSelectedOption.getKey() === "FROMDATETIME" || this._oSelectedOption.getKey() === "TODATETIME"
-					|| this._oSelectedOption.getKey() === "FROM" || this._oSelectedOption.getKey() === "TO") {
+				sSelectedOptionKey = this._oSelectedOption.getKey();
+				if (
+					sSelectedOptionKey === "FROMDATETIME" ||
+					sSelectedOptionKey === "TODATETIME" ||
+					sSelectedOptionKey === "FROM" ||
+					sSelectedOptionKey === "TO"
+				) {
 					aResultDates.push(null);
 				}
 				sFormattedDates = this._getDatesLabelFormatter().format(aResultDates, true);
@@ -1131,6 +1203,31 @@ sap.ui.define([
 		};
 
 		/**
+		 * Function which determines which DDR option should be focused. Also considers hidden options.
+		 * @param {object} oValue The DynamicDateRange value.
+		 */
+		DynamicDateRange.prototype._determineOptionFocus = function (oValue) {
+				var aOptions = this._oOptionsList.getItems(),
+				oOption = aOptions.filter(
+					function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === oValue.operator; }
+				)[0];
+
+			if (!oOption) {
+				if (aLastOptions.indexOf(oValue.operator) > -1) {
+					oOption = aOptions.filter(
+						function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === aLastOptions[0];}
+					)[0];
+				} else if (aNextOptions.indexOf(oValue.operator) > -1) {
+					oOption = aOptions.filter(
+						function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === aNextOptions[0];}
+					)[0];
+				}
+			}
+
+			return oOption;
+		};
+
+		/**
 		 * Applies focus to the navigated page.
 		 *
 		 * @param {sap.m.Page} oToPage the page receiving focus.
@@ -1142,18 +1239,24 @@ sap.ui.define([
 				oElementToFocus;
 
 			if (oToPage === oOptionsListPage && oValue) {
-				oElementToFocus = this._oOptionsList.getItems().find(function(oListItem) {
-					return oListItem.isA("sap.m.DynamicDateRangeListItem") &&
-						(oListItem.getOptionKey() === oValue.operator);
-				});
+				oElementToFocus = this._determineOptionFocus(oValue) || oElementToFocus;
+			}
+
+			if (!oToPage.getDomRef()) {
+				return;
 			}
 
 			if (!oElementToFocus) {
 				oElementToFocus = jQuery(oToPage.getDomRef().querySelector("section")).firstFocusableDomRef();
 			}
 
-			oElementToFocus.focus();
-			oElementToFocus && oElementToFocus.setSelected && oElementToFocus.setSelected(true);
+			if (oValue && oValue.operator !== "PARSEERROR" && oElementToFocus) {
+				oElementToFocus.setSelected && oElementToFocus.setSelected(true);
+			}
+
+			if (oElementToFocus) {
+				oElementToFocus.focus();
+			}
 
 			this._reApplyFocusToElement(oToPage, oValue);
 		};
@@ -1262,11 +1365,10 @@ sap.ui.define([
 
 		DynamicDateRange.prototype._applyValue = function() {
 			this._oOutput = this._oSelectedOption.getValueHelpOutput(this);
-			var sTimezone = this._checkFormatterUTCTimezone(this._oOutput);
-			var aValueDates = DynamicDateUtil.toDates(this._oOutput);
+			var aValueDates = DynamicDateRange.toDates(this._oOutput, this.getCalendarWeekNumbering());
 			for (var i = 0; i < aValueDates.length; i++) {
 				if (this._oOutput.values[i] instanceof Date) {
-					this._oOutput.values[i] = this._convertDate(aValueDates[i], sTimezone);
+					this._oOutput.values[i] = aValueDates[i];
 				}
 			}
 
@@ -1338,7 +1440,7 @@ sap.ui.define([
 		 * @private
 		 * @returns {object} A substituted value if needed, or the same value if not
 		 */
-		DynamicDateRange.prototype._substitudeValue = function(oValue) {
+		DynamicDateRange.prototype._substituteValue = function(oValue) {
 			var sKey, aParams, oNewValue;
 
 			if (!oValue || !oValue.operator || !oValue.values) {
@@ -1390,7 +1492,7 @@ sap.ui.define([
 		 * @private
 		 * @returns {object} A substituted value if needed, or the same value if not
 		 */
-		DynamicDateRange.prototype._substitudeMissingValue = function(oValue) {
+		DynamicDateRange.prototype._substituteMissingValue = function(oValue) {
 			var oNewValue = oValue;
 
 			if (oValue  && oValue.operator === "YESTERDAY" && !this.getOptions().includes("YESTERDAY") && this.getOptions().includes("LASTDAYS")) {
@@ -1408,8 +1510,27 @@ sap.ui.define([
 			return oNewValue;
 		};
 
-		DynamicDateRange.prototype._checkFormatterUTCTimezone = function(oValue) {
-			return this._getFormatter()._checkFormatterUTCTimezone(oValue.operator);
+		/**
+		 * Returns a date range from a provided object in the format of the DynamicDateRange's value.
+		 * @example
+		 * var aDates = DynamicDateRange.toDates({operator: StandardDynamicDateRangeKeys.TODAY, values: []});
+		 * aDates[0].toString()
+		 * // output: "Fri Mar 31 2023 00:00:00 GMT+0200 (Eastern European Standard Time)" - assuming TODAY is Mar 31, 2023, 2:37:00 PM in the configured time zone
+		 *
+		 * @param {sap.m.DynamicDateRangeValue} oValue A <code>sap.m.DynamicDateRangeValue</code>
+	 	 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
+		 * @returns {Date[]} An array of two date objects - start and end date
+		 * @static
+		 * @public
+		 */
+		DynamicDateRange.toDates = function(oValue, sCalendarWeekNumbering) {
+			return DynamicDateUtil.toDates(oValue, sCalendarWeekNumbering).map(function (oDate) {
+				if (oDate instanceof Date) {
+					return oDate;
+				}
+
+				return oDate.getJSDate();
+			});
 		};
 
 		var DynamicDateRangeInputRenderer = Renderer.extend(InputRenderer);

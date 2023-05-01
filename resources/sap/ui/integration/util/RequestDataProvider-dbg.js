@@ -8,8 +8,9 @@ sap.ui.define([
 	"sap/ui/thirdparty/jquery",
 	"sap/base/Log",
 	"sap/ui/model/odata/v4/ODataUtils",
-	"sap/ui/core/Core"
-], function (DataProvider, jQuery, Log, ODataUtils, Core) {
+	"sap/ui/core/Core",
+	"sap/base/util/deepClone"
+], function (DataProvider, jQuery, Log, ODataUtils, Core, deepClone) {
 	"use strict";
 	/*global Response*/
 
@@ -32,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.DataProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @private
@@ -155,8 +156,6 @@ sap.ui.define([
 			mHeaders = Object.assign({}, mHeaders, oBatchSerialized.headers);
 		}
 
-		mHeaders = this._prepareHeaders(mHeaders, this.getSettings());
-
 		oRequest = {
 			"mode": oRequestConfig.mode || "cors",
 			"url": sUrl,
@@ -164,7 +163,7 @@ sap.ui.define([
 			"dataType": sDataType,
 			"data": vData,
 			"headers": mHeaders,
-			"timeout": 15000,
+			"timeout": oRequestConfig.timeout !== undefined ? oRequestConfig.timeout : 15000,
 			"xhrFields": {
 				"withCredentials": !!oRequestConfig.withCredentials
 			}
@@ -173,6 +172,8 @@ sap.ui.define([
 		if (!vData) {
 			delete oRequest.data;
 		}
+
+		oRequest = this._modifyRequestBeforeSent(oRequest, this.getSettings());
 
 		if (!this._isValidRequest(oRequest)) {
 			Log.error(sMessage);
@@ -372,21 +373,32 @@ sap.ui.define([
 	};
 
 	/**
-	 * Override if modification to the headers is needed.
-	 * Allows the host to modify the headers.
-	 * @param {map} mHeaders The current headers
+	 * Override if modification to the request is needed.
+	 * Allows the host to modify the headers or the full request.
+	 * @param {Object} oRequest The current request
 	 * @param {Object} oSettings The request settings
 	 * @returns {map} The modified headers
 	 */
-	RequestDataProvider.prototype._prepareHeaders = function (mHeaders, oSettings) {
+	RequestDataProvider.prototype._modifyRequestBeforeSent = function (oRequest, oSettings) {
 		var oCard = Core.byId(this.getCard()),
-			oHost = Core.byId(this.getHost());
+			oHost = Core.byId(this.getHost()),
+			oClonedRequest;
 
-		if (oHost && oHost.modifyRequestHeaders) {
-			return oHost.modifyRequestHeaders(Object.assign({}, mHeaders), oSettings, oCard);
+		if (!oHost) {
+			return oRequest;
 		}
 
-		return mHeaders;
+		oClonedRequest = deepClone(oRequest, 100);
+
+		if (oHost.modifyRequestHeaders) {
+			oClonedRequest.headers = oHost.modifyRequestHeaders(oClonedRequest.headers, oSettings, oCard);
+		}
+
+		if (oHost.modifyRequest) {
+			oClonedRequest = oHost.modifyRequest(oClonedRequest, oSettings, oCard);
+		}
+
+		return oClonedRequest;
 	};
 
 	/**

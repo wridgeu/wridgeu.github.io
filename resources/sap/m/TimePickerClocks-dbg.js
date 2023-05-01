@@ -16,7 +16,8 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	'sap/ui/Device',
 	'sap/ui/core/library',
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+    'sap/ui/core/date/UI5Date'
 ],
 	function(
 		TimePickerInternals,
@@ -30,7 +31,8 @@ sap.ui.define([
 		KeyCodes,
 		Device,
 		coreLibrary,
-		jQuery
+		jQuery,
+        UI5Date
 	) {
 		"use strict";
 
@@ -50,7 +52,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 *
 		 * @constructor
 		 * @public
@@ -478,7 +480,7 @@ sap.ui.define([
 				oFormatButton = this._getFormatButton(),
 				iHours = null,
 				sAmpm = null,
-				oDateValue = new Date();
+				oDateValue = UI5Date.getInstance();
 
 			if (oHoursClock) {
 				iHours = parseInt(oHoursClock.getSelectedValue());
@@ -716,7 +718,7 @@ sap.ui.define([
 				iHours,
 				sAmPm = null;
 
-			oDate = oDate || new Date();
+			oDate = oDate || UI5Date.getInstance();
 
 			// Cross frame check for a date should be performed here otherwise setDateValue would fail in OPA tests
 			// because Date object in the test is different than the Date object in the application (due to the iframe).

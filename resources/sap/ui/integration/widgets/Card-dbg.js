@@ -10,6 +10,7 @@ sap.ui.define([
 	"sap/ui/base/Interface",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Core",
+	"sap/ui/core/library",
 	"sap/ui/integration/util/Manifest",
 	"sap/ui/integration/util/ServiceManager",
 	"sap/base/Log",
@@ -49,6 +50,7 @@ sap.ui.define([
 	Interface,
 	jQuery,
 	Core,
+	coreLibrary,
 	CardManifest,
 	ServiceManager,
 	Log,
@@ -115,6 +117,8 @@ sap.ui.define([
 
 	var CardDesign = library.CardDesign;
 
+	var CardPreviewMode = library.CardPreviewMode;
+
 	var CARD_DESTROYED_ERROR = "Card is destroyed!";
 
 	var FlexRendertype = mLibrary.FlexRendertype;
@@ -124,6 +128,8 @@ sap.ui.define([
 	var FlexAlignItems = mLibrary.FlexAlignItems;
 
 	var MODULE_PREFIX = "module:";
+
+	var MessageType = coreLibrary.MessageType;
 
 	/**
 	 * Constructor for a new <code>Card</code>.
@@ -182,7 +188,7 @@ sap.ui.define([
 	 * @extends sap.f.CardBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @public
 	 * @constructor
 	 * @see {@link topic:5b46b03f024542ba802d99d67bc1a3f4 Cards}
@@ -290,6 +296,7 @@ sap.ui.define([
 				 * @experimental Since 1.109
 				 * @private
 				 * @since 1.109
+				 * @deprecated Since 1.112. Use <code>previewMode</code> instead.
 				 */
 				useMockData: {
 					type: "boolean",
@@ -306,6 +313,23 @@ sap.ui.define([
 					type: "sap.ui.integration.CardDesign",
 					group: "Appearance",
 					defaultValue: CardDesign.Solid
+				},
+
+				/**
+				 * Preview mode of the <code>Card</code>.
+				 * Helpful in scenarios when the end user is choosing or configuring a card.
+				 * <ul>
+				 * <li>When set to "MockData", the card data is loaded, using a data request, as configured in the "data/mockData" in the manifest. If such configuration is missing, then the real data is loaded.</li>
+				 * <li>When set to "Abstract", the card shows abstract placeholder without loading data.</li>
+				 * <li>When set to "Off", the card displays real data.</li>
+				 * </ul>
+				 * @experimental Since 1.112
+				 * @since 1.112
+				 */
+				previewMode: {
+					type: "sap.ui.integration.CardPreviewMode",
+					group: "Behavior",
+					defaultValue: CardPreviewMode.Off
 				}
 			},
 			aggregations: {
@@ -383,6 +407,10 @@ sap.ui.define([
 
 				/**
 				 * Fired when an action is triggered on the card.
+				 *
+				 * When an action is triggered in the card it can be handled on several places by "action" event handlers. In consecutive order those places are: <code>Extension</code>, <code>Card</code>, <code>Host</code>.
+				 * Each of them can prevent the next one to handle the action by calling <code>oEvent.preventDefault()</code>.
+				 *
 				 * @experimental since 1.64
 				 * Disclaimer: this event is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
 				 */
@@ -502,7 +530,7 @@ sap.ui.define([
 		this._oContentFactory = new ContentFactory(this);
 		this._oCardObserver = new CardObserver(this);
 		this._aSevereErrors = [];
-		this._sPerformanceId = "UI5 Integration Cards - " + this.getId() + "---";
+		this._sPerformanceId = "UI5 Integration Cards " + this.getId() + " ";
 		this._aActiveLoadingProviders = [];
 		this._fnOnDataReady = function () {
 			this._bDataReady = true;
@@ -515,7 +543,7 @@ sap.ui.define([
 		 * @experimental since 1.79
 		 * @public
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 * @borrows sap.ui.integration.widgets.Card#getDomRef as getDomRef
 		 * @borrows sap.ui.integration.widgets.Card#setVisible as setVisible
 		 * @borrows sap.ui.integration.widgets.Card#getParameters as getParameters
@@ -587,17 +615,17 @@ sap.ui.define([
 			switch (sModelName) {
 				case "context":
 					oModel = new ContextModel();
-				break;
+					break;
 				case "i18n":
 					oModel = new ResourceModel({
 						bundle: this._oIntegrationRb
 					});
-				break;
+					break;
 				case "parameters":
 					oModel = new JSONModel(
 						ParameterMap.getParamsForModel()
 					);
-				break;
+					break;
 				case "messages":
 					oModel = new JSONModel({
 						hasErrors: false,
@@ -607,7 +635,6 @@ sap.ui.define([
 					break;
 				default:
 					oModel = new JSONModel();
-				break;
 			}
 
 			this.setModel(oModel, sModelName);
@@ -669,7 +696,6 @@ sap.ui.define([
 
 		var oCardContent = this.getCardContent();
 		if (oCardContent && oCardContent.isA("sap.ui.integration.cards.BaseContent")) {
-
 			oCardContent.setDesign(this.getDesign());
 		}
 
@@ -934,12 +960,15 @@ sap.ui.define([
 	 * @returns {boolean} if all of the controls validated successfully; otherwise, false
 	 */
 	Card.prototype.validateControls = function () {
-		var oCardContent = this.getCardContent();
-		if (oCardContent) {
-			oCardContent.validateControls();
-		}
-
+		this._validateContentControls(true);
 		return !this.getModel("messages").getProperty("/hasErrors");
+	};
+
+	Card.prototype._validateContentControls = function (bShowValueState, bSkipFiringStateChangedEvent) {
+		var oCardContent = this.getCardContent();
+		if (oCardContent && oCardContent.isA("sap.ui.integration.cards.BaseContent")) {
+			oCardContent.validateControls(bShowValueState, bSkipFiringStateChangedEvent);
+		}
 	};
 
 	/**
@@ -1132,6 +1161,41 @@ sap.ui.define([
 	};
 
 	/**
+	 * Sets the values of form fields in the Object card.
+	 * Each value in the aFormValues array must have a
+	 * key and the respective value for ObjectGroupItems as defined in the card's manifest:
+	 * <code>[
+	 *     {
+	 *         "id": "textAreaItemId",
+	 *         "value": "New value"
+	 *     },
+	 *     {
+	 *         "id": "textAreaItemId",
+	 *         "value": "New value"
+	 *     },
+	 *     {
+	 *         "id": "comboBoxItemId",
+	 *         "selectedKey": "key"
+	 *     }
+	 * ]</code>
+	 *
+	 * @private
+	 * @ui5-restricted
+	 * @param {object[]} aFormValues Array key and value
+	 */
+	Card.prototype.setFormValues = function (aFormValues) {
+		var oContent  = this.getCardContent();
+		if (oContent && !oContent.isA("sap.ui.integration.cards.ObjectContent")) {
+			Log.error("Setting form element values is available only on an Object card" , "sap.ui.integration.widgets.Card");
+			return;
+		}
+
+		aFormValues.forEach(function (oFieldData) {
+			oContent.setFormFieldValue(oFieldData);
+		});
+	};
+
+	/**
 	 * Refreshes the card data by triggering all data requests.
 	 *
 	 * @public
@@ -1142,6 +1206,15 @@ sap.ui.define([
 			return;
 		}
 
+		this.refreshAllData();
+		this.resetPaginator();
+	};
+
+	/*
+	* @private
+	* @ui5-restricted sap.ui.integration
+	* */
+	Card.prototype.refreshAllData = function () {
 		var oHeader = this.getCardHeader(),
 			oContent = this.getCardContent(),
 			oFilterBar = this.getAggregation("_filterBar");
@@ -1163,8 +1236,6 @@ sap.ui.define([
 		if (oFilterBar) {
 			oFilterBar.refreshData();
 		}
-
-		this.resetPaginator();
 	};
 
 	/**
@@ -1257,6 +1328,7 @@ sap.ui.define([
 	Card.prototype._cleanupOldManifest = function() {
 		this._aReadyPromises = null;
 
+		this.getModel().setData({});
 		this.getModel("filters").setData({});
 		this.getModel("parameters").setData({});
 		this.getModel("paginator").setData({});
@@ -1553,7 +1625,7 @@ sap.ui.define([
 				extension: oExtension,
 				csrfTokensConfig: this._oCardManifest.get(MANIFEST_PATHS.CSRF_TOKENS),
 				card: this
-			});
+			}).attachEvent("liveDataFallback", this._onLiveDataFallback, this);
 
 			this._registerCustomModels();
 
@@ -1834,7 +1906,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Lazily load and create a specific type of card content based on sap.card/content part of the manifest
+	 * Creates specific type of card content based on sap.card/content part of the manifest
 	 *
 	 * @private
 	 */
@@ -1848,13 +1920,6 @@ sap.ui.define([
 		this._ariaText.setText(sAriaText);
 
 		if (!oContentManifest) {
-			this.fireEvent("_contentReady");
-			return;
-		}
-
-		if (this._bIsPreviewMode) {
-			// TODO: refactor preview to remove temporary content
-			this.setAggregation("_content", this._getTemporaryContent(sCardType, oContentManifest));
 			this.fireEvent("_contentReady");
 			return;
 		}
@@ -2077,8 +2142,9 @@ sap.ui.define([
 			illustrationType: sIllustratedMessageType,
 			illustrationSize: sIllustratedMessageSize,
 			title: sTitle,
+			enableDefaultTitleAndDescription: false,
 			enableVerticalResponsiveness: true,
-			description: sDescription ? sDescription : " "
+			description: sDescription
 		});
 
 		if (this.getCardContent() && this.getCardContent().getDomRef()) {
@@ -2103,31 +2169,6 @@ sap.ui.define([
 	 */
 	Card.prototype.getContentMessage = function () {
 		return this._oContentMessage;
-	};
-
-	Card.prototype._getTemporaryContent = function (sCardType, oContentManifest) {
-		var oLoadingProvider = this.getAggregation("_loadingProvider");
-		var oTemporaryContent;
-
-		if (oLoadingProvider) {
-			oTemporaryContent = oLoadingProvider.createContentPlaceholder(oContentManifest, sCardType, this);
-
-			oTemporaryContent.addEventDelegate({
-				onAfterRendering: function () {
-					if (!this._oCardManifest) {
-						return;
-					}
-
-					var sHeight = this._oContentFactory.getClass(sCardType).getMetadata().getRenderer().getMinHeight(oContentManifest, oTemporaryContent, this);
-
-					if (this.getHeight() === "auto") { // if there is no height specified the default value is "auto"
-						oTemporaryContent.$().css({ "min-height": sHeight });
-					}
-				}
-			}, this);
-		}
-
-		return oTemporaryContent;
 	};
 
 	/**
@@ -2409,20 +2450,27 @@ sap.ui.define([
 	 *
 	 * To be used only inside the designtime.
 	 *
+	 * @deprecated since 1.112
 	 * @private
 	 * @param {boolean} bIsPreviewMode True if the card should be in preview mode.
 	 */
 	Card.prototype._setPreviewMode = function (bIsPreviewMode) {
-		this._bIsPreviewMode = bIsPreviewMode;
-
 		if (bIsPreviewMode) {
-			this.addStyleClass("sapFCardPreview");
+			this.setPreviewMode(CardPreviewMode.Abstract);
 		} else {
-			this.removeStyleClass("sapFCardPreview");
+			this.setPreviewMode(CardPreviewMode.Off);
+		}
+	};
+
+	Card.prototype.setPreviewMode = function (sPreviewMode) {
+		var sOldMode = this.getPreviewMode();
+		this.setProperty("previewMode", sPreviewMode);
+
+		if (sOldMode !== this.getPreviewMode()) {
+			this._bApplyManifest = true;
 		}
 
-		this._bApplyManifest = true;
-		this.invalidate();
+		return this;
 	};
 
 	/**
@@ -2544,6 +2592,7 @@ sap.ui.define([
 	Card.prototype._onReady = function () {
 		this._bReady = true;
 		this._setActionButtonsEnabled(true);
+		this._validateContentControls(false, true);
 		this.fireEvent("_ready");
 		this._fireStateChanged();
 	};
@@ -2788,6 +2837,14 @@ sap.ui.define([
 	 */
 	Card.prototype._createCard = function (oSettings) {
 		return new Card(oSettings);
+	};
+
+	Card.prototype._onLiveDataFallback = function () {
+		Log.error("'mockData' configuration is missing, but the card 'previewMode' is 'MockData'. Real data will be loaded.", this);
+
+		this.attachEventOnce("manifestApplied", function () {
+			this.showMessage(this._oIntegrationRb.getText("CARD_MISSING_PREVIEW_CONFIGURATION"), MessageType.Information);
+		}.bind(this));
 	};
 
 	return Card;

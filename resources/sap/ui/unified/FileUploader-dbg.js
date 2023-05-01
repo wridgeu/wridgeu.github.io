@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.unified.IProcessableBlobs
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -1192,6 +1192,34 @@ sap.ui.define([
 		}
 		//clear the value, don't fire change event, and suppress the refocusing of the file input field
 		return this.setValue("", false, true);
+	};
+
+	/**
+	 * Programmatically opens the file picker dialog.
+	 *
+	 * @since 1.112
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @private
+	 * @ui5-restricted sap.suite.ui.commons.CloudFilePicker
+	 */
+	FileUploader.prototype.openFilePicker = function () {
+		if (this.oFileUpload) {
+			this.oFileUpload.click();
+		}
+
+		return this;
+	};
+
+	/**
+	 * Provides a reference to the type "file" input field of the control.
+	 *
+	 * @since 1.112
+	 * @returns {HTMLElement|null} The input type "file" DOM representation.
+	 * @private
+	 * @ui5-restricted sap.suite.ui.commons.CloudFilePicker
+	 */
+	FileUploader.prototype.getInputReference = function () {
+		return this.oFileUpload;
 	};
 
 	FileUploader.prototype.onmousedown = function(oEvent) {

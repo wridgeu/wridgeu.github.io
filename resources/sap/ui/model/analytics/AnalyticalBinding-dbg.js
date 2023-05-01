@@ -2903,7 +2903,9 @@ sap.ui.define([
 				}
 			}
 			if (iCurrentAnalyticalInfoVersion != that.iAnalyticalInfoVersionNumber) {
-				// discard responses for outdated analytical infos
+				// discard responses for outdated analytical infos but fire dataReceived event
+				// because it is expected that dataRequested and dataReceived events are sent as pairs
+				that.fireDataReceived();
 				return;
 			}
 
@@ -4590,6 +4592,8 @@ sap.ui.define([
 			this.mMultiUnitKey = {};
 
 			this.mEntityKey = {};
+			// clear also the pending request queue because the contained requests are obsolete
+			this.aBatchRequestQueue = [];
 		}
 	};
 

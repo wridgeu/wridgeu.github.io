@@ -12,7 +12,8 @@ sap.ui.define([
 	'sap/ui/core/InvisibleText',
 	'./PlanningCalendarLegend',
 	'sap/ui/unified/library',
-	'sap/ui/core/Configuration'
+	'sap/ui/core/Configuration',
+	"sap/ui/core/date/UI5Date"
 	],
 	function(
 		CalendarDate,
@@ -22,7 +23,9 @@ sap.ui.define([
 		InvisibleText,
 		PlanningCalendarLegend,
 		unifiedLibrary,
-		Configuration) {
+		Configuration,
+		UI5Date
+		) {
 		"use strict";
 
 		var iVerticalPaddingBetweenAppointments = 0.125;
@@ -161,8 +164,8 @@ sap.ui.define([
 		SinglePlanningCalendarGridRenderer.renderBlockerAppointment = function(oRm, oControl, oBlockerNode) {
 			var oGridCalStart = CalendarDate.fromLocalJSDate(oControl.getStartDate()),
 				oBlocker = oBlockerNode.getData(),
-				oBlockerCalStart = CalendarDate.fromLocalJSDate(oBlocker._getStartDateWithTimezoneAdaptation()),
-				oBlockerCalEnd = CalendarDate.fromLocalJSDate(oBlocker._getEndDateWithTimezoneAdaptation()),
+				oBlockerCalStart = CalendarDate.fromLocalJSDate(oBlocker.getStartDate()),
+				oBlockerCalEnd = CalendarDate.fromLocalJSDate(oBlocker.getEndDate()),
 				iStartDayDiff = CalendarUtils._daysBetween(oBlockerCalStart, oGridCalStart),
 				iEndDayDiff = CalendarUtils._daysBetween(oBlockerCalEnd, oGridCalStart),
 				iColumns = oControl._getColumns(),
@@ -312,7 +315,7 @@ sap.ui.define([
 		SinglePlanningCalendarGridRenderer.renderRowHeaders = function (oRm, oControl) {
 			var iStartHour = oControl._getVisibleStartHour(),
 				iEndHour = oControl._getVisibleEndHour(),
-				oStartDate = new Date(),
+				oStartDate = UI5Date.getInstance(),
 				oHoursFormat = oControl._getHoursFormat(),
 				oAMPMFormat = oControl._getAMPMFormat();
 
@@ -321,7 +324,7 @@ sap.ui.define([
 			oRm.openEnd();
 
 			for (var i = iStartHour; i <= iEndHour; i++) {
-				oStartDate.setUTCHours(i);
+				oStartDate.setHours(i);
 				oRm.openStart("span");
 				oRm.class("sapMSinglePCRowHeader");
 				oRm.class("sapMSinglePCRowHeader" + i);
@@ -332,13 +335,13 @@ sap.ui.define([
 
 				oRm.openEnd();
 
-				oRm.text(oHoursFormat.format(oStartDate, true));
+				oRm.text(oHoursFormat.format(oStartDate));
 
 				if (oControl._hasAMPM()) {
 					oRm.openStart("span");
 					oRm.class("sapMSinglePCRowHeaderAMPM");
 					oRm.openEnd();
-					oRm.text(" " + oAMPMFormat.format(oStartDate, true));
+					oRm.text(" " + oAMPMFormat.format(oStartDate));
 					oRm.close("span");
 				}
 
@@ -406,7 +409,7 @@ sap.ui.define([
 
 			for (var i = iStartHour; i <= iEndHour; i++) {
 				oCellStartDate = oControl._parseDateStringAndHours(sDate, i);
-				oCellEndDate = new Date(oCellStartDate.getFullYear(), oCellStartDate.getMonth(), oCellStartDate.getDate(), oCellStartDate.getHours() + 1);
+				oCellEndDate = UI5Date.getInstance(oCellStartDate.getFullYear(), oCellStartDate.getMonth(), oCellStartDate.getDate(), oCellStartDate.getHours() + 1);
 
 				oRm.openStart("div");
 				oRm.attr("role", "gridcell");
@@ -462,8 +465,8 @@ sap.ui.define([
 				iRowHeight = oControl._getRowHeight(),
 				oColumnStartDateAndHour = new UniversalDate(oColumnDate.getYear(), oColumnDate.getMonth(), oColumnDate.getDate(), oControl._getVisibleStartHour()),
 				oColumnEndDateAndHour = new UniversalDate(oColumnDate.getYear(), oColumnDate.getMonth(), oColumnDate.getDate(), oControl._getVisibleEndHour(), 59, 59),
-				oAppStartDate = oAppointment._getStartDateWithTimezoneAdaptation(),
-				oAppEndDate = oAppointment._getEndDateWithTimezoneAdaptation(),
+				oAppStartDate = oAppointment.getStartDate(),
+				oAppEndDate = oAppointment.getEndDate(),
 				oAppCalStart = CalendarDate.fromLocalJSDate(oAppStartDate),
 				oAppCalEnd = CalendarDate.fromLocalJSDate(oAppEndDate),
 				sTooltip = oAppointment.getTooltip_AsString(),
@@ -679,7 +682,7 @@ sap.ui.define([
 		};
 
 		SinglePlanningCalendarGridRenderer.renderNowMarker = function (oRm, oControl) {
-			var oDate = new Date();
+			var oDate = UI5Date.getInstance();
 
 			oRm.openStart("div", oControl.getId() + "-nowMarker");
 			oRm.style("top", oControl._calculateTopPosition(oDate) + "rem");

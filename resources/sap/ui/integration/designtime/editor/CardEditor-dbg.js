@@ -16,7 +16,8 @@ sap.ui.define([
 	"sap/base/util/LoaderExtensions",
 	"sap/ui/core/theming/Parameters",
 	"sap/ui/dom/includeStylesheet",
-	"sap/ui/integration/library"
+	"sap/ui/integration/library",
+	"sap/ui/integration/designtime/editor/CardPreview"
 ], function (
 	Editor,
 	Core,
@@ -29,7 +30,8 @@ sap.ui.define([
 	LoaderExtensions,
 	Parameters,
 	includeStylesheet,
-	library
+	library,
+	CardPreview
 ) {
 	"use strict";
 
@@ -48,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.editor.Editor
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @constructor
 	 * @see {@link topic:5b46b03f024542ba802d99d67bc1a3f4 Cards}
 	 * @since 1.83
@@ -89,9 +91,9 @@ sap.ui.define([
 	});
 
 	CardEditor.prototype.hasPreview = function() {
-		var oPreview = this.getAggregation("_preview");
-		if (oPreview) {
-			if (oPreview.getSettings() && oPreview.getSettings().preview && oPreview.getSettings().preview.modes === "None") {
+		var oCardPreview = this.getAggregation("_preview");
+		if (oCardPreview) {
+			if (oCardPreview.getSettings() && oCardPreview.getSettings().preview && oCardPreview.getSettings().preview.modes === "None") {
 				return false;
 			}
 			return true;
@@ -99,13 +101,21 @@ sap.ui.define([
 		return false;
 	};
 
+	CardEditor.prototype.getSeparatePreview = function() {
+		var sPreviewPosition = this.getPreviewPosition();
+		if (!this.isReady() || sPreviewPosition !== "separate") {
+			return null;
+		}
+		return this._initPreview();
+	};
+
 	/**
 	 * updates the card preview
 	 */
 	 CardEditor.prototype._updatePreview = function () {
-		var oPreview = this.getAggregation("_preview");
-		if (oPreview && oPreview.update && oPreview._getCurrentMode() !== "None") {
-			oPreview.update();
+		var oCardPreview = this.getAggregation("_preview");
+		if (oCardPreview && oCardPreview.update && oCardPreview._getCurrentMode() !== "None") {
+			oCardPreview.update();
 		}
 	};
 
@@ -192,11 +202,7 @@ sap.ui.define([
 		this._manifestModel = new JSONModel(oManifestJson);
 		this._isManifestReady = true;
 		this.fireManifestReady();
-		var vI18n = this._oEditorManifest.get("/sap.app/i18n");
-		var sResourceBundleURL = this.getBaseUrl() + vI18n;
-		if (vI18n && EditorResourceBundles.getResourceBundleURL() !== sResourceBundleURL) {
-			EditorResourceBundles.setResourceBundleURL(sResourceBundleURL);
-		}
+		this._initResourceBundlesForMultiTranslation();
 		//add a context model
 		this._createContextModel();
 		if (this._oEditorManifest && this._oEditorManifest.getResourceBundle()) {
@@ -223,16 +229,15 @@ sap.ui.define([
 		var oSettings = this._oDesigntimeInstance.getSettings() || {};
 		oSettings.preview = oSettings.preview || {};
 		oSettings.preview.position = this.getPreviewPosition();
-		return new Promise(function (resolve, reject) {
-			sap.ui.require(["sap/ui/integration/designtime/editor/CardPreview"], function (Preview) {
-				var oPreview = new Preview({
-					settings: oSettings,
-					card: this._oEditorCard
-				});
-				this.setAggregation("_preview", oPreview);
-				resolve();
-			}.bind(this));
-		}.bind(this));
+		var oCardPreview = new CardPreview({
+			settings: oSettings,
+			card: this._oEditorCard,
+			parentWidth: this.getWidth(),
+			parentHeight: this.getHeight()
+		});
+		this.setAggregation("_preview", oCardPreview);
+		oCardPreview.setAssociation("_editor", this);
+		return oCardPreview;
 	};
 
 	CardEditor.prototype._loadExtension = function () {
@@ -297,62 +302,6 @@ sap.ui.define([
 			}
 		}
 	};
-
-	//map of language strings in their actual language representation, initialized in CardEditor.init
-	CardEditor._languages = {};
-
-	//theming from parameters to CSS variables if CSS variables are not turned on
-	//find out if CSS vars are turned on
-	CardEditor._appendThemeVars = function () {
-		var aVars = [
-			"sapUiButtonHoverBackground",
-			"sapUiBaseBG",
-			"sapUiContentLabelColor",
-			"sapUiTileSeparatorColor",
-			"sapUiHighlight",
-			"sapUiListSelectionBackgroundColor",
-			"sapUiNegativeText",
-			"sapUiCriticalText",
-			"sapUiPositiveText",
-			"sapUiChartScrollbarBorderColor"
-		];
-		var mParams = Parameters.get({
-			name: aVars,
-			callback: function (_params) {
-			   // this will only be called if params weren’t available synchronously
-			}
-		});
-		if (mParams) {
-			for (var n in mParams) {
-				document.body.style.setProperty("--" + n, mParams[n]);
-			}
-		}
-	};
-
-	//initializes global settings
-	CardEditor.init = function () {
-		this.init = function () { }; //replace self
-
-		//add theming variables if CSS vars are not turned on
-		//if (!window.getComputedStyle(document.documentElement).getPropertyValue('--sapBackgroundColor')) {
-		CardEditor._appendThemeVars();
-		Core.attachThemeChanged(function () {
-			CardEditor._appendThemeVars();
-		});
-		//}
-
-		var sCssURL = sap.ui.require.toUrl("sap.ui.integration.editor.css.Editor".replace(/\./g, "/") + ".css");
-		includeStylesheet(sCssURL);
-		LoaderExtensions.loadResource("sap/ui/integration/editor/languages.json", {
-			dataType: "json",
-			failOnError: false,
-			async: true
-		}).then(function (o) {
-			CardEditor._languages = o;
-		});
-	};
-
-	CardEditor.init();
 
 	return CardEditor;
 });

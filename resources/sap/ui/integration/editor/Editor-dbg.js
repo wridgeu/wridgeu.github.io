@@ -137,7 +137,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @constructor
 	 * @since 1.94
 	 * @private
@@ -188,7 +188,7 @@ sap.ui.define([
 				},
 				previewPosition:{
 					type: "string",
-					defaultValue: "right" // value can be "top", "bottom", "left", "right"
+					defaultValue: "right" // value can be "top", "bottom", "left", "right" or "separate"
 				},
 				width: {
 					type: "sap.ui.core.CSSSize",
@@ -358,6 +358,9 @@ sap.ui.define([
 							if (oControl.getMode() !== "translation") {
 								if (oItem.isA("sap.ui.integration.editor.fields.GroupField")) {
 									var oGroupControl = oItem.getAggregation("_field");
+									if (!oGroupControl) {
+										continue;
+									}
 									if (oSubGroup) {
 										//add current col fields to previous sub panel, then empty the col fields list
 										addColFieldsOfSubGroup();
@@ -889,7 +892,7 @@ sap.ui.define([
 		 * @experimental since 1.94
 		 * @public
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 * @borrows sap.ui.integration.editor.Editor#getParameters as getParameters
 		 * @borrows sap.ui.integration.editor.Editor#resolveDestination as resolveDestination
 		 * @borrows sap.ui.integration.editor.Editor#request as request
@@ -937,6 +940,17 @@ sap.ui.define([
 			return true;
 		}
 		return false;
+	};
+
+	Editor.prototype.getSeparatePreview = function() {
+		var sPreviewPosition = this.getPreviewPosition();
+		if (!this.isReady() || sPreviewPosition !== "separate") {
+			return null;
+		}
+		if (!this._oPreview) {
+			this._oPreview = this.getAggregation("_preview");
+		}
+		return this._oPreview;
 	};
 
 	Editor.prototype.flattenData = function(oData, s, a, path) {
@@ -1041,11 +1055,7 @@ sap.ui.define([
 				this._manifestModel = new JSONModel(oManifestJson);
 				this._isManifestReady = true;
 				this.fireManifestReady();
-				var vI18n = this._oEditorManifest.get("/sap.app/i18n");
-				var sResourceBundleURL = this.getBaseUrl() + vI18n;
-				if (vI18n && EditorResourceBundles.getResourceBundleURL() !== sResourceBundleURL) {
-					EditorResourceBundles.setResourceBundleURL(sResourceBundleURL);
-				}
+				this._initResourceBundlesForMultiTranslation();
 				//use the translations
 				this._loadDefaultTranslations();
 				//add a context model
@@ -1057,6 +1067,31 @@ sap.ui.define([
 					this._initInternal();
 				}.bind(this));
 			}.bind(this));
+	};
+
+	/**
+	 * Init the Resource Bundles for Multi Translation
+	 */
+	Editor.prototype._initResourceBundlesForMultiTranslation = function () {
+		var vI18n = this._oEditorManifest.get("/sap.app/i18n");
+		var sResourceBundleURL;
+		var aSupportedLocales;
+		if (typeof vI18n === "string") {
+			sResourceBundleURL = this.getBaseUrl() + vI18n;
+		} else if (typeof vI18n === "object") {
+			if (vI18n.bundleUrl) {
+				sResourceBundleURL = this.getBaseUrl() + vI18n.bundleUrl;
+			}
+			if (vI18n.supportedLocales) {
+				aSupportedLocales = vI18n.supportedLocales;
+			}
+		}
+		if (sResourceBundleURL && EditorResourceBundles.getResourceBundleURL() !== sResourceBundleURL) {
+			EditorResourceBundles.setResourceBundleURL(sResourceBundleURL);
+		}
+		if (aSupportedLocales) {
+			EditorResourceBundles.setSupportedLocales(aSupportedLocales);
+		}
 	};
 
 	/**
@@ -1269,10 +1304,10 @@ sap.ui.define([
 			this._loadDefaultTranslations();
 		}
 		this.setProperty("language", sValue, bSuppress);
-		if (!Editor._languages[this._language]) {
+		if (!Editor._oLanguages[this._language]) {
 			this._language = this._language.split("-")[0];
 		}
-		if (!Editor._languages[this._language]) {
+		if (!Editor._oLanguages[this._language]) {
 			Log.warning("The language: " + sValue + " is currently unknown, some UI controls might show " + sValue + " instead of the language name.");
 		}
 		return this;
@@ -2103,7 +2138,7 @@ sap.ui.define([
 	 * TODO: Track changes and call update of the additional content
 	 */
 	Editor.prototype._updatePreview = function () {
-		var oPreview = this.getAggregation("_preview");
+		var oPreview = this.getAggregation("_preview") || this._oPreview;
 		if (oPreview && oPreview.update) {
 			oPreview.update();
 		}
@@ -2586,10 +2621,10 @@ sap.ui.define([
 			origLangFieldConfig.editable = false;
 			origLangFieldConfig.required = false;
 			//if has value transaltions, get value via language setting in core
-			if (!Editor._languages[sLanguage] && sLanguage.indexOf("-") > -1) {
+			if (!Editor._oLanguages[sLanguage] && sLanguage.indexOf("-") > -1) {
 				sLanguage = sLanguage.substring(0, sLanguage.indexOf("-"));
 			}
-			if (Editor._languages[sLanguage]) {
+			if (Editor._oLanguages[sLanguage]) {
 				var sTranslateText = this.getTranslationValueInTexts(sLanguage, oConfig.manifestpath);
 				if (sTranslateText) {
 					origLangFieldConfig.value = sTranslateText;
@@ -2693,7 +2728,6 @@ sap.ui.define([
 	 * Returns the current language specific text for a given key or "" if no translation for the key exists
 	 */
 	Editor.prototype._getCurrentLanguageSpecificText = function (sKey) {
-		var sLanguage = this._language;
 		if (this._oTranslationBundle) {
 			var sText = this._oTranslationBundle.getText(sKey, [], true);
 			if (sText === undefined) {
@@ -2701,14 +2735,30 @@ sap.ui.define([
 			}
 			return sText;
 		}
+		var sLanguage = this._language;
 		if (!sLanguage) {
 			return "";
 		}
-		var vI18n = this._oEditorManifest.get("/sap.app/i18n");
+		var vI18n = this._oEditorManifest.get("/sap.app/i18n"),
+			sResourceBundleURL,
+			aSupportedLocales;
 		if (!vI18n) {
 			return "";
 		}
 		if (typeof vI18n === "string") {
+			sResourceBundleURL = this.getBaseUrl() + vI18n;
+		} else if (typeof vI18n === "object") {
+			if (vI18n.bundleUrl) {
+				sResourceBundleURL = this.getBaseUrl() + vI18n.bundleUrl;
+			}
+			if (vI18n.supportedLocales && Array.isArray(vI18n.supportedLocales)) {
+				aSupportedLocales = vI18n.supportedLocales;
+				for (var i = 0; i < aSupportedLocales.length; i++) {
+					aSupportedLocales[i] = aSupportedLocales[i].replaceAll('_', '-');
+				}
+			}
+		}
+		if (sResourceBundleURL) {
 			var aFallbacks = [sLanguage];
 			if (sLanguage.indexOf("-") > -1) {
 				aFallbacks.push(sLanguage.substring(0, sLanguage.indexOf("-")));
@@ -2717,17 +2767,35 @@ sap.ui.define([
 			if (!aFallbacks.includes("en")) {
 				aFallbacks.push("en");
 			}
+			aFallbacks = this._filterSupportedFallbackLanguages(aFallbacks, aSupportedLocales);
 			// load the ResourceBundle relative to the manifest
 			this._oTranslationBundle = ResourceBundle.create({
-				url: this.getBaseUrl() + vI18n,
+				url: sResourceBundleURL,
 				async: false,
-				locale: sLanguage,
+				locale: aFallbacks[0],
 				supportedLocales: aFallbacks,
 				fallbackLocale: "en"
 			});
-
 			return this._getCurrentLanguageSpecificText(sKey);
+		} else {
+			return "";
 		}
+	};
+
+	/**
+	 * Filter the supported fallback languages
+	 */
+	Editor.prototype._filterSupportedFallbackLanguages = function (aFallbacks, aSupportedLocales) {
+		if (Array.isArray(aSupportedLocales)) {
+			var aSupportedFallbacks = [];
+			for (var i = 0; i < aFallbacks.length; i++) {
+				if (aSupportedLocales.includes(aFallbacks[i])) {
+					aSupportedFallbacks.push(aFallbacks[i]);
+				}
+			}
+			aFallbacks = aSupportedFallbacks;
+		}
+		return aFallbacks;
 	};
 
 	/**
@@ -2785,7 +2853,7 @@ sap.ui.define([
 					translatable: true,
 					expandable: false,
 					expanded: true,
-					label: this._oResourceBundle.getText("EDITOR_ORIGINALLANG") + ": " + Editor._languages[sLanguage]
+					label: this._oResourceBundle.getText("EDITOR_ORIGINALLANG") + ": " + Editor._oLanguages[sLanguage]
 				});
 			}
 			for (var n in aItems) {
@@ -2951,20 +3019,14 @@ sap.ui.define([
 			this.setProperty("width", editorWidth);
 			document.body.style.setProperty("--sapUiIntegrationEditorFormWidth", editorWidth);
 		}
-		//add additional content
-		if (this.getMode() !== "translation") {
-			this._initPreview().then(function() {
-				Promise.all(this._aFieldReadyPromise).then(function () {
-					this._ready = true;
-					this.fireReady();
-				}.bind(this));
-			}.bind(this));
-		} else {
-			Promise.all(this._aFieldReadyPromise).then(function () {
-				this._ready = true;
-				this.fireReady();
-			}.bind(this));
+		//add preview
+		if (this.getMode() !== "translation" && this.getPreviewPosition() !== "separate") {
+			this._initPreview();
 		}
+		Promise.all(this._aFieldReadyPromise).then(function () {
+			this._ready = true;
+			this.fireReady();
+		}.bind(this));
 	};
 
 	Editor.prototype.setHeight = function(sValue) {
@@ -3003,6 +3065,8 @@ sap.ui.define([
 		this._beforeManifestModel = null;
 		this._oInitialManifestModel = null;
 		this._settingsModel = null;
+		document.body.style.removeProperty("--sapUiIntegrationEditorFormWidth");
+		document.body.style.removeProperty("--sapUiIntegrationEditorFormHeight");
 		Control.prototype.destroy.apply(this, arguments);
 	};
 
@@ -3010,9 +3074,6 @@ sap.ui.define([
 	 * Initializes the additional content
 	 */
 	Editor.prototype._initPreview = function () {
-		return new Promise(function (resolve, reject) {
-			resolve();
-		});
 	};
 
 	/**
@@ -3345,7 +3406,7 @@ sap.ui.define([
 		}
 	};
 	//map of language strings in their actual language representation, initialized in Editor.init
-	Editor._languages = {};
+	Editor._oLanguages = {};
 
 	//theming from parameters to css valiables if css variables are not turned on
 	//find out if css vars are turned on
@@ -3394,7 +3455,7 @@ sap.ui.define([
 			failOnError: false,
 			async: true
 		}).then(function (o) {
-			Editor._languages = o;
+			Editor._oLanguages = o;
 		});
 	};
 

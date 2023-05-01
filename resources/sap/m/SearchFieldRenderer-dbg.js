@@ -107,6 +107,11 @@ sap.ui.define([
 				rm.attr("inputmode", "none");
 			}
 
+			var sTooltip = oSF.getTooltip_AsString();
+			if (sTooltip) {
+				rm.attr("title", sTooltip);
+			}
+
 			if (!oSF.getEnabled()) {
 				rm.attr("disabled", "disabled");
 			}
@@ -116,7 +121,7 @@ sap.ui.define([
 			}
 
 			if (oSF.getMaxLength()) {
-				rm.attr("maxLength", oSF.getMaxLength());
+				rm.attr("maxlength", oSF.getMaxLength());
 			}
 
 			rm.attr("value", sValue);

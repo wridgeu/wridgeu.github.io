@@ -7,11 +7,15 @@
 // Provides control sap.m.SelectDialogBase.
 sap.ui.define([
 		'sap/ui/Device',
-		'sap/ui/core/Control'
+		'sap/ui/core/Core',
+		'sap/ui/core/Control',
+		'sap/ui/core/InvisibleText'
 ],
 function(
 	Device,
-	Control
+	Core,
+	Control,
+	InvisibleText
 ) {
 	"use strict";
 
@@ -27,7 +31,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -129,16 +133,22 @@ function(
 		}
 	});
 
+	SelectDialogBase.getInvisibleText = function() {
+		if (!this.oInvisibleText) {
+			this.oInvisibleText = new InvisibleText({
+				text: Core.getLibraryResourceBundle("sap.m").getText("SELECTDIALOGBASE_LISTLABEL")
+			}).toStatic();
+		}
+
+		return this.oInvisibleText;
+	};
+
 	SelectDialogBase.prototype._setInitialFocus = function () {
 		if (!Device.system.desktop) {
 			return;
 		}
 
-		var oInitiallyFocusedControl = this._oSearchField;
-
-		if (this.getItems().length) {
-			oInitiallyFocusedControl = this.getItems()[0];
-		}
+		var oInitiallyFocusedControl = this._oDialog.getContent()[1];
 
 		this._oDialog.setInitialFocus(oInitiallyFocusedControl);
 	};

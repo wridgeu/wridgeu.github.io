@@ -14,7 +14,8 @@ sap.ui.define([
 	'sap/ui/unified/Calendar',
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/unified/calendar/CalendarUtils',
-	'./CalendarInCardRenderer'
+	'./CalendarInCardRenderer',
+	"sap/ui/core/date/UI5Date"
 ], function(
 	Button,
 	Toolbar,
@@ -25,7 +26,8 @@ sap.ui.define([
 	Calendar,
 	CalendarDate,
 	CalendarUtils,
-	CalendarRenderer
+	CalendarRenderer,
+	UI5Date
 ) {
 	"use strict";
 
@@ -41,7 +43,7 @@ sap.ui.define([
 	 * <code>sap.m.Toolbar</code> with <code>sap.m.Buttons</code>.
 	 *
 	 * @extends sap.ui.unified.Calendar
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @private
@@ -178,7 +180,7 @@ sap.ui.define([
 	 * @private
 	 */
 	CalendarInCard.prototype._handleTodayPress = function () {
-		var oDate = new Date(),
+		var oDate = UI5Date.getInstance(),
 			oCalDate = CalendarDate.fromLocalJSDate(oDate);
 
 		this.getAggregation("month")[0].setDate(oDate);
@@ -423,7 +425,7 @@ sap.ui.define([
 	 * @private
 	 */
 	CalendarInCard.prototype._dateMatchesVisibleRange = function() {
-		var oCalNewDate = CalendarDate.fromLocalJSDate(new Date()),
+		var oCalNewDate = CalendarDate.fromLocalJSDate(UI5Date.getInstance()),
 			oSelectedDate,
 			bIsSameDate,
 			oYearRangePicker,
@@ -442,7 +444,7 @@ sap.ui.define([
 			case 3: // year range picker
 				oYearRangePicker = this._getYearRangePicker();
 				oYearRangePickerDate = oYearRangePicker.getDate();
-				oStartDate = new Date(oYearRangePickerDate.getFullYear() + (oYearRangePicker.getRangeSize() / 2),
+				oStartDate = UI5Date.getInstance(oYearRangePickerDate.getFullYear() + (oYearRangePicker.getRangeSize() / 2),
 					oYearRangePickerDate.getMonth(), oYearRangePickerDate.getDate());
 				return CalendarUtils._isSameMonthAndYear(CalendarDate.fromLocalJSDate(oStartDate),
 					oCalNewDate);

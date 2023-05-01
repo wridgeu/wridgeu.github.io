@@ -61,7 +61,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IContextMenu
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -413,6 +413,8 @@ sap.ui.define([
 	 */
 	Menu.prototype.open = function(bWithKeyboard, oOpenerRef, my, at, of, offset, collision){
 		var oNextSelectableItem;
+
+		this._bLeavingMenu = false;
 
 		if (this.bOpen) {
 			return;
@@ -795,6 +797,7 @@ sap.ui.define([
 	Menu.prototype.onsapbackspacemodifiers = Menu.prototype.onsapbackspace;
 
 	Menu.prototype.onsapescape = function(oEvent){
+		this._bLeavingMenu = true;
 		this.close(true);
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
@@ -804,6 +807,7 @@ sap.ui.define([
 		if (this.isSubMenu()){
 			oEvent.preventDefault();
 		}
+		this._bLeavingMenu = true;
 		this.close(true);
 		oEvent.stopPropagation();
 	};

@@ -7,18 +7,15 @@
 sap.ui.define([
 	"sap/base/Log",
 	"sap/base/util/extend",
+	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/type/ODataType"
-], function (Log, extend, DateFormat, FormatException, ParseException, ValidateException,
+], function (Log, extend, UI5Date, DateFormat, FormatException, ParseException, ValidateException,
 		ODataType) {
 	"use strict";
-
-	var iFullYear = new Date().getFullYear(),
-		oDemoDate = new Date(Date.UTC(iFullYear, 11, 31)), // UTC
-		oDemoDateTime = new Date(iFullYear, 11, 31, 23, 59, 58); // local time
 
 	/*
 	 * Returns true if the type uses only the date.
@@ -28,20 +25,6 @@ sap.ui.define([
 	 */
 	function isDateOnly(oType) {
 		return oType.oConstraints && oType.oConstraints.isDateOnly;
-	}
-
-	/*
-	 * Returns the matching locale-dependent error message for the type based on the constraints.
-	 *
-	 * @param {sap.ui.model.odata.type.DateTimeBase} oType
-	 *   The type
-	 * @returns {string}
-	 *   The locale-dependent error message
-	 */
-	function getErrorMessage(oType) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText(
-			isDateOnly(oType) ? "EnterDate" : "EnterDateTime",
-				[oType.formatValue(isDateOnly(oType) ? oDemoDate : oDemoDateTime, "string")]);
 	}
 
 	/*
@@ -132,7 +115,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 * @public
 	 * @since 1.27.0
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 */
 	var DateTimeBase = ODataType.extend("sap.ui.model.odata.type.DateTimeBase", {
 			constructor : function (oFormatOptions, oConstraints) {
@@ -156,7 +139,7 @@ sap.ui.define([
 	 *   The target type, may be "any", "object" (since 1.69.0), "string", or a type with one of
 	 *   these types as its {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
 	 *   See {@link sap.ui.model.odata.type} for more information.
-	 * @returns {Date|string}
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|string}
 	 *   The formatted output value in the target type; <code>undefined</code> or <code>null</code>
 	 *   are formatted to <code>null</code>
 	 * @throws {sap.ui.model.FormatException}
@@ -186,6 +169,26 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns the matching locale-dependent error message for the type based on the constraints.
+	 *
+	 * @returns {string}
+	 *   The locale-dependent error message
+	 *
+	 * @private
+	 */
+	DateTimeBase.prototype._getErrorMessage = function () {
+		var iFullYear = UI5Date.getInstance().getFullYear(),
+			oDate = isDateOnly(this)
+				// no need to use UI5Date.getInstance as only the UTC timestamp is used
+				? new Date(Date.UTC(iFullYear, 11, 31))
+				: UI5Date.getInstance(iFullYear, 11, 31, 23, 59, 58), // configured time zone
+			sText = isDateOnly(this) ? "EnterDate" : "EnterDateTime",
+			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle();
+
+		return oResourceBundle.getText(sText, [this.formatValue(oDate, "string")]);
+	};
+
+	/**
 	 * Parses the given value to a <code>Date</code> instance (OData V2).
 	 *
 	 * @param {string|Date} vValue
@@ -196,7 +199,7 @@ sap.ui.define([
 	 *   "object" (since 1.69.0), "string", or a type with one of these types as its
 	 *   {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
 	 *   See {@link sap.ui.model.odata.type} for more information.
-	 * @returns {Date|string}
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|string}
 	 *   The parsed value
 	 * @throws {sap.ui.model.ParseException}
 	 *   If <code>sSourceType</code> is not supported or if the given string cannot be parsed to a
@@ -217,7 +220,7 @@ sap.ui.define([
 			case "string":
 				oResult = getFormatter(this).parse(vValue);
 				if (!oResult) {
-					throw new ParseException(getErrorMessage(this));
+					throw new ParseException(this._getErrorMessage());
 				}
 				return oResult;
 			default:
@@ -250,16 +253,51 @@ sap.ui.define([
 	DateTimeBase.prototype.validateValue = function (oValue) {
 		if (oValue === null) {
 			if (this.oConstraints && this.oConstraints.nullable === false) {
-				throw new ValidateException(getErrorMessage(this));
+				throw new ValidateException(this._getErrorMessage());
 			}
 			return;
 		} else if (oValue instanceof Date) {
 			if (oValue.getFullYear() === 0) {
-				throw new ValidateException(getErrorMessage(this));
+				throw new ValidateException(this._getErrorMessage());
 			}
 			return;
 		}
 		throw new ValidateException("Illegal " + this.getName() + " value: " + oValue);
+	};
+
+	/**
+	 * Gets the model value according to this type's constraints and format options for the given
+	 * date object which represents a timestamp in the configured time zone.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oDate
+	 *   The date object considering the configured time zone. Must be created via
+	 *   {@link module:sap/ui/core/date/UI5Date.getInstance}
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null}
+	 *   The model representation of the timestamp
+	 * @throws {Error}
+	 *   If the given date object is not valid or it does not consider the configured time zone
+	 *
+	 * @private
+	 */
+	DateTimeBase.prototype._getModelValue = function (oDate) {
+		var oResult;
+
+		if (oDate === null) {
+			return null;
+		}
+
+		UI5Date.checkDate(oDate);
+
+		oResult = UI5Date.getInstance(oDate);
+		if (isDateOnly(this)) {
+			oResult.setUTCFullYear(oDate.getFullYear(), oDate.getMonth(), oDate.getDate());
+			oResult.setUTCHours(0, 0, 0, 0);
+		} else if (this.oFormatOptions && this.oFormatOptions.UTC) {
+			oResult.setUTCFullYear(oDate.getFullYear(), oDate.getMonth(), oDate.getDate());
+			oResult.setUTCHours(oDate.getHours(), oDate.getMinutes(), oDate.getSeconds(), oDate.getMilliseconds());
+		}
+
+		return oResult;
 	};
 
 	/**

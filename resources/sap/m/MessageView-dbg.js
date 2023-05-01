@@ -112,7 +112,7 @@ sap.ui.define([
 	 * The responsiveness of the <code>MessageView</code> is determined by the container in which it is embedded. For that reason the control could not be visualized if the
 	 * container’s sizes are not defined.
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -368,25 +368,13 @@ sap.ui.define([
 	 * @private
 	 */
 	MessageView.prototype._setItemType = function (oListItem) {
-		var sSelector,
-			bActiveTitle = oListItem.getActiveTitle();
+		var oItemTitleRef = oListItem.getTitleRef();
 
-		if (!oListItem.getTitle() || !oListItem.getDescription()) {
-			if (bActiveTitle) {
-				sSelector = ".sapMSLITitleOnly a";
-			} else {
-				sSelector = ".sapMSLITitleOnly";
-			}
-		} else if (bActiveTitle) {
-			sSelector = ".sapMSLITitle a";
-		} else {
-			sSelector = ".sapMSLITitle";
-		}
+		if (oItemTitleRef &&  (oItemTitleRef.offsetWidth < oItemTitleRef.scrollWidth)) {
 
-		var oItemDomRef = oListItem.getDomRef().querySelector(sSelector);
-
-		if (oItemDomRef.offsetWidth < oItemDomRef.scrollWidth) {
+			// if title's text overflows, make the item type Navigation
 			oListItem.setType(ListType.Navigation);
+
 			if (this.getItems().length === 1) {
 				this._fnHandleForwardNavigation(oListItem, "show");
 			}
@@ -430,6 +418,8 @@ sap.ui.define([
 
 			// TODO: adopt this to NavContainer's public API once a parameter for back navigation transition name is available
 			this._navContainer._pageStack[this._navContainer._pageStack.length - 1].transition = "slide";
+		} else if (aListItems.length === 0) {
+			this._navContainer.backToTop();
 		}
 
 		// Bind automatically to the MessageModel if no items are bound
@@ -791,7 +781,7 @@ sap.ui.define([
 				counter: oMessageItem.getCounter(),
 				icon: this._mapIcon(sType),
 				infoState: this._mapInfoState(sType),
-				info: "\r", // There should be a content in the info property in order to use the info states
+				info: "",
 				type: listItemType,
 				messageType: oMessageItem.getType(),
 				activeTitle: oMessageItem.getActiveTitle(),

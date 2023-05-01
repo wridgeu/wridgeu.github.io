@@ -26,6 +26,7 @@ sap.ui.define([
 	"sap/ui/core/Configuration",
 	"sap/ui/core/date/CalendarWeekNumbering",
 	"sap/ui/core/date/CalendarUtils",
+    'sap/ui/core/date/UI5Date',
 	"sap/base/Log"
 ], function(
 	Control,
@@ -48,6 +49,7 @@ sap.ui.define([
 	Configuration,
 	CalendarWeekNumbering,
 	CalendarDateUtils,
+    UI5Date,
 	Log
 ) {
 	"use strict";
@@ -77,7 +79,7 @@ sap.ui.define([
 	 * If used inside the calendar the properties and aggregation are directly taken from the parent
 	 * (To not duplicate and sync DateRanges and so on...)
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -277,6 +279,7 @@ sap.ui.define([
 
 		this._oFormatYyyymmdd = DateFormat.getInstance({pattern: "yyyyMMdd", calendarType: CalendarType.Gregorian});
 		this._oFormatLong = DateFormat.getInstance({style: "long", calendarType: sCalendarType});
+
 
 		this._mouseMoveProxy = this._handleMouseMove.bind(this);
 
@@ -495,7 +498,7 @@ sap.ui.define([
 	Month.prototype._getDate = function(){
 
 		if (!this._oDate) {
-			this._oDate = CalendarDate.fromLocalJSDate(new Date(), this.getPrimaryCalendarType());
+			this._oDate = CalendarDate.fromLocalJSDate(UI5Date.getInstance(), this.getPrimaryCalendarType());
 		}
 
 		return this._oDate;
@@ -1029,7 +1032,7 @@ sap.ui.define([
 		if ($Target.hasClass("sapUiCalItem")) {
 			var oOldFocusedDate = this._getDate();
 			if (containsOrEquals(this.getDomRef(), oEvent.target)) {
-				var oFocusedDate = CalendarDate.fromUTCDate(this._oFormatYyyymmdd.parse($Target.attr("data-sap-day"), true), this.getPrimaryCalendarType());
+				var oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymmdd.parse($Target.attr("data-sap-day")), this.getPrimaryCalendarType());
 
 				if (!oFocusedDate.isSame(oOldFocusedDate)) {
 					this._oDate = oFocusedDate;
@@ -1061,8 +1064,8 @@ sap.ui.define([
 
 		var $oEventTarget = jQuery(oEvent.target),
 			oExtractedDate = $oEventTarget.siblings().eq(0).attr("data-sap-day"),
-			oParsedDate = this._oFormatYyyymmdd.parse(oExtractedDate, true),
-			oFirstDayOfWeekCalendarDate = CalendarDate.fromUTCDate(oParsedDate, this.getPrimaryCalendarType());
+			oParsedDate = this._oFormatYyyymmdd.parse(oExtractedDate),
+			oFirstDayOfWeekCalendarDate = CalendarDate.fromLocalJSDate(oParsedDate, this.getPrimaryCalendarType());
 
 		this._handleWeekSelection(oFirstDayOfWeekCalendarDate, true);
 	};
@@ -1537,10 +1540,10 @@ sap.ui.define([
 			sExtractedDate = oTarget.getAttribute("data-sap-day") || oTarget.parentNode.getAttribute("data-sap-day");
 		}
 
-		oParsedDate = this._oFormatYyyymmdd.parse(sExtractedDate, true);
+		oParsedDate = this._oFormatYyyymmdd.parse(sExtractedDate);
 
 		// Return null for cases like user clicking on an empty space, today's border, etc...
-		return oParsedDate ? CalendarDate.fromUTCDate(oParsedDate, this.getPrimaryCalendarType()) : null;
+		return oParsedDate ? CalendarDate.fromLocalJSDate(oParsedDate, this.getPrimaryCalendarType()) : null;
 	};
 
 	/**
@@ -1554,20 +1557,32 @@ sap.ui.define([
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
-	Month.prototype._handleWeekSelection = function (oStartDate, bFocusStartDate) {
+	Month.prototype._handleWeekSelection = function (oStartDate, bFocusStartDate){
 		var iSelectedWeekNumber = this._calculateWeekNumber(oStartDate),
 			oEndDate = this._getLastWeekDate(oStartDate),
 			bSingleSelection = this.getSingleSelection(),
 			bIntervalSelection = this.getIntervalSelection(),
-			oFirstEnabledDateOfWeek = this._checkDateEnabled(oStartDate) ? oStartDate : new CalendarDate(this._oMinDate),
-			oLastEnabledDateOfweek = this._checkDateEnabled(oEndDate) ? oEndDate : new CalendarDate(this._oMaxDate);
+			oFirstEnabledDateOfWeek = this._checkDateEnabled(oStartDate) ? oStartDate : null,
+			oLastEnabledDateOfWeek = this._checkDateEnabled(oEndDate) ? oEndDate : null;
+
+		if (oStartDate.isAfter(this._oMaxDate) || oEndDate.isBefore(this._oMinDate)){
+			return this;
+		}
+
+		if (!oFirstEnabledDateOfWeek){
+			oFirstEnabledDateOfWeek = new CalendarDate(this._oMinDate);
+		}
+
+		if (!oLastEnabledDateOfWeek){
+			oLastEnabledDateOfWeek =  new CalendarDate(this._oMaxDate);
+		}
 
 		if (!bSingleSelection && !bIntervalSelection) {
 			// Selecting each day separately
-			this._handleWeekSelectionByMultipleDays(iSelectedWeekNumber, oFirstEnabledDateOfWeek, oLastEnabledDateOfweek);
+			this._handleWeekSelectionByMultipleDays(iSelectedWeekNumber, oFirstEnabledDateOfWeek, oLastEnabledDateOfWeek);
 		} else if (bSingleSelection && bIntervalSelection) {
 			// Selecting the week as a whole interval
-			this._handleWeekSelectionBySingleInterval(iSelectedWeekNumber, oFirstEnabledDateOfWeek, oLastEnabledDateOfweek);
+			this._handleWeekSelectionBySingleInterval(iSelectedWeekNumber, oFirstEnabledDateOfWeek, oLastEnabledDateOfWeek);
 		}
 
 		// When this method is called due to a week number's press, then focus
@@ -1620,9 +1635,9 @@ sap.ui.define([
 		// includes days in a new month into a new year, we explicitly changed the week number
 		// US calendar weeks overlap, Jan 1st is always week 1, while Dec 31st is always last week.
 		if (oEndDate.getMonth() === 0 && this._oDate.getMonth() === 0  && bIsRegionUS) {
-			iWeekNumber = oDateFormat.format(oEndDate.toUTCJSDate(), true);
+			iWeekNumber = oDateFormat.format(oEndDate.toLocalJSDate());
 		} else {
-			iWeekNumber = oDateFormat.format(oDate.toUTCJSDate(), true);
+			iWeekNumber = oDateFormat.format(oDate.toLocalJSDate());
 		}
 
 		return iWeekNumber;
@@ -2005,7 +2020,7 @@ sap.ui.define([
 		}
 
 		if (!this._oItemNavigation) {
-			this._oItemNavigation = new ItemNavigation(undefined, undefined, this._bNotInTabChain);
+			this._oItemNavigation = new ItemNavigation();
 			this._oItemNavigation.attachEvent(ItemNavigation.Events.AfterFocus, _handleAfterFocus, this);
 			this._oItemNavigation.attachEvent(ItemNavigation.Events.FocusAgain, _handleFocusAgain, this);
 			this._oItemNavigation.attachEvent(ItemNavigation.Events.BorderReached, this._handleBorderReached, this);
@@ -2054,7 +2069,7 @@ sap.ui.define([
 				for (var i = 0; i < aDomRefs.length; ++i) {
 					oDomRefDay = aDomRefs[i];
 					if (!(oDomRefDay.classList.contains("sapUiCalItemOtherMonth") || oDomRefDay.classList.contains("sapUiCalItemDsbl"))) {
-						oFocusedDate = CalendarDate.fromUTCDate(this._oFormatYyyymmdd.parse(oDomRefDay.getAttribute("data-sap-day"), true), this.getPrimaryCalendarType());
+						oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymmdd.parse(oDomRefDay.getAttribute("data-sap-day")), this.getPrimaryCalendarType());
 						break;
 					}
 				}
@@ -2064,7 +2079,7 @@ sap.ui.define([
 				for (var i = aDomRefs.length - 1; i > 0; --i) {
 					oDomRefDay = aDomRefs[i];
 					if (!(oDomRefDay.classList.contains("sapUiCalItemOtherMonth") || oDomRefDay.classList.contains("sapUiCalItemDsbl"))) {
-						oFocusedDate = CalendarDate.fromUTCDate(this._oFormatYyyymmdd.parse(oDomRefDay.getAttribute("data-sap-day"), true), this.getPrimaryCalendarType());
+						oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymmdd.parse(oDomRefDay.getAttribute("data-sap-day")), this.getPrimaryCalendarType());
 						break;
 					}
 				}
@@ -2072,7 +2087,7 @@ sap.ui.define([
 			} else {
 				// focus old date again, but tell parent about the new date
 				bOtherMonth = true;
-				oFocusedDate = CalendarDate.fromUTCDate(this._oFormatYyyymmdd.parse(sDayAttribute, true), this.getPrimaryCalendarType());
+				oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymmdd.parse(sDayAttribute), this.getPrimaryCalendarType());
 				if (!oFocusedDate) {
 					oFocusedDate = new CalendarDate(oOldDate); // e.g. year > 9999
 				}
@@ -2099,7 +2114,7 @@ sap.ui.define([
 				this._focusDate(oFocusedDate);
 			} else  {
 				// not if clicked on week number
-				oFocusedDate = CalendarDate.fromUTCDate(this._oFormatYyyymmdd.parse(sDayAttribute, true), this.getPrimaryCalendarType());
+				oFocusedDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymmdd.parse(sDayAttribute), this.getPrimaryCalendarType());
 				this._oDate = oFocusedDate;
 			}
 			this._sTouchstartYyyyMMdd = undefined;

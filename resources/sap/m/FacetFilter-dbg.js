@@ -172,7 +172,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IShrinkable
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -1646,6 +1646,7 @@ sap.ui.define([
 				},
 				beginButton : new Button({
 					text : this._bundle.getText("FACETFILTER_ACCEPT"),
+					type: ButtonType.Emphasized,
 					tooltip:this._bundle.getText("FACETFILTER_ACCEPT"),
 					press : function() {
 

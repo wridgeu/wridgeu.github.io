@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.calendar.YearPicker
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @private
@@ -141,7 +141,7 @@ sap.ui.define([
 	YearRangePicker.prototype._updatePage = function (bForward, iSelectedIndex, bFireEvent){
 
 		var aDomRefs = this._oItemNavigation.getItemDomRefs(),
-			oFirstDate = CalendarDate.fromUTCDate(this._oFormatYyyymmdd.parse(jQuery(aDomRefs[0]).attr("data-sap-year-start"), true), this.getPrimaryCalendarType()),
+			oFirstDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymmdd.parse(jQuery(aDomRefs[0]).attr("data-sap-year-start")), this.getPrimaryCalendarType()),
 			iYears = this.getYears(),
 			iYearRangeSize = this.getRangeSize();
 
@@ -191,7 +191,7 @@ sap.ui.define([
 		var aDomRefs = this._oItemNavigation.getItemDomRefs(),
 			$DomRef = jQuery(aDomRefs[iIndex]),
 			sYyyymmdd = $DomRef.attr("data-sap-year-start"),
-			oDate = CalendarDate.fromUTCDate(this._oFormatYyyymmdd.parse(sYyyymmdd, true), this.getPrimaryCalendarType());
+			oDate = CalendarDate.fromLocalJSDate(this._oFormatYyyymmdd.parse(sYyyymmdd), this.getPrimaryCalendarType());
 
 		if ($DomRef.hasClass("sapUiCalItemDsbl")) {
 			return false; // don't select disabled items
@@ -205,7 +205,7 @@ sap.ui.define([
 
 	/**
 	 * Calculates the first and last displayed date about a given year range.
-	 * @param {integer} iYear the year about which the dates are calculated
+	 * @param {sap.ui.unified.CalendarDate} oDate the year about which the dates are calculated
 	 * @returns {object} two values - start and end date
 	 */
 	YearRangePicker.prototype._getDisplayedSecondaryDates = function(oDate){

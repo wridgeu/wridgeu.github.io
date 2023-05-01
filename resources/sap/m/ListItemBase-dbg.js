@@ -78,7 +78,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -401,8 +401,7 @@ function(
 	ListItemBase.prototype.getAccessibilityDescription = function(oBundle) {
 		var aOutput = [],
 			sType = this.getType(),
-			sHighlight = this.getHighlight(),
-			sTooltip = this.getTooltip_AsString();
+			sHighlight = this.getHighlight();
 
 		if (this.getSelected()) {
 			aOutput.push(oBundle.getText("LIST_ITEM_SELECTED"));
@@ -445,10 +444,6 @@ function(
 		if (this.getContentAnnouncement) {
 			var sContentAnnouncement = (this.getContentAnnouncement(oBundle) || "").trim();
 			sContentAnnouncement && aOutput.push(sContentAnnouncement);
-		}
-
-		if (sTooltip) {
-			aOutput.push(sTooltip);
 		}
 
 		if (this.getListProperty("ariaRole") != "listbox" && this.isSelectable() && !this.getSelected()) {

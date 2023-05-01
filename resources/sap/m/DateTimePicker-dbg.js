@@ -27,6 +27,7 @@ sap.ui.define([
 	'sap/ui/core/IconPool',
 	'sap/ui/qunit/utils/waitForThemeApplied',
 	'sap/ui/core/Configuration',
+	'sap/ui/core/date/UI5Date',
 	'sap/ui/dom/jquery/cursorPos' // provides jQuery.fn.cursorPos
 ], function(
 	jQuery,
@@ -49,7 +50,8 @@ sap.ui.define([
 	Button,
 	IconPool,
 	waitForThemeApplied,
-	Configuration
+	Configuration,
+	UI5Date
 ) {
 	"use strict";
 
@@ -143,7 +145,7 @@ sap.ui.define([
 	 * mobile devices, it opens in full screen.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -356,7 +358,7 @@ sap.ui.define([
 			}
 
 			if (sKey === "Cal") {
-				oCalendar.$().css("display", "flex");
+				oCalendar.$().css("display", "");
 				oClocks.$().css("display", "none");
 				oCalendar.getFocusDomRef() && oCalendar.getFocusDomRef().focus();
 			} else {
@@ -389,65 +391,31 @@ sap.ui.define([
 		this._bOnlyCalendar = false;
 	};
 
-	DateTimePicker.prototype._formatValueAndUpdateOutput = function(oDate, sValue) {
-		delete this._prefferedValue;
-
-		// convert to output
-		var sOutputValue = oDate ? this._formatValue(oDate) : sValue;
-		if (!oDate) {
-			var sFallbackValue = this._fallbackParse(sValue);
-			if (typeof sFallbackValue === "string") {
-				this._bValid = true;
-				this._prefferedValue = sFallbackValue;
-				sOutputValue = sFallbackValue;
-			}
-		}
-
-		if (!this.getDomRef()) {
-			return;
-		}
-
-		if (this._bPreferUserInteraction) {
-			// Handle the value concurrency before setting the value property of the control,
-			// in order to distinguish whether the user only focused the input field or typed in it
-			this.handleInputValueConcurrency(sOutputValue);
-		} else if (this._$input.val() !== sOutputValue) {
-			// update the DOM value when necessary
-			// otherwise cursor can go to the end of text unnecessarily
-			this._$input.val(sOutputValue);
-			this._curpos = this._$input.cursorPos();
-		}
-	};
-
 	DateTimePicker.prototype.setTimezone = function(sTimezone) {
 		var oCurrentDateValue,
 			sFormattedValue,
 			oNewDateValue;
 
+
 		if (this.getTimezone() === sTimezone) {
 			return this;
 		}
-
-		oCurrentDateValue = this.getDateValue() || this._parseValue(this.getValue(), false);
-		sFormattedValue = this._formatValue(oCurrentDateValue, false);
-
 		this.setProperty("timezone", sTimezone);
-
-		this._oDisplayFormat = null;
-		this._oValueFormat = null;
-		this._oDisplayFormatWithTimezone = null;
-		this._oValueFormatWithTimezone = null;
 
 		if (this._oTimezonePopup) {
 			this._oTimezonePopup.setTitle(this._getTranslatedTimezone(true));
 		}
 
-		// the dateValue should be adjusted, and the value re-formatted
-		oNewDateValue = this._parseValue(sFormattedValue, true);
-		if (oNewDateValue) {
-			this.setProperty("dateValue", oNewDateValue);
-			this.setProperty("value", this._formatValue(oNewDateValue, true));
+		if (this._isTimezoneBinding()){
+			oCurrentDateValue = this.getDateValue() || this._parseValue(this.getValue(), false);
+			sFormattedValue = this._formatValue(oCurrentDateValue, false);
+			oNewDateValue = this._parseValue(sFormattedValue, true);
+			if (oNewDateValue) {
+				this.setProperty("dateValue", oNewDateValue);
+				this.setProperty("value", this._formatValue(oNewDateValue, true));
+			}
 		}
+
 
 		return this;
 	};
@@ -479,6 +447,57 @@ sap.ui.define([
 		}
 	};
 
+	DateTimePicker.prototype._formatValueAndUpdateOutput = function(oDate, sValue) {
+		delete this._prefferedValue;
+		// convert to output
+		var sOutputValue = oDate ? this._formatValue(oDate) : sValue;
+		if (!oDate) {
+			var sFallbackValue = this._fallbackParse(sValue);
+			if (typeof sFallbackValue === "string") {
+				this._bValid = true;
+				this._prefferedValue = sFallbackValue;
+				sOutputValue = sFallbackValue;
+			}
+		}
+
+		if (!this.getDomRef()) {
+			return;
+		}
+
+		if (this._bPreferUserInteraction) {
+			// Handle the value concurrency before setting the value property of the control,
+			// in order to distinguish whether the user only focused the input field or typed in it
+			this.handleInputValueConcurrency(sOutputValue);
+		} else if (this._$input.val() !== sOutputValue) {
+			// update the DOM value when necessary
+			// otherwise cursor can go to the end of text unnecessarily
+			this._$input.val(sOutputValue);
+			this._curpos = this._$input.cursorPos();
+		}
+	};
+
+	/**
+	 * Tries to parse the value to see if it is a timezone only string.
+	 * @param {string} sValue A value string
+	 * @return {string|null} An empty string indicating success or null
+	 * @private
+	 */
+	DateTimePicker.prototype._fallbackParse = function(sValue) {
+		return this._getFallbackParser().parse(sValue) ? "" : null;
+	};
+
+	DateTimePicker.prototype._getFallbackParser = function() {
+		if (!this._fallbackParser) {
+			this._fallbackParser = DateFormat.getDateTimeWithTimezoneInstance({
+				showDate: false,
+				showTime: false,
+				showTimezone: true
+			});
+		}
+
+		return this._fallbackParser;
+	};
+
 	/**
 	 * Apply the correct icon to the used Date control
 	 * @protected
@@ -502,7 +521,6 @@ sap.ui.define([
 	};
 
 	DateTimePicker.prototype.setDisplayFormat = function(sDisplayFormat) {
-		this._oDisplayFormatWithTimezone = null;
 		DatePicker.prototype.setDisplayFormat.apply(this, arguments);
 
 		if (this._oClocks) {
@@ -512,11 +530,6 @@ sap.ui.define([
 
 		return this;
 
-	};
-
-	DateTimePicker.prototype.setValueFormat = function(sValueFormat) {
-		this._oValueFormatWithTimezone = null;
-		return DatePicker.prototype.setValueFormat.apply(this, arguments);
 	};
 
 	DateTimePicker.prototype.setMinutesStep = function(iMinutesStep) {
@@ -607,6 +620,11 @@ sap.ui.define([
 		return this._oTimezonePopup;
 	};
 
+	DateTimePicker.prototype._getFormatInstance = function(oArguments){
+
+		return DateFormat.getDateTimeInstance(oArguments);
+	};
+
 	DateTimePicker.prototype._togglePopoverOpen = function(oPopover, oOpenerDomRef) {
 		if (oPopover.isOpen()) {
 			oPopover.close();
@@ -615,7 +633,7 @@ sap.ui.define([
 		}
 	};
 
-	DateTimePicker.prototype._getFormatter = function(bDisplayFormat) {
+	DateTimePicker.prototype._getFormatterWithTimezoneInstance = function(bDisplayFormat) {
 		var sCacheName = this._getTimezoneFormatterCacheName(bDisplayFormat);
 
 		if (!this[sCacheName]) {
@@ -683,6 +701,10 @@ sap.ui.define([
 		if (sFormat && !this._isSupportedBindingType(oBindingType)) {
 			oFormatOptions[this._checkStyle(sFormat) ? "style" : "pattern"] = sFormat;
 		}
+
+		// Explicit replacement of the values because these two option are not compatible with the control
+		oFormatOptions.showDate = true;
+		oFormatOptions.showTime = true;
 
 		return oFormatOptions;
 	};
@@ -778,25 +800,20 @@ sap.ui.define([
 
 	};
 
-	DateTimePicker.prototype._parseValue = function(sValue, bDisplayFormat, sTimezone) {
+	DateTimePicker.prototype._isTimezoneBinding = function() {
 		var oBinding = this.getBinding("value") || this.getBinding("dateValue"),
-			oBindingType = oBinding && oBinding.getType(),
-			aDateWithTimezone;
+			oBindingType = oBinding && oBinding.getType();
 
-		if (oBindingType && oBindingType.isA(["sap.ui.model.odata.type.DateTimeWithTimezone"])) {
-			var aCurrentBindingValues = oBinding.getCurrentValues().slice(0);
-			aCurrentBindingValues[1] = sTimezone || this._getTimezone(true);
-			return oBindingType.parseValue(sValue, "string", aCurrentBindingValues)[0];
+		return oBindingType && oBindingType.isA(["sap.ui.model.odata.type.DateTimeWithTimezone"]);
+	};
+
+	DateTimePicker.prototype._parseValue = function(sValue, bDisplayFormat, sTimezone) {
+
+		if (this._isTimezoneBinding()) {
+			return this._getFormatterWithTimezoneInstance().parse(sValue, sTimezone || this._getTimezone(true))[0];
 		}
 
-		aDateWithTimezone = this._getFormatter(bDisplayFormat)
-			.parse(sValue, sTimezone || this._getTimezone(true));
-
-		if (!aDateWithTimezone || !aDateWithTimezone.length) {
-			return null;
-		}
-
-		return aDateWithTimezone[0];
+		return DatePicker.prototype._parseValue.apply(this, arguments);
 	};
 
 	DateTimePicker.prototype._formatValue = function(oDate, bValueFormat, sTimezone) {
@@ -804,32 +821,17 @@ sap.ui.define([
 			return "";
 		}
 
-		return this._getFormatter(!bValueFormat).format(oDate, sTimezone || this._getTimezone(true));
-	};
-
-	/**
-	 * Tries to parse the value to see if it is a timezone only string.
-	 * @param {string} sValue A value string
-	 * @returns {string|null} An empty string indicating success or null
-	 * @private
-	 */
-	DateTimePicker.prototype._fallbackParse = function(sValue) {
-		return this._getFallbackParser().parse(sValue) ? "" : null;
-	};
-
-	DateTimePicker.prototype._getFallbackParser = function() {
-		if (!this._fallbackParser) {
-			this._fallbackParser = DateFormat.getDateTimeWithTimezoneInstance({
-				showDate: false,
-				showTime: false,
-				showTimezone: true
-			});
+		if (this._isTimezoneBinding()){
+			return this._getFormatterWithTimezoneInstance(!bValueFormat).format(oDate, sTimezone || this._getTimezone(true));
 		}
 
-		return this._fallbackParser;
+		return DatePicker.prototype._formatValue.apply(this, arguments);
 	};
 
 	DateTimePicker.prototype._getPickerParser = function() {
+		if (!this._isTimezoneBinding()){
+			return DatePicker.prototype._getFormatter.apply(this, arguments);
+		}
 		if (!this._clocksParser) {
 			this._clocksParser = DateFormat.getDateTimeWithTimezoneInstance({
 				showTimezone: false,
@@ -979,13 +981,13 @@ sap.ui.define([
 			sFormattedDate;
 
 		if (oDate) {
-			oDate = new Date(oDate.getTime());
+			oDate = UI5Date.getInstance(oDate.getTime());
 			this._oOKButton.setEnabled(true);
 		} else {
 			bDateFound = false;
 			oDate = this.getInitialFocusedDateValue();
 			if (!oDate) {
-				oDate = new Date();
+				oDate = UI5Date.getInstance();
 				this._oCalendar.removeAllSelectedDates();
 			}
 			var iMaxTimeMillis = this._oMaxDate.getTime();
@@ -996,10 +998,11 @@ sap.ui.define([
 			this._oOKButton.setEnabled(false);
 		}
 
-		// convert the date to local date for the calendar and the clocks
-		sFormattedDate = this._getPickerParser().format(oDate, this._getTimezone(true));
-		oDate = this._getPickerParser().parse(sFormattedDate, TimezoneUtil.getLocalTimezone())[0];
-
+		// convert the date to local date for the calendar and the clocks if binding is used
+		if (this._isTimezoneBinding()) {
+			sFormattedDate = this._getPickerParser().format(oDate, this._getTimezone(true));
+			oDate = this._getPickerParser().parse(sFormattedDate, TimezoneUtil.getLocalTimezone())[0];
+		}
 		this._oCalendar.focusDate(oDate);
 
 		if (bDateFound) {
@@ -1014,7 +1017,9 @@ sap.ui.define([
 	DateTimePicker.prototype._getSelectedDate = function(){
 		var oDate = DatePicker.prototype._getSelectedDate.apply(this, arguments),
 			oDateTime,
-			sPattern;
+			sPattern,
+			sFormattedDate,
+			oParts;
 
 		if (oDate) {
 			oDateTime = this._oClocks.getTimeValues();
@@ -1031,12 +1036,17 @@ sap.ui.define([
 			}
 
 			if (oDate.getTime() < this._oMinDate.getTime()) {
-				oDate = new Date(this._oMinDate.getTime());
+				oDate = UI5Date.getInstance(this._oMinDate.getTime());
 			} else if (oDate.getTime() > this._oMaxDate.getTime()){
-				oDate = new Date(this._oMaxDate.getTime());
+				oDate = UI5Date.getInstance(this._oMaxDate.getTime());
 			}
 		}
 
+		if (this._isTimezoneBinding()) {
+			sFormattedDate = this._getPickerParser().format(oDate, TimezoneUtil.getLocalTimezone());
+			oParts = this._getPickerParser().parse(sFormattedDate, this._getTimezone(true));
+			oDate = oParts && oParts[0];
+		}
 		return oDate;
 	};
 
@@ -1093,7 +1103,7 @@ sap.ui.define([
 		} else {
 			oSwitcher.setVisible(false);
 			oClocks.$().css("display", "");
-			oCalendar.$().css("display", "flex");
+			oCalendar.$().css("display", "");
 		}
 	};
 

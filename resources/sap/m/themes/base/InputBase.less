@@ -181,12 +181,15 @@
 	width: @_sap_m_InputBase_IconWidth;
 	min-width: @_sap_m_InputBase_IconMinWidth;
 	height: 100%;
-	line-height: @_sap_m_InputBase_IconLineHeight;
 	cursor: pointer;
 	background: transparent;
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	user-select: none;
+}
+
+.sapMInputBaseIconContainer .sapUiIcon.sapMInputBaseIcon {
+	line-height: @_sap_m_InputBase_IconLineHeight;
 }
 
 .sapMFocus.sapMInputBase .sapMInputBaseContentWrapper:not(.sapMInputBaseDisabledWrapper) {
@@ -372,6 +375,9 @@ input.sapMInputBaseInner:invalid {
 	.sapMInputBaseIcon {
 		width: @_sap_m_InputBase_Compact_IconWidth;
 		min-width: 2rem;
+	}
+
+	.sapMInputBaseIconContainer .sapUiIcon.sapMInputBaseIcon {
 		line-height: 1.5rem;
 	}
 

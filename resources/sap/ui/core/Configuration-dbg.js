@@ -44,7 +44,7 @@ sap.ui.define([
 	// Singleton instance for configuration
 	var oConfiguration;
 	var M_SETTINGS;
-	var VERSION = "1.110.0";
+	var VERSION = "1.112.0";
 
 	// Helper Functions
 	function detectLanguage() {
@@ -270,10 +270,12 @@ sap.ui.define([
 		"xx-waitForTheme"       : { type : "string",  defaultValue : ""}, // rendering|init
 		"xx-hyphenation" : { type : "string",  defaultValue : ""}, // (empty string)|native|thirdparty|disable
 		"xx-flexBundleRequestForced" : { type : "boolean",  defaultValue : false },
+		"xx-skipAutomaticFlLibLoading" : { type : "boolean",  defaultValue: false },
 		"xx-cssVariables"       : { type : "string",   defaultValue : "false" }, // false|true|additional (additional just includes the css_variables.css in addition)
 		"xx-debugModuleLoading"	: { type : "boolean",  defaultValue: false },
 		"statistics"            : { type : "boolean",  defaultValue : false },
-		"xx-acc-keys"           : { type : "boolean",  defaultValue : false }
+		"xx-acc-keys"           : { type : "boolean",  defaultValue : false },
+		"xx-measure-cards"      : { type : "boolean",  defaultValue : false }
 	};
 
 	var M_COMPAT_FEATURES = {
@@ -568,8 +570,10 @@ sap.ui.define([
 			}
 
 			// in case the flexibilityServices configuration was set to a non-empty, non-default value, sap.ui.fl becomes mandatory
+			// if not overruled by xx-skipAutomaticFlLibLoading
 			if (config.flexibilityServices
 					&& config.flexibilityServices !== M_SETTINGS.flexibilityServices.defaultValue
+					&& !config['xx-skipAutomaticFlLibLoading']
 					&& config.modules.indexOf("sap.ui.fl.library") == -1) {
 				config.modules.push("sap.ui.fl.library");
 			}
@@ -1760,6 +1764,17 @@ sap.ui.define([
 		 */
 		getSecurityTokenHandlers : function () {
 			return this.getValue("securityTokenHandlers").slice();
+		},
+
+		/**
+		 * Gets if performance measurement for UI5 Integration Cards should happen.
+		 *
+		 * @returns {boolean} whether measurement should be executed
+		 * @since 1.112.0
+		 * @experimental
+		 */
+		getMeasureCards: function () {
+			return this.getValue("xx-measure-cards");
 		},
 
 		/**

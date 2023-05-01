@@ -11,7 +11,7 @@ sap.ui.define([], function() {
 	 * Static collection of utility functions to handle time zone related conversions
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @namespace
 	 * @alias sap.ui.core.format.TimezoneUtil
 	 * @private
@@ -66,7 +66,8 @@ sap.ui.define([], function() {
 				year: "numeric",
 				timeZone: sTimezone,
 				timeZoneName: 'short',
-				era: 'narrow'
+				era: 'narrow',
+				weekday: "short"
 			};
 			var oInstance = new Intl.DateTimeFormat("en-US", oOptions);
 
@@ -151,26 +152,30 @@ sap.ui.define([], function() {
 	 * @param {Date} oDate The date which should be converted.
 	 * @param {string} sTargetTimezone The target IANA timezone ID, e.g <code>"Europe/Berlin"</code>
 	 * @returns {{
-	 *     month: string,
 	 *     day: string,
-	 *     year: string,
-	 *     hour: string,
-	 *     minute: string,
-	 *     second: string,
 	 *     era: string,
 	 *     fractionalSecond: string,
-	 *     timeZoneName: string
+	 *     hour: string,
+	 *     minute: string,
+	 *     month: string,
+	 *     second: string,
+	 *     timeZoneName: string,
+	 *     weekday: string,
+	 *     year: string
 	 * }} An object containing the date and time fields considering the target time zone.
 	 * @private
 	 */
 	TimezoneUtil._getParts = function(oDate, sTargetTimezone) {
-		var oIntlDate = oIntlDateTimeFormatCache.get(sTargetTimezone);
-		// clone the date object before passing it to the Intl API, to ensure that no
-		// UniversalDate gets passed to it
-		var oParts = oIntlDate.formatToParts(new Date(oDate.getTime()));
-		var oDateParts = Object.create(null);
-		for (var sKey in oParts) {
-			var oPart = oParts[sKey];
+		var sKey, oPart,
+			oDateParts = Object.create(null),
+			oIntlDate = oIntlDateTimeFormatCache.get(sTargetTimezone),
+			// clone the date object before passing it to the Intl API, to ensure that no
+			// UniversalDate gets passed to it;
+			// no need to use UI5Date.getInstance as only the UTC timestamp is used
+			oParts = oIntlDate.formatToParts(new Date(oDate.getTime()));
+
+		for (sKey in oParts) {
+			oPart = oParts[sKey];
 			if (oPart.type !== "literal") {
 				oDateParts[oPart.type] = oPart.value;
 			}
@@ -186,9 +191,10 @@ sap.ui.define([], function() {
 	 * @private
 	 */
 	TimezoneUtil._getDateFromParts = function(oParts) {
-		var oDate = new Date(0);
+		// no need to use UI5Date.getInstance as only the UTC timestamp is used
+		var oDate = new Date(0),
+			iUTCYear = parseInt(oParts.year);
 
-		var iUTCYear = parseInt(oParts.year);
 		if (oParts.era === "B") {
 			// The JS Date uses astronomical year numbering which supports year zero and negative
 			// year numbers.
@@ -251,13 +257,13 @@ sap.ui.define([], function() {
 	 * @ui5-restricted sap.ui.core.format.DateFormat
 	 */
 	TimezoneUtil.calculateOffset = function(oDate, sTimezoneSource) {
-		var oFirstGuess = this.convertToTimezone(oDate, sTimezoneSource);
-
-		var iInitialOffset = oDate.getTime() - oFirstGuess.getTime();
-
-		// to get the correct summer/wintertime (daylight saving time) handling use the source date (apply the diff)
-		var oDateSource = new Date(oDate.getTime() + iInitialOffset);
-		var oDateTarget = this.convertToTimezone(oDateSource, sTimezoneSource);
+		var oFirstGuess = this.convertToTimezone(oDate, sTimezoneSource),
+			iInitialOffset = oDate.getTime() - oFirstGuess.getTime(),
+			// to get the correct summer/wintertime (daylight saving time) handling use the source
+			// date (apply the diff);
+			// no need to use UI5Date.getInstance as only the UTC timestamp is used
+			oDateSource = new Date(oDate.getTime() + iInitialOffset),
+			oDateTarget = this.convertToTimezone(oDateSource, sTimezoneSource);
 
 		return (oDateSource.getTime() - oDateTarget.getTime()) / 1000;
 	};

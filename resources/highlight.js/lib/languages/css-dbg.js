@@ -750,6 +750,8 @@ sap.ui.define((function () { 'use strict';
 
     var css_1 = css;
 
+    Object.defineProperty(css_1, "__" + "esModule", { value: true });
+
     return css_1;
 
 }));

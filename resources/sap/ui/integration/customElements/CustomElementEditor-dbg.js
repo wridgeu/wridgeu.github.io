@@ -25,5 +25,8 @@ sap.ui.require([
 	CustomElementEditor.prototype.getCurrentSettings = function () {
 		return this._getControl().getCurrentSettings();
 	};
+	CustomElementEditor.prototype.getSeparatePreview = function () {
+		return this._getControl().getSeparatePreview();
+	};
 	CustomElementBase.define("ui-integration-editor", CustomElementEditor);
 });

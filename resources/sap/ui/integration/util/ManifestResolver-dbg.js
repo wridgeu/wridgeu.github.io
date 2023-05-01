@@ -9,14 +9,16 @@ sap.ui.define([
 	"sap/ui/integration/util/BindingResolver",
 	"sap/ui/integration/util/Utils",
 	"sap/m/IllustratedMessageType",
-	"sap/m/IllustratedMessageSize"
+	"sap/m/IllustratedMessageSize",
+	"sap/base/Log"
 ], function (
 	Core,
 	BindingHelper,
 	BindingResolver,
 	Utils,
 	IllustratedMessageType,
-	IllustratedMessageSize
+	IllustratedMessageSize,
+	Log
 ) {
 	"use strict";
 
@@ -43,7 +45,12 @@ sap.ui.define([
 		oCard.startManifestProcessing();
 
 		return ManifestResolver._awaitReadyEvent(oCard)
-			.then(ManifestResolver._handleCardReady)
+			.then(function () {
+				return oCard.getModel("context").waitForPendingProperties();
+			})
+			.then(function () {
+				return ManifestResolver._handleCardReady(oCard);
+			})
 			.catch(function (oError) {
 				return ManifestResolver._handleCardSevereError(oCard, oError);
 			});
@@ -84,6 +91,9 @@ sap.ui.define([
 		}
 
 		try {
+			// Prepare binding infos only once for all sections
+			oManifest = BindingHelper.createBindingInfos(oManifest, oCard.getBindingNamespaces());
+
 			if (oCard.getAggregation("_filterBar")) {
 				aFilters =  oCard.getAggregation("_filterBar")._getFilters().map(function (oFilter) {
 					return ["/sap.card/configuration/filters/" + oFilter.getKey(), oFilter];
@@ -119,8 +129,8 @@ sap.ui.define([
 					delete oSubConfig.data;
 				}
 
-				oSubConfig = BindingHelper.createBindingInfos(oSubConfig, oCard.getBindingNamespaces());
-				oSubConfig = BindingResolver.resolveValue(oSubConfig, oContext, sDataPath);
+				// Resolve only binding infos which are left unresolved, we must not resolve sections twice.
+				oSubConfig = BindingResolver.resolveValue(oSubConfig, oContext, sDataPath, true);
 				Utils.setNestedPropertyValue(oManifest, sManifestPath, oSubConfig);
 			});
 
@@ -140,6 +150,8 @@ sap.ui.define([
 	ManifestResolver._handleCardSevereError = function (oCard, oError) {
 		var oManifest = oCard.getManifestEntry("/"),
 			oResourceBundle = Core.getLibraryResourceBundle("sap.ui.integration");
+
+		Log.error(oError, "sap.ui.integration.util.ManifestResolver");
 
 		if (oManifest === null) {
 			oManifest = {};

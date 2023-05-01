@@ -52,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -944,7 +944,7 @@ sap.ui.define([
 	/* =========================================================== */
 
 	/**
- 	 * @returns {object} Current accessibility state of the control
+ 	 * @returns {{role: string, type: string, description: string, focusable: boolean, enabled: boolean, editable: boolean}} Current accessibility state of the control
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
 	 */

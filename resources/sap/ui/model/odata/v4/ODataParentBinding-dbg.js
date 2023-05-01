@@ -317,7 +317,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Changes this binding's parameters and refreshes the binding.
+	 * Changes this binding's parameters and refreshes the binding. Since 1.111.0, a list binding's
+	 * header context is deselected.
 	 *
 	 * If there are pending changes that cannot be ignored, an error is thrown. Use
 	 * {@link #hasPendingChanges} to check if there are such pending changes. If there are, call
@@ -1055,7 +1056,8 @@ sap.ui.define([
 	 * @override
 	 * @see sap.ui.model.odata.v4.ODataBinding#hasPendingChangesInDependents
 	 */
-	ODataParentBinding.prototype.hasPendingChangesInDependents = function (bIgnoreKeptAlive0) {
+	ODataParentBinding.prototype.hasPendingChangesInDependents = function (bIgnoreKeptAlive0,
+			bIgnoreInactiveCaches) {
 		return this.getDependentBindings().some(function (oDependent) {
 			var oCache = oDependent.oCache,
 				bHasPendingChanges,
@@ -1078,7 +1080,7 @@ sap.ui.define([
 			} else if (oDependent.hasPendingChangesForPath("")) {
 				return true;
 			}
-			if (oDependent.mCacheByResourcePath) {
+			if (oDependent.mCacheByResourcePath && !bIgnoreInactiveCaches) {
 				bHasPendingChanges = Object.keys(oDependent.mCacheByResourcePath)
 					.some(function (sPath) {
 						var oCacheForPath = oDependent.mCacheByResourcePath[sPath];
@@ -1090,8 +1092,8 @@ sap.ui.define([
 					return true;
 				}
 			}
-			// Ask dependents, they might have no cache, but pending changes in mCacheByResourcePath
-			return oDependent.hasPendingChangesInDependents(bIgnoreKeptAlive);
+			return oDependent.hasPendingChangesInDependents(bIgnoreKeptAlive,
+				bIgnoreInactiveCaches);
 		})
 		|| this.oModel.withUnresolvedBindings("hasPendingChangesInCaches",
 				this.getResolvedPath().slice(1));
@@ -1215,7 +1217,8 @@ sap.ui.define([
 	 * @override
 	 * @see sap.ui.model.odata.v4.ODataBinding#resetChangesInDependents
 	 */
-	ODataParentBinding.prototype.resetChangesInDependents = function (aPromises) {
+	ODataParentBinding.prototype.resetChangesInDependents = function (aPromises,
+			bIgnoreInactiveCaches) {
 		this.getDependentBindings().forEach(function (oDependent) {
 			aPromises.push(oDependent.oCachePromise.then(function (oCache) {
 				if (oCache) {
@@ -1225,14 +1228,14 @@ sap.ui.define([
 			}).unwrap());
 
 			// mCacheByResourcePath may have changes nevertheless
-			if (oDependent.mCacheByResourcePath) {
+			if (oDependent.mCacheByResourcePath && !bIgnoreInactiveCaches) {
 				Object.keys(oDependent.mCacheByResourcePath).forEach(function (sPath) {
 					oDependent.mCacheByResourcePath[sPath].resetChangesForPath("");
 				});
 			}
 			// Reset dependents, they might have no cache, but pending changes in
 			// mCacheByResourcePath
-			oDependent.resetChangesInDependents(aPromises);
+			oDependent.resetChangesInDependents(aPromises, bIgnoreInactiveCaches);
 		});
 	};
 
@@ -1280,7 +1283,7 @@ sap.ui.define([
 	 * @param {boolean} bAsPrerenderingTask
 	 *   Whether resume is done as a prerendering task
 	 * @throws {Error}
-	 *   If this binding is relative to a {@link sap.ui.model.odata.v4.Context} or if it is an
+	 *   If this binding is relative to an {@link sap.ui.model.odata.v4.Context} or if it is an
 	 *   operation binding or if it is not suspended
 	 *
 	 * @private
@@ -1328,7 +1331,7 @@ sap.ui.define([
 	 * @throws {Error}
 	 *   If this binding
 	 *   <ul>
-	 *     <li> is relative to a {@link sap.ui.model.odata.v4.Context},
+	 *     <li> is relative to an {@link sap.ui.model.odata.v4.Context},
 	 *     <li> is an operation binding,
 	 *     <li> has {@link sap.ui.model.Binding#isSuspended} set to <code>false</code>,
 	 *     <li> is not a root binding. Use {@link #getRootBinding} to determine the root binding.
@@ -1353,7 +1356,7 @@ sap.ui.define([
 	 *
 	 * @returns {Promise} A promise which is resolved when the binding is resumed.
 	 * @throws {Error}
-	 *   If this binding is relative to a {@link sap.ui.model.odata.v4.Context} or if it is an
+	 *   If this binding is relative to an {@link sap.ui.model.odata.v4.Context} or if it is an
 	 *   operation binding or if it is not suspended
 	 *
 	 * @protected
@@ -1394,7 +1397,7 @@ sap.ui.define([
 	 * @throws {Error}
 	 *   If this binding
 	 *   <ul>
-	 *     <li> is relative to a {@link sap.ui.model.odata.v4.Context},
+	 *     <li> is relative to an {@link sap.ui.model.odata.v4.Context},
 	 *     <li> is an operation binding,
 	 *     <li> has {@link sap.ui.model.Binding#isSuspended} set to <code>true</code>,
 	 *     <li> has pending changes that cannot be ignored,
@@ -1436,6 +1439,16 @@ sap.ui.define([
 	};
 
 	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.ODataBinding#updateAfterCreate
+	 */
+	ODataParentBinding.prototype.updateAfterCreate = function () {
+		return SyncPromise.all(this.getDependentBindings().map(function (oDependentBinding) {
+			return oDependentBinding.updateAfterCreate();
+		}));
+	};
+
+	/**
 	 * Updates the aggregated query options of this binding with the values from the given
 	 * query options. "$select" and "$expand" are only updated if the aggregated query options are
 	 * still initial because these have been computed in {@link #fetchIfChildCanUseCache} otherwise.
@@ -1448,8 +1461,8 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataParentBinding.prototype.updateAggregatedQueryOptions = function (mNewQueryOptions) {
-		var aAllKeys = Object.keys(mNewQueryOptions),
-			mAggregatedQueryOptions = this.mAggregatedQueryOptions,
+		var mAggregatedQueryOptions = this.mAggregatedQueryOptions,
+			aAllKeys = Object.keys(mNewQueryOptions),
 			that = this;
 
 		if (mAggregatedQueryOptions) {
@@ -1513,7 +1526,8 @@ sap.ui.define([
 		"destroy",
 		"doDeregisterChangeListener",
 		"getGeneration",
-		"hasPendingChangesForPath"
+		"hasPendingChangesForPath",
+		"updateAfterCreate"
 	].forEach(function (sMethod) { // method (still) not final, allow for "super" calls
 		asODataParentBinding.prototype[sMethod] = ODataParentBinding.prototype[sMethod];
 	});

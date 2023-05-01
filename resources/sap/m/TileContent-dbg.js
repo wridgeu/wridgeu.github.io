@@ -24,7 +24,7 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -229,10 +229,9 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 		var bIsFirst = true;
 		var oContent = this.getContent();
 		var oParent = this.getParent();
-		var sPriority = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("TEXT_CONTENT_PRIORITY");
 		var sPriorityText = this.getPriorityText();
 		if (sPriorityText && this.getPriority() !== Priority.None){
-			sAltText += sPriorityText + " " + sPriority;
+			sAltText += sPriorityText;
 			bIsFirst = false;
 		}
 		if (oContent && oContent.getVisible()) {

@@ -111,8 +111,11 @@ sap.ui.define([
 			this.aKeys = [];
 			this.sCountMode = (mParameters && mParameters.countMode) || this.oModel.sDefaultCountMode;
 			this.sOperationMode = (mParameters && mParameters.operationMode) || this.oModel.sDefaultOperationMode;
-			this.bCreatePreliminaryContext = (mParameters && mParameters.createPreliminaryContext) || oModel.bPreliminaryContext;
 			this.bUsePreliminaryContext = (mParameters && mParameters.usePreliminaryContext) || oModel.bPreliminaryContext;
+			// avoid data request if the binding receives a preliminary context on construction, but does not use it
+			if (!this.bUsePreliminaryContext && oContext && oContext.isPreliminary && oContext.isPreliminary()) {
+				this.oContext = oContext = undefined;
+			}
 			this.bRefresh = false;
 			this.bNeedsUpdate = false;
 			this.bDataAvailable = false;
@@ -140,6 +143,8 @@ sap.ui.define([
 				&& mParameters.transitionMessagesOnly);
 			this.sCreatedEntitiesKey = mParameters && mParameters.createdEntitiesKey || "";
 			this.oCreatedPersistedToRemove = new Set();
+			// whether persisted, created contexts are removed after successful GET for a binding refresh
+			this.bRemovePersistedCreatedAfterRefresh = false;
 
 			// check filter integrity
 			this.oModel.checkFilterOperation(this.aApplicationFilters);
@@ -777,6 +782,7 @@ sap.ui.define([
 			bInlineCountRequested = false,
 			aParams = [],
 			sPath = this.sPath,
+			bRemovePersistedCreatedAfterRefresh = this.bRemovePersistedCreatedAfterRefresh,
 			that = this;
 
 		// create range parameters and store start index for sort/filter requests
@@ -897,6 +903,10 @@ sap.ui.define([
 			// If request is originating from this binding, change must be fired afterwards
 			that.bNeedsUpdate = true;
 			that.bIgnoreSuspend = true;
+
+			if (bRemovePersistedCreatedAfterRefresh) {
+				that._removePersistedCreatedContexts();
+			}
 
 			//register datareceived call as  callAfterUpdate
 			that.oModel.callAfterUpdate(function() {
@@ -1086,6 +1096,7 @@ sap.ui.define([
 	 *
 	 * @param {boolean} [bForceUpdate] Update the bound control even if no data has been changed
 	 * @param {string} [sGroupId] The group Id for the refresh
+	 * @ui5-omissible-params bForceUpdate
 	 *
 	 * @public
 	 */
@@ -1096,8 +1107,10 @@ sap.ui.define([
 		}
 		this._removePersistedCreatedContexts();
 		this.sRefreshGroupId = sGroupId;
+		this.bRemovePersistedCreatedAfterRefresh = true;
 		this._refresh(bForceUpdate);
 		this.sRefreshGroupId = undefined;
+		this.bRemovePersistedCreatedAfterRefresh = false;
 	};
 
 	/**
@@ -1664,7 +1677,7 @@ sap.ui.define([
 	 * from the creation rows area and inserted at the right position based on the current filters
 	 * and sorters.
 	 *
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters Single filter or array of filter objects
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters] Single filter or array of filter objects
 	 * @param {sap.ui.model.FilterType} [sFilterType=Control] Type of the filter which should be adjusted. If it is not given, type <code>Control</code> is assumed
 	 * @param {boolean} [bReturnSuccess=false] Whether the success indicator should be returned instead of <code>this</code>
 	 * @return {this} Reference to <code>this</code> to facilitate method chaining or a boolean success indicator

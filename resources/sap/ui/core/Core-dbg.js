@@ -170,7 +170,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @final
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @alias sap.ui.core.Core
 	 * @public
 	 * @hideconstructor
@@ -657,7 +657,7 @@ sap.ui.define([
 	 * Set the body's OS-related attribute and CSS class
 	 * @private
 	 */
-	Core.prototype._setupOS = function(html) {
+	Core.prototype._setupOS = function() {
 		var html = document.documentElement;
 
 		html.dataset.sapUiOs = Device.os.name + Device.os.versionStr;
@@ -920,23 +920,32 @@ sap.ui.define([
 			this._executeInitialization();
 		} else {
 			Rendering.suspend();
+
+			var whenThemeAppliedThen = function(fnCallback) {
+				this._getThemeManager().then(function(ThemeManager) {
+					if ( ThemeManager.themeLoaded ) {
+						fnCallback();
+					} else {
+						ThemeManager.attachEventOnce("ThemeChanged", fnCallback);
+					}
+				});
+			}.bind(this);
+
 			if (sWaitForTheme === "rendering") {
 				Rendering.notifyInteractionStep();
 				this._executeInitialization();
 				Rendering.getLogger().debug("delay initial rendering until theme has been loaded");
-				_oEventProvider.attachEventOnce(Core.M_EVENTS.ThemeChanged, function() {
+				whenThemeAppliedThen(function() {
 					Rendering.resume("after theme has been loaded");
-				}, this);
+				});
 			} else if (sWaitForTheme === "init") {
 				Rendering.getLogger().debug("delay init event and initial rendering until theme has been loaded");
 				Rendering.notifyInteractionStep();
-				_oEventProvider.attachEventOnce(Core.M_EVENTS.ThemeChanged, function() {
+				whenThemeAppliedThen(function() {
 					this._executeInitialization();
 					Rendering.resume("after theme has been loaded");
-				}, this);
+				}.bind(this));
 			}
-			// Require ThemeManager if not already done to ensure ThemeManager is available and ThemeChanged event will be fired
-			this._getThemeManager();
 		}
 	};
 
@@ -1647,6 +1656,7 @@ sap.ui.define([
 	 * @param {string} [sLibraryName='sap.ui.core'] Name of the library to retrieve the bundle for
 	 * @param {string} [sLocale] Locale to retrieve the resource bundle for
 	 * @param {boolean} [bAsync=false] Whether the resource bundle is loaded asynchronously
+	 * @ui5-omissible-params sLocale
 	 * @returns {module:sap/base/i18n/ResourceBundle|undefined|Promise<module:sap/base/i18n/ResourceBundle|undefined>} The best matching resource bundle for the given
 	 *   parameters or <code>undefined</code>; in asynchronous case a Promise on that bundle is returned
 	 * @public

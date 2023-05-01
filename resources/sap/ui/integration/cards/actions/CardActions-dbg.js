@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @private
@@ -405,7 +405,7 @@ sap.ui.define([
 				actionSource: mConfig.source
 			},
 			mEventParamsLegacy,
-			bActionResult;
+			bActionResult = true;
 
 		if (sType === CardActionType.Submit) {
 			mParameters.data = oCard.getModel("form").getData();
@@ -416,6 +416,14 @@ sap.ui.define([
 		mEventParamsLegacy = Object.assign({}, mEventParams, {
 			manifestParameters: mParameters // for backward compatibility
 		});
+
+		if (oExtension) {
+			bActionResult = oExtension.fireAction(mEventParams);
+		}
+
+		if (!bActionResult) {
+			return false;
+		}
 
 		bActionResult = oCard.fireAction(mEventParamsLegacy);
 
@@ -431,20 +439,14 @@ sap.ui.define([
 			return false;
 		}
 
-		if (oExtension) {
-			bActionResult = oExtension.fireAction(mEventParams);
+		var oHandler = CardActions._createHandler(mConfig);
+
+		if (oHandler) {
+			oHandler.execute();
+			oHandler.destroy();
 		}
 
-		if (bActionResult) {
-			var oHandler = CardActions._createHandler(mConfig);
-
-			if (oHandler) {
-				oHandler.execute();
-				oHandler.destroy();
-			}
-		}
-
-		return bActionResult;
+		return true;
 	};
 
 	/**

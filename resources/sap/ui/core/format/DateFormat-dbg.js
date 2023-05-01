@@ -9,6 +9,7 @@ sap.ui.define([
 	'sap/ui/core/CalendarType',
 	'sap/ui/core/Locale',
 	'sap/ui/core/LocaleData',
+	'sap/ui/core/date/UI5Date',
 	'sap/ui/core/date/UniversalDate',
 	'sap/ui/core/date/CalendarUtils',
 	'sap/ui/core/date/CalendarWeekNumbering',
@@ -23,6 +24,7 @@ sap.ui.define([
 		CalendarType,
 		Locale,
 		LocaleData,
+		UI5Date,
 		UniversalDate,
 		CalendarUtils,
 		CalendarWeekNumbering,
@@ -252,6 +254,7 @@ sap.ui.define([
 	 * @param {boolean} [oFormatOptions.UTC] if true, the date is formatted and parsed as UTC instead of the local timezone
 	 * @param {sap.ui.core.CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to ask for locale specific texts/settings
+	 * @ui5-omissible-params oFormatOptions
 	 * @return {sap.ui.core.format.DateFormat} date instance of the DateFormat
 	 * @static
 	 * @public
@@ -289,6 +292,7 @@ sap.ui.define([
 	 * @param {boolean} [oFormatOptions.UTC] if true, the date is formatted and parsed as UTC instead of the local timezone
 	 * @param {sap.ui.core.CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to ask for locale specific texts/settings
+	 * @ui5-omissible-params oFormatOptions
 	 * @return {sap.ui.core.format.DateFormat} datetime instance of the DateFormat
 	 * @static
 	 * @public
@@ -429,6 +433,7 @@ sap.ui.define([
 	 * @param {string} [oFormatOptions.relativeStyle="wide"] The style of the relative format. The valid values are "wide", "short", "narrow"
 	 * @param {sap.ui.core.CalendarType} [oFormatOptions.calendarType] The calendar type which is used to format and parse the date. This value is by default either set in the configuration or calculated based on the current locale.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to ask for locale-specific texts/settings
+	 * @ui5-omissible-params oFormatOptions
 	 * @throws {TypeError} If an invalid configuration was supplied, i.e. when the
 	 *   <code>showDate</code>, <code>showTime</code>, and <code>showTimezone</code> format options
 	 *   are all <code>false</code>
@@ -492,6 +497,7 @@ sap.ui.define([
 	 * @param {boolean} [oFormatOptions.UTC] if true, the time is formatted and parsed as UTC instead of the local timezone
 	 * @param {sap.ui.core.CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to ask for locale specific texts/settings
+	 * @ui5-omissible-params oFormatOptions
 	 * @return {sap.ui.core.format.DateFormat} time instance of the DateFormat
 	 * @static
 	 * @public
@@ -850,7 +856,7 @@ sap.ui.define([
 		 * // {length: 4, index: 2}
 		 *
 		 * @param {string} sValue the input value, e.g. "MÄRZ 2013"
-		 * @param {string[]} aList, the list of values to check, e.g. ["Januar", "Februar", "März", "April", ...]
+		 * @param {string[]} aList the list of values to check, e.g. ["Januar", "Februar", "März", "April", ...]
 		 * @param {string} sLocale the locale which is used for the string comparison, e.g. "de-DE"
 		 * @returns {{length: number, index: number}} the length of the match in sValue, the index in the list of values
 		 *   e.g. length: 4, index: 2 ("MÄRZ")
@@ -1170,7 +1176,7 @@ sap.ui.define([
 				// 2018: 48 = 1948 (diff: 30)
 				// 2018: 47 = 2047 (diff: 29)
 				if (sCalendarType !== CalendarType.Japanese && sPart.length <= 2) {
-					var oCurrentDate = UniversalDate.getInstance(new Date(), sCalendarType),
+					var oCurrentDate = UniversalDate.getInstance(UI5Date.getInstance(), sCalendarType),
 						iCurrentYear = oCurrentDate.getUTCFullYear(),
 						iCurrentCentury = Math.floor(iCurrentYear / 100),
 						iYearDiff = iCurrentCentury * 100 + iYear - iCurrentYear;
@@ -1227,7 +1233,7 @@ sap.ui.define([
 				var iWeekYear = iYear;
 				// Find the right century for two-digit years
 				if (sCalendarType !== CalendarType.Japanese && sPart.length <= 2) {
-					var oCurrentDate = UniversalDate.getInstance(new Date(), sCalendarType),
+					var oCurrentDate = UniversalDate.getInstance(UI5Date.getInstance(), sCalendarType),
 						iCurrentYear = oCurrentDate.getUTCFullYear(),
 						iCurrentCentury = Math.floor(iCurrentYear / 100),
 						iYearDiff = iCurrentCentury * 100 + iWeekYear - iCurrentYear;
@@ -2657,6 +2663,7 @@ sap.ui.define([
 		var oDate,
 			iYear = typeof oDateValue.year === "number" ? oDateValue.year : 1970;
 
+		// no need to use UI5Date.getInstance as only the UTC timestamp is used
 		oDate = UniversalDate.getInstance(new Date(0), sCalendarType);
 		oDate.setUTCEra(oDateValue.era || UniversalDate.getCurrentEra(sCalendarType));
 		oDate.setUTCFullYear(iYear);
@@ -2762,9 +2769,9 @@ sap.ui.define([
 	 * // output: oDate
 	 *
 	 * @param {string} sValue the string containing a formatted date/time value
-	 * @param {boolean} bUTC whether to use UTC
-	 * @param {boolean} bStrict whether to use strict value check
-	 * @return {Date|Date[]} the parsed value(s)
+	 * @param {boolean} [bUTC] whether to use UTC
+	 * @param {boolean} [bStrict] whether to use strict value check
+	 * @return {Date|Date[]|module:sap/ui/core/date/UI5Date|module:sap/ui/core/date/UI5Date[]} the parsed value(s)
 	 * @public
 	 */
 	DateFormat.prototype.parse = function(sValue, bUTC, bStrict) {
@@ -3005,8 +3012,7 @@ sap.ui.define([
 	 * Parse a date string relative to the current date.
 	 *
 	 * @param {string} sValue the string containing a formatted date/time value
-	 * @param {boolean} bUTC whether to use UTC, if no timezone is contained
-	 * @param {boolean} bStrict to use strict value check
+	 * @param {boolean} [bUTC] whether to use UTC, if no timezone is contained
 	 * @returns {Date|null} the parsed value or <code>null</code> if relative parsing not possible
 	 * @private
 	 */
@@ -3033,34 +3039,39 @@ sap.ui.define([
 		}
 
 		function computeRelativeDate(iDiff, sScale){
-			var iToday,
-				oToday = new Date(),
-				oJSDate;
+			var oResult = UI5Date.getInstance();
 
 			if (bUTC) {
-				iToday = oToday.getTime();
+				// date part and time part have to be set individually
+				oResult.setUTCFullYear(oResult.getFullYear(), oResult.getMonth(), oResult.getDate());
+				oResult.setUTCHours(oResult.getHours(), oResult.getMinutes(), oResult.getSeconds(),
+					oResult.getMilliseconds());
+				// eslint-disable-next-line default-case
+				switch (sScale) {
+					case "second": oResult.setUTCSeconds(oResult.getUTCSeconds() + iDiff); break;
+					case "minute": oResult.setUTCMinutes(oResult.getUTCMinutes() + iDiff); break;
+					case "hour": oResult.setUTCHours(oResult.getUTCHours() + iDiff); break;
+					case "day": oResult.setUTCDate(oResult.getUTCDate() + iDiff); break;
+					case "week": oResult.setUTCDate(oResult.getUTCDate() + iDiff * 7); break;
+					case "month": oResult.setUTCMonth(oResult.getUTCMonth() + iDiff); break;
+					case "quarter": oResult.setUTCMonth(oResult.getUTCMonth() + iDiff * 3); break;
+					case "year": oResult.setUTCFullYear(oResult.getUTCFullYear() + iDiff); break;
+				}
 			} else {
-				iToday = Date.UTC(oToday.getFullYear(), oToday.getMonth(), oToday.getDate(), oToday.getHours(), oToday.getMinutes(), oToday.getSeconds(), oToday.getMilliseconds());
+				// eslint-disable-next-line default-case
+				switch (sScale) {
+					case "second": oResult.setSeconds(oResult.getSeconds() + iDiff); break;
+					case "minute": oResult.setMinutes(oResult.getMinutes() + iDiff); break;
+					case "hour": oResult.setHours(oResult.getHours() + iDiff); break;
+					case "day": oResult.setDate(oResult.getDate() + iDiff); break;
+					case "week": oResult.setDate(oResult.getDate() + iDiff * 7); break;
+					case "month": oResult.setMonth(oResult.getMonth() + iDiff); break;
+					case "quarter": oResult.setMonth(oResult.getMonth() + iDiff * 3); break;
+					case "year": oResult.setFullYear(oResult.getFullYear() + iDiff); break;
+				}
 			}
 
-			oJSDate = new Date(iToday);
-
-			switch (sScale) {
-				case "second": oJSDate.setUTCSeconds(oJSDate.getUTCSeconds() + iDiff); break;
-				case "minute": oJSDate.setUTCMinutes(oJSDate.getUTCMinutes() + iDiff); break;
-				case "hour": oJSDate.setUTCHours(oJSDate.getUTCHours() + iDiff); break;
-				case "day": oJSDate.setUTCDate(oJSDate.getUTCDate() + iDiff); break;
-				case "week": oJSDate.setUTCDate(oJSDate.getUTCDate() + iDiff * 7); break;
-				case "month": oJSDate.setUTCMonth(oJSDate.getUTCMonth() + iDiff); break;
-				case "quarter": oJSDate.setUTCMonth(oJSDate.getUTCMonth() + iDiff * 3); break;
-				case "year": oJSDate.setUTCFullYear(oJSDate.getUTCFullYear() + iDiff); break;
-			}
-
-			if (bUTC) {
-				return oJSDate;
-			} else {
-				return new Date(oJSDate.getUTCFullYear(), oJSDate.getUTCMonth(), oJSDate.getUTCDate(), oJSDate.getUTCHours(), oJSDate.getUTCMinutes(), oJSDate.getUTCSeconds(), oJSDate.getUTCMilliseconds());
-			}
+			return oResult;
 		}
 	};
 
@@ -3075,9 +3086,10 @@ sap.ui.define([
 	 * @private
 	 */
 	DateFormat.prototype.formatRelative = function(oJSDate, bUTC, aRange, sTimezone) {
-		var oToday = convertToTimezone(new Date(), sTimezone), oDateUTC,
-			sScale = this.oFormatOptions.relativeScale || "day",
-			iDiff, sPattern, iDiffSeconds;
+		var oDateUTC, iDiff, iDiffSeconds, sPattern,
+			// no need to use UI5Date.getInstance as only the UTC timestamp is used
+			oToday = convertToTimezone(new Date(), sTimezone),
+			sScale = this.oFormatOptions.relativeScale || "day";
 
 		iDiffSeconds = (oJSDate.getTime() - oToday.getTime()) / 1000;
 		if (this.oFormatOptions.relativeScale === "auto") {
@@ -3091,8 +3103,10 @@ sap.ui.define([
 
 		// For dates normalize to UTC to avoid issues with summer-/wintertime
 		if (sScale === "year" || sScale === "month" || sScale === "day") {
+			// no need to use UI5Date.getInstance as only the UTC timestamp is used
 			oToday = new Date(Date.UTC(oToday.getUTCFullYear(), oToday.getUTCMonth(), oToday.getUTCDate()));
 
+			// no need to use UI5Date.getInstance as only the UTC timestamp is used
 			oDateUTC = new Date(0);
 
 			// The Date.UTC function doesn't accept years before 1900 (converts years before 100 into 1900 + years).
@@ -3206,16 +3220,10 @@ sap.ui.define([
 	 * @returns {Date} copy of the date with the modified values
 	 */
 	function cutDateFields(oDate, iStartIndex) {
-		var aFields = [
-			"FullYear",
-			"Month",
-			"Date",
-			"Hours",
-			"Minutes",
-			"Seconds",
-			"Milliseconds"
-		], sMethodName;
-		var oDateCopy = new Date(oDate.getTime());
+		var sMethodName,
+			aFields = ["FullYear", "Month", "Date", "Hours", "Minutes", "Seconds", "Milliseconds"],
+			// no need to use UI5Date.getInstance as only the UTC timestamp is used
+			oDateCopy = new Date(oDate.getTime());
 
 		for (var i = iStartIndex; i < aFields.length; i++) {
 			sMethodName = "setUTC" + aFields[iStartIndex];

@@ -224,6 +224,7 @@ sap.ui.define([
 					throw new Error("No 'delete' allowed while waiting for server response");
 				}
 				that.oRequestor.removePost(sTransientGroup, oEntity);
+
 				return undefined;
 			}
 
@@ -341,6 +342,49 @@ sap.ui.define([
 	};
 
 	/**
+	 * Adds a collection below a transient element.
+	 *
+	 * @param {string} sPath
+	 *   The collection path
+	 * @param {string[]} [aSelect]
+	 *   The binding's $select if it would create a cache; later used for updateSelected (either
+	 *   taking this aSelect or calculating it from the path)
+	 * @returns {object[]}
+	 *   The elements collection (either from the initial data or empty)
+	 * @throws {Error} If the cache is shared
+	 *
+	 * @public
+	 */
+	_Cache.prototype.addTransientCollection = function (sPath, aSelect) {
+		var aElements,
+			aSegments = sPath.split("/"),
+			sName = aSegments.pop(),
+			oParent = this.fetchValue(_GroupLock.$cached, aSegments.join("/")).getResult(),
+			oPostBody = _Helper.getPrivateAnnotation(oParent, "postBody"),
+			that = this;
+
+		this.checkSharedRequest();
+		if (sName in oParent) {
+			throw new Error("Deep create with initial data is not supported yet");
+		}
+		aElements = oParent[sName] = [];
+		aElements.$count = aElements.$created = 0;
+		aElements.$byPredicate = {};
+		// allow creating on demand when there is a create in the child list
+		aElements.$postBodyCollection = function () {
+			aElements.$postBodyCollection = oPostBody[sName] = [];
+		};
+		aElements.$select = aSelect;
+		// add the collection type to mTypeForMetaPath
+		this.fetchTypes().then(function (mTypeForMetaPath) {
+			that.oRequestor.fetchType(mTypeForMetaPath,
+				that.sMetaPath + "/" + _Helper.getMetaPath(sPath));
+		});
+
+		return aElements;
+	};
+
+	/**
 	 * Adjusts the indexes in the collection.
 	 *
 	 * @param {string} sPath The path of the collection in the cache
@@ -407,6 +451,31 @@ sap.ui.define([
 	};
 
 	/**
+	 * Cancels all nested creates within the given element.
+	 *
+	 * @param {object} oElement - The entity data in the cache
+	 * @param {string} sPostPath - The request path of the POST request
+	 * @param {string} sGroupId - The group ID of the POST request
+	 *
+	 * @private
+	 */
+	_Cache.prototype.cancelNestedCreates = function (oElement, sPostPath, sGroupId) {
+		Object.keys(oElement).forEach(function (sKey) {
+			var oError,
+				vProperty = oElement[sKey];
+
+			if (vProperty && vProperty.$postBodyCollection) {
+				oError = new Error("Deep create of " + sKey + " canceled with POST " + sPostPath
+					+ "; group: " + sGroupId);
+				oError.canceled = true;
+				vProperty.forEach(function (oChildElement) {
+					_Helper.getPrivateAnnotation(oChildElement, "reject")(oError);
+				});
+			}
+		});
+	};
+
+	/**
 	 * Throws an error if the cache shares requests.
 	 *
 	 * @throws {Error} If the cache has bSharedRequest
@@ -460,15 +529,37 @@ sap.ui.define([
 			fnResolve,
 			that = this;
 
-		// Clean-up when the create has been canceled.
-		function cleanUp() {
-			var iIndex = aCollection.indexOf(oEntityData);
+		/*
+		 * Clean-up when the create has been canceled.
+		 *
+		 * @param {boolean} bResetInactive
+		 *   Whether an edited inactive entity should be reset instead of being removed.
+		 * @returns {boolean}
+		 *   Whether the entity was reset only and kept in the collection instead of being removed.
+		 *
+		 * @see sap.ui.model.odata.v4.lib._Requestor#cancelChangesByFilter
+		 */
+		function cleanUp(bResetInactive) {
+			var bInactiveEntity = oEntityData["@$ui5.context.isInactive"],
+				iIndex = aCollection.indexOf(oEntityData);
 
+			if (bResetInactive && bInactiveEntity) {
+				if (bInactiveEntity === 1) {
+					_Helper.resetInactiveEntity(that.mChangeListeners, sTransientPredicate,
+						oEntityData);
+				} // there is nothing to reset if the entity is simply inactive
+				return true;
+			}
+
+			that.cancelNestedCreates(oEntityData, oPostPathPromise.getResult(),
+				oGroupLock.getGroupId());
 			_Helper.removeByPath(that.mPostRequests, sPath, oEntityData);
 			aCollection.splice(iIndex, 1);
 			aCollection.$created -= 1;
 			if (!oEntityData["@$ui5.context.isInactive"]) {
-				that.iActiveElements -= 1;
+				if (!sPath) {
+					that.iActiveElements -= 1;
+				}
 				addToCount(that.mChangeListeners, sPath, aCollection, -1);
 			}
 			delete aCollection.$byPredicate[sTransientPredicate];
@@ -497,6 +588,7 @@ sap.ui.define([
 			]).then(function (aResult) {
 				var oCreatedEntity = aResult[0],
 					sPredicate,
+					sResultingPath,
 					aSelect;
 
 				_Helper.deletePrivateAnnotation(oEntityData, "postBody");
@@ -519,13 +611,18 @@ sap.ui.define([
 						// contexts still use the transient predicate to access the data
 					} // else: transient element was not kept by #reset, leave it like that!
 				}
-				// update the cache with the POST response (note that a deep create is not supported
-				// because updateSelected does not handle key predicates, ETags and $count)
-				aSelect = _Helper.getQueryOptionsForPath(that.mQueryOptions, sPath).$select;
-				_Helper.updateSelected(that.mChangeListeners,
-					_Helper.buildPath(sPath, sPredicate || sTransientPredicate), oEntityData,
+				// update the cache with the POST response
+				aSelect = _Helper.getQueryOptionsForPath(
+					that.mLateQueryOptions || that.mQueryOptions, sPath
+				).$select;
+				sResultingPath = _Helper.buildPath(sPath, sPredicate || sTransientPredicate);
+				// update selected properties (incl. single-valued navigation properties), ETags,
+				// and predicates
+				_Helper.updateSelected(that.mChangeListeners, sResultingPath, oEntityData,
 					oCreatedEntity, aSelect, /*fnCheckKeyPredicate*/ undefined,
 					/*bOkIfMissing*/ true);
+				// update properties from collections in a deep create
+				that.updateNestedCreates(sResultingPath, oEntityData, oCreatedEntity);
 
 				that.removePendingRequest();
 				fnResolve(true);
@@ -578,7 +675,9 @@ sap.ui.define([
 				_Helper.publicClone(oEntityData, true));
 			oEntityData["@$ui5.context.isInactive"] = true;
 		} else {
-			this.iActiveElements += 1;
+			if (!sPath) {
+				this.iActiveElements += 1;
+			}
 			addToCount(this.mChangeListeners, sPath, aCollection, 1);
 		}
 
@@ -592,6 +691,19 @@ sap.ui.define([
 		aCollection.$byPredicate = aCollection.$byPredicate || {};
 		aCollection.$byPredicate[sTransientPredicate] = oEntityData;
 		that.adjustIndexes(sPath, aCollection, 0, 1, 0, true);
+		if (aCollection.$postBodyCollection) { // within a deep create
+			if (typeof aCollection.$postBodyCollection === "function") {
+				aCollection.$postBodyCollection(); // creation on demand
+			}
+			_Helper.setPrivateAnnotation(oEntityData, "transient", sGroupId);
+			if (bAtEndOfCreated) {
+				aCollection.$postBodyCollection.push(oPostBody);
+			} else {
+				aCollection.$postBodyCollection.unshift(oPostBody);
+			}
+			oGroupLock.unlock();
+			return _Helper.addDeepCreatePromise(oEntityData);
+		}
 
 		return oPostPathPromise.then(function (sPostPath) {
 			sPostPath += that.oRequestor.buildQueryString(that.sMetaPath, that.mQueryOptions, true);
@@ -830,7 +942,7 @@ sap.ui.define([
 	 *   The path of the requested property relative to oResource; this property is requested from
 	 *   the server. For annotations, except client annotations, the annotated property is requested
 	 *   from the server.
-	 * @returns {sap.ui.base.SyncPromise|boolean}
+	 * @returns {Promise|boolean}
 	 *   A promise resolving w/o any result if the requested property is an expected late property,
 	 *   or a <code>boolean</code> value if it is not; it rejects with an error if the GET request
 	 *   failed, or if the key predicate or the ETag has changed. The returned <code>boolean</code>
@@ -954,7 +1066,8 @@ sap.ui.define([
 				throw new Error("GET " + sRequestPath + ": Key predicate changed from "
 					+ sOldPredicate + " to " + sNewPredicate);
 			}
-			// we expect the server to always or never send an ETag for this entity
+			// only check for ETag change if the cache contains one; otherwise either the cache
+			// element is empty (via #createEmptyElement) or the server did not send one last time
 			if (oResource["@odata.etag"] && oData["@odata.etag"] !== oResource["@odata.etag"]) {
 				throw new Error("GET " + sRequestPath + ": ETag changed");
 			}
@@ -1051,6 +1164,27 @@ sap.ui.define([
 	 * @name sap.ui.model.odata.v4.lib._Cache#fetchValue
 	 * @public
 	 */
+
+	/**
+	 * Returns the value at the given path and removes it from the cache.
+	 *
+	 * @param {string} sPath - The relative path of the property
+	 * @returns {any} The value
+	 * @throws {Error} If the cache is shared
+	 *
+	 * @public
+	 */
+	_Cache.prototype.getAndRemoveValue = function (sPath) {
+		var aSegments = sPath.split("/"),
+			sName = aSegments.pop(),
+			oParent = this.fetchValue(_GroupLock.$cached, aSegments.join("/")).getResult(),
+			vValue = oParent[sName];
+
+		this.checkSharedRequest();
+		delete oParent[sName];
+
+		return vValue;
+	};
 
 	/**
 	 * Returns an array containing all current elements of a collection or single cache for the
@@ -1298,6 +1432,9 @@ sap.ui.define([
 	 *   The key predicate of the entity; only evaluated if <code>iIndex === undefined</code>
 	 * @param {boolean} [bKeepAlive]
 	 *   Whether the entity is kept-alive
+	 * @param {boolean} [bWithMessages]
+	 *   Whether the "@com.sap.vocabularies.Common.v1.Messages" path is treated specially, supported
+	 *   only for <code>sPath === ""</code>
 	 * @param {function} [fnDataRequested]
 	 *   The function is called just before the back-end request is sent.
 	 *   If no back-end request is needed, the function is not called.
@@ -1309,13 +1446,18 @@ sap.ui.define([
 	 * @public
 	 */
 	_Cache.prototype.refreshSingle = function (oGroupLock, sPath, iIndex, sPredicate, bKeepAlive,
-			fnDataRequested) {
-		var that = this;
+			bWithMessages, fnDataRequested) {
+		var bKeepReportedMessagesPath = false,
+			that = this;
 
 		this.checkSharedRequest();
 		return this.fetchValue(_GroupLock.$cached, sPath).then(function (aElements) {
-			var mQueryOptions
-					= Object.assign({}, _Helper.getQueryOptionsForPath(that.mQueryOptions, sPath)),
+			var sMessagesPath = bWithMessages && sPath === ""
+					&& that.oRequestor.getModelInterface().fetchMetadata(
+						that.sMetaPath + "/@com.sap.vocabularies.Common.v1.Messages/$Path"
+					).getResult(),
+				mQueryOptions = _Helper.clone(
+					_Helper.getQueryOptionsForPath(that.mQueryOptions, sPath)),
 				sReadUrl;
 
 			if (iIndex !== undefined) {
@@ -1329,6 +1471,12 @@ sap.ui.define([
 				// bKeepAlive === true -> own cache of the list binding -> sPath === ''
 				// -> no need to apply _Helper.getQueryOptionsForPath
 				_Helper.aggregateExpandSelect(mQueryOptions, that.mLateQueryOptions);
+			}
+			if (sMessagesPath && mQueryOptions.$select
+				&& !mQueryOptions.$select.includes(sMessagesPath)) {
+				// Note: w/o existing $select, we must not end up w/ just messages
+				mQueryOptions.$select.push(sMessagesPath);
+				bKeepReportedMessagesPath = true;
 			}
 			// drop collection related system query options
 			delete mQueryOptions.$apply;
@@ -1347,7 +1495,8 @@ sap.ui.define([
 			]).then(function (aResult) {
 				var oElement = aResult[0];
 
-				that.replaceElement(aElements, iIndex, sPredicate, oElement, aResult[1], sPath);
+				that.replaceElement(aElements, iIndex, sPredicate, oElement, aResult[1], sPath,
+					bKeepReportedMessagesPath);
 			});
 		});
 	};
@@ -1606,11 +1755,13 @@ sap.ui.define([
 	 *   A map from meta path to the entity type (as delivered by {@link #fetchTypes})
 	 * @param {string} sPath
 	 *   The element collection's path within this cache, may be <code>""</code>
+	 * @param {boolean} [bKeepReportedMessagesPath]
+	 *   Whether <code>this.sReportedMessagesPath</code> should be kept unchanged
 	 *
 	 * @private
 	 */
 	_Cache.prototype.replaceElement = function (aElements, iIndex, sPredicate, oElement,
-			mTypeForMetaPath, sPath) {
+			mTypeForMetaPath, sPath, bKeepReportedMessagesPath) {
 		var oOldElement, sTransientPredicate;
 
 		if (iIndex === undefined) { // kept-alive element not in the list
@@ -1633,7 +1784,8 @@ sap.ui.define([
 
 		// Note: iStart is not needed here because we know we have a key predicate
 		this.visitResponse(oElement, mTypeForMetaPath,
-			_Helper.getMetaPath(_Helper.buildPath(this.sMetaPath, sPath)), sPath + sPredicate);
+			_Helper.getMetaPath(_Helper.buildPath(this.sMetaPath, sPath)), sPath + sPredicate,
+			false, undefined, bKeepReportedMessagesPath);
 	};
 
 	/**
@@ -1734,7 +1886,11 @@ sap.ui.define([
 			} else if (isSubPath(sRequestPath, sPath)) {
 				for (i = aEntities.length - 1; i >= 0; i -= 1) {
 					sTransientGroup = _Helper.getPrivateAnnotation(aEntities[i], "transient");
-					if (!sTransientGroup.startsWith("$inactive.")) {
+					if (sTransientGroup.startsWith("$inactive.")) {
+						_Helper.resetInactiveEntity(that.mChangeListeners,
+							_Helper.getPrivateAnnotation(aEntities[i], "transientPredicate"),
+							aEntities[i]);
+					} else {
 						// this also cleans up that.mPostRequests
 						that.oRequestor.removePost(sTransientGroup, aEntities[i]);
 					}
@@ -1914,7 +2070,7 @@ sap.ui.define([
 	 * @param {boolean} [bInactive]
 	 *   If <code>true</code>, the cache and the POST request will be updated, but the entity stays
 	 *   inactive
-	 * @returns {Promise}
+	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise for the PATCH request (resolves with <code>undefined</code>); rejected in case of
 	 *   cancellation or if no <code>fnErrorCallback</code> is given
 	 * @throws {Error} If the cache is shared
@@ -2163,6 +2319,60 @@ sap.ui.define([
 	};
 
 	/**
+	 * Creates key predicates and updates listeners for nested entity collections after a deep
+	 * create.
+	 *
+	 * @param {string} sPath - The path of the created entity within the cache
+	 * @param {object} oEntity - The entity in the cache
+	 * @param {object} oCreatedEntity - The created entity from the response
+	 *
+	 * @private
+	 */
+	_Cache.prototype.updateNestedCreates = function (sPath, oEntity, oCreatedEntity) {
+		var that = this;
+
+		Object.keys(oEntity).forEach(function (sSegment) {
+			var vCollection = oEntity[sSegment],
+				sCollectionPath,
+				aCreatedCollection,
+				aSelect;
+
+			if (vCollection && vCollection.$postBodyCollection) {
+				aCreatedCollection = oCreatedEntity[sSegment];
+				if (aCreatedCollection) { // otherwise no create was called in nested list binding
+					sCollectionPath = sPath + "/" + sSegment;
+					aSelect = vCollection.$select
+						|| _Helper.getQueryOptionsForPath(that.mQueryOptions, sCollectionPath)
+							.$select;
+					aCreatedCollection.forEach(function (oCreatedChildEntity, i) {
+						var oChildEntity = vCollection[i],
+							sPredicate
+								= _Helper.getPrivateAnnotation(oCreatedChildEntity, "predicate"),
+							fnResolve = _Helper.getPrivateAnnotation(oChildEntity, "resolve"),
+							sTransientPredicate = _Helper.getPrivateAnnotation(oChildEntity,
+								"transientPredicate");
+
+						_Helper.updateTransientPaths(that.mChangeListeners, sTransientPredicate,
+							sPredicate);
+						vCollection.$byPredicate[sPredicate] = oChildEntity;
+						_Helper.updateSelected(that.mChangeListeners, sCollectionPath + sPredicate,
+							oChildEntity, oCreatedChildEntity, aSelect,
+							/*fnCheckKeyPredicate*/undefined, true);
+						_Helper.deletePrivateAnnotation(oChildEntity, "postBody");
+						_Helper.deletePrivateAnnotation(oChildEntity, "reject");
+						_Helper.deletePrivateAnnotation(oChildEntity, "resolve");
+						_Helper.deletePrivateAnnotation(oChildEntity, "transient");
+						delete oChildEntity["@$ui5.context.isTransient"];
+						fnResolve(oChildEntity); // resolve the create promise
+					});
+				}
+				delete vCollection.$postBodyCollection;
+				delete vCollection.$select;
+			}
+		});
+	};
+
+	/**
 	 * Processes the response from the server. All arrays are annotated by their length, influenced
 	 * by the annotations "@odata.count" and "@odata.nextLink". Recursively calculates the key
 	 * predicates for all entities in the result. Collects and reports OData messages via
@@ -2178,15 +2388,17 @@ sap.ui.define([
 	 * @param {boolean} [bKeepTransientPath] Whether the transient path shall be used to report
 	 *   messages
 	 * @param {number} [iStart]
-	 *    The index in the collection where "oRoot.value" needs to be inserted or undefined if
-	 *    "oRoot" references a single entity
+	 *   The index in the collection where "oRoot.value" needs to be inserted or undefined if
+	 *   "oRoot" references a single entity.
+	 * @param {boolean} [bKeepReportedMessagesPath]
+	 *   Whether <code>this.sReportedMessagesPath</code> should be kept unchanged
 	 * @throws {Error}
 	 *   If the cache is shared and OData messages would be reported
 	 *
 	 * @private
 	 */
 	_Cache.prototype.visitResponse = function (oRoot, mTypeForMetaPath, sRootMetaPath, sRootPath,
-			bKeepTransientPath, iStart) {
+			bKeepTransientPath, iStart, bKeepReportedMessagesPath) {
 		var aCachePaths,
 			bHasMessages = false,
 			mPathToODataMessages = {},
@@ -2343,8 +2555,10 @@ sap.ui.define([
 			visitInstance(oRoot, sRootMetaPath || this.sMetaPath, sRootPath || "", sRequestUrl);
 		}
 		if (bHasMessages && !this.bSharedRequest) {
-			this.sReportedMessagesPath = this.sOriginalResourcePath;
-			this.oRequestor.getModelInterface().reportStateMessages(this.sReportedMessagesPath,
+			if (!bKeepReportedMessagesPath) {
+				this.sReportedMessagesPath = this.sOriginalResourcePath;
+			}
+			this.oRequestor.getModelInterface().reportStateMessages(this.sOriginalResourcePath,
 				mPathToODataMessages, aCachePaths);
 		}
 	};
@@ -2823,7 +3037,9 @@ sap.ui.define([
 			if (sPredicate) {
 				oKeptElement = aElements.$byPredicate[sPredicate];
 				if (oKeptElement) {
-					// we expect the server to always or never send an ETag for this entity
+					// only check for ETag change if the cache contains one; otherwise either the
+					// cache element is empty (via #createEmptyElement) or the server did not send
+					// one last time
 					if (!oKeptElement["@odata.etag"]
 							|| oElement["@odata.etag"] === oKeptElement["@odata.etag"]) {
 						if (iCreated && aElements.lastIndexOf(oKeptElement, iCreated - 1) >= 0) {
@@ -2857,7 +3073,7 @@ sap.ui.define([
 	 */
 	_CollectionCache.prototype.isDeletingInOtherGroup = function (sGroupId) {
 		return Object.values(this.aElements.$deleted || {}).some(function (oDeleted) {
-			return oDeleted.sGroupId !== sGroupId;
+			return oDeleted.groupId !== sGroupId;
 		});
 	};
 
@@ -3034,7 +3250,7 @@ sap.ui.define([
 	 * @param {function(string,number)} fnOnRemove
 	 *   A function which is called with predicate and index if a kept-alive or created element does
 	 *   no longer exist after refresh; the index is undefined for a non-created element
-	 * @returns {sap.ui.base.SyncPromise|undefined}
+	 * @returns {Promise|undefined}
 	 *   A promise resolving without a defined result, or rejecting with an error if the refresh
 	 *   fails, or <code>undefined</code> if there are no kept-alive elements.
 	 * @throws {Error}
@@ -3208,6 +3424,8 @@ sap.ui.define([
 	 * @param {boolean} bSingle
 	 *   Whether only the side effects for a single element are requested; no element is discarded
 	 *   in this case
+	 * @param {boolean} bWithMessages
+	 *   Whether the "@com.sap.vocabularies.Common.v1.Messages" path is treated specially
 	 * @returns {Promise|sap.ui.base.SyncPromise}
 	 *   A promise resolving without a defined result, or rejecting with an error if loading of side
 	 *   effects fails
@@ -3218,7 +3436,7 @@ sap.ui.define([
 	 * @public
 	 */
 	_CollectionCache.prototype.requestSideEffects = function (oGroupLock, aPaths, aPredicates,
-			bSingle) {
+			bSingle, bWithMessages) {
 		var aElements,
 			mMergeableQueryOptions,
 			mQueryOptions,
@@ -3231,7 +3449,7 @@ sap.ui.define([
 
 		mQueryOptions = _Helper.intersectQueryOptions(
 			Object.assign({}, this.mQueryOptions, this.mLateQueryOptions), aPaths,
-			this.oRequestor.getModelInterface().fetchMetadata, this.sMetaPath, "");
+			this.oRequestor.getModelInterface().fetchMetadata, this.sMetaPath, "", bWithMessages);
 		if (!mQueryOptions) {
 			return SyncPromise.resolve(); // micro optimization: use *sync.* promise which is cached
 		}
@@ -3292,10 +3510,13 @@ sap.ui.define([
 				}
 				// Note: iStart makes no sense here (use NaN instead), but is not needed because
 				// we know we have key predicates
-				that.visitResponse(oResult, mTypeForMetaPath, undefined, "", false, NaN);
+				that.visitResponse(oResult, mTypeForMetaPath, undefined, "", false, NaN, true);
 				for (i = 0, n = oResult.value.length; i < n; i += 1) {
 					oElement = oResult.value[i];
 					sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
+					if (that.beforeUpdateSelected) {
+						that.beforeUpdateSelected(sPredicate, oElement);
+					}
 					_Helper.updateSelected(that.mChangeListeners, sPredicate,
 						that.aElements.$byPredicate[sPredicate], oElement, aPaths,
 						preventKeyPredicateChange);
@@ -3414,6 +3635,17 @@ sap.ui.define([
 			this.iLimit = this.oBackup.iLimit;
 		}
 		this.oBackup = null;
+	};
+
+	/**
+	 * Sets the cache's elements to the given collection after a deep create.
+	 *
+	 * @param {object} aElements - The elements from the deep create
+	 */
+	_CollectionCache.prototype.setPersistedCollection = function (aElements) {
+		this.aElements = aElements;
+		this.iActiveElements = aElements.$created;
+		this.iLimit = aElements.length;
 	};
 
 	//*********************************************************************************************
@@ -3716,7 +3948,17 @@ sap.ui.define([
 				? {"If-Match" : bIgnoreETag && "@odata.etag" in oEntity ? "*" : oEntity}
 				: {},
 			sHttpMethod = "POST",
+			oRequestLock,
 			that = this;
+
+		/*
+		 * Synchronous callback called when the request is put on the wire. Locks the group (for
+		 * bound actions) so that further requests created via {@link ODataModel#submitBatch} wait
+		 * until this request has returned.
+		 */
+		function onSubmit() {
+			oRequestLock = that.oRequestor.lockGroup(oGroupLock.getGroupId(), that, true);
+		}
 
 		function post(oGroupLock0) {
 			that.bPosting = true;
@@ -3724,16 +3966,24 @@ sap.ui.define([
 			// BEWARE! Avoid finally here! BCP: 2070200175
 			return SyncPromise.all([
 				that.oRequestor.request(sHttpMethod,
-					that.sResourcePath + that.sQueryString, oGroupLock0, mHeaders, oData),
+					that.sResourcePath + that.sQueryString, oGroupLock0, mHeaders, oData,
+					oEntity && onSubmit),
 				that.fetchTypes()
 			]).then(function (aResult) {
 				that.buildOriginalResourcePath(aResult[0], aResult[1], fnGetOriginalResourcePath);
 				that.visitResponse(aResult[0], aResult[1]);
 				that.bPosting = false;
+				if (oRequestLock) {
+					oRequestLock.unlock();
+				}
 
 				return aResult[0];
 			}, function (oError) {
 				that.bPosting = false;
+				if (oRequestLock) {
+					oRequestLock.unlock();
+					oRequestLock = undefined; // in case we fail again before next submit
+				}
 				if (fnOnStrictHandlingFailed && oError.strictHandlingFailed) {
 					return fnOnStrictHandlingFailed(oError).then(function (bConfirm) {
 						var oCanceledError;
@@ -3799,7 +4049,7 @@ sap.ui.define([
 	 *   because they may have changed due to side effects of a previous update
 	 * @param {string} [sResourcePath=this.sResourcePath]
 	 *   A resource path relative to the service URL; it must not contain a query string
-	 * @returns {Promise|sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise resolving without a defined result, or rejecting with an error if loading of side
 	 *   effects fails.
 	 * @throws {Error} If the side effects require a $expand, if group ID is '$cached' (the error

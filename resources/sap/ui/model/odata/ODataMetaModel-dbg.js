@@ -209,7 +209,7 @@ sap.ui.define([
 	 * {@link #loaded loaded} has been resolved!
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @alias sap.ui.model.odata.ODataMetaModel
 	 * @extends sap.ui.model.MetaModel
 	 * @public
@@ -230,7 +230,8 @@ sap.ui.define([
 					oData = JSON.parse(JSON.stringify(oMetadata.getServiceMetadata()));
 					that.oModel = new JSONModel(oData);
 					that.oModel.setDefaultBindingMode(that.sDefaultBindingMode);
-					Utils.merge(oAnnotations ? oAnnotations.getData() : {}, oData, that);
+					Utils.merge(oAnnotations ? oAnnotations.getData() : {}, oData, that,
+						oDataModel.bIgnoreAnnotationsFromMetadata);
 					Measurement.end(sPerformanceLoad);
 				}
 
@@ -242,7 +243,7 @@ sap.ui.define([
 				this.sDefaultBindingMode = BindingMode.OneTime;
 				this.oLoadedPromise = oAnnotationsLoadedPromise
 					? oAnnotationsLoadedPromise.then(load)
-					: new Promise(function (fnResolve, fnReject) {
+					: new Promise(function (fnResolve) {
 							load();
 							fnResolve();
 						}); // call load() synchronously!
@@ -532,7 +533,7 @@ sap.ui.define([
 	 * @param {string} sTerm
 	 *   The unqualified name of the term from the <code>com.sap.vocabularies.CodeList.v1</code>
 	 *   vocabulary used to annotate the entity container, e.g. "CurrencyCodes" or "UnitsOfMeasure"
-	 * @returns {SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise resolving with the customizing, which is a map from the code key to an object
 	 *   with the following properties:
 	 *   <ul>

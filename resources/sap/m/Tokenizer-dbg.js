@@ -75,7 +75,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -545,7 +545,9 @@ sap.ui.define([
 		}
 
 		var oListItem = new StandardListItem({
-			selected: true
+			selected: true,
+			wrapping: true,
+			wrapCharLimit: 10000
 		}).data("tokenId", oToken.getId());
 
 		oListItem.setTitle(oToken.getText());
@@ -838,9 +840,9 @@ sap.ui.define([
 		}
 
 		aTokens.forEach(function(oToken, iIndex) {
-			oToken.setProperty("editableParent", this.getEditable() && this.getEnabled(), true);
-			oToken.setProperty("posinset", iIndex + 1, true);
-			oToken.setProperty("setsize", aTokens.length, true);
+			oToken.setProperty("editableParent", this.getEditable() && this.getEnabled());
+			oToken.setProperty("posinset", iIndex + 1);
+			oToken.setProperty("setsize", aTokens.length);
 		}, this);
 
 		this._setTokensAria();

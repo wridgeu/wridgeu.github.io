@@ -43,7 +43,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.cardEditor.propertyEditor.parametersEditor.ParametersEditor
 	 * @author SAP SE
 	 * @since 1.70
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @private
 	 * @experimental 1.70

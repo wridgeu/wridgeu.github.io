@@ -14,11 +14,7 @@ sap.ui.define((function () { 'use strict';
 
     var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
-    var marked_umdExports = {};
-    var marked_umd$1 = {
-      get exports(){ return marked_umdExports; },
-      set exports(v){ marked_umdExports = v; },
-    };
+    var marked_umd = {exports: {}};
 
     (function (module, exports) {
     	/**
@@ -2828,11 +2824,13 @@ sap.ui.define((function () { 'use strict';
     	  exports.use = use;
     	  exports.walkTokens = walkTokens;
 
-    	}));
-    } (marked_umd$1, marked_umdExports));
+    	})); 
+    } (marked_umd, marked_umd.exports));
 
-    var marked_umd = marked_umdExports;
+    var marked_umdExports = marked_umd.exports;
 
-    return marked_umd;
+    Object.defineProperty(marked_umdExports, "__" + "esModule", { value: true });
+
+    return marked_umdExports;
 
 }));

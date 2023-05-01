@@ -66,7 +66,7 @@ sap.ui.define([
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 *
 		 * @constructor
 		 * @public
@@ -224,10 +224,6 @@ sap.ui.define([
 				oList.setBusy(false);
 				oList.setShowNoData(!this.getItems().length);
 				this.bInitialBusyIndicatorState = false;
-
-				if (this.getValue()) {
-					this.open();
-				}
 			}
 		};
 
@@ -239,7 +235,7 @@ sap.ui.define([
 		 * The function should return a Boolean value (true or false) which represents whether an item will be shown in the dropdown or not.
 		 *
 		 * @public
-		 * @param {function} fnFilter A callback function called when typing in a ComboBoxBase control or ancestor.
+		 * @param {function(string=, sap.ui.core.Item=, boolean=):boolean|undefined|function} fnFilter A callback function called when typing in a ComboBoxBase control or ancestor.
 		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @since 1.58
 		 */
@@ -268,7 +264,7 @@ sap.ui.define([
 		ComboBoxBase.prototype.highlightList = function (sValue) {
 			var aListItemsDOM = [];
 
-			aListItemsDOM = this._getList().$().find('.sapMSLIInfo, .sapMSLITitleOnly');
+			aListItemsDOM = this._getList().$().find('.sapMSLIInfo [id$=-infoText], .sapMSLITitleOnly [id$=-titleText]');
 
 			highlightDOMElements(aListItemsDOM, sValue);
 		};
@@ -1527,11 +1523,10 @@ sap.ui.define([
 		/**
 		 * Opens the <code>SuggestionsPopover</code> with the available items.
 		 *
-		 * @param {function} fnFilter Function to filter the items shown in the SuggestionsPopover
+		 * @param {function|undefined} fnFilter Function to filter the items shown in the SuggestionsPopover
 		 * @returns {void}
 		 *
 		 * @since 1.64
-		 * @experimental Since 1.64
 		 * @public
 		 */
 		ComboBoxBase.prototype.showItems = function (fnFilter) {

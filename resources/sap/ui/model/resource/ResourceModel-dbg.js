@@ -229,7 +229,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.model.Model
 	 * @public
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 */
 	var ResourceModel = Model.extend("sap.ui.model.resource.ResourceModel", /** @lends sap.ui.model.resource.ResourceModel.prototype */ {
 

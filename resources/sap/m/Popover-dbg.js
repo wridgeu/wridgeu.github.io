@@ -120,7 +120,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.110.0
+		* @version 1.112.0
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -198,7 +198,6 @@ sap.ui.define([
 					/**
 					 * This property is deprecated. Please use properties verticalScrolling and horizontalScrolling instead. If you still use this property it will be mapped on the new properties verticalScrolling and horizontalScrolling.
 					 * @deprecated Since version 1.15.0.
-					 * This property is deprecated. Please use properties verticalScrolling and horizontalScrolling instead. If you still use this property it will be mapped on the new properties verticalScrolling and horizontalScrolling.
 					 */
 					enableScrolling: {type: "boolean", group: "Misc", defaultValue: true, deprecated: true},
 
@@ -801,7 +800,7 @@ sap.ui.define([
 		/**
 		 * Opens the Popover and sets the Popover position according to the {@link #getPlacement() placement} property around the <code>oControl</code> parameter.
 		 *
-		 * @param {object} oControl This is the control to which the Popover will be placed. It can be not only a UI5 control, but also an existing DOM reference. The side of the placement depends on the placement property set in the Popover.
+		 * @param {sap.ui.core.Control|HTMLElement} oControl This is the control to which the Popover will be placed. It can be not only a UI5 control, but also an existing DOM reference. The side of the placement depends on the placement property set in the Popover.
 		 * @param {boolean} bSkipInstanceManager Indicates whether popover should be managed by InstanceManager or not
 		 * @returns {this} Reference to the control instance for chaining
 		 * @public
@@ -2214,7 +2213,7 @@ sap.ui.define([
 		/**
 		 * If customHeader is set, this will return the customHeaer. Otherwise it creates a header and put the
 		 * title and buttons if needed inside, and finally return this newly create header.
-		 * @returns {object} The created header
+		 * @returns {sap.ui.core.Control|sap.m.Bar} The created header
 		 * @protected
 		 */
 		Popover.prototype._getAnyHeader = function () {

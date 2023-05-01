@@ -78,6 +78,7 @@ sap.ui.define([
 			groupId : true,
 			groupProperties : true,
 			httpHeaders : true,
+			ignoreAnnotationsFromMetadata : true,
 			metadataUrlParams : true,
 			odataVersion : true,
 			operationMode : true,
@@ -132,6 +133,11 @@ sap.ui.define([
 		 *   since 1.51.0
 		 * @param {object} [mParameters.httpHeaders]
 		 *   Map of HTTP header names to their values, see {@link #changeHttpHeaders}
+		 * @param {boolean} [mParameters.ignoreAnnotationsFromMetadata]
+		 *   Whether to ignore all annotations from service metadata and "cross-service references";
+		 *   only the value <code>true</code> is allowed. Only annotations from annotation files
+		 *   (see parameter "annotationURI") are loaded. This parameter is not inherited by value
+		 *   list models. @experimental as of version 1.111.0
 		 * @param {object} [mParameters.metadataUrlParams]
 		 *   Additional map of URL parameters used specifically for $metadata requests. Note that
 		 *   "sap-context-token" applies only to the service's root $metadata, but not to
@@ -221,7 +227,7 @@ sap.ui.define([
 		 * @extends sap.ui.model.Model
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 */
 		ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */{
@@ -328,6 +334,10 @@ sap.ui.define([
 		}
 		this.bSharedRequests = mParameters.sharedRequests === true;
 		this.bIgnoreETag = false;
+		if ("ignoreAnnotationsFromMetadata" in mParameters
+			&& mParameters.ignoreAnnotationsFromMetadata !== true) {
+			throw new Error("Value for ignoreAnnotationsFromMetadata must be true");
+		}
 
 		// BEWARE: do not share mHeaders between _MetadataRequestor and _Requestor!
 		this.mHeaders = {"Accept-Language" : sLanguageTag};
@@ -335,7 +345,8 @@ sap.ui.define([
 
 		mQueryParams = Object.assign({}, mUriParameters, mParameters.metadataUrlParams);
 		this.oMetaModel = new ODataMetaModel(
-			_MetadataRequestor.create(this.mMetadataHeaders, sODataVersion, mQueryParams),
+			_MetadataRequestor.create(this.mMetadataHeaders, sODataVersion,
+				mParameters.ignoreAnnotationsFromMetadata, mQueryParams),
 			this.sServiceUrl + "$metadata", mParameters.annotationURI, this,
 			mParameters.supportReferences, mQueryParams["sap-language"]);
 		this.oInterface = {
@@ -717,7 +728,7 @@ sap.ui.define([
 	 *   parameter (see {@link sap.ui.model.odata.v4.ODataModel#constructor}), paths with navigation
 	 *   properties can be included and will contribute to the "5.1.2 System Query Option $expand".
 	 * @param {boolean} [mParameters.$$canonicalPath]
-	 *   Whether a binding relative to a {@link sap.ui.model.odata.v4.Context} uses the canonical
+	 *   Whether a binding relative to an {@link sap.ui.model.odata.v4.Context} uses the canonical
 	 *   path computed from its context's path for data service requests; only the value
 	 *   <code>true</code> is allowed.
 	 * @param {string} [mParameters.$$groupId]
@@ -863,7 +874,7 @@ sap.ui.define([
 	 *   An object holding the information needed for data aggregation, see
 	 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation} for details.
 	 * @param {boolean} [mParameters.$$canonicalPath]
-	 *   Whether a binding relative to a {@link sap.ui.model.odata.v4.Context} uses the canonical
+	 *   Whether a binding relative to an {@link sap.ui.model.odata.v4.Context} uses the canonical
 	 *   path computed from its context's path for data service requests; only the value
 	 *   <code>true</code> is allowed.
 	 * @param {boolean} [mParameters.$$getKeepAliveContext]
@@ -895,8 +906,8 @@ sap.ui.define([
 	 *   <code>true</code> is allowed.
 	 * @param {boolean} [mParameters.$$sharedRequest]
 	 *   Whether multiple bindings for the same resource path share the data, so that it is
-	 *   requested only once; only the value <code>true</code> is allowed. This parameter can be
-	 *   inherited from the model's parameter "sharedRequests", see
+	 *   requested only once.
+	 *   This parameter can be inherited from the model's parameter "sharedRequests", see
 	 *   {@link sap.ui.model.odata.v4.ODataModel#constructor}. Supported since 1.80.0
 	 *   <b>Note:</b> These bindings are read-only, so they may be especially useful for value
 	 *   lists; state messages (since 1.108.0) and the following APIs are <b>not</b> allowed
@@ -1268,6 +1279,17 @@ sap.ui.define([
 	};
 
 	/**
+	 * Clears the session context represented by the "SAP-ContextId" header.
+	 *
+	 * @private
+	 * @since 1.111.0
+	 * @ui5-restricted sap.fe
+	 */
+	ODataModel.prototype.clearSessionContext = function () {
+		this.oRequestor.clearSessionContext();
+	};
+
+	/**
 	 * Creates a binding context for the given path. A relative path can only be resolved if a
 	 * context is provided.
 	 * Note: The parameters <code>mParameters</code>, <code>fnCallBack</code>, and
@@ -1309,7 +1331,7 @@ sap.ui.define([
 	 *   The binding context with the resolved path and the model instance
 	 * @throws {Error}
 	 *   If a relative path is provided without a context or in case of unsupported parameters or
-	 *   if the given context is a {@link sap.ui.model.odata.v4.Context}
+	 *   if the given context is an {@link sap.ui.model.odata.v4.Context}
 	 *
 	 * @public
 	 * @see sap.ui.model.Model#createBindingContext
@@ -1369,7 +1391,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Creates a {@link sap.ui.core.message.Message} from a given "raw" message object. For a
+	 * Creates an {@link sap.ui.core.message.Message} from a given "raw" message object. For a
 	 * bound message, targets are resolved if they are not yet resolved. A message is called a bound
 	 * message if is has a target, even if it is empty.
 	 *
@@ -1497,7 +1519,8 @@ sap.ui.define([
 			throw new Error("Illegal update group ID: " + sGroupId);
 		}
 
-		return this.oRequestor.request("DELETE", sCanonicalPath.slice(1),
+		return this.oRequestor.request("DELETE",
+			sCanonicalPath.slice(1) + _Helper.buildQuery(this.mUriParameters),
 			this.lockGroup(sGroupId, this, true, true),
 			{"If-Match" : "*"}
 		).catch(function (oError) {
@@ -2509,8 +2532,10 @@ sap.ui.define([
 	/**
 	 * Resets all property changes, created entities, and entity deletions associated with the given
 	 * group ID which have not been successfully submitted via {@link #submitBatch}. Resets also
-	 * invalid user input for the same group ID. This function does not reset the execution of OData
-	 * operations (see {@link sap.ui.model.odata.v4.ODataContextBinding#execute}).
+	 * invalid user input for the same group ID and (since 1.111.0) inactive contexts which had
+	 * their activation prevented (see {@link sap.ui.model.odata.v4.Context#isInactive}). This
+	 * function does not reset the execution of OData operations
+	 * (see {@link sap.ui.model.odata.v4.ODataContextBinding#execute}).
 	 *
 	 * @param {string} [sGroupId]
 	 *   A valid group ID as specified in {@link sap.ui.model.odata.v4.ODataModel}. If it is
@@ -2533,6 +2558,7 @@ sap.ui.define([
 
 		if (this.isAutoGroup(sGroupId)) {
 			this.oRequestor.cancelChanges("$parked." + sGroupId);
+			this.oRequestor.cancelChanges("$inactive." + sGroupId, true);
 		}
 		this.oRequestor.cancelChanges(sGroupId);
 

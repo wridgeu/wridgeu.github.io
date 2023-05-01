@@ -51,7 +51,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.message.MessageProcessor
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.Model
@@ -512,16 +512,6 @@ sap.ui.define([
 	 */
 	Model.prototype.fireRequestCompleted = function(oParameters) {
 		this.fireEvent("requestCompleted", oParameters);
-		return this;
-	};
-
-	Model.prototype.attachMessageChange = function(oData, fnFunction, oListener) {
-		this.attachEvent("messageChange", oData, fnFunction, oListener);
-		return this;
-	};
-
-	Model.prototype.detachMessageChange = function(fnFunction, oListener) {
-		this.detachEvent("messageChange", fnFunction, oListener);
 		return this;
 	};
 

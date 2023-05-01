@@ -38,6 +38,8 @@ sap.ui.define((function () { 'use strict';
 
     var shell_1 = shell;
 
+    Object.defineProperty(shell_1, "__" + "esModule", { value: true });
+
     return shell_1;
 
 }));

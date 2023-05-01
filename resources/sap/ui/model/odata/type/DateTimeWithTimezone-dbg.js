@@ -5,17 +5,17 @@
  */
 
 sap.ui.define([
+	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/_Helper",
 	"sap/ui/model/CompositeType",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException"
-], function (DateFormat, _Helper, CompositeType, FormatException, ParseException) {
+], function (UI5Date, DateFormat, _Helper, CompositeType, FormatException, ParseException) {
 	"use strict";
 
 	var sDateOrTimeRequired = "For type 'object', at least one of the format options 'showDate' or"
-			+ " 'showTime' must be enabled",
-		oDemoDateTime = new Date(Date.UTC(new Date().getFullYear(), 11, 31, 23, 59, 58));
+			+ " 'showTime' must be enabled";
 
 	/*
 	 * Returns the formatter. Creates it lazily.
@@ -60,7 +60,7 @@ sap.ui.define([
 	 * @public
 	 * @see {sap.ui.model.odata.v2.ODataModel#bindProperty}
 	 * @since 1.99.0
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 */
 	var DateTimeWithTimezone = CompositeType.extend("sap.ui.model.odata.type.DateTimeWithTimezone",
 		{
@@ -100,7 +100,9 @@ sap.ui.define([
 	 * @private
 	 */
 	DateTimeWithTimezone.prototype._getErrorMessage = function () {
-		var sMessageKey = !this.bShowDate && !this.bShowTime
+		// no need to use UI5Date.getInstance as only the UTC timestamp is used
+		var oDemoDateTime = new Date(Date.UTC(UI5Date.getInstance().getFullYear(), 11, 31, 23, 59, 58)),
+			sMessageKey = !this.bShowDate && !this.bShowTime
 				? "EnterDateTimeTimezone"
 				: "EnterDateTime";
 

@@ -74,7 +74,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 *
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
@@ -559,7 +559,7 @@ sap.ui.define([
 	 *   actions only
 	 * @param {function} [fnOnStrictHandlingFailed]
 	 *   Callback for strict handling; supported for actions only
-	 * @returns {SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise}
 	 *   The request promise
 	 * @throws {Error} If
 	 *   <ul>
@@ -916,10 +916,10 @@ sap.ui.define([
 	 *   value context at all or the existing context as described above is currently part of the
 	 *   list's collection (that is, has an index).
 	 *   <br>
-	 *   A return value context is a {@link sap.ui.model.odata.v4.Context} which represents a bound
+	 *   A return value context is an {@link sap.ui.model.odata.v4.Context} which represents a bound
 	 *   operation response. It is created only if the operation is bound and has a single entity
 	 *   return value from the same entity set as the operation's binding parameter and has a
-	 *   parent context which is a {@link sap.ui.model.odata.v4.Context} and points to an entity
+	 *   parent context which is an {@link sap.ui.model.odata.v4.Context} and points to an entity
 	 *   from an entity set. It is destroyed the next time this operation binding is executed again!
 	 *   <br>
 	 *   If a return value context is created, it must be used instead of
@@ -1128,9 +1128,7 @@ sap.ui.define([
 			oPromise;
 
 		if (oContext) {
-			// use absolute path to avoid unnecessary (but poss. failing) path reduction
-			oEntity = oContext.getValue(oContext.getPath());
-
+			oEntity = oContext.getValue();
 			// avoid problems in fetchCanonicalPath (leading to an ODM#reportError)
 			if (oEntity && _Helper.hasPrivateAnnotation(oEntity, "predicate")) {
 				oPromise = oContext.fetchCanonicalPath();

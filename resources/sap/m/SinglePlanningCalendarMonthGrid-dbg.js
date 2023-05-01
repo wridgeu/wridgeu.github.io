@@ -28,7 +28,8 @@ sap.ui.define([
 	'sap/ui/core/library',
 	"sap/ui/core/date/CalendarWeekNumbering",
 	"sap/ui/core/date/CalendarUtils",
-	"sap/ui/core/Configuration"
+	"sap/ui/core/Configuration",
+	"sap/ui/core/date/UI5Date"
 	],
 	function (
 		Control,
@@ -53,7 +54,8 @@ sap.ui.define([
 		coreLibrary,
 		CalendarWeekNumbering,
 		CalendarDateUtils,
-		Configuration
+		Configuration,
+        UI5Date
 	) {
 		"use strict";
 
@@ -89,7 +91,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.112.0
 		 *
 		 * @constructor
 		 * @private
@@ -248,7 +250,7 @@ sap.ui.define([
 				pattern: "EEEE dd/MM/YYYY"
 			});
 
-			this.setStartDate(new Date());
+			this.setStartDate(UI5Date.getInstance());
 			this._configureAppointmentsDragAndDrop();
 
 			this._oUnifiedRB = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
@@ -392,10 +394,10 @@ sap.ui.define([
 			if (oSrcControl && oSrcControl.isA("sap.m.SinglePlanningCalendarMonthGrid") && bIsCell && !bIsLink) {
 				iTimestamp = parseInt(oTarget.getAttribute("sap-ui-date"));
 
-				oStartDate = new Date(iTimestamp);
-				oStartDate = new Date(oStartDate.getUTCFullYear(), oStartDate.getUTCMonth(), oStartDate.getUTCDate());
+				oStartDate = UI5Date.getInstance(iTimestamp);
+				oStartDate = UI5Date.getInstance(oStartDate.getUTCFullYear(), oStartDate.getUTCMonth(), oStartDate.getUTCDate());
 
-				oEndDate = new Date(oStartDate);
+				oEndDate = UI5Date.getInstance(oStartDate);
 				oEndDate.setDate(oEndDate.getDate() + 1);
 
 				this.fireEvent("cellPress", {startDate: oStartDate, endDate: oEndDate});
@@ -486,9 +488,9 @@ sap.ui.define([
 
 		SinglePlanningCalendarMonthGrid.prototype._handleMorePress = function(oEvent) {
 			var iTimestamp = parseInt(oEvent.getSource().getCustomData()[0].getValue()),
-				oDate = new Date(iTimestamp);
+				oDate = UI5Date.getInstance(iTimestamp);
 
-			oDate = new Date(oDate.getUTCFullYear(), oDate.getUTCMonth(), oDate.getUTCDate());
+			oDate = UI5Date.getInstance(oDate.getUTCFullYear(), oDate.getUTCMonth(), oDate.getUTCDate());
 
 			this.fireEvent("moreLinkPress", { date: oDate });
 		};
@@ -581,38 +583,38 @@ sap.ui.define([
 			var aVisibleDays = this._getVisibleDays(oStartDate),
 				oFirstVisibleDay = aVisibleDays[0],
 				oLastVisibleDay = aVisibleDays[aVisibleDays.length - 1],
-					// we do not need appointments without start and end dates
+					// We do not need appointments without start and end dates
 				aApps = this.getAppointments().filter(function(app) {
-					var bValid = app._getStartDateWithTimezoneAdaptation() && app._getEndDateWithTimezoneAdaptation();
+					var bValid = app.getStartDate() && app.getEndDate();
 					if (!bValid) {
 						Log.warning("Appointment " + app.getId() + " has no start or no end date. It is ignored.");
 					}
 					return bValid;
-					// map to a structure ready for calculations
+					// Map to a structure ready for calculations
 				}).map(function(app) {
-					var oStart = CalendarDate.fromLocalJSDate(app._getStartDateWithTimezoneAdaptation()),
-						oEnd = CalendarDate.fromLocalJSDate(app._getEndDateWithTimezoneAdaptation());
+					var oStart = CalendarDate.fromLocalJSDate(app.getStartDate()),
+						oEnd = CalendarDate.fromLocalJSDate(app.getEndDate());
 					return {
 						data: app,
 						start: oStart,
 						end: oEnd,
 						len: CalendarUtils._daysBetween(oEnd, oStart)
 					};
-					// get only the visible appointments
+					// Get only the visible appointments
 				}).filter(function(app) {
 					return CalendarUtils._isBetween(app.start, oFirstVisibleDay, oLastVisibleDay, true) // app starts in the current view port
 						|| CalendarUtils._isBetween(app.end, oFirstVisibleDay, oLastVisibleDay, true) // app ends in the current view port
 						|| (CalendarUtils._isBetween(oFirstVisibleDay, app.start, oLastVisibleDay, true) // app starts before the view port...
 							&& CalendarUtils._isBetween(oLastVisibleDay, oFirstVisibleDay, app.end,true)); // ...and ends after the view port
-					// sort by start date
+					// Sort by start date
 				}).sort(function compare(a, b) {
 					return a.start.valueOf() - b.start.valueOf();
 				}),
-				// array of taken levels per visible day
+				// Array of taken levels per visible day
 				aVisibleDaysLevels = [],
 				oApp,
-				iStartIndexVisibleDays,
-				iEndIndexVisibleDays,
+				iAppointmentStartIndex,
+				iAppointmentEndIndex,
 				iFirstFreeIndex,
 				i,
 				j,
@@ -622,25 +624,29 @@ sap.ui.define([
 				aVisibleDaysLevels.push([]);
 			}
 
-			// each appointment gets its width and level
+			// Each appointment gets its width and level
 			for (i = 0; i < aApps.length; i++) {
 				oApp = aApps[i];
-				iStartIndexVisibleDays = CalendarUtils._daysBetween(oApp.start, aVisibleDays[0]);
-				iEndIndexVisibleDays = iStartIndexVisibleDays + oApp.len;
-				iStartIndexVisibleDays = iStartIndexVisibleDays > 0 ? iStartIndexVisibleDays : 0;
-				iEndIndexVisibleDays = iEndIndexVisibleDays < aVisibleDays.length ? iEndIndexVisibleDays : aVisibleDays.length - 1;
+				iAppointmentStartIndex = CalendarUtils._daysBetween(oApp.start, aVisibleDays[0]);
+				iAppointmentEndIndex = iAppointmentStartIndex + oApp.len;
+
+				// If appointment is out of bounds, set it in bounds
+				iAppointmentStartIndex = iAppointmentStartIndex > 0 ? iAppointmentStartIndex : 0;
+				iAppointmentEndIndex = iAppointmentEndIndex < aVisibleDays.length ? iAppointmentEndIndex : aVisibleDays.length - 1;
 
 				oApp.width = oApp.len + 1;
 
-				// find the first level that is not taken for the start date of the appointment
-				iFirstFreeIndex = aVisibleDaysLevels[iStartIndexVisibleDays].indexOf(true);
+				// Find the first level that is not taken for the start date of the appointment
+				iFirstFreeIndex = aVisibleDaysLevels[iAppointmentStartIndex].indexOf(true);
 				if (iFirstFreeIndex === -1) {
-					iFirstFreeIndex = aVisibleDaysLevels[iStartIndexVisibleDays].length;
+					iFirstFreeIndex = aVisibleDaysLevels[iAppointmentStartIndex].length;
 				}
+
+				// Rendered position of appointment in day
 				oApp.level = iFirstFreeIndex;
 
-				// adjust the taken levels for all days of the current appointment
-				for (j = iStartIndexVisibleDays; j <= iEndIndexVisibleDays; j++) {
+				// Adjust the taken levels for all days of the current appointment
+				for (j = iAppointmentStartIndex; j <= iAppointmentEndIndex; j++) {
 					aVisibleDaysLevels[j][iFirstFreeIndex] = false;
 
 					for (k = 0; k < iFirstFreeIndex; k++) {
@@ -659,24 +665,19 @@ sap.ui.define([
 		SinglePlanningCalendarMonthGrid.prototype._getMoreCountPerCell = function(iCellIndex) {
 			var aLevelsForADay = this._aAppsLevelsPerDay[iCellIndex];
 			var iMaxAppointmentsRendered = this._getMaxAppointments();
-			var iAllApps = 0;
-			var iSlotsToRender = 0;
+			var iMoreCount = 0;
 
-			if (aLevelsForADay.length <= iMaxAppointmentsRendered) {
+			if (aLevelsForADay.length < iMaxAppointmentsRendered) {
 				return 0;
 			}
 
-			for (var i = 0; i < aLevelsForADay.length; i++) {
+			// Count the number of hidden appointments
+			for (var i = iMaxAppointmentsRendered - 1; i < aLevelsForADay.length; i++){
 				if (!aLevelsForADay[i]) {
-					iAllApps++;
-				}
-
-				if (i < iMaxAppointmentsRendered - 1) {
-					iSlotsToRender++;
+					iMoreCount++;
 				}
 			}
-
-			return iAllApps - iSlotsToRender;
+			return iMoreCount;
 		};
 
 		SinglePlanningCalendarMonthGrid.prototype._configureAppointmentsDragAndDrop = function() {
@@ -724,8 +725,8 @@ sap.ui.define([
 						oAppointment = oDragSession.getDragControl(),
 						oPlaceholder = oDragSession.getDropControl(),
 						oCellCalStartDate = oPlaceholder.getDate(),
-						oAppCalStartDate = CalendarDate.fromLocalJSDate(oAppointment._getStartDateWithTimezoneAdaptation()),
-						oAppCalEndDate = CalendarDate.fromLocalJSDate(oAppointment._getEndDateWithTimezoneAdaptation()),
+						oAppCalStartDate = CalendarDate.fromLocalJSDate(oAppointment.getStartDate()),
+						oAppCalEndDate = CalendarDate.fromLocalJSDate(oAppointment.getEndDate()),
 						iOffset = CalendarUtils._daysBetween(oCellCalStartDate, oAppCalStartDate),
 						oStartDate = new CalendarDate(oAppCalStartDate),
 						oEndDate = new CalendarDate(oAppCalEndDate),
@@ -864,8 +865,8 @@ sap.ui.define([
 			var oUnifiedRB = Core.getLibraryResourceBundle("sap.ui.unified"),
 				sStartTime = oUnifiedRB.getText("CALENDAR_START_TIME"),
 				sEndTime = oUnifiedRB.getText("CALENDAR_END_TIME"),
-				sFormattedStartDate = this._oFormatAriaApp.format(oAppointment._getStartDateWithTimezoneAdaptation()),
-				sFormattedEndDate = this._oFormatAriaApp.format(oAppointment._getEndDateWithTimezoneAdaptation()),
+				sFormattedStartDate = this._oFormatAriaApp.format(oAppointment.getStartDate()),
+				sFormattedEndDate = this._oFormatAriaApp.format(oAppointment.getEndDate()),
 				sAppInfo = sStartTime + ": " + sFormattedStartDate + "; " + sEndTime + ": " + sFormattedEndDate;
 
 			return sAppInfo + "; " + PlanningCalendarLegend.findLegendItemForItem(Core.byId(this._sLegendId), oAppointment);

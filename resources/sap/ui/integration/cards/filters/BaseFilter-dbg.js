@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @private
@@ -244,25 +244,34 @@ sap.ui.define([
 			this.setModel(oModel);
 		}
 
+		if (!oModel) {
+			this.fireEvent("_dataReady");
+			return;
+		}
+
 		oModel.attachEvent("change", function () {
 			this.onDataChanged();
 		}.bind(this));
 
-		this._oDataProvider.attachDataRequested(function () {
-			this.showLoadingPlaceholders();
-		}.bind(this));
+		if (this._oDataProvider) {
+			this._oDataProvider.attachDataRequested(function () {
+				this.showLoadingPlaceholders();
+			}.bind(this));
 
-		this._oDataProvider.attachDataChanged(function (oEvent) {
-			oModel.setData(oEvent.getParameter("data"));
-			this._onDataRequestComplete();
-		}.bind(this));
+			this._oDataProvider.attachDataChanged(function (oEvent) {
+				oModel.setData(oEvent.getParameter("data"));
+				this._onDataRequestComplete();
+			}.bind(this));
 
-		this._oDataProvider.attachError(function (oEvent) {
-			this._handleError(oEvent.getParameter("message"));
-			this._onDataRequestComplete();
-		}.bind(this));
+			this._oDataProvider.attachError(function (oEvent) {
+				this._handleError(oEvent.getParameter("message"));
+				this._onDataRequestComplete();
+			}.bind(this));
 
-		this._oDataProvider.triggerDataUpdate();
+			this._oDataProvider.triggerDataUpdate();
+		} else {
+			this.fireEvent("_dataReady");
+		}
 	};
 
 	BaseFilter.prototype._syncValue = function () {

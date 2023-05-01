@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.110.0"
+      "version": "1.112.0"
     },
     "title": "SAPUI5 library with integration-related controls.",
     "description": "SAPUI5 library with integration-related controls.",
@@ -54,13 +54,22 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.110",
+      "minUI5Version": "1.112",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.110.0"
+          "minVersion": "1.112.0"
         },
         "sap.f": {
-          "minVersion": "1.110.0"
+          "minVersion": "1.112.0"
+        },
+        "sap.m": {
+          "minVersion": "1.112.0"
+        },
+        "sap.ui.unified": {
+          "minVersion": "1.112.0"
+        },
+        "sap.ui.layout": {
+          "minVersion": "1.112.0"
         }
       }
     },

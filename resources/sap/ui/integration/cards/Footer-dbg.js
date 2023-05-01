@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @ui5-restricted
@@ -164,7 +164,7 @@ sap.ui.define([
 
 	Footer.create = function (oCard, oConfiguration) {
 		return new Footer({
-			configuration: oConfiguration,
+			configuration: BindingHelper.createBindingInfos(oConfiguration, oCard.getBindingNamespaces()),
 			card: oCard,
 			actionsStrip: ActionsStrip.create(oCard, oConfiguration.actionsStrip, true),
 			paginator: Paginator.create(oCard, oConfiguration.paginator),

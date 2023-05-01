@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @alias sap.ui.core.ResizeHandler
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @public
 	 */
 
@@ -369,7 +369,7 @@ sap.ui.define([
 	/**
 	 * Returns a metadata object for class <code>sap.ui.core.ResizeHandler</code>.
 	 *
-	 * @returns {sap.ui.core.Metadata} Metadata object describing this class
+	 * @returns {sap.ui.base.Metadata} Metadata object describing this class
 	 *
 	 * @function
 	 * @name sap.ui.core.ResizeHandler.getMetadata

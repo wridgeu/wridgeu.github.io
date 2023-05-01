@@ -20,7 +20,8 @@ sap.ui.define([
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/unified/DateRange",
 	"sap/ui/core/Configuration",
-	'sap/ui/core/Core'
+	'sap/ui/core/Core',
+	"sap/ui/core/date/UI5Date"
 ], function(
 	Control,
 	LocaleData,
@@ -36,7 +37,8 @@ sap.ui.define([
 	jQuery,
 	DateRange,
 	Configuration,
-	Core
+	Core,
+    UI5Date
 ) {
 	"use strict";
 
@@ -62,7 +64,7 @@ sap.ui.define([
 	 * The MontsRow works with JavaScript Date objects, but only the month and the year are used to display and interact.
 	 * As representation for a month, the 1st of the month will always be returned in the API.
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -325,7 +327,6 @@ sap.ui.define([
 	 */
 	MonthsRow.prototype._getDisplayedSecondaryDates = function (iCurrentMonth, iCurrentYear){
 		var sSecondaryCalendarType = this._getSecondaryCalendarType(),
-		// oDate = new CalendarDate(this._oDate ? this._oDate : CalendarDate.fromLocalJSDate(new Date()), this.getPrimaryCalendarType()),
 		oDate,
 		oFirstDate,
 		oLastDate;
@@ -333,7 +334,7 @@ sap.ui.define([
 		if (this._oDate) {
 			oDate = new CalendarDate(this._oDate);
 		} else {
-			oDate = new CalendarDate(CalendarDate.fromLocalJSDate(new Date()), this.getPrimaryCalendarType());
+			oDate = new CalendarDate(CalendarDate.fromLocalJSDate(UI5Date.getInstance()), this.getPrimaryCalendarType());
 		}
 
 		oDate.setYear(iCurrentYear);
@@ -354,7 +355,7 @@ sap.ui.define([
 	MonthsRow.prototype._getDate = function(){
 
 		if (!this._oDate) {
-			this._oDate  = CalendarDate.fromLocalJSDate(new Date(), this.getProperty("primaryCalendarType"));
+			this._oDate  = CalendarDate.fromLocalJSDate(UI5Date.getInstance(), this.getProperty("primaryCalendarType"));
 		}
 
 		return this._oDate;
@@ -397,7 +398,7 @@ sap.ui.define([
 	MonthsRow.prototype._getStartDate = function(){
 
 		if (!this._oStartDate) {
-			this._oStartDate = CalendarDate.fromLocalJSDate(new Date(), this.getProperty("primaryCalendarType"));
+			this._oStartDate = CalendarDate.fromLocalJSDate(UI5Date.getInstance(), this.getProperty("primaryCalendarType"));
 			this._oStartDate.setDate(1); // always use begin of month as start date
 		}
 

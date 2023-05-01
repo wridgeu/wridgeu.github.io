@@ -7,10 +7,11 @@
 sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/CalendarType",
+	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/odata/type/DateTimeBase"
-], function (Log, CalendarType, DateFormat, FormatException, DateTimeBase) {
+], function (Log, CalendarType, UI5Date, DateFormat, FormatException, DateTimeBase) {
 	"use strict";
 
 	/**
@@ -28,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.DateTimeBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @alias sap.ui.model.odata.type.DateTimeOffset
 	 * @param {object} [oFormatOptions]
@@ -120,7 +121,7 @@ sap.ui.define([
 	 *   The target type, may be "any", "object" (since 1.69.0), "string", or a type with one of
 	 *   these types as its {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
 	 *   See {@link sap.ui.model.odata.type} for more information.
-	 * @returns {Date|string}
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|string}
 	 *   The formatted output value in the target type; <code>undefined</code> or <code>null</code>
 	 *   are formatted to <code>null</code>
 	 * @throws {sap.ui.model.FormatException}
@@ -137,7 +138,7 @@ sap.ui.define([
 		}
 		if (this.getPrimitiveType(sTargetType) === "object") {
 			if (vValue instanceof Date) {
-				return new Date(vValue.getUTCFullYear(), vValue.getUTCMonth(), vValue.getUTCDate(),
+				return UI5Date.getInstance(vValue.getUTCFullYear(), vValue.getUTCMonth(), vValue.getUTCDate(),
 					vValue.getUTCHours(), vValue.getUTCMinutes(), vValue.getUTCSeconds());
 			}
 			return getModelFormat(this).parse(vValue);
@@ -187,6 +188,35 @@ sap.ui.define([
 	};
 
 	/**
+	 * Gets the model value according to this type's constraints and format options for the given
+	 * date object which represents a timestamp in the configured time zone. Validates the resulting
+	 * value against the constraints of this type instance.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oDate
+	 *   The date object considering the configured time zone. Must be created via
+	 *   {@link module:sap/ui/core/date/UI5Date.getInstance}
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|string|null}
+	 *   The model representation for the given Date
+	 * @throws {Error}
+	 *   If the given date object is not valid or does not consider the configured time zone
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the constraints of this type instance are violated
+	 *
+	 * @public
+	 * @since 1.111.0
+	 */
+	DateTimeOffset.prototype.getModelValue = function (oDate) {
+		var oResult = this._getModelValue(oDate);
+
+		if (this.bV4 && oResult !== null) {
+			oResult = this.getModelFormat().format(oResult);
+		}
+		this.validateValue(oResult);
+
+		return oResult;
+	};
+
+	/**
 	 * Returns the type's name.
 	 *
 	 * @returns {string}
@@ -210,7 +240,7 @@ sap.ui.define([
 	 *   "object" (since 1.69.0), or a type with one of these types as its
 	 *   {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
 	 *   See {@link sap.ui.model.odata.type} for more information.
-	 * @returns {Date|string}
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|string}
 	 *   The parsed value
 	 * @throws {sap.ui.model.ParseException}
 	 *   If <code>sSourceType</code> is not supported or if the given string cannot be parsed to a

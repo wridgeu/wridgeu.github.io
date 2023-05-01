@@ -21,7 +21,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './HTMLViewSerializer', './XMLViewSe
 	 * @class ViewSerializer class.
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @alias sap.ui.core.util.serializer.ViewSerializer
 	 * @private
 	 * @ui5-restricted sap.watt, com.sap.webide
@@ -189,8 +189,8 @@ sap.ui.define(['sap/ui/base/EventProvider', './HTMLViewSerializer', './XMLViewSe
 					fnGetControlId,
 					fnGetEventHandlerName);
 		} else {
-			var sType = (oView) ? oView.constructor : "?";
-			throw Error("View type '" + sType + "' is not supported for conversion. Only HTML and XML is supported");
+			var sViewType = (oView) ? oView.constructor : "?";
+			throw Error("View type '" + sViewType + "' is not supported for conversion. Only HTML and XML is supported");
 		}
 	};
 

@@ -100,7 +100,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -136,8 +136,9 @@ sap.ui.define([
 
 				/**
 				 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
+				 * @deprecated As of version 1.111. Attach avatar <code>press</code> event instead.
 				 */
-				crossAppNavCallback: { type: "object", group: "Misc" },
+				crossAppNavCallback: { type: "object", group: "Misc", deprecated: true },
 
 				/**
 				 * Specifies the text displayed under the header of the content section.
@@ -186,7 +187,7 @@ sap.ui.define([
 	 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
 	 *
 	 * When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.
-	 *
+	 * @deprecated As of version 1.111.
 	 * @method
 	 * @param {function(): {target: object, params: object}} [oCrossAppNavCallback] New value for property <code>crossAppNavCallback</code>
 	 * @public
@@ -198,7 +199,7 @@ sap.ui.define([
 	 * Gets current value of property {@link #getCrossAppNavCallback crossAppNavCallback}.
 	 *
 	 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
-	 *
+	 * @deprecated As of version 1.111.
 	 * @method
 	 * @returns {function(): {target: object, params: object}} Value of property <code>crossAppNavCallback</code>
 	 * @public
@@ -206,6 +207,15 @@ sap.ui.define([
 	 */
 
 	QuickViewPage.prototype.init =  function() {
+		if (this._initCrossAppNavigationService) {
+			this._initCrossAppNavigationService();
+		}
+	};
+
+	/**
+	* @deprecated As of version 1.111.
+	*/
+	QuickViewPage.prototype._initCrossAppNavigationService =  function() {
 		//see API docu for sap.ushell.services.CrossApplicationNavigation
 		var fGetService =  sap.ushell && sap.ushell.Container && sap.ushell.Container.getService;
 		if (fGetService) {
@@ -434,7 +444,7 @@ sap.ui.define([
 		var oAvatar = this._getAvatar(),
 			oVLayout = new VerticalLayout(),
 			oHLayout = new HorizontalLayout(),
-			sIcon = this.getIcon(),
+			sIcon = this.getIcon && this.getIcon(),
 			sTitle = this.getTitle(),
 			sDescription = this.getDescription(),
 			sTitleUrl = this.getTitleUrl();
@@ -455,7 +465,7 @@ sap.ui.define([
 				href	: sTitleUrl,
 				target	: "_blank"
 			});
-		} else if (this.getCrossAppNavCallback()) {
+		} else if (this.getCrossAppNavCallback && this.getCrossAppNavCallback()) {
 			oTitle = new Link({
 				text	: sTitle
 			});
@@ -568,7 +578,7 @@ sap.ui.define([
 	 * @private
 	 */
 	QuickViewPage.prototype._crossApplicationNavigation = function () {
-		if (this.getCrossAppNavCallback() && this.oCrossAppNavigator) {
+		if (this.getCrossAppNavCallback && this.getCrossAppNavCallback() && this.oCrossAppNavigator) {
 			var targetConfigCallback = this.getCrossAppNavCallback();
 			if (typeof targetConfigCallback == "function") {
 				var targetConfig = targetConfigCallback();
@@ -697,14 +707,14 @@ sap.ui.define([
 
 	QuickViewPage.prototype._getAvatar = function () {
 		var oAvatar = null,
-			sIcon = this.getIcon();
+			sIcon = this.getIcon && this.getIcon();
 
 		if (this.getAvatar()) {
 			// Copy the values of properties directly, don't clone bindings,
 			// as this avatar and the whole NavContainer are not aggregated by the real QuickViewPage
 			oAvatar = this.getAvatar().clone(null, null, { cloneBindings: false, cloneChildren: true });
 			this._checkAvatarProperties(oAvatar);
-		} else if (sIcon) {
+		} else if (sIcon && this.getFallbackIcon) {
 			oAvatar = new Avatar({
 				displayShape: AvatarShape.Square,
 				fallbackIcon: this.getFallbackIcon(),

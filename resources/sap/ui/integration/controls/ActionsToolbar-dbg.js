@@ -76,7 +76,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @private
@@ -190,6 +190,7 @@ sap.ui.define([
 	};
 
 	ActionsToolbar.prototype._getToolbar = function () {
+		var oResourceBundle = Core.getLibraryResourceBundle("sap.ui.integration");
 		var oToolbar = this.getAggregation('_toolbar');
 		if (!oToolbar) {
 			oToolbar = new Button({
@@ -197,6 +198,7 @@ sap.ui.define([
 				icon: 'sap-icon://overflow',
 				type: ButtonType.Transparent,
 				ariaHasPopup: HasPopup.Menu,
+				tooltip: oResourceBundle.getText("CARD_ACTIONS_OVERFLOW_BUTTON_TOOLTIP"),
 				press: function (oEvent) {
 					this._open();
 				}.bind(this)

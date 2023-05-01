@@ -43,7 +43,7 @@ sap.ui.define([
 	 *
 	 * @param {boolean} [bDefault=true] Value that should be used as default value for the enhancement of the control.
 	 * @param {boolean} [bLegacy=false] Whether the introduced property should use the old name <code>Enabled</code>.
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @public
 	 * @class
 	 * @alias sap.ui.core.EnabledPropagator
@@ -103,6 +103,21 @@ sap.ui.define([
 		};
 
 		this.getMetadata().addPublicMethods("useEnabledPropagator");
+	};
+
+	/**
+	 * Invalidates the descendants of the provided root element that are implementing the EnabledPropagator mixin
+	 *
+	 * @param {sap.ui.core.Element} oRootElement The root element instance
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	EnabledPropagator.updateDescendants = function(oRootElement) {
+		oRootElement.isActive() && oRootElement.findElements(true, function(oElement) {
+			if (oElement._bUseEnabledPropagator && oElement.bOutput == true) {
+				oElement.invalidate();
+			}
+		});
 	};
 
 	/**

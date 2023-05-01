@@ -26,6 +26,7 @@ sap.ui.define([
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
 	"sap/ui/unified/DateRange",
+	"sap/ui/core/date/UI5Date",
 	"sap/ui/unified/Calendar"
 ], function(
 	Popover,
@@ -48,6 +49,7 @@ sap.ui.define([
 	deepEqual,
 	Log,
 	DateRange,
+    UI5Date,
 	Calendar
 ) {
 	"use strict";
@@ -66,7 +68,7 @@ sap.ui.define([
 	 * @class
 	 * Calendar with granularity of time items displayed in one line.
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -235,9 +237,9 @@ sap.ui.define([
 
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 
-		this._oMinDate = new UniversalDate(new Date(Date.UTC(1, 0, 1)));
+		this._oMinDate = new UniversalDate(UI5Date.getInstance(Date.UTC(1, 0, 1)));
 		this._oMinDate.getJSDate().setUTCFullYear(1); // otherwise year 1 will be converted to year 1901
-		this._oMaxDate = new UniversalDate(new Date(Date.UTC(9999, 11, 31, 23, 59, 59)));
+		this._oMaxDate = new UniversalDate(UI5Date.getInstance(Date.UTC(9999, 11, 31, 23, 59, 59)));
 
 		this._initializeHeader();
 
@@ -447,13 +449,13 @@ sap.ui.define([
 		var oMinDate = this.getMinDate();
 		if (oMinDate && oStartDate.getTime() < oMinDate.getTime()) {
 			Log.warning("startDate < minDate -> minDate as startDate set", this);
-			oStartDate = new Date(oMinDate);
+			oStartDate = UI5Date.getInstance(oMinDate);
 		}
 
 		var oMaxDate = this.getMaxDate();
 		if (oMaxDate && oStartDate.getTime() > oMaxDate.getTime()) {
 			Log.warning("startDate > maxDate -> maxDate as startDate set", this);
-			oStartDate = new Date(oMaxDate);
+			oStartDate = UI5Date.getInstance(oMaxDate);
 		}
 
 		this.setProperty("startDate", oStartDate);
@@ -1190,7 +1192,7 @@ sap.ui.define([
 			this._oFocusedDate = CalendarUtils._createUniversalUTCDate(aSelectedDates[0].getStartDate(), undefined, true);
 		} else {
 			// use current date
-			var oNewDate = new Date();
+			var oNewDate = UI5Date.getInstance();
 			this._oFocusedDate = CalendarUtils._createUniversalUTCDate(oNewDate, undefined, true);
 		}
 

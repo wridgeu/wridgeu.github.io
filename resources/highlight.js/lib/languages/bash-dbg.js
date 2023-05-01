@@ -118,12 +118,14 @@ sap.ui.define((function () { 'use strict';
         "fi",
         "for",
         "while",
+        "until",
         "in",
         "do",
         "done",
         "case",
         "esac",
-        "function"
+        "function",
+        "select"
       ];
 
       const LITERALS = [
@@ -391,6 +393,8 @@ sap.ui.define((function () { 'use strict';
     }
 
     var bash_1 = bash;
+
+    Object.defineProperty(bash_1, "__" + "esModule", { value: true });
 
     return bash_1;
 

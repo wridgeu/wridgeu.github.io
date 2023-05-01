@@ -25,13 +25,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @since 0.8
 	 * @public
 	 */
 	 var thisLib = Library.init({
 		 name: "sap.ui.core",
-		 version: "1.110.0",
+		 version: "1.112.0",
 		 designtime: "sap/ui/core/designtime/library.designtime",
 		 types: [
 
@@ -780,6 +780,25 @@ sap.ui.define([
 	 */
 
 	/**
+	 * The object contains focus information for input controls.
+	 *
+	 * @typedef {object} sap.ui.core.FocusInfo
+	 *
+	 * @property {string} [id]
+	 * 	The ID of the focused control.
+	 * @property {int} [cursorPos]
+	 * 	The position of the cursor.
+	 * @property {int} [selectionStart]
+	 * 	The start position of selection.
+	 * @property {int} [selectionEnd]
+	 * 	The end position of selection.
+	 * @property {boolean | undefined} [preventScroll]
+	 * 	Prevents scrolling.
+	 * @protected
+	 * @since 1.111
+	 */
+
+	/**
 	 * Configuration options for the colors of a progress bar.
 	 *
 	 * @enum {string}
@@ -1520,7 +1539,7 @@ sap.ui.define([
 	/**
 	 * Sort order of a column.
 	 *
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0

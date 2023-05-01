@@ -70,13 +70,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @since 1.4
 	 * @public
 	 */
 	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.m",
-		version: "1.110.0",
+		version: "1.112.0",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		types: [
@@ -1203,6 +1203,23 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * @typedef {object} sap.m.DynamicDateRangeValue
+	 * @description Defines the <code>value</code> property of the DynamicDateRange control.
+	 * 		The object has two properties:
+	 * 			'operator' - a string, the key of a DynamicDateOption
+	 * 			'values' - an array of parameters for the same option
+	 * see {@link sap.m.DynamicDateRange}
+	 *
+	 * @property {string} operator
+	 * 		The key of a DynamicDateOption.
+	 * @property {Array<Date|int|string|any>} values
+	 * 		An array of parameters for the same option.
+	 *
+	 * @public
+	 * @since 1.111
+	 */
+
 
 	/**
 	 * FacetFilterList data types.
@@ -2043,7 +2060,6 @@ sap.ui.define([
 	/**
 	 * Returns the number of tickmarks, which should be placed between labels.
 	 *
-	 * @param {object} mOptions The option array
 	 * @returns {int} The number of tickmarks
 	 *
 	 * @function
@@ -2974,6 +2990,29 @@ sap.ui.define([
 	 * @since 1.110
 	 */
 
+	 /**
+	 * The object contains accessibility state for a control.
+	 *
+	 * @typedef {object} sap.m.InputBaseAccessibilityState
+	 *
+	 * @property {string} [role]
+	 * 	The WAI-ARIA role which is implemented by the control.
+	 * @property {boolean} [invalid]
+	 * 	Whether the control is invalid.
+	 * @property {string} [errormessage]
+	 * 	The errormessage property.
+	 * @property {{value: string, append: boolean}} [labelledby]
+	 * 	The labelledby property.
+	 * @property {{value: string, append: boolean}} [describedby]
+	 * 	The describedby property.
+	 * @property {boolean | null} [disabled]
+	 * 	Whether the control is disabled. If not relevant, it shouldn`t be set or set as <code>null</code>.
+	 * @property {boolean | null} [readonly]
+	 * 	Whether the control is readonly. If not relevant, it shouldn`t be set or set as <code>null</code>.
+	 * @protected
+	 * @since 1.111
+	 */
+
 	/**
 	 * Marker interface for controls which are suitable as items for the ObjectHeader.
 	 *
@@ -3532,6 +3571,18 @@ sap.ui.define([
 		DATETOYEAR : "DATETOYEAR",
 
 		/**
+		 * The range will contain the last X minutes. The count of the minutes is selected from a StepInput.
+		 * @public
+		 */
+		LASTMINUTES : "LASTMINUTES",
+
+		/**
+		 * The range will contain the last X hours. The count of the hours is selected from a StepInput.
+		 * @public
+		 */
+		 LASTHOURS : "LASTHOURS",
+
+		/**
 		 * The range will contain the last X days. The count of the days is selected from a StepInput.
 		 * @public
 		 */
@@ -3560,6 +3611,18 @@ sap.ui.define([
 		 * @public
 		 */
 		LASTYEARS : "LASTYEARS",
+
+		/**
+		 * The range will contain the next X minutes. The count of the minutes is selected from a StepInput.
+		 * @public
+		 */
+		NEXTMINUTES : "NEXTMINUTES",
+
+		/**
+		 * The range will contain the next X hours. The count of the hours is selected from a StepInput.
+		 * @public
+		 */
+		NEXTHOURS : "NEXTHOURS",
 
 		/**
 		 * The range will contain the next X days. The count of the days is selected from a StepInput.
@@ -5275,7 +5338,7 @@ sap.ui.define([
 			 * @public
 			 */
 			triggerEmail: function(sEmail, sSubject, sBody, sCC, sBCC, bNewWindow) {
-				var bNewWindow = bNewWindow || false;
+				bNewWindow = bNewWindow || false;
 				this.redirect(this.normalizeEmail.apply(0, [sEmail, sSubject, sBody, sCC, sBCC]), bNewWindow);
 			},
 

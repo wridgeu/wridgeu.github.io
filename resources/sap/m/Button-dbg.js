@@ -93,7 +93,7 @@ sap.ui.define([
 	 * @mixes sap.ui.core.ContextMenuSupport
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 *
 	 * @constructor
 	 * @public
@@ -414,7 +414,7 @@ sap.ui.define([
 	};
 
 	Button.prototype.setType = function(sButtonType) {
-		this.setProperty("type", sButtonType, false);
+		this.setProperty("type", sButtonType);
 
 		switch (sButtonType) {
 			case ButtonType.Critical:
@@ -454,7 +454,7 @@ sap.ui.define([
 		var sText = this.getText();
 
 		if (sText) {
-			this.setProperty("accesskey", sText[0].toLowerCase(), true);
+			this.setProperty("accesskey", sText[0].toLowerCase());
 		}
 	};
 

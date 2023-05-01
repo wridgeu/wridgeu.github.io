@@ -202,7 +202,7 @@ sap.ui.define([
 	/**
 	 * Root Namespace for the jQuery plug-in provided by SAP SE.
 	 *
-	 * @version 1.110.0
+	 * @version 1.112.0
 	 * @namespace
 	 * @public
 	 * @static
@@ -1981,6 +1981,9 @@ sap.ui.define([
 		/*eslint-enable no-eval */
 	};
 
+	/**
+	 * @deprecated As of version 1.112
+	 */
 	(function() {
 
 		var b = Device.browser;
