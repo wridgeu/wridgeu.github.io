@@ -7,6 +7,7 @@ sap.ui.define([
 	"sap/m/p13n/AbstractContainer",
 	"sap/m/Bar",
 	"sap/m/Button",
+	"sap/m/Text",
 	"sap/m/List",
 	"sap/m/IconTabBar",
 	"sap/m/IconTabFilter",
@@ -14,7 +15,7 @@ sap.ui.define([
 	"sap/ui/Device",
 	"sap/m/library",
 	"sap/m/StandardListItem"
-], function (AbstractContainer, Bar, Button, List, IconTabBar, IconTabFilter, ContainerItem, Device, mLibrary, StandardListItem) {
+], function (AbstractContainer, Bar, Button, Text, List, IconTabBar, IconTabFilter, ContainerItem, Device, mLibrary, StandardListItem) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -37,7 +38,7 @@ sap.ui.define([
 	 * @extends sap.m.p13n.AbstractContainer
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @ui5-restricted
@@ -80,6 +81,8 @@ sap.ui.define([
 		//clear existing navigation items
 		this._getTabBar().removeAllItems();
 		this._getNavigationList().removeAllItems();
+		var oBackButton;
+		var oHeaderText;
 		var oHeaderContent;
 
 		//update navigator control
@@ -87,7 +90,8 @@ sap.ui.define([
 			this._getTabBar().setVisible(false);
 			this._getNavigationList();
 			this.switchView(this.DEFAULT_KEY);
-			oHeaderContent = this._getNavBackBtn();
+			oBackButton = this._getNavBackBtn();
+			oHeaderText = this._getHeaderText();
 		} else {
 			this._getTabBar().setVisible(true);
 			var aViews = this.getViews();
@@ -101,12 +105,17 @@ sap.ui.define([
 		var oHeader = this.getHeader();
 		if (!oHeader) {
 			var oBar = new Bar({
-				contentLeft: [oHeaderContent]
+				contentLeft: oHeaderContent ? oHeaderContent : [oBackButton, oHeaderText]
 			});
 			this.setHeader(oBar);
 		} else {
 			oHeader.removeAllContentLeft();
-			oHeader.addContentLeft(oHeaderContent);
+			if (oHeaderContent) {
+				oHeader.addContentLeft(oHeaderContent);
+			} else {
+				oHeader.addContentLeft(oBackButton);
+				oHeader.addContentLeft(oHeaderText);
+			}
 		}
 
 		//recreate the navigation items
@@ -139,11 +148,12 @@ sap.ui.define([
 				});
 			}
 		}
-		this.oLayout.setShowHeader(sKey !== this.DEFAULT_KEY); //Don't show header in default view
-		this.oLayout.setShowFooter(sKey !== this.DEFAULT_KEY); //Don't show footer in default view
+		this.getLayout().setShowHeader(sKey !== this.DEFAULT_KEY); //Don't show header in default view
+		this.getLayout().setShowFooter(sKey !== this.DEFAULT_KEY); //Don't show footer in default view
 		this._getTabBar().setSelectedKey(sKey);
 		this._getNavBackBtn().setVisible(sKey !== this.DEFAULT_KEY);
-		this._getNavBackBtn().setText((this.getView(sKey) && this.getView(sKey).getText()) || sKey);
+		this._getHeaderText().setText((this.getView(sKey) && this.getView(sKey).getText()) || sKey);
+		this._getHeaderText().setVisible(this._getNavBackBtn().getVisible());
 	};
 
 	/**
@@ -180,6 +190,16 @@ sap.ui.define([
 		oLastItem.addStyleClass("sapMMenuDivider");
 
 		return this;
+	};
+
+	/**
+	 * Returns the layout object.
+	 *
+	 * @returns {sap.m.Page} The layout object
+	 * @ui5-restricted sap.m.table.columnmenu.Menu
+	 */
+	Container.prototype.getLayout = function () {
+		return this.oLayout;
 	};
 
 	Container.prototype._getTabBar = function () {
@@ -228,6 +248,15 @@ sap.ui.define([
 			this.addDependent(this._oNavBackBtn);
 		}
 		return this._oNavBackBtn;
+	};
+
+	Container.prototype._getHeaderText = function () {
+		if (!this._oHeaderText) {
+			this._oHeaderText = new Text({
+			});
+			this.addDependent(this._oHeaderText);
+		}
+		return this._oHeaderText;
 	};
 
 	Container.prototype._addToNavigator = function (oContainerItem) {
@@ -294,6 +323,7 @@ sap.ui.define([
 			this._oNavigationList = null;
 		}
 		this._oNavBackBtn = null;
+		this._oHeaderText = null;
 	};
 
 	return Container;

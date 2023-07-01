@@ -55,7 +55,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -638,6 +638,10 @@ function(
 		return this;
 	};
 
+	SegmentedButton.prototype.getButtons = function () {
+		return this.getAggregation("buttons") || [];
+	};
+
 	SegmentedButton.prototype.removeButton = function (oButton) {
 		var oRemovedButton = this.removeAggregation("buttons", oButton);
 		if (oRemovedButton) {
@@ -793,6 +797,10 @@ function(
 				this.setAssociation('selectedItem', this.getItems()[0], true);
 			}
 		}
+	};
+
+	SegmentedButton.prototype.getSelectedButton = function () {
+		return this.getAssociation("selectedButton");
 	};
 
 	/**

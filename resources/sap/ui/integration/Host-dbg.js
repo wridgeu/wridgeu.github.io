@@ -6,10 +6,14 @@
 sap.ui.define([
 	"sap/ui/integration/library",
 	"sap/ui/core/Element",
-	"sap/ui/core/Configuration"
+	"sap/ui/core/Configuration",
+	"sap/base/util/fetch",
+	"sap/base/Log"
 ], function (library,
 			 Element,
-			 Configuration) {
+			 Configuration,
+			 fetch,
+			 Log) {
 		"use strict";
 		/*global navigator, URL*/
 
@@ -27,7 +31,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @constructor
 		 * @public
@@ -141,8 +145,8 @@ sap.ui.define([
 							 * Example:
 							 * <pre>
 							 *  {
-							 *  	"/sap.card/configuration/filters/shipper/value": "key3",
-							 *  	"/sap.card/configuration/filters/item/value": "key2"
+							 *     "/sap.card/configuration/filters/shipper/value": "key3",
+							 *     "/sap.card/configuration/filters/item/value": "key2"
 							 *  }
 							 * </pre>
 							 */
@@ -403,7 +407,7 @@ sap.ui.define([
 		 * @returns {map} Map of http headers.
 		 * @private
 		 * @ui5-restricted
-	 	 * @experimental Since 1.91. The API might change.
+	 	 * @deprecated Since 1.113 Use Host.prototype.fetch instead.
 		 */
 		Host.prototype.modifyRequestHeaders = function (mHeaders, mSettings, oCard) {
 			if (this.bUseExperimentalCaching) {
@@ -416,13 +420,15 @@ sap.ui.define([
 		/**
 		 * Modifies the card HTTP data request before sending.
 		 * Override if you need to change the default data request behavior.
-		 * @param {map} mRequest The current request. In format for jQuery.ajax function.
+		 * @param {map} mRequest The current request.
+		 * @param {string} mRequest.url The request url.
+		 * @param {object} mRequest.options The request options in the same format as for the native Request object.
 		 * @param {map} mSettings The map of request settings defined in the card manifest.
 		 * @param {sap.ui.integration.widgets.Card} [oCard] Optional. The card for which the request is made.
 		 * @returns {map} The modified request.
 		 * @private
 		 * @ui5-restricted
-	 	 * @experimental Since 1.109. The API might change.
+		 * @deprecated Since 1.113 Use Host.prototype.fetch instead.
 		 */
 		Host.prototype.modifyRequest = function (mRequest, mSettings, oCard) {
 			var oUrl;
@@ -436,6 +442,23 @@ sap.ui.define([
 			}
 
 			return mRequest;
+		};
+
+		/**
+		 * Starts the process of fetching a resource from the network, returning a promise that is fulfilled once the response is available.
+		 * Use this method to override the default behavior when fetching network resources.
+		 * Mimics the browser native Fetch API.
+		 * @private
+		 * @ui5-restricted
+		 * @experimental Since 1.113. The API might change.
+		 * @param {string} sResource This defines the resource that you wish to fetch.
+		 * @param {object} mOptions An object containing any custom settings that you want to apply to the request.
+		 * @param {object} mRequestSettings The map of request settings defined in the card manifest. Use this only for reading, they can not be modified.
+		 * @param {sap.ui.integration.widgets.Card} oCard The card which initiated the request.
+		 * @returns {Promise<Response>} A <code>Promise</code> that resolves to a <code>Response</code> object.
+		 */
+		Host.prototype.fetch = function (sResource, mOptions, mRequestSettings, oCard) {
+			return fetch(sResource, mOptions);
 		};
 
 		/**

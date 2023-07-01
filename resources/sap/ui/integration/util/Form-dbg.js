@@ -6,11 +6,24 @@
 sap.ui.define([
 	"sap/ui/base/ManagedObject",
 	"sap/ui/core/library",
+	"sap/ui/core/Core",
 	"sap/base/Log",
 	"sap/base/util/deepExtend",
 	"./Validators",
-	"./BindingResolver"
-], function (ManagedObject, coreLibrary, Log, deepExtend, Validators, BindingResolver) {
+	"./BindingHelper",
+	"./BindingResolver",
+	"./DateRangeHelper"
+], function (
+	ManagedObject,
+	coreLibrary,
+	Core,
+	Log,
+	deepExtend,
+	Validators,
+	BindingHelper,
+	BindingResolver,
+	DateRangeHelper
+) {
 	"use strict";
 
 	var ValueState = coreLibrary.ValueState;
@@ -19,7 +32,7 @@ sap.ui.define([
 	 * Utility class for handling forms in the cards.
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @ui5-restricted
@@ -91,7 +104,7 @@ sap.ui.define([
 	 */
 	Form.prototype.resolveControl = function (oItem) {
 		var oResolved = {},
-			vValue,
+			vValue = this.getModel("form").getProperty("/" + oItem.id),
 			aValidations = this.getModel("messages").getProperty("/records"),
 			oValueState = aValidations.find(function (oValidation) {
 				return oValidation.bindingPath === "/" + oItem.id;
@@ -102,12 +115,17 @@ sap.ui.define([
 			oResolved.valueState = { message: oValueState.message, type: oValueState.type };
 		}
 
-		if (oItem.type === "ComboBox") {
-			vValue = this.getModel("form").getProperty("/" + oItem.id);
-			oResolved.selectedKey = vValue.key;
-			vValue = vValue.value;
-		} else {
-			vValue = this.getModel("form").getProperty("/" + oItem.id);
+		switch (oItem.type) {
+			case "ComboBox":
+				oResolved.selectedKey = vValue.key;
+				vValue = vValue.value;
+				break;
+			case "DateRange":
+				vValue = vValue.value;
+				break;
+			default:
+				// do nothing
+				break;
 		}
 
 		oResolved.value = vValue;
@@ -127,17 +145,24 @@ sap.ui.define([
 		}
 
 		var sId = oFormControlData.id,
-			oControl = this._mControls.get(sId);
+			oControl = this._mControls.get(sId),
+			vValue = oFormControlData.value;
 
 		if (oControl.isA("sap.m.ComboBox")) {
 			this._setComboBoxValue(oControl, oFormControlData);
-		}
-
-		if ("value" in oFormControlData && oControl.isA(["sap.m.TextArea", "sap.m.Input"])) {
-			oControl.setValue(oFormControlData.value);
+		} else if (vValue) {
+			if (oControl.isA("sap.m.DatePicker") || oControl.isA("sap.m.DynamicDateRange")) {
+				DateRangeHelper.setValue(oControl, vValue, this._oCard);
+			} else {
+				oControl.setValue(vValue);
+			}
 		}
 
 		this._validateAndUpdate(oControl);
+	};
+
+	Form.prototype.updateModel = function () {
+		this._mControls.forEach(this._updateModel.bind(this));
 	};
 
 	Form.prototype._setComboBoxValue = function (oComboBox, oControlData) {
@@ -145,6 +170,12 @@ sap.ui.define([
 
 		if ("key" in oControlData) {
 			oComboBox.setSelectedKey(oControlData.key);
+
+			oSelectedItem = oComboBox.getItems().find(function (oItem) {
+				return oItem.getKey() === oControlData.key;
+			});
+
+			oComboBox.setValue(oSelectedItem ? oSelectedItem.getText() : "");
 		}
 
 		if ("value" in oControlData && !("key" in oControlData)) {
@@ -177,16 +208,16 @@ sap.ui.define([
 
 	Form.prototype._syncToFormModelOn = function (sEventType, oControl, oItem, sPath) {
 		this._prepareValidationForControl(oControl, oItem, sPath);
-
 		oControl.attachEvent(sEventType, this._validateAndUpdate, this);
-		oControl.addEventDelegate({ onAfterRendering: this._updateModel }, this);
+
+		if (oItem.value && !BindingHelper.isBindingInfo(oItem.value)) {
+			this._updateModel(oControl);
+		}
 
 		this._mControls.set(oItem.id, oControl);
 	};
 
-	Form.prototype._updateModel = function (oControlOrEvent) {
-		var oControl = oControlOrEvent.srcControl ? oControlOrEvent.srcControl : oControlOrEvent;
-
+	Form.prototype._updateModel = function (oControl) {
 		this.getModel("form").setProperty("/" + oControl._oItem.id, _getValue(oControl));
 	};
 
@@ -266,15 +297,18 @@ sap.ui.define([
 
 		this._removeMessageFromControl(oControl);
 
-		if (!oItem || !oItem.validations) {
+		if (!oItem) {
 			return bHasErrorSet;
 		}
 
-		aResolvedValidations = BindingResolver.resolveValue(oItem.validations, oControl, sBindingPath);
+		bHasErrorSet = !this._checkBuiltInValidations(oControl, oItem, bShowValueState);
 
-		bHasErrorSet = !aResolvedValidations.every(function (mValidationConfig) {
-			return this._checkValidationItem(mValidationConfig, oControl, oItem, bShowValueState, oExtension);
-		}.bind(this));
+		if (!bHasErrorSet && oItem.validations) {
+			aResolvedValidations = BindingResolver.resolveValue(oItem.validations, oControl, sBindingPath);
+			bHasErrorSet = !aResolvedValidations.every(function (mValidationConfig) {
+				return this._checkValidationItem(mValidationConfig, oControl, oItem, bShowValueState, oExtension);
+			}.bind(this));
+		}
 
 		this._updateMessageModel();
 
@@ -318,6 +352,22 @@ sap.ui.define([
 				bValidationPassed = false;
 				break;
 			}
+		}
+
+		return bValidationPassed;
+	};
+
+	Form.prototype._checkBuiltInValidations = function (oControl, oItem, bShowValueState) {
+		var bValidationPassed = true;
+
+		if (oControl.isA("sap.m.DatePicker") && !oControl.isValidValue()) {
+			this._addMessageToControl(oControl, bShowValueState, {
+				type: ValueState.Error,
+				message: Core.getLibraryResourceBundle("sap.ui.core").getText("VALUE_STATE_ERROR"),
+				bindingPath: "/" + oItem.id
+			});
+
+			bValidationPassed = false;
 		}
 
 		return bValidationPassed;
@@ -420,6 +470,8 @@ sap.ui.define([
 		switch (oItem.type) {
 			case "ComboBox":
 				return "keyValuePair";
+			case "DateRange":
+				return "dateRange";
 			default:
 				return "string";
 		}
@@ -427,10 +479,13 @@ sap.ui.define([
 
 	function _getValue(oControl) {
 		if (oControl.isA("sap.m.ComboBox")) {
+			oControl.synchronizeSelection(); // force ComboBox to synchronize selectedKey with the value in cases where the card is not being rendered
 			return {
 				key: oControl.getSelectedKey(),
 				value: oControl.getValue()
 			};
+		} else if (oControl.isA("sap.m.DynamicDateRange") || oControl.isA("sap.m.DatePicker")) {
+			return DateRangeHelper.getValueForModel(oControl);
 		} else {
 			return oControl.getValue();
 		}

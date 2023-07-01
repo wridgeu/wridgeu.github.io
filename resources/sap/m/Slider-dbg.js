@@ -97,7 +97,7 @@ function(
 		 * @implements sap.ui.core.IFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @constructor
 		 * @public
@@ -866,7 +866,7 @@ function(
 		 */
 		Slider.prototype.forwardProperties = function (aProperties, oControl) {
 			aProperties.forEach(function (sProperty) {
-				oControl.setProperty(sProperty, this.getProperty(sProperty), true);
+				oControl.setProperty(sProperty, this.getProperty(sProperty));
 			}, this);
 		};
 
@@ -882,8 +882,8 @@ function(
 			for (var index = 0; index < iTooltipCount; index++) {
 				this.forwardProperties(["min", "max", "step"], aDefaultTooltips[index]);
 
-				aDefaultTooltips[index].setProperty("width", this._getMaxTooltipWidth() + "px", true);
-				aDefaultTooltips[index].setProperty("editable", this.getInputsAsTooltips(), true);
+				aDefaultTooltips[index].setWidth(this._getMaxTooltipWidth() + "px");
+				aDefaultTooltips[index].setEditable(this.getInputsAsTooltips());
 			}
 		};
 

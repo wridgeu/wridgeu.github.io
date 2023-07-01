@@ -46,7 +46,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.model.Type
 	 * @public
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 */
 	var SimpleType = Type.extend("sap.ui.model.SimpleType", /** @lends sap.ui.model.SimpleType.prototype */ {
 
@@ -241,13 +241,17 @@ sap.ui.define([
 	 *   An array of message strings
 	 * @return {string}
 	 *   The combined message text
+	 *
+	 * @private
 	 */
 	SimpleType.prototype.combineMessages = function (aMessages) {
 		if (aMessages.length === 1) {
 			return aMessages[0];
-		} else {
-			return aMessages.join(". ") + ".";
 		}
+
+		return aMessages.map(function (sMessage) {
+			return sMessage.endsWith(".") ? sMessage : sMessage + ".";
+		}).join(" ");
 	};
 
 	return SimpleType;

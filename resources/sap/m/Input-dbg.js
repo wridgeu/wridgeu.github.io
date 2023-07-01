@@ -157,7 +157,7 @@ function(
 	 * @extends sap.m.InputBase
 	 * @implements sap.ui.core.IAccessKeySupport
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -322,7 +322,7 @@ function(
 
 				/**
 				 * Specifies whether clear icon is shown.
-				 * Pressing the icon will clear input's value and fire the change and liveChange events.
+				 * Pressing the icon will clear input's value and fire the liveChange event.
 				 * @since 1.94
 				 */
 				showClearIcon: { type: "boolean", defaultValue: false },
@@ -3058,10 +3058,28 @@ function(
 					oSuggPopover.resizePopup(this);
 					this._registerPopupResize();
 					this._bAfterOpenFinisihed = false;
-				}, this)
-				.attachAfterOpen(function () {
-					this._bAfterOpenFinisihed = true;
 				}, this);
+
+			oPopover.addEventDelegate({
+				onAfterRendering: function() {
+					var iInputWidth = this.getDomRef().getBoundingClientRect().width;
+					var sPopoverMaxWidth = getComputedStyle(this.getDomRef()).getPropertyValue("--sPopoverMaxWidth");
+
+					if (this.getMaxSuggestionWidth()) {
+						return;
+					}
+
+					if (iInputWidth <= parseInt(sPopoverMaxWidth) && !Device.system.phone) {
+						oSuggPopover.getPopover().getDomRef().style.setProperty("max-width", "40rem");
+					} else {
+						oSuggPopover.getPopover().getDomRef().style.setProperty("max-width", iInputWidth + "px");
+					}
+
+					oSuggPopover.getPopover().getDomRef().style.setProperty("min-width", iInputWidth + "px");
+
+					this._bAfterOpenFinisihed = true;
+				}
+			}, this);
 		}
 
 		// add popup to a hidden aggregation to also propagate the model and bindings to the content of the popover

@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.m.ObjectStatus
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private
@@ -43,7 +43,11 @@ sap.ui.define([
 
 	ObjectStatus.prototype.onBeforeRendering = function () {
 		if (this.getShowStateIcon()) {
-			this.addStyleClass("sapMObjStatusShowIcon");
+			if (!this.getIcon()) {
+				this.addStyleClass("sapMObjStatusShowIcon");
+			} else {
+				this.addStyleClass("sapMObjStatusShowCustomIcon");
+			}
 		}
 	};
 

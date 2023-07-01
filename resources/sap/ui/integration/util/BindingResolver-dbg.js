@@ -33,7 +33,7 @@ sap.ui.define([
 		 * Resolves a binding syntax based on a provided model and path.
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @private
 		 * @ui5-restricted sap.ushell
@@ -69,7 +69,7 @@ sap.ui.define([
 			}
 
 			// iterates objects
-			if (vValue && isPlainObject(vValue) && !BindingResolver.isBindingInfo(vValue)) {
+			if (vValue && isPlainObject(vValue) && !BindingHelper.isBindingInfo(vValue)) {
 				var oNewObj = {};
 				for (var sProp in vValue) {
 					oNewObj[sProp] = process(vValue[sProp], vModelOrObject, sPath, iCurrentLevel + 1, iMaxLevel, bBindingInfosOnly);
@@ -83,7 +83,7 @@ sap.ui.define([
 			}
 
 			// resolve objects that are binding infos
-			if (typeof vValue === "object" && BindingResolver.isBindingInfo(vValue)) {
+			if (typeof vValue === "object" && BindingHelper.isBindingInfo(vValue)) {
 				return resolveBinding(vValue, vModelOrObject, sPath);
 			}
 
@@ -155,21 +155,6 @@ sap.ui.define([
 			} else {
 				return vValue;
 			}
-		};
-
-		/**
-		 * Checks if object is a binding info.
-		 *
-		 * @param {object} oObj The object to check.
-		 * @returns {boolean} Whether the object represents a binding info.
-		 */
-		BindingResolver.isBindingInfo = function (oObj) {
-
-			if (!oObj) {
-				return false;
-			}
-
-			return oObj.hasOwnProperty("path") || (oObj.hasOwnProperty("parts") && (oObj.hasOwnProperty("formatter") || oObj.hasOwnProperty("binding")));
 		};
 
 		return BindingResolver;

@@ -97,7 +97,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	*
 	* @author SAP SE
-	* @version 1.112.0
+	* @version 1.115.0
 	*
 	* @constructor
 	* @public
@@ -189,7 +189,6 @@ sap.ui.define([
 				* If all the areas have assigned values greater than 1, the numbers are scaled so that at least one of them
 				* is equal to 1. For example, value of <code>2:4:8</code> is equal to <code>1:2:4</code>.
 				*
-				* <Note:> When this property is set the <code>titlePrimaryArea</code> property has no effect.
 				*
 				* @since 1.58
 				*/
@@ -683,7 +682,9 @@ sap.ui.define([
 		this._getPage().setShowFooter(bShowFooter);
 		return this.setProperty("showFooter", bShowFooter, true);
 	};
-
+	/**
+	 * @deprecated As of version 1.58, <code>titlePrimaryArea</code> has been deprecated
+	 */
 	SemanticPage.prototype.setTitlePrimaryArea = function (oPrimaryArea) {
 		var oDynamicPageTitle = this._getTitle();
 

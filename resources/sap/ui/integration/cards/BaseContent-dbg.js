@@ -6,13 +6,17 @@
 
 sap.ui.define([
 	"./BaseContentRenderer",
+	"sap/f/cards/loading/GenericPlaceholder",
 	"sap/m/MessageStrip",
 	"sap/m/VBox",
 	"sap/m/library",
+	"sap/m/IllustratedMessageType",
+	"sap/m/IllustratedMessageSize",
 	"sap/ui/core/Core",
 	"sap/ui/core/Control",
 	"sap/ui/core/InvisibleMessage",
 	"sap/ui/core/library",
+	"sap/ui/integration/controls/BlockingMessage",
 	"sap/ui/integration/model/ObservableModel",
 	"sap/ui/base/ManagedObjectObserver",
 	"sap/ui/integration/util/LoadingProvider",
@@ -22,13 +26,17 @@ sap.ui.define([
 	"sap/ui/integration/library"
 ], function (
 	BaseContentRenderer,
+	GenericPlaceholder,
 	MessageStrip,
 	VBox,
 	mLibrary,
+	IllustratedMessageType,
+	IllustratedMessageSize,
 	Core,
 	Control,
 	InvisibleMessage,
 	coreLibrary,
+	BlockingMessage,
 	ObservableModel,
 	ManagedObjectObserver,
 	LoadingProvider,
@@ -42,8 +50,12 @@ sap.ui.define([
 	// shortcut for sap.ui.core.InvisibleMessageMode
 	var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
 
-	// shortcut for sap.ui.integration.widgets.CardDesign
+	// shortcut for sap.ui.integration.CardDesign
 	var CardDesign = library.CardDesign;
+	// shortcut for sap.ui.integration.CardBlockingMessageType
+	var CardBlockingMessageType = library.CardBlockingMessageType;
+
+	var CardPreviewMode = library.CardPreviewMode;
 
 	/**
 	 * Constructor for a new <code>BaseContent</code>.
@@ -57,7 +69,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private
@@ -77,6 +89,20 @@ sap.ui.define([
 					type: "sap.ui.integration.CardDesign",
 					group: "Appearance",
 					defaultValue: CardDesign.Solid
+				},
+
+				/**
+				 * Content configuration from the manifest
+				 */
+				configuration: {
+					type: "object"
+				},
+
+				/**
+				 * No data configuration from the manifest
+				 */
+				noDataConfiguration: {
+					type: "object"
 				}
 			},
 			aggregations: {
@@ -99,7 +125,7 @@ sap.ui.define([
 				},
 
 				/**
-				 * Defines the internally used LoadingProvider.
+				 * Defines the internally used LoadingPlaceholder.
 				 */
 				_loadingPlaceholder: {
 					type: "sap.ui.core.Element",
@@ -109,6 +135,12 @@ sap.ui.define([
 
 				_messageContainer: {
 					type: "sap.m.VBox",
+					multiple: false,
+					visibility: "hidden"
+				},
+
+				_blockingMessage: {
+					type: "sap.ui.integration.controls.BlockingMessage",
 					multiple: false,
 					visibility: "hidden"
 				}
@@ -153,13 +185,22 @@ sap.ui.define([
 	};
 
 	BaseContent.prototype.onBeforeRendering = function () {
-		var oCard = this.getCardInstance();
+		var oConfiguration = this.getConfiguration(),
+			oCard = this.getCardInstance(),
+			oLoadingPlaceholder = this.getAggregation("_loadingPlaceholder");
 
-		if (!this.getAggregation("_loadingPlaceholder") && oCard && this.getConfiguration()) {
-			var oLoadingPlaceholder = this.getAggregation("_loadingProvider")
-				.createContentPlaceholder(this.getConfiguration(), oCard.getManifestEntry("/sap.card/type"), oCard);
-			this.setAggregation("_loadingPlaceholder", oLoadingPlaceholder);
-		}
+			if (!oLoadingPlaceholder && oConfiguration) {
+				this.setAggregation("_loadingPlaceholder", this.createLoadingPlaceholder(oConfiguration));
+				oLoadingPlaceholder = this.getAggregation("_loadingPlaceholder");
+			}
+
+			if (oLoadingPlaceholder && oCard) {
+				oLoadingPlaceholder.setRenderTooltip(oCard.getPreviewMode() !== CardPreviewMode.Abstract);
+
+				if (typeof this._getTable === "function") {
+					oLoadingPlaceholder.setHasContent((this._getTable().getColumns().length > 0));
+				}
+			}
 	};
 
 	/**
@@ -204,6 +245,15 @@ sap.ui.define([
 	};
 
 	/**
+	 * @private
+	 * @param {object} oConfiguration the content configuration
+	 * @returns {sap.f.cards.loading.BasePlaceholder} placeholder instance
+	 */
+	BaseContent.prototype.createLoadingPlaceholder = function (oConfiguration) {
+		return new GenericPlaceholder();
+	};
+
+	/**
 	 * Can be used in subclasses to load lazy dependencies.
 	 * @param {sap.ui.integration.util.Manifest} oCardManifest The card manifest.
 	 * @returns {Promise} A promise that would be resolved in case of successful loading or rejected with error message.
@@ -211,6 +261,13 @@ sap.ui.define([
 	BaseContent.prototype.loadDependencies = function (oCardManifest) {
 		return Promise.resolve();
 	};
+
+	/**
+	 * Called after the dependencies are loaded and it's safe to apply the configuration.
+	 * To be implemented by subclasses.
+	 * @abstract
+	 */
+	BaseContent.prototype.applyConfiguration = function () { };
 
 	BaseContent.prototype.setLoadDependenciesPromise = function (oPromise) {
 		this._pLoadDependencies = oPromise;
@@ -248,7 +305,7 @@ sap.ui.define([
 
 		this._bReady = false;
 		this._oAwaitedEvents.add(sEvent);
-		this.showLoadingPlaceholders();
+		this.showLoadingPlaceholders(true);
 		this.attachEventOnce(sEvent, function () {
 			this._oAwaitedEvents.delete(sEvent);
 
@@ -260,23 +317,10 @@ sap.ui.define([
 		}.bind(this));
 	};
 
-	/**
-	 * @public
-	 * @param {object} oConfiguration Content configuration from the manifest
-	 * @returns {this} Pointer to the control instance to allow method chaining
-	 */
-	BaseContent.prototype.setConfiguration = function (oConfiguration) {
-		this._oConfiguration = oConfiguration;
-
-		if (!oConfiguration) {
-			return this;
-		}
-
-		return this;
-	};
-
-	BaseContent.prototype.getConfiguration = function () {
-		return this._oConfiguration;
+	BaseContent.prototype._forceCompleteAwaitedEvents = function () {
+		this._oAwaitedEvents.forEach(function (sEvent) {
+			this.fireEvent(sEvent);
+		}.bind(this));
 	};
 
 	/**
@@ -286,7 +330,7 @@ sap.ui.define([
 	 * @returns {object} Parsed configuration - with binding infos
 	 */
 	BaseContent.prototype.getParsedConfiguration = function () {
-		var oResult = merge({}, this._oConfiguration),
+		var oResult = merge({}, this.getConfiguration()),
 			oDataSettings = oResult.data;
 
 		// do not create binding info for data
@@ -339,6 +383,60 @@ sap.ui.define([
 		}
 	};
 
+	BaseContent.prototype.showBlockingMessage = function (mSettings) {
+		this.destroyAggregation("_blockingMessage");
+		this.setAggregation("_blockingMessage", BlockingMessage.create(mSettings, this.getCardInstance()));
+		this._forceCompleteAwaitedEvents();
+	};
+
+	BaseContent.prototype.hideBlockingMessage = function () {
+		this.destroyAggregation("_blockingMessage");
+	};
+
+	BaseContent.prototype.getBlockingMessage = function () {
+		var oBlockingMessage = this.getAggregation("_blockingMessage");
+
+		if (oBlockingMessage) {
+			return {
+				type: oBlockingMessage.getType(),
+				illustrationType: oBlockingMessage.getIllustrationType(),
+				illustrationSize: oBlockingMessage.getIllustrationSize(),
+				title: oBlockingMessage.getTitle(),
+				description: oBlockingMessage.getDescription(),
+				httpResponse: oBlockingMessage.getHttpResponse()
+			};
+		}
+
+		return null;
+	};
+
+	/**
+	 * Show 'No Data' blocking message in the content. If there is configuration in the manifest, it will be applied.
+	 * @protected
+	 * @param {object} oSettings 'No Data' settings
+	 * @param {sap.m.IllustratedMessageType} oSettings.illustrationType Illustration type
+	 * @param {sap.m.IllustratedMessageSize} [oSettings.illustrationSize=sap.m.IllustratedMessageSize.Auto] Illustration size
+	 * @param {string} oSettings.title Title
+	 * @param {string} [oSettings.description] Description
+	 */
+	BaseContent.prototype.showNoDataMessage = function (oSettings) {
+		var oNoDataConfiguration = this.getNoDataConfiguration() || {};
+
+		var oMessageSettings = {
+			type: CardBlockingMessageType.NoData,
+			illustrationType: IllustratedMessageType[oNoDataConfiguration.type] || oSettings.illustrationType,
+			illustrationSize: IllustratedMessageSize[oNoDataConfiguration.size] || oSettings.illustrationSize,
+			title: oNoDataConfiguration.title || oSettings.title,
+			description: oNoDataConfiguration.description || oSettings.description
+		};
+
+		this.showBlockingMessage(oMessageSettings);
+	};
+
+	BaseContent.prototype.hideNoDataMessage = function () {
+		this.hideBlockingMessage();
+	};
+
 	/**
 	 * Requests data and bind it to the item template.
 	 *
@@ -364,12 +462,12 @@ sap.ui.define([
 		}
 
 		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings, this._oServiceManager);
-		this.getAggregation("_loadingProvider").setDataProvider(this._oDataProvider);
 
 		if (oDataSettings.name) {
 			oModel = oCard.getModel(oDataSettings.name);
 		} else if (this._oDataProvider) {
 			oModel = new ObservableModel();
+			oModel.setSizeLimit(oCard.getModelSizeLimit());
 			this.setModel(oModel);
 		}
 
@@ -404,7 +502,10 @@ sap.ui.define([
 			}.bind(this));
 
 			this._oDataProvider.attachError(function (oEvent) {
-				this.handleError(oEvent.getParameter("message"));
+				this.handleError({
+					requestErrorParams: oEvent.getParameters(),
+					requestSettings: this._oDataProvider.getSettings()
+				});
 				this.onDataRequestComplete();
 			}.bind(this));
 
@@ -445,15 +546,16 @@ sap.ui.define([
 
 	/**
 	 * @private
+	 * @param {boolean} [bForce] Show the loading placeholders regardless of the data provider type
 	 * @ui5-restricted
 	 */
-	BaseContent.prototype.showLoadingPlaceholders = function () {
-		var oLoadingProvider = this.getAggregation("_loadingProvider"),
-			oCard = this.getCardInstance();
-
-		if (!oLoadingProvider) {
+	BaseContent.prototype.showLoadingPlaceholders = function (bForce) {
+		if (!bForce && this._isDataProviderJson()) {
 			return;
 		}
+
+		var oLoadingProvider = this.getAggregation("_loadingProvider"),
+			oCard = this.getCardInstance();
 
 		oLoadingProvider.setLoading(true);
 
@@ -470,7 +572,7 @@ sap.ui.define([
 		var oLoadingProvider = this.getAggregation("_loadingProvider"),
 			oCard = this.getCardInstance();
 
-		if (!oLoadingProvider || !oLoadingProvider.getLoading()) {
+		if (!oLoadingProvider.getLoading()) {
 			return;
 		}
 
@@ -589,14 +691,12 @@ sap.ui.define([
 		return this._bReady;
 	};
 
-	/**
-	 * @protected
-	 * @param {string} sLogMessage Message that will be logged.
-	 */
-	BaseContent.prototype.handleError = function (sLogMessage) {
-		this.fireEvent("_error", {
-			logMessage: sLogMessage
-		});
+	/*
+	* @protected
+	@ param {object} mErrorInfo The error information object.
+	*/
+	BaseContent.prototype.handleError = function (mErrorInfo) {
+		this.fireEvent("_error", { errorInfo: mErrorInfo });
 	};
 
 	BaseContent.prototype.setServiceManager = function (oServiceManager) {
@@ -614,11 +714,18 @@ sap.ui.define([
 		return this;
 	};
 
-	BaseContent.prototype.isLoading = function () {
-		var oLoadingProvider = this.getAggregation("_loadingProvider"),
-			oCard = this.getCardInstance();
+	BaseContent.prototype.isLoading  = function () {
+		if (!this.isReady()) {
+			return true;
+		}
 
-		return !oLoadingProvider.isDataProviderJson() && (oLoadingProvider.getLoading() || (oCard && oCard.isLoading()));
+		if (this._oDataProvider) {
+			return this.getAggregation("_loadingProvider").getLoading();
+		}
+
+		var oCard = this.getCardInstance();
+
+		return oCard && oCard.isLoading();
 	};
 
 	BaseContent.prototype.attachPress = function () {
@@ -699,6 +806,33 @@ sap.ui.define([
 		}
 
 		return oMessageContainer;
+	};
+
+	BaseContent.prototype._isDataProviderJson = function () {
+		return this._oDataProvider && this._oDataProvider.getSettings() && this._oDataProvider.getSettings()["json"];
+	};
+
+	/*
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 */
+	BaseContent.prototype.getHeaderTitleId = function () {
+		var oCard = this.getCardInstance();
+
+		if (!oCard) {
+			return undefined;
+		}
+
+		return oCard.getId() + "-header-title-inner";
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {boolean} Whether the card has attached actions that are defined at content level
+	 */
+	BaseContent.prototype.isInteractive = function () {
+		return this.hasListeners("press");
 	};
 
 	return BaseContent;

@@ -95,7 +95,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @constructor
 		 * @public
@@ -387,7 +387,12 @@ function(
 					that.getInitiallyExpanded() && that._oMessageView._restoreFocus();
 				},
 				afterClose: function (oEvent) {
-					that._oMessageView._navContainer.backToTop();
+					// remove and add back all pages instead of calling backToTop as it will trigger animation
+					// if the Popover is open right after the close, animation is not finished and rendering is broken
+					that._oMessageView._navContainer.removeAllPages().forEach(function(oPage) {
+						that._oMessageView._navContainer.addPage(oPage);
+					});
+
 					that.fireAfterClose({openBy: oEvent.getParameter("openBy")});
 				},
 				beforeOpen: function (oEvent) {

@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.GroupField
 	 * @author SAP SE
 	 * @since 1.106.0
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @private
 	 * @experimental since 1.106.0
 	 * @ui5-restricted
@@ -113,7 +113,7 @@ sap.ui.define([
 			if (this.getMode() !== "translation") {
 				var oResourceBundle = this.getResourceBundle();
 				var oMessageStripOfPanel = new MessageStrip({
-					id: oControl.getId() + "_strip",
+					id: this.getParameterId() + "_strip",
 					showIcon: false,
 					visible: "{= !${currentSettings>expanded} && ${currentSettings>hasError} === true}",
 					text: {
@@ -181,7 +181,7 @@ sap.ui.define([
 			};
 			oControl.addEventDelegate(oDelegate);
 		} else if (oControl instanceof IconTabBar) {
-			var oIconTabFilter = new IconTabFilter({
+			var oIconTabFilter = new IconTabFilter(this.getParameterId() + "_control_icontabfilter", {
 				text: oConfig.label,
 				visible: oConfig.visible,
 				objectBindings: {
@@ -205,7 +205,7 @@ sap.ui.define([
 			// handle messageStrip for tab filter
 			if (this.getMode() !== "translation") {
 				var oMessageStripOfTab = new MessageStrip({
-					id: oControl.getId() + "_strip",
+					id: this.getParameterId() + "_strip",
 					showIcon: false,
 					visible: false,
 					objectBindings: {
@@ -324,8 +324,7 @@ sap.ui.define([
 			});
 			expandBTN.setEnabled(false);
 			expandBTN.addStyleClass("errorBTN").addStyleClass("errorBTNDisabled");
-			var iITBar = expandBTN.getParent().getParent().getParent();
-			var iMessageStrip = Core.byId(iITBar.getId() + "_strip");
+			var iMessageStrip = Core.byId(this.getParameterId() + "_strip");
 			expandBTN.addEventDelegate({
 				onmouseover: function() {
 					iMessageStrip.setVisible(true);

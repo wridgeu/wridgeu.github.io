@@ -22,6 +22,7 @@ sap.ui.define([
 	"sap/ui/core/InvisibleMessage",
 	"./SidePanelItem",
 	"./SidePanelRenderer",
+	"./library",
 	"sap/ui/core/library",
 	"sap/ui/events/F6Navigation",
 	"sap/ui/thirdparty/jquery",
@@ -43,6 +44,7 @@ sap.ui.define([
 	InvisibleMessage,
 	SidePanelItem,
 	SidePanelRenderer,
+	library,
 	coreLibrary,
 	F6Navigation,
 	jQuery,
@@ -52,7 +54,8 @@ sap.ui.define([
 
 	// Resource Bundle
 	var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.f"),
-		InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
+		InvisibleMessageMode = coreLibrary.InvisibleMessageMode,
+		SidePanelPosition = library.SidePanelPosition;
 
 	// Resize positions
 	var SIDE_PANEL_POSITION_MIN_WIDTH = 0,	// Minimum width
@@ -146,7 +149,7 @@ sap.ui.define([
  	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -218,7 +221,12 @@ sap.ui.define([
 				 * Determines whether the side content is visible or hidden.
 				 * @private
 				 */
-				sideContentExpanded: { type: "boolean", group: "Appearance", defaultValue: false, visibility: "hidden" }
+				sideContentExpanded: { type: "boolean", group: "Appearance", defaultValue: false, visibility: "hidden" },
+
+				/**
+				 * Defines where to place the side panel position.
+				 */
+				sidePanelPosition: {type: "sap.f.SidePanelPosition", group: "Appearance", defaultValue: SidePanelPosition.Right}
 			},
 			aggregations: {
 				/**
@@ -395,7 +403,7 @@ sap.ui.define([
 		if (!sId) {
 			// remove selected action item (if any) and collapse its side content
 			sSelectedItem && this._toggleItemSelection(Core.byId(sSelectedItem));
-		} else if (oItem && sId !== sSelectedItem && sId !== this.getAggregation("_overflowItem").getId()) {
+		} else if (oItem && oItem.getEnabled() && sId !== sSelectedItem && sId !== this.getAggregation("_overflowItem").getId()) {
 			// select an action item and expand its side content
 			this._toggleItemSelection(oItem);
 			this.setAssociation("selectedItem", oItem, true);
@@ -408,7 +416,13 @@ sap.ui.define([
 		var oExpandCollapseButton = this.getAggregation("_arrowButton"),
 			bActionBarExpanded = this.getActionBarExpanded(),
 			sTooltip = bActionBarExpanded ? oResourceBundle.getText("SIDEPANEL_COLLAPSE_BUTTON_TEXT") : oResourceBundle.getText("SIDEPANEL_EXPAND_BUTTON_TEXT"),
-			sNextArrow = bActionBarExpanded ? "right" : "left";
+			sNextArrow;
+
+		if (SidePanelPosition.Right === this.getSidePanelPosition()) {
+			sNextArrow = bActionBarExpanded  ? "right" : "left";
+		} else {
+			sNextArrow = bActionBarExpanded  ? "left" : "right";
+		}
 
 		oExpandCollapseButton.setIcon("sap-icon://navigation-" + sNextArrow + "-arrow");
 		oExpandCollapseButton.setTooltip(sTooltip);
@@ -746,15 +760,18 @@ sap.ui.define([
 		// find a collection of all action items
 		aItems.forEach(function(oItem, iIndex) {
 			if (iIndex < iMaxItems) {
-				oItemDomRef = this._getFocusDomRef(oItem);
-				oItemDomRef.setAttribute("tabindex", "-1");
-				aItemsDomRef.push(oItemDomRef);
+				if (oItem.getEnabled()){
+					oItemDomRef = this._getFocusDomRef(oItem);
+					oItemDomRef.setAttribute("tabindex", "-1");
+					aItemsDomRef.push(oItemDomRef);
+				}
 				oItem.$().css("display", "flex");
 			} else {
 				oItem.$().css("display", "none");
 				oMenuItem = new MenuItem({
 					text: oItem.getText(),
-					icon: oItem.getIcon()
+					icon: oItem.getIcon(),
+					enabled: oItem.getEnabled()
 				});
 				oOverflowMenu.addItem(oMenuItem);
 				this._mOverflowItemsMap[oMenuItem.getId()] = oItem;
@@ -933,6 +950,11 @@ sap.ui.define([
 			return;
 		}
 
+		// disabled items cannot be selected
+		if (!oItem.getEnabled()){
+			return;
+		}
+
 		// fire 'toggle' event for collapsed action item
 		if (oSelectedItem && (!bExpanded || bToggleDifferent)) {
 			bSkipPrevent = this._fireToggle({
@@ -1046,15 +1068,15 @@ sap.ui.define([
 		var sIcon,
 			oContentHeaderCloseIcon = this.getAggregation("_closeButton");
 
-		if (!oContentHeaderCloseIcon) {
-			if (this._isSingleItem()) {
-				sIcon = Device.system.phone
-					? "sap-icon://navigation-down-arrow"
-					: "sap-icon://navigation-right-arrow";
-			} else {
-				sIcon = "sap-icon://decline";
-			}
+		if (this._isSingleItem()) {
+			sIcon = Device.system.phone
+				? "sap-icon://navigation-down-arrow"
+				: "sap-icon://navigation-" + this.getSidePanelPosition().toLowerCase() + "-arrow";
+		} else {
+			sIcon = "sap-icon://decline";
+		}
 
+		if (!oContentHeaderCloseIcon) {
 			oContentHeaderCloseIcon = new Button(this.getId() + "-closeButton", {
 				type: "Transparent",
 				tooltip: oResourceBundle.getText("SIDEPANEL_CLOSE_BUTTON_TEXT"),
@@ -1077,6 +1099,8 @@ sap.ui.define([
 			});
 
 			this.setAggregation("_closeButton", oContentHeaderCloseIcon);
+		} else {
+			oContentHeaderCloseIcon.setIcon(sIcon);
 		}
 
 		return oContentHeaderCloseIcon;

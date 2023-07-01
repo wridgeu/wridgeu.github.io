@@ -29,6 +29,492 @@ sap.ui.define([
 		JSONListBinding, JSONModel, JSONPropertyBinding, JSONTreeBinding, Measurement) {
 	"use strict";
 
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.AbstractProperty
+	 *
+	 * The abstraction of an OData property.
+	 *
+	 * @property {string} name
+	 *   The name of the property
+	 * @property {string} [default]
+	 *   The default value of the property
+	 * @property {"false"|"true"} [nullable]
+	 *   Whether this property can be <code>null</code>
+	 * @property {"false"|"true"} [readOnly]
+	 *   Whether this property is read-only
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {object} sap.ui.model.odata.ODataMetaModel.Annotatable
+	 *
+	 * An OData metadata element which can be annotated. For annotations from SAP or OData vocabularies, it may contain
+	 * properties like <code>com.sap.vocabularies.Common.v1.Label</code> with the annotation value as an object.
+	 * For annotations from the "http://www.sap.com/Protocols/SAPData" namespace, it may contain properties like
+	 * <code>sap:label</code> with the annotation value as a string. For details on annotation representation, see
+	 * {@link sap.ui.model.odata.ODataMetaModel ODataMetaModel} resp.
+	 * {@link topic:6c47b2b39db9404582994070ec3d57a2%23loio341823349ed04df1813197f2a0d71db2 OData V2 Model - Meta Model
+	 * for OData V2}.
+	 *
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.Extension>} [extensions]
+	 *   The array of extension elements, see {@link sap.ui.model.odata.ODataMetaModel.Extension Extension}
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {object} sap.ui.model.odata.ODataMetaModel.Extension
+	 *
+	 * An extension object generated from OData annotations.
+	 *
+	 * @property {string} name
+	 *   The name of the extension
+	 * @property {string} namespace
+	 *   The namespace of the extension
+	 * @property {string} value
+	 *   The value of the extension
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.BinaryProperty
+	 *
+	 * A property of type <code>Edm.Binary</code>, see
+	 * <a href="http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem" target="_blank">
+	 * <code>Edm.Binary</code></a>.
+	 *
+	 * @property {"Edm.Binary"} type
+	 *   The type name
+	 * @property {string} [maxLength]
+	 *   The maximum size of the binary data
+	 * @property {"false"|"true"} [fixedLength]
+	 *   Whether the length can vary
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.BooleanProperty
+	 *
+	 * A property of type <code>Edm.Boolean</code>, see the corresponding UI5 type
+	 * {@link sap.ui.model.odata.type.Boolean}.
+	 *
+	 * @property {"Edm.Boolean"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.ByteProperty
+	 *
+	 * A property of type <code>Edm.Byte</code>, see the corresponding UI5 type {@link sap.ui.model.odata.type.Byte}.
+	 *
+	 * @property {"Edm.Byte"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.DateTimeProperty
+	 *
+	 * A property of type <code>Edm.DateTime</code>, see the corresponding UI5 type
+	 * {@link sap.ui.model.odata.type.DateTime}.
+	 *
+	 * @property {"Edm.DateTime"} type
+	 *   The type name
+	 * @property {string} [precision]
+	 *   The maximum number of fractional seconds
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.DateTimeOffsetProperty
+	 *
+	 * A property of type <code>Edm.DateTimeOffset</code>, see the corresponding UI5 type
+	 * {@link sap.ui.model.odata.type.DateTimeOffset}.
+	 *
+	 * @property {"Edm.DateTimeOffset"} type
+	 *   The type name
+	 * @property {string} [precision]
+	 *   The maximum number of fractional seconds
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.DecimalProperty
+	 *
+	 * A property of type <code>Edm.Decimal</code>, see the corresponding UI5 type
+	 * {@link sap.ui.model.odata.type.Decimal}.
+	 *
+	 * @property {"Edm.Decimal"} type
+	 *   The type name
+	 * @property {string} [precision]
+	 *   The maximum number of decimal digits
+	 * @property {string} [scale]
+	 *   The maximum number of decimal digits to the right of the decimal point
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.DoubleProperty
+	 *
+	 * A property of type <code>Edm.Double</code>, see the corresponding UI5 type
+	 * {@link sap.ui.model.odata.type.Double}.
+	 *
+	 * @property {"Edm.Double"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.GuidProperty
+	 *
+	 * A property of type <code>Edm.Guid</code>, see the corresponding UI5 type {@link sap.ui.model.odata.type.Guid}.
+	 *
+	 * @property {"Edm.Guid"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.Int16Property
+	 *
+	 * A property of type <code>Edm.Int16</code>, see the corresponding UI5 type {@link sap.ui.model.odata.type.Int16}.
+	 *
+	 * @property {"Edm.Int16"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.Int32Property
+	 *
+	 * A property of type <code>Edm.Int32</code>, see the corresponding UI5 type {@link sap.ui.model.odata.type.Int32}.
+	 *
+	 * @property {"Edm.Int32"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.Int64Property
+	 *
+	 * A property of type <code>Edm.Int64</code>, see the corresponding UI5 type {@link sap.ui.model.odata.type.Int64}.
+	 *
+	 * @property {"Edm.Int64"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.SByteProperty
+	 *
+	 * A property of type <code>Edm.SByte</code>, see the corresponding UI5 type {@link sap.ui.model.odata.type.SByte}.
+	 *
+	 * @property {"Edm.SByte"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.SingleProperty
+	 *
+	 * A property of type <code>Edm.Single</code>, see the corresponding UI5 type
+	 * {@link sap.ui.model.odata.type.Single}.
+	 *
+	 * @property {"Edm.Single"} type
+	 *   The type name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.StreamProperty
+	 *
+	 * A property of type <code>Edm.Stream</code>, see the corresponding UI5 type
+	 * {@link sap.ui.model.odata.type.Stream}.
+	 *
+	 * @property {"Edm.Stream"} type
+	 *   The type name
+	 * @property {"false"|"true"} [fixedLength]
+	 *   Whether the stream requires a fixed length
+	 * @property {string} [maxLength]
+	 *   The maximal length of the stream
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.StringProperty
+	 *
+	 * A property of type <code>Edm.String</code>, see the corresponding UI5 type
+	 * {@link sap.ui.model.odata.type.String}.
+	 *
+	 * @property {"Edm.String"} type
+	 *   The type name
+	 * @property {"false"|"true"} [fixedLength]
+	 *   Whether the string requires a fixed length
+	 * @property {string} [maxLength]
+	 *   The maximal length of the string
+	 * @property {"false"|"true"} [unicode]
+	 *   Whether Unicode characters are used instead of ASCII characters
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.AbstractProperty} sap.ui.model.odata.ODataMetaModel.TimeProperty
+	 *
+	 * A property of type <code>Edm.Time</code>, see the corresponding UI5 type {@link sap.ui.model.odata.type.Time}.
+	 *
+	 * @property {"Edm.Time"} type
+	 *   The type name
+	 * @property {string} [precision]
+	 *   The maximum number of fractional seconds
+	 *
+	 * @public
+	 */
+
+	/**
+	 * The alias type for an OData property of an entity type; the alias comprises all supported OData EDM types.
+	 *
+	 * @typedef {
+	 *   sap.ui.model.odata.ODataMetaModel.BinaryProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.BooleanProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.ByteProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.DateTimeProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.DateTimeOffsetProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.DecimalProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.DoubleProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.GuidProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.Int16Property |
+	 *   sap.ui.model.odata.ODataMetaModel.Int32Property |
+	 *   sap.ui.model.odata.ODataMetaModel.Int64Property |
+	 *   sap.ui.model.odata.ODataMetaModel.SByteProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.SingleProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.StreamProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.StringProperty |
+	 *   sap.ui.model.odata.ODataMetaModel.TimeProperty
+	 * } sap.ui.model.odata.ODataMetaModel.Property
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.AssociationEnd
+	 *
+	 * An object representing one end of an OData association.
+	 *
+	 * @property {string} type
+	 *   The qualified name of the entity type at the end of the association
+	 * @property {"0" | "0..1" | "*"} multiplicity
+	 *   The multiplicity of the association end
+	 * @property {string} role
+	 *   The name of the association role
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.AssociationSet
+	 *
+	 * An object representing an OData association set.
+	 *
+	 * @property {string} association
+	 *   The qualified name of the association set's association; the value is identical to the corresponding
+	 *   XML attribute value in the service metadata document.
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.AssociationSetEnd>} end
+	 *   The two ends of the association set
+	 * @property {string} name
+	 *   The association set's name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.AssociationSetEnd
+	 *
+	 * An object representing one end of an OData association set.
+	 *
+	 * @property {string} entitySet
+	 *   The entity set's name at the end of the association
+	 * @property {string} role
+	 *   The name of the association role
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.ComplexType
+	 *
+	 * An object representing an OData complex type.
+	 *
+	 * @property {string} $path
+	 *   The path to the complex type
+	 * @property {string} name
+	 *   The complex type's name
+	 * @property {string} namespace
+	 *   The complex type's namespace
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.Property>} property
+	 *   The complex type's properties
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {object} sap.ui.model.odata.ODataMetaModel.PropertyRef
+	 *
+	 * An object representing an OData property reference.
+	 *
+	 * @property {string} name
+	 *   The property name
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {object} sap.ui.model.odata.ODataMetaModel.EntityKey
+	 *
+	 * An object representing an OData entity type's key.
+	 *
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.PropertyRef>} propertyRef
+	 *   The references to the properties defining the entity type's key
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.EntitySet
+	 *
+	 * An object representing an OData entity set.
+	 *
+	 * @property {string} entityType
+	 *   The qualified name of the entity set's entity type
+	 * @property {string} name
+	 *   The name of the entity set
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.NavigationProperty
+	 *
+	 * An OData navigation property of an entity type.
+	 *
+	 * @property {string} name
+	 *   The name of the navigation property
+	 * @property {string} fromRole
+	 *   The name of the starting point for the navigation; refers to a role defined in the association
+	 * @property {string} relationship
+	 *   The qualified name of the navigation property's association
+	 * @property {string} toRole
+	 *   The name of the other end of the relationship; refers to a role defined in the association
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.EntityType
+	 *
+	 * An object representing an OData entity type.
+	 *
+	 * @property {string} $path
+	 *   The path to the entity type
+	 * @property {sap.ui.model.odata.ODataMetaModel.EntityKey} key
+	 *   The entity type's key
+	 * @property {string} name
+	 *   The entity type's name
+	 * @property {string} namespace
+	 *   The entity type's namespace
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.NavigationProperty>} [navigationProperty]
+	 *   The entity type's navigation properties
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.Property>} [property]
+	 *   The entity type's properties
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable}
+	 *   sap.ui.model.odata.ODataMetaModel.FunctionImportParameter
+	 *
+	 * An object representing an OData function import parameter.
+	 *
+	 * @property {string} name
+	 *   The function import parameter's name
+	 * @property {string} type
+	 *   The function import parameter's type; the value is identical to the corresponding XML attribute value in the
+	 *   service metadata document.
+	 * @property {"false"|"true"} [fixedLength]
+	 *   The fixedLength constraint if supported by the function import parameter's type
+	 * @property {string} [maxLength]
+	 *   The maxLength constraint if supported by the function import parameter's type
+	 * @property {"In"|"InOut"|"Out"} [mode]
+	 *   The function import parameter's mode
+	 * @property {string} [precision]
+	 *   The precision constraint if supported by the function import parameter's type
+	 * @property {string} [scale]
+	 *   The scale constraint if supported by the function import parameter's type
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.FunctionImport
+	 *
+	 * An object representing an OData function import.
+	 *
+	 * @property {string} [entitySet]
+	 *   The entity set of the function import's return value
+	 * @property {"GET"|"POST"} [httpMethod]
+	 *   The http method to execute the function import
+	 * @property {string} name
+	 *   The function import's name
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.FunctionImportParameter>} [parameter]
+	 *   The function import parameters
+	 * @property {string} [returnType]
+	 *   The qualified name of the function import's return type; the value is identical to the corresponding
+	 *   XML attribute value in the service metadata document.
+	 *
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.model.odata.ODataMetaModel.Annotatable} sap.ui.model.odata.ODataMetaModel.EntityContainer
+	 *
+	 * An object representing an OData entity container.
+	 *
+	 * @property {string} $path
+	 *   The path to the entity container
+	 * @property {string} name
+	 *   The entity container's name
+	 * @property {string} namespace
+	 *   The entity container's namespace
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.AssociationSet>} [associationSet]
+	 *   The association sets in the entity container
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.EntitySet>} [entitySet]
+	 *   The entity sets in the entity container
+	 * @property {Array<sap.ui.model.odata.ODataMetaModel.FunctionImport>} [functionImport]
+	 *   The function imports in the entity container
+	 * @property {"false"|"true"} [isDefaultEntityContainer]
+	 *   Whether this is the default entity container
+	 *
+	 * @public
+	 */
+
 	var // maps the metadata URL with query parameters concatenated with the code list collection
 		// path (e.g. /foo/bar/$metadata#SAP__Currencies) to a SyncPromise resolving with the code
 		// list customizing as needed by the OData type
@@ -209,7 +695,7 @@ sap.ui.define([
 	 * {@link #loaded loaded} has been resolved!
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @alias sap.ui.model.odata.ODataMetaModel
 	 * @extends sap.ui.model.MetaModel
 	 * @public
@@ -785,11 +1271,11 @@ sap.ui.define([
 	 * Returns the OData association end corresponding to the given entity type's navigation
 	 * property of given name.
 	 *
-	 * @param {object} oEntityType
+	 * @param {sap.ui.model.odata.ODataMetaModel.EntityType} oEntityType
 	 *   an entity type as returned by {@link #getODataEntityType getODataEntityType}
 	 * @param {string} sName
 	 *   the name of a navigation property within this entity type
-	 * @returns {object|null}
+	 * @returns {sap.ui.model.odata.ODataMetaModel.AssociationEnd|null}
 	 *   the OData association end or <code>null</code> if no such association end is found
 	 * @public
 	 */
@@ -811,11 +1297,11 @@ sap.ui.define([
 	 * Returns the OData association <em>set</em> end corresponding to the given entity type's
 	 * navigation property of given name.
 	 *
-	 * @param {object} oEntityType
+	 * @param {sap.ui.model.odata.ODataMetaModel.EntityType} oEntityType
 	 *   an entity type as returned by {@link #getODataEntityType getODataEntityType}
 	 * @param {string} sName
 	 *   the name of a navigation property within this entity type
-	 * @returns {object|null}
+	 * @returns {sap.ui.model.odata.ODataMetaModel.AssociationSetEnd|null}
 	 *   the OData association set end or <code>null</code> if no such association set end is found
 	 * @public
 	 */
@@ -846,7 +1332,7 @@ sap.ui.define([
 	 *   a qualified name, e.g. "ACME.Address"
 	 * @param {boolean} [bAsPath=false]
 	 *   determines whether the complex type is returned as a path or as an object
-	 * @returns {object|string|undefined|null}
+	 * @returns {sap.ui.model.odata.ODataMetaModel.ComplexType|string|undefined|null}
 	 *   (the path to) the complex type with the given qualified name; <code>undefined</code> (for
 	 *   a path) or <code>null</code> (for an object) if no such type is found
 	 * @public
@@ -861,7 +1347,7 @@ sap.ui.define([
 	 *
 	 * @param {boolean} [bAsPath=false]
 	 *   determines whether the entity container is returned as a path or as an object
-	 * @returns {object|string|undefined|null}
+	 * @returns {sap.ui.model.odata.ODataMetaModel.EntityContainer|string|undefined|null}
 	 *   (the path to) the default entity container; <code>undefined</code> (for a path) or
 	 *   <code>null</code> (for an object) if no such container is found
 	 * @public
@@ -900,7 +1386,7 @@ sap.ui.define([
 	 *   a simple name, e.g. "ProductSet"
 	 * @param {boolean} [bAsPath=false]
 	 *   determines whether the entity set is returned as a path or as an object
-	 * @returns {object|string|undefined|null}
+	 * @returns {sap.ui.model.odata.ODataMetaModel.EntitySet|string|undefined|null}
 	 *   (the path to) the entity set with the given simple name; <code>undefined</code> (for a
 	 *   path) or <code>null</code> (for an object) if no such set is found
 	 * @public
@@ -917,7 +1403,7 @@ sap.ui.define([
 	 *   a qualified name, e.g. "ACME.Product"
 	 * @param {boolean} [bAsPath=false]
 	 *   determines whether the entity type is returned as a path or as an object
-	 * @returns {object|string|undefined|null}
+	 * @returns {sap.ui.model.odata.ODataMetaModel.EntityType|string|undefined|null}
 	 *   (the path to) the entity type with the given qualified name; <code>undefined</code> (for a
 	 *   path) or <code>null</code> (for an object) if no such type is found
 	 * @public
@@ -934,7 +1420,7 @@ sap.ui.define([
 	 *   a simple or qualified name, e.g. "Save" or "MyService.Entities/Save"
 	 * @param {boolean} [bAsPath=false]
 	 *   determines whether the function import is returned as a path or as an object
-	 * @returns {object|string|undefined|null}
+	 * @returns {sap.ui.model.odata.ODataMetaModel.FunctionImport|string|undefined|null}
 	 *   (the path to) the function import with the given simple name; <code>undefined</code> (for
 	 *   a path) or <code>null</code> (for an object) if no such function import is found
 	 * @public
@@ -996,7 +1482,7 @@ sap.ui.define([
 	 * </li>
 	 * </ul>
 	 *
-	 * @param {object} oType
+	 * @param {sap.ui.model.odata.ODataMetaModel.ComplexType|sap.ui.model.odata.ODataMetaModel.EntityType} oType
 	 *   a complex type as returned by {@link #getODataComplexType getODataComplexType}, or
 	 *   an entity type as returned by {@link #getODataEntityType getODataEntityType}
 	 * @param {string|string[]} vName
@@ -1005,7 +1491,7 @@ sap.ui.define([
 	 *   <b>BEWARE</b> that this array is modified by removing each part which is understood!
 	 * @param {boolean} [bAsPath=false]
 	 *   determines whether the property is returned as a path or as an object
-	 * @returns {object|string|undefined|null}
+	 * @returns {sap.ui.model.odata.ODataMetaModel.Property|string|undefined|null}
 	 *   (the path to) the last OData property found; <code>undefined</code> (for a path) or
 	 *   <code>null</code> (for an object) if no property was found at all
 	 * @public
@@ -1143,7 +1629,7 @@ sap.ui.define([
 	 * corresponding HTTP request uses the HTTP headers obtained via
 	 * {@link sap.ui.model.odata.v2.ODataModel#getHeaders} from this meta model's data model.
 	 *
-	 * @returns {Promise}
+	 * @returns {Promise<Object<string,{StandardCode: string, Text: string, UnitSpecificScale: string}>|null>}
 	 *   A promise resolving with the currency customizing, which is a map from the currency key to
 	 *   an object with the following properties:
 	 *   <ul>
@@ -1179,7 +1665,7 @@ sap.ui.define([
 	 * corresponding HTTP request uses the HTTP headers obtained via
 	 * {@link sap.ui.model.odata.v2.ODataModel#getHeaders} from this meta model's data model.
 	 *
-	 * @returns {Promise}
+	 * @returns {Promise<Object<string,{StandardCode: string, Text: string, UnitSpecificScale: string}>|null>}
 	 *   A promise resolving with the unit customizing, which is a map from the unit key to an
 	 *   object with the following properties:
 	 *   <ul>
@@ -1292,7 +1778,7 @@ sap.ui.define([
 	/**
 	 * Gets the single key property name for the given type.
 	 *
-	 * @param {object} oType The entity type
+	 * @param {sap.ui.model.odata.ODataMetaModel.EntityType} oType The entity type
 	 * @param {string} sTypePath The path to the entity type
 	 * @returns {string} The property path to the type's single key
 	 * @throws {Error} If the type does not have exactly one key

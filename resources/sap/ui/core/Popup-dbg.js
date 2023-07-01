@@ -19,8 +19,8 @@ sap.ui.define([
 	'./IntervalTrigger',
 	'./RenderManager',
 	'./ResizeHandler',
-	'./UIArea',
 	'./library',
+	'./StaticArea',
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/base/util/Version",
@@ -48,8 +48,8 @@ sap.ui.define([
 	IntervalTrigger,
 	RenderManager,
 	ResizeHandler,
-	UIArea,
 	library,
+	StaticArea,
 	assert,
 	Log,
 	Version,
@@ -114,11 +114,10 @@ sap.ui.define([
 			return oStaticUIArea;
 		}
 
-		var oStaticAreaRef, oControl;
+		var oControl;
 		try {
-			oStaticAreaRef = UIArea.getStaticAreaRef();
 			// only a facade of the static UIArea is returned that contains only the public methods
-			oStaticUIArea = UIArea.registry.get(oStaticAreaRef.id);
+			oStaticUIArea = StaticArea.getUIArea();
 		} catch (e) {
 			Log.error(e);
 			throw new Error("Popup cannot be opened because static UIArea cannot be determined.");
@@ -382,6 +381,15 @@ sap.ui.define([
 
 	});
 
+	/**
+	 * @typedef {object} sap.ui.core.Popup.PositionInfo
+	 * @public
+	 *
+	 * @property {object} lastPosition The last position value
+	 * @property {DOMRect} lastOfRect The DOMRect of the previous "of" element
+	 * @property {DOMRect} currentOfRect The DOMRect of the current "of" element
+	 */
+
 	Popup.prototype.getChildPopups = function() {
 		return this.getAssociation("childPopups", []);
 	};
@@ -537,9 +545,9 @@ sap.ui.define([
 	 *
 	 * @class
 	 * @private
-	 * @name sap.ui.core.Popup.Layer
+	 * @alias sap.ui.core.Popup.Layer
 	*/
-	BaseObject.extend("sap.ui.core.Popup.Layer", {
+	var Layer = BaseObject.extend("sap.ui.core.Popup.Layer", {
 		constructor: function() {
 			var sDomString = this.getDomString();
 			this._$Ref = jQuery(sDomString).appendTo(sap.ui.getCore().getStaticAreaRef());
@@ -547,16 +555,14 @@ sap.ui.define([
 	});
 
 	/**
-	* Initializes the popup layer by adding z-index and visibility to the popup layer
-	* and insert the popup directly after the given <code>oRef</code> element
-	*
-	* @param {jQuery} oRef The element as a jQuery object
-	* @param {int} iZIndex The z-index value
-	* @private
-	* @name sap.ui.core.Popup.Layer#init
-	* @function
-	*/
-	Popup.Layer.prototype.init = function(oRef, iZIndex) {
+	 * Initializes the popup layer by adding z-index and visibility to the popup layer
+	 * and insert the popup directly after the given <code>oRef</code> element
+	 *
+	 * @param {jQuery} oRef The element as a jQuery object
+	 * @param {int} iZIndex The z-index value
+	 * @private
+	 */
+	Layer.prototype.init = function(oRef, iZIndex) {
 		this._$Ref.css({
 			"visibility" : "visible",
 			"z-index" : iZIndex
@@ -571,10 +577,8 @@ sap.ui.define([
 	 * @param {jQuery} oRef The element as a jQuery object
 	 * @param {int} iZIndex The z-index value
 	 * @protected
-	 * @name sap.ui.core.Popup.Layer#update
-	 * @function
-	*/
-	Popup.Layer.prototype.update = function(/** jQuery */oRef, iZIndex){
+	 */
+	Layer.prototype.update = function(/** jQuery */oRef, iZIndex){
 		if (oRef.length) {
 			var oRect = oRef.rect();
 			this._$Ref.css({
@@ -615,10 +619,8 @@ sap.ui.define([
 	 * Resets the popup layer by hidding and assigning to the static area
 	 *
 	 * @private
-	 * @name sap.ui.core.Popup.Layer#reset
-	 * @function
 	 */
-	Popup.Layer.prototype.reset = function(){
+	Layer.prototype.reset = function(){
 		if (this._$Ref.length) {
 			this._$Ref[0].style.display = "none";
 			this._$Ref[0].style.visibility = "hidden";
@@ -632,10 +634,8 @@ sap.ui.define([
 	 *
 	 * @abstract
 	 * @returns {string} The DOM string
-	 * @name sap.ui.core.Popup.Layer#getDomString
-	 * @function
 	 */
-	Popup.Layer.prototype.getDomString = function(){
+	Layer.prototype.getDomString = function(){
 		Log.error("sap.ui.core.Popup.Layer: getDomString function must be overwritten!");
 
 		return "";
@@ -650,15 +650,15 @@ sap.ui.define([
 	/**
 	* @class
 	* @private
-	* @name sap.ui.core.Popup.ShieldLayer
+	* @alias sap.ui.core.Popup.ShieldLayer
 	*/
-	Popup.Layer.extend("sap.ui.core.Popup.ShieldLayer", {
+	var ShieldLayer = Layer.extend("sap.ui.core.Popup.ShieldLayer", {
 		constructor: function() {
-			Popup.Layer.apply(this);
+			Layer.apply(this);
 		}
 	});
 
-	Popup.ShieldLayer.prototype.getDomString = function(){
+	ShieldLayer.prototype.getDomString = function(){
 		return "<div class=\"sapUiPopupShield\" id=\"sap-ui-shieldlayer-" + uid() + "\"></div>";
 	};
 
@@ -667,7 +667,7 @@ sap.ui.define([
 	* @type sap.ui.base.ObjectPool
 	* @private
 	*/
-	Popup.prototype.oShieldLayerPool = new ObjectPool(Popup.ShieldLayer);
+	Popup.prototype.oShieldLayerPool = new ObjectPool(ShieldLayer);
 	//End of ShieldLayer
 
 	// Begin of Popup-Stacking facilities
@@ -786,7 +786,7 @@ sap.ui.define([
 	 * @param {string} [offset='0 0'] the offset relative to the docking point, specified as a string with space-separated pixel values (e.g. "10 0" to move the popup 10 pixels to the right). If the docking of both "my" and "at" are both RTL-sensitive ("begin" or "end"), this offset is automatically mirrored in the RTL case as well.
 	 * @param {sap.ui.core.Collision} [collision='flip'] defines how the position of an element should be adjusted in case it overflows the within area in some direction.
 	 * @param {string | sap.ui.core.Element | Element | Window} [within=Window] defines the area the popup should be placed in. This affects the collision detection.
-	 * @param {boolean | function | null} [followOf=false] defines whether the popup should follow the dock reference when the reference changes its position.
+	 * @param {boolean | function(sap.ui.core.Popup.PositionInfo) | null} [followOf=false] defines whether the popup should follow the dock reference when the reference changes its position.
 	 * @ui5-omissible-params iDuration
 	 * @public
 	 */
@@ -1337,8 +1337,7 @@ sap.ui.define([
 			if (this._bContentAddedToStatic ) {
 				//Fix for RTE in PopUp
 				sap.ui.getCore().getEventBus().publish("sap.ui","__beforePopupClose", { domNode : this._$().get(0) });
-				var oStatic = UIArea.getStaticAreaRef();
-				oStatic = UIArea.registry.get(oStatic.id);
+				var oStatic = StaticArea.getUIArea();
 				oStatic.removeContent(oStatic.indexOfContent(this.oContent), true);
 			} else if (this._bUIAreaPatched) { // if the getUIArea function is patched, delete it
 				delete this.oContent.getUIArea;
@@ -2212,8 +2211,8 @@ sap.ui.define([
 	 * - the requested animation duration
 	 * - a function that MUST be called once the animation has completed
 	 *
-	 * @param {function} fnOpen The function which executes the custom opening animation
-	 * @param {function} fnClose The function  which executes the custom closing animation
+	 * @param {function(jQuery, int, function())} fnOpen The function which executes the custom opening animation
+	 * @param {function(jQuery, int, function())} fnClose The function  which executes the custom closing animation
 	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
@@ -2262,10 +2261,7 @@ sap.ui.define([
 	/**
 	 * Closes the popup instance
 	 *
-	 * @param {object} oEventParameters The event parameters
-	 * @param {object} oEventParameters.lastPosition The last position value
-	 * @param {object} oEventParameters.lastOfRect The last rect value
-	 * @param {object} oEventParameters.currentOfRect The current rect value
+	 * @param {sap.ui.core.Popup.PositionInfo} oEventParameters The event parameters
 	 * @private
 	 */
 	Popup.prototype._fnCloseOnScroll = function(oEventParameters) {
@@ -2276,7 +2272,7 @@ sap.ui.define([
 	 * This enabled/disables the Popup to follow its opening reference. If the Popup is open and a followOf should
 	 * be set the corresponding listener will be attached.
 	 *
-	 * @param {boolean | function | null} followOf a boolean value enabled/disables the default followOf-Handler. Or an individual handler can be given.
+	 * @param {boolean|function(sap.ui.core.Popup.PositionInfo)|null} followOf a boolean value enabled/disables the default followOf-Handler. Or an individual handler can be given.
 	 * null deletes all followOf settings.
 	 * @since 1.13.0
 	 * @public
@@ -2329,7 +2325,7 @@ sap.ui.define([
 	 * This returns true/false if the default followOf method should be used. If a separate followOf-handler was previously added
 	 * the corresponding function is returned.
 	 *
-	 * @returns {boolean | function} if a function was set it is returned otherwise a boolean value whether the follow of is activated
+	 * @returns {boolean|function(sap.ui.core.Popup.PositionInfo)} if a function was set it is returned otherwise a boolean value whether the follow of is activated
 	 * @since 1.13.0
 	 * @public
 	 */

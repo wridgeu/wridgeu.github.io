@@ -36,13 +36,13 @@ sap.ui.define(["sap/ui/base/DataType",
 	 * @namespace
 	 * @alias sap.f
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @since 1.44
 	 * @public
 	 */
 	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.f",
-		version: "1.112.0",
+		version: "1.115.0",
 		dependencies : ["sap.ui.core", "sap.m", "sap.ui.layout"],
 		designtime: "sap/f/designtime/library.designtime",
 		interfaces: [
@@ -586,6 +586,28 @@ sap.ui.define(["sap/ui/base/DataType",
 		Left: "Left",
 		/**
 		 * The direction is right.
+		 *
+		 * @public
+		 */
+		Right: "Right"
+	};
+
+	/**
+	 * Enumeration for different SidePanel position.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.104
+	 */
+	 thisLib.SidePanelPosition = {
+		/**
+		 * The position is left.
+		 *
+		 * @public
+		 */
+		Left: "Left",
+		/**
+		 * The position is right.
 		 *
 		 * @public
 		 */

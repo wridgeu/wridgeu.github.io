@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.listEditor.ListEditor
 	 * @author SAP SE
 	 * @since 1.76
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @experimental 1.76

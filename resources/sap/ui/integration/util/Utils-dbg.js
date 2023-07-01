@@ -9,13 +9,15 @@ sap.ui.define([
 	"sap/ui/core/Locale",
 	"sap/base/strings/formatMessage",
 	'sap/base/util/isPlainObject',
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/core/date/UI5Date"
 ], function (
 	Core,
 	Locale,
 	formatMessage,
 	isPlainObject,
-	Log
+	Log,
+	UI5Date
 ) {
 	"use strict";
 
@@ -23,7 +25,7 @@ sap.ui.define([
 	 * Utility class helping with JSON strings and formatters.
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.Utils
@@ -83,7 +85,7 @@ sap.ui.define([
 
 		if (aJSONDateParts) {
 			// 0 - complete results; 1 - ticks; 2 - sign; 3 - minutes
-			var oResult = new Date(parseInt(aJSONDateParts[JSON_DATE_TICKS]));
+			var oResult = UI5Date.getInstance(parseInt(aJSONDateParts[JSON_DATE_TICKS]));
 			if (aJSONDateParts[JSON_DATE_SIGN]) {
 				var iMins = parseInt(aJSONDateParts[JSON_DATE_MINUTES]);
 				if (aJSONDateParts[JSON_DATE_SIGN] === "-") {

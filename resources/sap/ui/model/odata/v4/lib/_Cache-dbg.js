@@ -168,6 +168,7 @@ sap.ui.define([
 				oEntity = vDeleteProperty
 					? vCacheData[vCachePath] || vCacheData.$byPredicate[vCachePath]
 					: vCacheData, // deleting at root level
+				oError,
 				sGroupId,
 				aMessages,
 				mHeaders,
@@ -223,8 +224,17 @@ sap.ui.define([
 				if (typeof sTransientGroup !== "string") {
 					throw new Error("No 'delete' allowed while waiting for server response");
 				}
-				that.oRequestor.removePost(sTransientGroup, oEntity);
-
+				if (vCacheData.$postBodyCollection) { // within a deep create
+					vCacheData.$postBodyCollection.splice(iIndex, 1);
+					that.removeElement(vCacheData, iIndex, sTransientPredicate, sParentPath);
+					fnCallback(iIndex, -1);
+					oError = new Error("Deleted from deep create");
+					oError.canceled = true;
+					_Helper.getPrivateAnnotation(oEntity, "reject")(oError);
+					_Helper.cancelNestedCreates(oEntity, "Deleted from deep create");
+				} else {
+					that.oRequestor.removePost(sTransientGroup, oEntity);
+				}
 				return undefined;
 			}
 
@@ -359,22 +369,43 @@ sap.ui.define([
 		var aElements,
 			aSegments = sPath.split("/"),
 			sName = aSegments.pop(),
-			oParent = this.fetchValue(_GroupLock.$cached, aSegments.join("/")).getResult(),
+			oParent = this.getValue(aSegments.join("/")),
 			oPostBody = _Helper.getPrivateAnnotation(oParent, "postBody"),
+			aPostBodyCollection,
+			sRootPathEnd = sPath.indexOf(")", sPath.indexOf("($uid=")) + 1,
+			// the root transient element of the deep create
+			oRoot = this.getValue(sPath.slice(0, sRootPathEnd)),
+			mSelectForMetaPath = _Helper.getPrivateAnnotation(oRoot, "select") || {},
 			that = this;
 
-		this.checkSharedRequest();
-		if (sName in oParent) {
-			throw new Error("Deep create with initial data is not supported yet");
+		function setPostBodyCollection() {
+			aElements.$postBodyCollection = oPostBody[sName] = aPostBodyCollection;
 		}
-		aElements = oParent[sName] = [];
-		aElements.$count = aElements.$created = 0;
+
+		this.checkSharedRequest();
+		aElements = oParent[sName] = oParent[sName] || [];
+		aElements.$count = aElements.$created = aElements.length;
 		aElements.$byPredicate = {};
-		// allow creating on demand when there is a create in the child list
-		aElements.$postBodyCollection = function () {
-			aElements.$postBodyCollection = oPostBody[sName] = [];
-		};
-		aElements.$select = aSelect;
+		aPostBodyCollection = oPostBody[sName] || [];
+		if (aElements.length) {
+			setPostBodyCollection();
+		} else {
+			// allow creating on demand when there is a create in the child list
+			aElements.$postBodyCollection = setPostBodyCollection;
+		}
+		mSelectForMetaPath[_Helper.getMetaPath(sPath.slice(sRootPathEnd + 1))] = aSelect;
+		_Helper.setPrivateAnnotation(oRoot, "select", mSelectForMetaPath);
+		aElements.forEach(function (oElement, i) {
+			var sTransientPredicate = "($uid=" + _Helper.uid() + ")";
+
+			oElement["@$ui5.context.isTransient"] = true;
+			_Helper.setPrivateAnnotation(oElement, "postBody", aPostBodyCollection[i]);
+			_Helper.setPrivateAnnotation(oElement, "transient",
+				_Helper.getPrivateAnnotation(oParent, "transient"));
+			_Helper.setPrivateAnnotation(oElement, "transientPredicate", sTransientPredicate);
+			_Helper.setPrivateAnnotation(oElement, "promise", _Helper.addPromise(oElement));
+			aElements.$byPredicate[sTransientPredicate] = oElement;
+		});
 		// add the collection type to mTypeForMetaPath
 		this.fetchTypes().then(function (mTypeForMetaPath) {
 			that.oRequestor.fetchType(mTypeForMetaPath,
@@ -451,31 +482,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Cancels all nested creates within the given element.
-	 *
-	 * @param {object} oElement - The entity data in the cache
-	 * @param {string} sPostPath - The request path of the POST request
-	 * @param {string} sGroupId - The group ID of the POST request
-	 *
-	 * @private
-	 */
-	_Cache.prototype.cancelNestedCreates = function (oElement, sPostPath, sGroupId) {
-		Object.keys(oElement).forEach(function (sKey) {
-			var oError,
-				vProperty = oElement[sKey];
-
-			if (vProperty && vProperty.$postBodyCollection) {
-				oError = new Error("Deep create of " + sKey + " canceled with POST " + sPostPath
-					+ "; group: " + sGroupId);
-				oError.canceled = true;
-				vProperty.forEach(function (oChildElement) {
-					_Helper.getPrivateAnnotation(oChildElement, "reject")(oError);
-				});
-			}
-		});
-	};
-
-	/**
 	 * Throws an error if the cache shares requests.
 	 *
 	 * @throws {Error} If the cache has bSharedRequest
@@ -524,7 +530,6 @@ sap.ui.define([
 			oEntityData, bAtEndOfCreated, fnErrorCallback, fnSubmitCallback) {
 		var aCollection = this.getValue(sPath),
 			sGroupId = oGroupLock.getGroupId(),
-			bKeepTransientPath = oEntityData && oEntityData["@$ui5.keepTransientPath"],
 			oPostBody,
 			fnResolve,
 			that = this;
@@ -551,8 +556,8 @@ sap.ui.define([
 				return true;
 			}
 
-			that.cancelNestedCreates(oEntityData, oPostPathPromise.getResult(),
-				oGroupLock.getGroupId());
+			_Helper.cancelNestedCreates(oEntityData, "Deep create of "
+				+ oPostPathPromise.getResult() + " canceled; group: " + oGroupLock.getGroupId());
 			_Helper.removeByPath(that.mPostRequests, sPath, oEntityData);
 			aCollection.splice(iIndex, 1);
 			aCollection.$created -= 1;
@@ -593,17 +598,16 @@ sap.ui.define([
 
 				_Helper.deletePrivateAnnotation(oEntityData, "postBody");
 				_Helper.deletePrivateAnnotation(oEntityData, "transient");
-				oEntityData["@$ui5.context.isTransient"] = false;
+				// ensure that change listeners are informed via updateSelected
+				aResult[0]["@$ui5.context.isTransient"] = false;
 				_Helper.removeByPath(that.mPostRequests, sPath, oEntityData);
 				that.visitResponse(oCreatedEntity, aResult[1],
 					_Helper.getMetaPath(_Helper.buildPath(that.sMetaPath, sPath)),
-					sPath + sTransientPredicate, bKeepTransientPath);
+					sPath + sTransientPredicate);
 				sPredicate = _Helper.getPrivateAnnotation(oCreatedEntity, "predicate");
 				if (sPredicate) {
 					_Helper.setPrivateAnnotation(oEntityData, "predicate", sPredicate);
-					if (bKeepTransientPath) {
-						sPredicate = sTransientPredicate;
-					} else if (sTransientPredicate in aCollection.$byPredicate) {
+					if (sTransientPredicate in aCollection.$byPredicate) {
 						aCollection.$byPredicate[sPredicate] = oEntityData;
 						_Helper.updateTransientPaths(that.mChangeListeners, sTransientPredicate,
 							sPredicate);
@@ -621,8 +625,14 @@ sap.ui.define([
 				_Helper.updateSelected(that.mChangeListeners, sResultingPath, oEntityData,
 					oCreatedEntity, aSelect, /*fnCheckKeyPredicate*/ undefined,
 					/*bOkIfMissing*/ true);
-				// update properties from collections in a deep create
-				that.updateNestedCreates(sResultingPath, oEntityData, oCreatedEntity);
+				_Helper.cancelNestedCreates(oEntityData, "Deep create of " + sPostPath
+					+ " succeeded. Do not use this promise.");
+				_Helper.setPrivateAnnotation(oEntityData, "deepCreate",
+					// update properties from collections in a deep create
+					that.updateNestedCreates(sResultingPath, oEntityData, oCreatedEntity,
+						_Helper.getPrivateAnnotation(oEntityData, "select"))
+				);
+				_Helper.deletePrivateAnnotation(oEntityData, "select");
 
 				that.removePendingRequest();
 				fnResolve(true);
@@ -702,7 +712,7 @@ sap.ui.define([
 				aCollection.$postBodyCollection.unshift(oPostBody);
 			}
 			oGroupLock.unlock();
-			return _Helper.addDeepCreatePromise(oEntityData);
+			return _Helper.addPromise(oEntityData);
 		}
 
 		return oPostPathPromise.then(function (sPostPath) {
@@ -1067,7 +1077,7 @@ sap.ui.define([
 					+ sOldPredicate + " to " + sNewPredicate);
 			}
 			// only check for ETag change if the cache contains one; otherwise either the cache
-			// element is empty (via #createEmptyElement) or the server did not send one last time
+			// element is empty (via #addKeptElement) or the server did not send one last time
 			if (oResource["@odata.etag"] && oData["@odata.etag"] !== oResource["@odata.etag"]) {
 				throw new Error("GET " + sRequestPath + ": ETag changed");
 			}
@@ -1684,22 +1694,22 @@ sap.ui.define([
 		if (iIndex !== undefined) {
 			// the element might have moved due to parallel insert/delete
 			iIndex = _Cache.getElementIndex(aElements, sPredicate, iIndex);
-			aElements.splice(iIndex, 1);
-			addToCount(this.mChangeListeners, sPath, aElements, -1);
 		}
 		if (!bDeleted) {
 			delete aElements.$byPredicate[sPredicate];
 		}
-		if (sTransientPredicate) {
-			aElements.$created -= 1;
-			if (!sPath) {
-				this.iActiveElements -= 1;
+		if (iIndex >= 0) {
+			aElements.splice(iIndex, 1);
+			addToCount(this.mChangeListeners, sPath, aElements, -1);
+			if (sTransientPredicate) {
+				aElements.$created -= 1;
+				if (!sPath) {
+					this.iActiveElements -= 1;
+				}
+				if (!bDeleted) {
+					delete aElements.$byPredicate[sTransientPredicate];
+				}
 			}
-			if (!bDeleted) {
-				delete aElements.$byPredicate[sTransientPredicate];
-			}
-		}
-		if (iIndex !== undefined) {
 			this.adjustIndexes(sPath, aElements, iIndex, -1);
 			if (!sPath && !sTransientPredicate) {
 				this.iLimit -= 1; // this doesn't change Infinity
@@ -1785,7 +1795,7 @@ sap.ui.define([
 		// Note: iStart is not needed here because we know we have a key predicate
 		this.visitResponse(oElement, mTypeForMetaPath,
 			_Helper.getMetaPath(_Helper.buildPath(this.sMetaPath, sPath)), sPath + sPredicate,
-			false, undefined, bKeepReportedMessagesPath);
+			undefined, bKeepReportedMessagesPath);
 	};
 
 	/**
@@ -2319,57 +2329,76 @@ sap.ui.define([
 	};
 
 	/**
-	 * Creates key predicates and updates listeners for nested entity collections after a deep
-	 * create.
+	 * Creates key predicates and rebuilds the nested entity collections after a deep create (in the
+	 * assumption that the response may differ significantly from the request regarding order and
+	 * count).
 	 *
 	 * @param {string} sPath - The path of the created entity within the cache
-	 * @param {object} oEntity - The entity in the cache
+	 * @param {object} oCacheEntity - The entity in the cache
 	 * @param {object} oCreatedEntity - The created entity from the response
+	 * @param {object} mSelectForMetaPath
+	 *   A map of $select properties per meta path of the nested collections
+	 * @returns {boolean} Whether there actually was a deep create
 	 *
 	 * @private
 	 */
-	_Cache.prototype.updateNestedCreates = function (sPath, oEntity, oCreatedEntity) {
-		var that = this;
+	_Cache.prototype.updateNestedCreates = function (sPath, oCacheEntity, oCreatedEntity,
+			mSelectForMetaPath) {
+		var bDeepCreate = false,
+			that = this;
 
-		Object.keys(oEntity).forEach(function (sSegment) {
-			var vCollection = oEntity[sSegment],
-				sCollectionPath,
-				aCreatedCollection,
-				aSelect;
+		if (!mSelectForMetaPath) { // no nested collections -> no deep create
+			return false;
+		}
 
-			if (vCollection && vCollection.$postBodyCollection) {
-				aCreatedCollection = oCreatedEntity[sSegment];
-				if (aCreatedCollection) { // otherwise no create was called in nested list binding
-					sCollectionPath = sPath + "/" + sSegment;
-					aSelect = vCollection.$select
-						|| _Helper.getQueryOptionsForPath(that.mQueryOptions, sCollectionPath)
-							.$select;
-					aCreatedCollection.forEach(function (oCreatedChildEntity, i) {
-						var oChildEntity = vCollection[i],
-							sPredicate
-								= _Helper.getPrivateAnnotation(oCreatedChildEntity, "predicate"),
-							fnResolve = _Helper.getPrivateAnnotation(oChildEntity, "resolve"),
-							sTransientPredicate = _Helper.getPrivateAnnotation(oChildEntity,
-								"transientPredicate");
+		Object.keys(mSelectForMetaPath).filter(function (sMetaPath) {
+			return !sMetaPath.includes("/"); // only look at the direct descendants
+		}).forEach(function (sSegment) {
+			var sCollectionPath = sPath + "/" + sSegment,
+				aNestedCacheEntities,
+				aNestedCreatedEntities = oCreatedEntity[sSegment],
+				sPrefix = sSegment + "/",
+				aSelect,
+				mSelectForChildMetaPath = {};
 
-						_Helper.updateTransientPaths(that.mChangeListeners, sTransientPredicate,
-							sPredicate);
-						vCollection.$byPredicate[sPredicate] = oChildEntity;
-						_Helper.updateSelected(that.mChangeListeners, sCollectionPath + sPredicate,
-							oChildEntity, oCreatedChildEntity, aSelect,
-							/*fnCheckKeyPredicate*/undefined, true);
-						_Helper.deletePrivateAnnotation(oChildEntity, "postBody");
-						_Helper.deletePrivateAnnotation(oChildEntity, "reject");
-						_Helper.deletePrivateAnnotation(oChildEntity, "resolve");
-						_Helper.deletePrivateAnnotation(oChildEntity, "transient");
-						delete oChildEntity["@$ui5.context.isTransient"];
-						fnResolve(oChildEntity); // resolve the create promise
-					});
-				}
-				delete vCollection.$postBodyCollection;
-				delete vCollection.$select;
+			if (!aNestedCreatedEntities) { // create not called in this nested collection
+				// #addTransientEntity added this in preparation of a deep create
+				delete oCacheEntity[sSegment];
+				return;
 			}
+
+			aSelect = mSelectForMetaPath[sSegment]
+				|| _Helper.getQueryOptionsForPath(that.mQueryOptions, sCollectionPath).$select;
+			// rebuild the collection from the response only taking the selected properties
+			oCacheEntity[sSegment] = aNestedCacheEntities
+				= new Array(aNestedCreatedEntities.length);
+			aNestedCacheEntities.$count = undefined; // so that setCount always fires a change event
+			aNestedCacheEntities.$created = 0;
+			aNestedCacheEntities.$byPredicate = {};
+			setCount(that.mChangeListeners, sCollectionPath, aNestedCacheEntities,
+				aNestedCreatedEntities.length);
+			// build the next level
+			Object.keys(mSelectForMetaPath).forEach(function (sMetaPath) {
+				if (sMetaPath.startsWith(sPrefix)) {
+					mSelectForChildMetaPath[sMetaPath.slice(sPrefix.length)]
+						= mSelectForMetaPath[sMetaPath];
+				}
+			});
+			aNestedCreatedEntities.forEach(function (oCreatedChildEntity, i) {
+				var sPredicate = _Helper.getPrivateAnnotation(oCreatedChildEntity, "predicate");
+
+				aNestedCacheEntities.$byPredicate[sPredicate] = aNestedCacheEntities[i] = {};
+				// no change events, the listeners are recreated anyway
+				_Helper.updateSelected({}, sCollectionPath + sPredicate, aNestedCacheEntities[i],
+					oCreatedChildEntity, aSelect, /*fnCheckKeyPredicate*/undefined, true);
+				that.updateNestedCreates(sCollectionPath + sPredicate, aNestedCacheEntities[i],
+					oCreatedChildEntity, mSelectForChildMetaPath);
+			});
+
+			bDeepCreate = true;
 		});
+
+		return bDeepCreate;
 	};
 
 	/**
@@ -2385,8 +2414,6 @@ sap.ui.define([
 	 * @param {string} [sRootMetaPath=this.sMetaPath] The absolute meta path for <code>oRoot</code>
 	 * @param {string} [sRootPath=""] Path to <code>oRoot</code>, relative to the cache; used to
 	 *   compute the target property of messages
-	 * @param {boolean} [bKeepTransientPath] Whether the transient path shall be used to report
-	 *   messages
 	 * @param {number} [iStart]
 	 *   The index in the collection where "oRoot.value" needs to be inserted or undefined if
 	 *   "oRoot" references a single entity.
@@ -2398,7 +2425,7 @@ sap.ui.define([
 	 * @private
 	 */
 	_Cache.prototype.visitResponse = function (oRoot, mTypeForMetaPath, sRootMetaPath, sRootPath,
-			bKeepTransientPath, iStart, bKeepReportedMessagesPath) {
+			iStart, bKeepReportedMessagesPath) {
 		var aCachePaths,
 			bHasMessages = false,
 			mPathToODataMessages = {},
@@ -2496,7 +2523,7 @@ sap.ui.define([
 			sPredicate = that.calculateKeyPredicate(oInstance, mTypeForMetaPath, sMetaPath);
 			if (iIndex !== undefined) {
 				sInstancePath = _Helper.buildPath(sInstancePath, sPredicate || iIndex);
-			} else if (!bKeepTransientPath && sPredicate) {
+			} else if (sPredicate) {
 				aMatches = rEndsWithTransientPredicate.exec(sInstancePath);
 				if (aMatches) {
 					sInstancePath = sInstancePath.slice(0, -aMatches[0].length) + sPredicate;
@@ -2656,27 +2683,6 @@ sap.ui.define([
 				}
 			}
 		}
-	};
-
-	/**
-	 * Creates an empty element for the given predicate to the cache, adds it to the cache and
-	 * returns it.
-	 *
-	 * @param {string} sPredicate - The predicate
-	 * @returns {object} The empty element
-	 * @throws {Error}
-	 *   If the cache is shared
-	 *
-	 * @public
-	 */
-	_CollectionCache.prototype.createEmptyElement = function (sPredicate) {
-		var oElement = {};
-
-		this.checkSharedRequest();
-		_Helper.setPrivateAnnotation(oElement, "predicate", sPredicate);
-		this.aElements.$byPredicate[sPredicate] = oElement;
-
-		return oElement;
 	};
 
 	/**
@@ -3016,6 +3022,8 @@ sap.ui.define([
 	 *   A map from meta path to the entity type (as delivered by {@link #fetchTypes})
 	 * @returns {number}
 	 *   The number of newly created elements filtered out from the given result
+	 * @throws {Error}
+	 *   If a kept-alive element has been modified on both client and server
 	 *
 	 * @private
 	 */
@@ -3030,7 +3038,7 @@ sap.ui.define([
 			i;
 
 		this.sContext = oResult["@odata.context"];
-		this.visitResponse(oResult, mTypeForMetaPath, undefined, undefined, undefined, iStart);
+		this.visitResponse(oResult, mTypeForMetaPath, undefined, undefined, iStart);
 		for (i = 0; i < iResultLength; i += 1) {
 			oElement = oResult.value[i];
 			sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
@@ -3038,7 +3046,7 @@ sap.ui.define([
 				oKeptElement = aElements.$byPredicate[sPredicate];
 				if (oKeptElement) {
 					// only check for ETag change if the cache contains one; otherwise either the
-					// cache element is empty (via #createEmptyElement) or the server did not send
+					// cache element is empty (via #addKeptElement) or the server did not send
 					// one last time
 					if (!oKeptElement["@odata.etag"]
 							|| oElement["@odata.etag"] === oKeptElement["@odata.etag"]) {
@@ -3053,7 +3061,7 @@ sap.ui.define([
 					} else if (this.hasPendingChangesForPath(sPredicate)) {
 						throw new Error("Modified on client and on server: "
 							+ this.sResourcePath + sPredicate);
-					} // else: if POST and GET are in the same $batch, ETag cannot differ!
+					} // else: ETag changed, ignore kept element!
 				}
 				aElements.$byPredicate[sPredicate] = oElement;
 			}
@@ -3250,6 +3258,8 @@ sap.ui.define([
 	 * @param {function(string,number)} fnOnRemove
 	 *   A function which is called with predicate and index if a kept-alive or created element does
 	 *   no longer exist after refresh; the index is undefined for a non-created element
+	 * @param {boolean} [bDropApply]
+	 *   Whether to drop the "$apply" system query option from the resulting GET
 	 * @returns {Promise|undefined}
 	 *   A promise resolving without a defined result, or rejecting with an error if the refresh
 	 *   fails, or <code>undefined</code> if there are no kept-alive elements.
@@ -3258,7 +3268,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 */
-	_CollectionCache.prototype.refreshKeptElements = function (oGroupLock, fnOnRemove) {
+	_CollectionCache.prototype.refreshKeptElements = function (oGroupLock, fnOnRemove, bDropApply) {
 		var that = this,
 			// Note: at this time only kept-alive and created elements are in the cache, but we
 			// don't care if $byPredicate still contains two entries for the same element
@@ -3277,6 +3287,9 @@ sap.ui.define([
 
 			if (that.mLateQueryOptions) {
 				_Helper.aggregateExpandSelect(mQueryOptions, that.mLateQueryOptions);
+			}
+			if (bDropApply) {
+				delete mQueryOptions.$apply;
 			}
 			delete mQueryOptions.$count;
 			delete mQueryOptions.$orderby;
@@ -3297,8 +3310,10 @@ sap.ui.define([
 		}
 
 		/*
-		 * Tells whether a refresh is needed for the given predicate. Transient predicates and
-		 * elements with pending changes need no refresh.
+		 * Tells whether a refresh is needed for the given predicate. Transient predicates,
+		 * elements with pending changes, and empty elements just created via
+		 * {@link sap.ui.model.odata.v4.ODataModel#getKeepAliveContext} but not yet read, need no
+		 * refresh.
 		 *
 		 * @param {string} sPredicate - A key predicate
 		 * @returns {boolean} - Whether a refresh is needed
@@ -3307,6 +3322,7 @@ sap.ui.define([
 			var oElement = that.aElements.$byPredicate[sPredicate];
 
 			return _Helper.getPrivateAnnotation(oElement, "predicate") === sPredicate
+				&& Object.keys(oElement).length > 1 // entity has key properties
 				&& !that.hasPendingChangesForPath(sPredicate);
 		}
 
@@ -3321,7 +3337,7 @@ sap.ui.define([
 			.then(function (oResponse) {
 				var mStillAliveElements;
 
-				that.visitResponse(oResponse, mTypes, undefined, undefined, undefined, 0);
+				that.visitResponse(oResponse, mTypes, undefined, undefined, 0);
 				mStillAliveElements = oResponse.value.$byPredicate || {};
 
 				aPredicates.forEach(function (sPredicate) {
@@ -3334,6 +3350,7 @@ sap.ui.define([
 					} else {
 						oElement = that.aElements.$byPredicate[sPredicate];
 						if (_Helper.hasPrivateAnnotation(oElement, "transientPredicate")) {
+							// Note: iIndex unknown, use -1 instead
 							iIndex = that.removeElement(that.aElements, -1, sPredicate, "");
 						} else {
 							delete that.aElements.$byPredicate[sPredicate];
@@ -3510,7 +3527,7 @@ sap.ui.define([
 				}
 				// Note: iStart makes no sense here (use NaN instead), but is not needed because
 				// we know we have key predicates
-				that.visitResponse(oResult, mTypeForMetaPath, undefined, "", false, NaN, true);
+				that.visitResponse(oResult, mTypeForMetaPath, undefined, "", NaN, true);
 				for (i = 0, n = oResult.value.length; i < n; i += 1) {
 					oElement = oResult.value[i];
 					sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
@@ -3535,13 +3552,22 @@ sap.ui.define([
 	 *   The group ID used for a side-effects refresh; if given, only inline creation
 	 *   rows and transient elements with a different batch group shall be kept in place and a
 	 *   backup shall be remembered for a later {@link #restore}
+	 * @param {object} [mQueryOptions]
+	 *   The new query options
+	 * @param {object} [_oAggregation]
+	 *   An object holding the information needed for data aggregation; see also "OData Extension
+	 *   for Data Aggregation Version 4.0"; must already be normalized by
+	 *   {@link _AggregationHelper.buildApply}
+	 * @param {boolean} [_bIsGrouped]
+	 *   Whether the list binding is grouped via its first sorter
 	 * @throws {Error}
 	 *   If a cache is shared and a group ID is given
 	 *
 	 * @public
 	 * @see _Cache#hasPendingChangesForPath
 	 */
-	_CollectionCache.prototype.reset = function (aKeptElementPredicates, sGroupId) {
+	_CollectionCache.prototype.reset = function (aKeptElementPredicates, sGroupId, mQueryOptions,
+			_oAggregation, _bIsGrouped) {
 		var mByPredicate = this.aElements.$byPredicate,
 			mChangeListeners = this.mChangeListeners,
 			iCreated = 0, // index (and finally number) of created elements that we keep
@@ -3562,6 +3588,10 @@ sap.ui.define([
 				$created : this.aElements.$created,
 				iLimit : this.iLimit
 			};
+		}
+
+		if (mQueryOptions) {
+			this.setQueryOptions(mQueryOptions, true);
 		}
 
 		for (i = 0; i < this.aElements.$created; i += 1) {

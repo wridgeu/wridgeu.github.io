@@ -71,7 +71,7 @@ sap.ui.define([
 				}
 
 				oRm.openEnd()
-					.text(i + 1)
+
 					.close("span");
 			}
 		} else {
@@ -97,7 +97,6 @@ sap.ui.define([
 	PaginatorRenderer._renderArrow = function (oRm, oControl, sDirection) {
 		oRm.openStart("div")
 			.class("sapMCrsl" + capitalize(sDirection.slice(0, 4)))
-			.attr("title", oResourceBundle.getText("PAGINGBUTTON_" + sDirection.toUpperCase()))
 			.openEnd();
 
 		oRm.openStart("div")

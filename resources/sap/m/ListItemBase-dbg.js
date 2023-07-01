@@ -78,7 +78,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -401,9 +401,10 @@ function(
 	ListItemBase.prototype.getAccessibilityDescription = function(oBundle) {
 		var aOutput = [],
 			sType = this.getType(),
-			sHighlight = this.getHighlight();
+			sHighlight = this.getHighlight(),
+			bIsTree = this.getListProperty("ariaRole") === "tree";
 
-		if (this.getSelected()) {
+		if (this.getSelected() && !bIsTree) {
 			aOutput.push(oBundle.getText("LIST_ITEM_SELECTED"));
 		}
 
@@ -446,7 +447,7 @@ function(
 			sContentAnnouncement && aOutput.push(sContentAnnouncement);
 		}
 
-		if (this.getListProperty("ariaRole") != "listbox" && this.isSelectable() && !this.getSelected()) {
+		if (this.getListProperty("ariaRole") !== "listbox" && !bIsTree && this.isSelectable() && !this.getSelected()) {
 			aOutput.push(oBundle.getText("LIST_ITEM_NOT_SELECTED"));
 		}
 
@@ -961,7 +962,7 @@ function(
 		var oSelection = window.getSelection(),
 			sTextSelection = oSelection.toString().replace("\n", "");
 
-		return sTextSelection && jQuery.contains(oDomRef, oSelection.focusNode);
+		return sTextSelection && (oDomRef !== oSelection.focusNode && oDomRef.contains(oSelection.focusNode));
 	};
 
 	ListItemBase.prototype.ontap = function(oEvent) {
@@ -1271,14 +1272,21 @@ function(
 	ListItemBase.prototype.onsaptabnext = function(oEvent) {
 		// check whether event is marked or not
 		var oList = this.getList();
-		if (!oList || oEvent.isMarked() || oList.getKeyboardMode() == ListKeyboardMode.Edit) {
+		if (!oList || oList.getKeyboardMode() == ListKeyboardMode.Edit) {
+			return;
+		}
+
+		var oTarget = oEvent.target;
+		if (document.activeElement.matches(".sapMListDummyArea")) {
+			oTarget = document.activeElement;
+		} else if (oEvent.isMarked()) {
 			return;
 		}
 
 		// if tab key is pressed while the last tabbable element of the list item
 		// has been focused, we forward tab to the last pseudo element of the table
 		var oLastTabbableDomRef = this.getTabbables().get(-1) || this.getDomRef();
-		if (oEvent.target === oLastTabbableDomRef) {
+		if (oTarget === oLastTabbableDomRef) {
 			oList.forwardTab(true);
 			oEvent.setMarked();
 		}

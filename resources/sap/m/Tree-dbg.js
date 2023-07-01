@@ -41,7 +41,7 @@ function(
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -84,6 +84,7 @@ function(
 	});
 
 	Tree.prototype.init = function() {
+		ListBase.prototype.init.apply(this, arguments);
 		this._oProxy = new TreeBindingProxy(this, "items");
 	};
 
@@ -177,6 +178,11 @@ function(
 	Tree.prototype.onAfterRendering = function() {
 		ListBase.prototype.onAfterRendering.apply(this, arguments);
 		this._bInvalidated = false;
+	};
+
+	Tree.prototype.exit = function() {
+		ListBase.prototype.exit.apply(this, arguments);
+		this._oProxy = null;
 	};
 
 	Tree.prototype._updateDeepestLevel = function(oItem) {

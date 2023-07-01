@@ -72,6 +72,15 @@
 
 	function noop() {}
 
+	var aEarlyLogs = [];
+
+	function earlyLog(level, message) {
+		aEarlyLogs.push({
+			level: level,
+			message: message
+		});
+	}
+
 	function forEach(obj, callback) {
 		Object.keys(obj).forEach(function(key) {
 			callback(key, obj[key]);
@@ -100,13 +109,14 @@
 	 * @type {{debug:function(),info:function(),warning:function(),error:function(),isLoggable:function():boolean}}
 	 * @private
 	 */
+
 	var log = {
-		debug: noop,
-		info: noop,
-		warning: noop,
-		error: noop,
+		debug: earlyLog.bind(this, 'debug'),
+		info: earlyLog.bind(this, 'info'),
+		warning: earlyLog.bind(this, 'warning'),
+		error: earlyLog.bind(this, 'error'),
 		isLoggable: noop
-	}; // Null Object pattern: dummy logger which is used as long as no logger is injected
+	};
 
 	/**
 	 * Basic assert functionality.
@@ -2571,6 +2581,9 @@
 			},
 			set: function(v) {
 				log = v;
+				aEarlyLogs.forEach(function(earlyLog) {
+					log[earlyLog.level](earlyLog.message);
+				});
 			}
 		},
 		measure: {
@@ -2814,7 +2827,7 @@
 		 *   defined to be asynchronous, it can not be changed to synchronous behaviour again, also not
 		 *   via setting <code>amd</code> to false.
 		 *
-		 * @returns {object|undefined} UI5 loader configuration in use.
+		 * @returns {{amd: boolean, async: boolean, noConflict: boolean}|undefined} UI5 loader configuration in use.
 		 * @throws {Error} When trying to switch back from async mode to sync mode.
 		 * @public
 		 * @since 1.56.0
@@ -3145,7 +3158,7 @@
 	 * @param {string} [sModuleName] ID of the module in simplified resource name syntax.
 	 *        When omitted, the loader determines the ID from the request.
 	 * @param {string[]} [aDependencies] List of dependencies of the module
-	 * @param {function|any} vFactory The module export value or a function that calculates that value
+	 * @param {function(...any):any|any} vFactory The module export value or a function that calculates that value
 	 * @param {boolean} [bExport] Whether an export to global names is required - should be used by SAP-owned code only
 	 * @since 1.27.0
 	 * @public
@@ -3210,8 +3223,8 @@
 	 * Relative module names are not supported.
 	 *
 	 * @param {string|string[]} vDependencies Dependency (dependencies) to resolve
-	 * @param {function} [fnCallback] Callback function to execute after resolving an array of dependencies
-	 * @param {function} [fnErrback] Callback function to execute if an error was detected while loading the
+	 * @param {function(...any)} [fnCallback] Callback function to execute after resolving an array of dependencies
+	 * @param {function(Error)} [fnErrback] Callback function to execute if an error was detected while loading the
 	 *                      dependencies or executing the factory function. Note that due to browser restrictions
 	 *                      not all errors will be reported via this callback. In general, module loading is
 	 *                      designed for the non-error case. Error handling is not complete.

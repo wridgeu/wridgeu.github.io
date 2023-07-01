@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.ObjectListField
 	 * @author SAP SE
 	 * @since 1.100.0
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @private
 	 * @experimental since 1.100.0
 	 * @ui5-restricted
@@ -119,11 +119,11 @@ sap.ui.define([
 		}
 	};
 
-	ObjectListField.prototype.buildSelectionColumnLables = function() {
+	ObjectListField.prototype.buildSelectionColumnLabels = function() {
 		var that = this;
 		var oConfig = that.getConfiguration();
 		var oResourceBundle = that.getResourceBundle();
-		return new CheckBox({
+		return new CheckBox(that.getParameterId() + "_control_table_column_selection_label_all_checkbox",{
 			selected: "{/_allSelected}",
 			visible: typeof oConfig.values !== "undefined",
 			tooltip: {

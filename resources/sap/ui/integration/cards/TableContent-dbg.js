@@ -8,6 +8,7 @@ sap.ui.define([
 	"./BaseListContent",
 	"./TableContentRenderer",
 	"sap/ui/integration/library",
+	"sap/f/cards/loading/TablePlaceholder",
 	"sap/m/Table",
 	"sap/m/Column",
 	"sap/m/ColumnListItem",
@@ -15,7 +16,7 @@ sap.ui.define([
 	"sap/m/Link",
 	"sap/m/ProgressIndicator",
 	"sap/m/ObjectIdentifier",
-	"sap/m/ObjectStatus",
+	"sap/ui/integration/controls/ObjectStatus",
 	"sap/m/Avatar",
 	"sap/ui/core/library",
 	"sap/m/library",
@@ -26,6 +27,7 @@ sap.ui.define([
 	BaseListContent,
 	TableContentRenderer,
 	library,
+	TablePlaceholder,
 	ResponsiveTable,
 	Column,
 	ColumnListItem,
@@ -77,7 +79,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private
@@ -110,6 +112,21 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * @override
+	 */
+	TableContent.prototype.createLoadingPlaceholder = function (oConfiguration) {
+		var oCard = this.getCardInstance(),
+			iContentMinItems = oCard.getContentMinItems(oConfiguration);
+
+		return new TablePlaceholder({
+			minItems: iContentMinItems !== null ? iContentMinItems : 2,
+			itemHeight: TableContentRenderer.getItemMinHeight(oConfiguration, this) + "rem",
+			columns: oConfiguration.row ? oConfiguration.row.columns.length || 2 : 2
+		});
+	};
+
+
 	TableContent.prototype._getTable = function () {
 		if (this._bIsBeingDestroyed) {
 			return null;
@@ -120,7 +137,8 @@ sap.ui.define([
 		if (!oTable) {
 			oTable = new ResponsiveTable({
 				id: this.getId() + "-Table",
-				showSeparators: ListSeparators.None
+				showSeparators: ListSeparators.None,
+				ariaLabelledBy: this.getHeaderTitleId()
 			});
 
 			oTable.addEventDelegate({
@@ -149,24 +167,23 @@ sap.ui.define([
 	/**
 	 * @override
 	 */
-	TableContent.prototype.setConfiguration = function (oConfiguration) {
-		BaseListContent.prototype.setConfiguration.apply(this, arguments);
-		oConfiguration = this.getParsedConfiguration();
+	TableContent.prototype.applyConfiguration = function () {
+		BaseListContent.prototype.applyConfiguration.apply(this, arguments);
+
+		var oConfiguration = this.getParsedConfiguration();
 
 		if (!oConfiguration) {
-			return this;
+			return;
 		}
 
 		if (oConfiguration.rows && oConfiguration.columns) {
 			this._setStaticColumns(oConfiguration.rows, oConfiguration.columns);
-			return this;
+			return;
 		}
 
 		if (oConfiguration.row && oConfiguration.row.columns) {
 			this._setColumns(oConfiguration.row);
 		}
-
-		return this;
 	};
 
 	/**
@@ -245,7 +262,8 @@ sap.ui.define([
 	 * Handler for when data is changed.
 	 */
 	TableContent.prototype.onDataChanged = function () {
-		this._handleNoItemsError(this.getParsedConfiguration().row);
+		BaseListContent.prototype.onDataChanged.apply(this, arguments);
+
 		this._checkHiddenNavigationItems(this.getParsedConfiguration().row);
 	};
 
@@ -273,7 +291,9 @@ sap.ui.define([
 
 		this._oItemTemplate = new ColumnListItem({
 			cells: aCells,
-			vAlign: VerticalAlign.Middle
+			vAlign: VerticalAlign.Middle,
+			highlight: oRow.highlight,
+			highlightText: oRow.highlightText
 		});
 
 		this._oActions.attach({
@@ -312,7 +332,9 @@ sap.ui.define([
 
 		aRows.forEach(function (oRow) {
 			var oItem = new ColumnListItem({
-				vAlign: VerticalAlign.Middle
+				vAlign: VerticalAlign.Middle,
+				highlight: oRow.highlight,
+				highlightText: oRow.highlightText
 			});
 
 			if (oRow.cells && Array.isArray(oRow.cells)) {
@@ -351,7 +373,7 @@ sap.ui.define([
 
 		if (oColumn.identifier) {
 			if (typeof oColumn.identifier == "object") {
-				if (!BindingResolver.isBindingInfo(oColumn.identifier)) {
+				if (!BindingHelper.isBindingInfo(oColumn.identifier)) {
 					Log.warning("Usage of object type for column property 'identifier' is deprecated.", null, "sap.ui.integration.widgets.Card");
 				}
 
@@ -367,7 +389,8 @@ sap.ui.define([
 			}
 
 			oControl = new ObjectIdentifier({
-				title: oColumn.value
+				title: oColumn.value,
+				text: oColumn.additionalText
 			});
 
 			if (oColumn.actions) {
@@ -417,7 +440,9 @@ sap.ui.define([
 		if (oColumn.state) {
 			return new ObjectStatus({
 				text: oColumn.value,
-				state: oColumn.state
+				state: oColumn.state,
+				showStateIcon: oColumn.showStateIcon,
+				icon: oColumn.customStateIcon
 			});
 		}
 

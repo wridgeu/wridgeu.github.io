@@ -7,8 +7,9 @@ sap.ui.define([
 	"sap/ui/integration/util/RequestDataProvider",
 	"sap/base/Log",
 	"sap/ui/core/Core",
-	"sap/base/util/merge"
-], function (RequestDataProvider, Log, Core, merge) {
+	"sap/base/util/merge",
+	"sap/ui/core/date/UI5Date"
+], function (RequestDataProvider, Log, Core, merge, UI5Date) {
 	"use strict";
 	/*global URL*/
 
@@ -111,19 +112,19 @@ sap.ui.define([
 		var pRequestPromise,
 			oCardHeader = this.getCardInstanceHeader();
 
-		this._sCurrentRequestFullUrl = getFullUrl(oRequest);
+		this._sCurrentRequestFullUrl = getFullUrl(oRequest.url);
 
 		this._subscribeToHostMessages();
 
 		pRequestPromise = RequestDataProvider.prototype._request.apply(this, arguments);
 
 		pRequestPromise.then(function (vResult) {
-			var jqXHR = vResult[1],
-				sDate = jqXHR.getResponseHeader("Date");
+			var oResponse = vResult[1],
+				sDate = oResponse.headers.get("Date");
 
 			if (sDate && oCardHeader) {
 				this._attachTimestampPress();
-				oCardHeader.setDataTimestamp((new Date(sDate)).toISOString());
+				oCardHeader.setDataTimestamp((UI5Date.getInstance(sDate)).toISOString());
 			}
 		}.bind(this));
 

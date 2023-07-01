@@ -50,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.editor.Editor
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @constructor
 	 * @see {@link topic:5b46b03f024542ba802d99d67bc1a3f4 Cards}
 	 * @since 1.83
@@ -142,7 +142,7 @@ sap.ui.define([
 				if (!instance) { //not a card instance, but a string
 					//could be a card dom element id
 					var element = document.getElementById(vCardIdOrSettings);
-					if (element && element.tagName && element.tagName === "ui-integration-card") {
+					if (element && element.tagName && element.tagName.toUpperCase() === "ui-integration-card".toUpperCase()) {
 						instance = element._getControl();
 					}
 				}

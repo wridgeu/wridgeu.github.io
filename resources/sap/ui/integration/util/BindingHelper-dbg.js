@@ -42,7 +42,7 @@ sap.ui.define([
 	 * Helper class for working with bindings.
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.BindingHelper
@@ -204,28 +204,48 @@ sap.ui.define([
 
 	/**
 	 * Adds prefix to a binding info and its parts (if such exist).
-	 * @param {*} vBindingInfo Binding info object or text/boolean/etc if there is no binding syntax.
+	 * @param {*} vItem Binding info, array of binding infos, or string/boolean/etc. If it is array or object, it will be processed recursively.
 	 * @param {*} sPath The path to add as prefix to all relative paths.
-	 * @returns {*} If binding info is given, a copy of it will be returned with new paths, else the value is not modified.
+	 * @returns {*} If binding info or array of binding infos is given, a copy of it will be returned with new paths, else the value is not modified.
 	 */
-	BindingHelper.prependRelativePaths = function(vBindingInfo, sPath) {
-		if (typeof vBindingInfo !== "object") {
-			return vBindingInfo;
+	BindingHelper.prependRelativePaths = function(vItem, sPath) {
+		if (!vItem) {
+			return vItem;
 		}
 
-		var oBindingInfoClone = extend({}, vBindingInfo);
+		if (BindingHelper.isBindingInfo(vItem)) {
+			var oBindingInfoClone = extend({}, vItem);
 
-		if (oBindingInfoClone.path && !this.isAbsolutePath(oBindingInfoClone.path)) {
-			oBindingInfoClone.path = sPath + "/" + oBindingInfoClone.path;
+			if (oBindingInfoClone.path && !this.isAbsolutePath(oBindingInfoClone.path)) {
+				oBindingInfoClone.path = sPath + "/" + oBindingInfoClone.path;
+			}
+
+			if (oBindingInfoClone.parts) {
+				oBindingInfoClone.parts = oBindingInfoClone.parts.map(function (oBindingInfo) {
+					return BindingHelper.prependRelativePaths(oBindingInfo, sPath);
+				});
+			}
+
+			return oBindingInfoClone;
 		}
 
-		if (oBindingInfoClone.parts) {
-			oBindingInfoClone.parts = oBindingInfoClone.parts.map(function (oBindingInfo) {
-				return BindingHelper.prependRelativePaths(oBindingInfo, sPath);
+		if (Array.isArray(vItem)) {
+			return vItem.map(function (vItem) {
+				return BindingHelper.prependRelativePaths(vItem, sPath);
 			});
 		}
 
-		return oBindingInfoClone;
+		if (typeof vItem === "object") {
+			var oItemCopy = {};
+
+			for (var sKey in vItem) {
+				oItemCopy[sKey] = BindingHelper.prependRelativePaths(vItem[sKey], sPath);
+			}
+
+			return oItemCopy;
+		}
+
+		return vItem;
 	};
 
 	/**
@@ -269,6 +289,15 @@ sap.ui.define([
 		}
 
 		return vBindingInfo;
+	};
+
+	BindingHelper.isBindingInfo = function (oObj) {
+
+		if (!oObj) {
+			return false;
+		}
+
+		return oObj.hasOwnProperty("path") || (oObj.hasOwnProperty("parts") && (oObj.hasOwnProperty("formatter") || oObj.hasOwnProperty("binding")));
 	};
 
 	return BindingHelper;

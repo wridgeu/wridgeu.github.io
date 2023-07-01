@@ -93,7 +93,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.TreeBinding
 	 * @hideconstructor
 	 * @public
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 */
 	var ODataTreeBinding = TreeBinding.extend("sap.ui.model.odata.v2.ODataTreeBinding", /** @lends sap.ui.model.odata.v2.ODataTreeBinding.prototype */ {
 
@@ -120,10 +120,14 @@ sap.ui.define([
 
 			this.mNormalizeCache = {};
 
+			vFilters = vFilters || [];
 			// The ODataTreeBinding expects there to be only an array in this.aApplicationFilters later on.
 			// Wrap the given application filters inside an array if necessary
 			if (vFilters instanceof Filter) {
 				vFilters = [vFilters];
+			}
+			if (vFilters.length > 1) {
+				vFilters = [FilterProcessor.groupFilters(vFilters)];
 			}
 			this.aApplicationFilters = vFilters;
 
@@ -1630,6 +1634,9 @@ sap.ui.define([
 		if (sFilterType === FilterType.Control) {
 			this.aFilters = aFilters;
 		} else {
+			if (aFilters.length > 1) {
+				aFilters = [FilterProcessor.groupFilters(aFilters)];
+			}
 			this.aApplicationFilters = aFilters;
 		}
 
@@ -2511,6 +2518,22 @@ sap.ui.define([
 		}
 
 		return this.sFilterParams;
+	};
+
+	/**
+	 * Returns the filter information as an AST.
+	 *
+	 * @param {boolean} bIncludeOrigin
+	 *   Whether to include information about the filter objects from which the tree has been created
+	 * @returns {object|null} The AST of the filter tree or null if no filter is set
+	 * @private
+	 * @override
+	 * @ui5-restricted sap.ui.table, sap.ui.export
+	 */
+	ODataTreeBinding.prototype.getFilterInfo = function (bIncludeOrigin) {
+		return this.aApplicationFilters[0]
+			? this.aApplicationFilters[0].getAST(bIncludeOrigin)
+			: null;
 	};
 
 	/**

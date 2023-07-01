@@ -5,7 +5,7 @@
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
-			"version": "1.25.0"
+			"version": "1.25.1"
 		},
 		"serviceWorker": {
             "file" : "sw.js",
@@ -49,7 +49,7 @@
 			"id": "app"
 		},
 		"dependencies": {
-			"minUI5Version": "1.112.3",
+			"minUI5Version": "1.115.0",
 			"libs": {
 				"sap.m": {},
 				"sap.ui.core": {},

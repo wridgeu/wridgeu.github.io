@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.EventProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @since 1.104
@@ -73,13 +73,13 @@ sap.ui.define([
 	 * Fires an {@link sap.ui.base.Event event} with the given settings and notifies all attached event handlers.
 	 *
 	 * @param {sap.ui.core.Control} oControl The control instance
-	 * @param {object} oState The updated state
+	 * @param {object} oFullState The updated state after change processing
 	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 */
-	StateHandlerRegistry.prototype.fireChange = function(oControl, oState) {
+	StateHandlerRegistry.prototype.fireChange = function(oControl, oFullState) {
 		return EventProvider.prototype.fireEvent.call(this, "stateChange", {
 			control: oControl,
-			state: oState
+			state: oFullState
 		});
 	};
 

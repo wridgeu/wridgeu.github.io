@@ -9,6 +9,7 @@ sap.ui.define([
 	"sap/ui/core/Core",
 	"sap/ui/core/Element",
 	"sap/ui/core/InvisibleText",
+	"sap/ui/core/ResizeHandler",
 	"sap/ui/Device",
 	"sap/m/ColumnPopoverActionItem",
 	"sap/m/table/columnmenu/QuickAction",
@@ -19,6 +20,7 @@ sap.ui.define([
 	Core,
 	Element,
 	InvisibleText,
+	ResizeHandler,
 	Device,
 	ColumnPopoverActionItem,
 	QuickAction,
@@ -40,7 +42,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @public
 	 * @since 1.91
@@ -106,6 +108,11 @@ sap.ui.define([
 			this._$Container.removeClass(CSS_CLASS + "Container").off("." + CSS_CLASS);
 			this._$Container.find(this.getConfig("resizable")).removeClass(CSS_CLASS + "Resizable");
 			this._updateAriaDescribedBy("remove");
+
+			if (this._sResizerID) {
+				ResizeHandler.deregister(this._sResizerID);
+				this._sResizerID = null;
+			}
 		}
 	};
 
@@ -116,6 +123,7 @@ sap.ui.define([
 		this._aResizables = this._$Container.find(this.getConfig("resizable")).addClass(CSS_CLASS + "Resizable").get();
 		this._updateAriaDescribedBy("add");
 		this._invalidatePositions();
+		this._sResizerID = ResizeHandler.register(this.getControl().getDomRef(), this._invalidatePositions.bind(this));
 	};
 
 	/**
@@ -454,7 +462,7 @@ sap.ui.define([
 		var oSelection = window.getSelection(),
 			sTextSelection = oSelection.toString().replace("/n", "");
 
-		return sTextSelection && jQuery.contains(oDomRef, oSelection.focusNode);
+		return sTextSelection && (oDomRef !== oSelection.focusNode && oDomRef.contains(oSelection.focusNode));
 	};
 
 	/**
@@ -566,7 +574,7 @@ sap.ui.define([
 
 				// rerendering of the table is required if _vOrigFixedLayout == "Strict", since the focusable DOM must be removed
 				if (this._vOrigFixedLayout == "Strict") {
-					oTable.rerender();
+					oTable.invalidate();
 				}
 
 				delete this._vOrigFixedLayout;

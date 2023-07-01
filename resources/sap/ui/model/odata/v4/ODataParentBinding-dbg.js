@@ -333,19 +333,27 @@ sap.ui.define([
 	 * @param {object} mParameters
 	 *   Map of binding parameters, see {@link sap.ui.model.odata.v4.ODataModel#bindList} and
 	 *   {@link sap.ui.model.odata.v4.ODataModel#bindContext}
-	 * @throws {Error}
-	 *   If there are pending changes that cannot be ignored or if <code>mParameters</code> is
-	 *   missing, contains binding-specific or unsupported parameters, contains unsupported values,
-	 *   or contains the property "$expand" or "$select" when the model is in auto-$expand/$select
-	 *   mode. Since 1.90.0, binding-specific parameters are ignored if they are unchanged. Since
-	 *   1.93.0, string values for "$expand" and "$select" are ignored if they are unchanged;
-	 *   pending changes are ignored if all parameters are unchanged. Since 1.97.0, pending changes
-	 *   are ignored if they relate to a
-	 *   {@link sap.ui.model.odata.v4.Context#isKeepAlive kept-alive} context of this binding.
-	 *   Since 1.98.0, {@link sap.ui.model.odata.v4.Context#isTransient transient} contexts
-	 *   of a {@link #getRootBinding root binding} do not count as pending changes. Since 1.108.0,
-	 *   {@link sap.ui.model.odata.v4.Context#delete deleted} contexts do not count as pending
-	 *   changes.
+	 * @throws {Error} If
+	 *   <ul>
+	 *     <li> there are pending changes that cannot be ignored,
+	 *     <li> the binding is {@link #isTransient transient} (part of a
+	 *       {@link sap.ui.model.odata.v4.ODataListBinding#create deep create}),
+	 *     <li> <code>mParameters</code> is missing, contains binding-specific or unsupported
+	 *       parameters, contains unsupported values, or contains the property "$expand" or
+	 *       "$select" when the model is in auto-$expand/$select mode.
+	 *   </ul>
+	 *   The following exceptions apply:
+	 *   <ul>
+	 *     <li> Since 1.90.0, binding-specific parameters are ignored if they are unchanged.
+	 *     <li> Since 1.93.0, string values for "$expand" and "$select" are ignored if they are
+	 *       unchanged; pending changes are ignored if all parameters are unchanged.
+	 *     <li> Since 1.97.0, pending changes are ignored if they relate to a
+	 *       {@link sap.ui.model.odata.v4.Context#isKeepAlive kept-alive} context of this binding.
+	 *     <li> Since 1.98.0, {@link sap.ui.model.odata.v4.Context#isTransient transient} contexts
+	 *       of a {@link #getRootBinding root binding} do not count as pending changes.
+	 *     <li> Since 1.108.0, {@link sap.ui.model.odata.v4.Context#delete deleted} contexts do not
+	 *       count as pending changes.
+	 *   </ul>
 	 *
 	 * @public
 	 * @since 1.45.0
@@ -386,13 +394,14 @@ sap.ui.define([
 			}
 		}
 
+		this.checkTransient();
 		if (!mParameters) {
 			throw new Error("Missing map of binding parameters");
 		}
 
 		for (sKey in mParameters) {
 			if (sKey.startsWith("$$")) {
-				if (mParameters[sKey] === mBindingParameters[sKey]) {
+				if (this.isUnchangedParameter(sKey, mParameters[sKey])) {
 					continue; // ignore unchanged binding-specific parameters
 				}
 				throw new Error("Unsupported parameter: " + sKey);
@@ -419,11 +428,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Checks whether the given context may be kept alive.
+	 * Checks whether the given context (or any context of this binding) may be kept alive.
 	 *
-	 * @param {sap.ui.model.odata.v4.Context} oContext
+	 * @param {sap.ui.model.odata.v4.Context} [oContext]
 	 *   A context of this binding
-	 * @throws {Error} If <code>oContext.setKeepAlive()</code> is not allowed
+	 * @param {boolean} [bKeepAlive]
+	 *   Whether to keep the given context alive
+	 * @throws {Error}
+	 *   If <code>oContext.setKeepAlive(bKeepAlive)</code> is not allowed for the given (or any)
+	 *   context
 	 *
 	 * @abstract
 	 * @function
@@ -721,6 +734,7 @@ sap.ui.define([
 			iIndex = oContext.getIndex(),
 			bIsAdvertisement = sChildPath[0] === "#",
 			oMetaModel = this.oModel.getMetaModel(),
+			oParentContext = this.oContext, // Note: might disappear later on
 			aPromises,
 			sResolvedChildPath = this.oModel.resolve(sChildPath, oContext),
 			that = this;
@@ -760,7 +774,7 @@ sap.ui.define([
 		}
 
 		if (bDependsOnOperation && !sResolvedChildPath.includes("/$Parameter/")
-				|| this.getRootBinding().isSuspended()
+				|| this.isRootBindingSuspended()
 				|| _Helper.isDataAggregation(this.mParameters)) {
 			// With data aggregation, no auto-$expand/$select is needed, but the child may still use
 			// the parent's cache
@@ -772,11 +786,11 @@ sap.ui.define([
 		// become pending again
 		bCacheImmutable = this.oCachePromise.isRejected()
 			|| iIndex !== undefined && iIndex !== Context.VIRTUAL
-			|| oContext.isKeepAlive() // kept-alive contexts have no index when not in aContexts
+			|| oContext.isEffectivelyKeptAlive() // no index when not in aContexts
 			|| this.oCache === null
 			|| this.oCache && this.oCache.hasSentRequest();
 		aPromises = [
-			this.doFetchQueryOptions(this.oContext),
+			this.doFetchQueryOptions(oParentContext),
 			// After access to complete meta path of property, the metadata of all prefix paths
 			// is loaded so that synchronous access in wrapChildQueryOptions via getObject is
 			// possible
@@ -803,8 +817,8 @@ sap.ui.define([
 			if (sReducedChildMetaPath === undefined) {
 				// the child's data does not fit into this bindings's cache, try the parent
 				that.bHasPathReductionToParent = true;
-				return that.oContext.getBinding().fetchIfChildCanUseCache(that.oContext,
-					_Helper.getRelativePath(sResolvedChildPath, that.oContext.getPath()),
+				return oParentContext.getBinding().fetchIfChildCanUseCache(oParentContext,
+					_Helper.getRelativePath(sResolvedChildPath, oParentContext.getPath()),
 					vChildQueryOptions);
 			}
 
@@ -850,12 +864,13 @@ sap.ui.define([
 				JSON.stringify(oProperty), sClassName);
 			return undefined;
 		}).then(function (sReducedPath) {
-			if (that.mLateQueryOptions) {
+			if (that.mLateQueryOptions && !that.isTransient()) {
 				if (that.oCache) {
 					that.oCache.setLateQueryOptions(that.mLateQueryOptions);
 				} else if (that.oCache === null) {
-					return that.oContext.getBinding().fetchIfChildCanUseCache(that.oContext,
-						that.sPath, SyncPromise.resolve(that.mLateQueryOptions))
+					return oParentContext.getBinding()
+						.fetchIfChildCanUseCache(oParentContext, that.sPath,
+							SyncPromise.resolve(that.mLateQueryOptions))
 						.then(function (sPath) {
 							return sPath && sReducedPath;
 						});
@@ -1057,14 +1072,14 @@ sap.ui.define([
 	 * @see sap.ui.model.odata.v4.ODataBinding#hasPendingChangesInDependents
 	 */
 	ODataParentBinding.prototype.hasPendingChangesInDependents = function (bIgnoreKeptAlive0,
-			bIgnoreInactiveCaches) {
+			sPathPrefix) {
 		return this.getDependentBindings().some(function (oDependent) {
 			var oCache = oDependent.oCache,
 				bHasPendingChanges,
 				bIgnoreKeptAlive = bIgnoreKeptAlive0; // new copy for this dependent only
 
 			if (bIgnoreKeptAlive) {
-				if (oDependent.oContext.isKeepAlive()) {
+				if (oDependent.oContext.isEffectivelyKeptAlive()) {
 					return false; // changes can be safely ignored here
 				}
 				if (oDependent.oContext.getIndex() !== undefined) {
@@ -1080,23 +1095,31 @@ sap.ui.define([
 			} else if (oDependent.hasPendingChangesForPath("")) {
 				return true;
 			}
-			if (oDependent.mCacheByResourcePath && !bIgnoreInactiveCaches) {
+			if (oDependent.mCacheByResourcePath) {
 				bHasPendingChanges = Object.keys(oDependent.mCacheByResourcePath)
 					.some(function (sPath) {
 						var oCacheForPath = oDependent.mCacheByResourcePath[sPath];
 
-						return oCacheForPath !== oCache // don't ask again
+						return (!sPathPrefix || sPath.startsWith(sPathPrefix.slice(1)))
+							&& oCacheForPath !== oCache // don't ask again
 							&& oCacheForPath.hasPendingChangesForPath("");
 					});
 				if (bHasPendingChanges) {
 					return true;
 				}
 			}
-			return oDependent.hasPendingChangesInDependents(bIgnoreKeptAlive,
-				bIgnoreInactiveCaches);
+			return oDependent.hasPendingChangesInDependents(bIgnoreKeptAlive, sPathPrefix);
 		})
 		|| this.oModel.withUnresolvedBindings("hasPendingChangesInCaches",
 				this.getResolvedPath().slice(1));
+	};
+
+	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.ODataBinding#isMeta
+	 */
+	ODataParentBinding.prototype.isMeta = function () {
+		return false;
 	};
 
 	/**
@@ -1115,14 +1138,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * @override
-	 * @see sap.ui.model.odata.v4.ODataBinding#isMeta
-	 */
-	ODataParentBinding.prototype.isMeta = function () {
-		return false;
-	};
-
-	/**
 	 * Whether the dataRequested and dataReceived events related to the refresh must not be bubbled
 	 * up to the model.
 	 *
@@ -1133,6 +1148,18 @@ sap.ui.define([
 	 */
 	ODataParentBinding.prototype.isRefreshWithoutBubbling = function () {
 		return this.oRefreshPromise && this.oRefreshPromise.$preventBubbling;
+	};
+
+	/**
+	 * Tells whether the current value of the binding-specific parameter with the given name is
+	 * "unchanged" when compared to the given other value.
+	 *
+	 * @param {string} sName - The parameter's name
+	 * @param {any} vOtherValue - The parameter's other value
+	 * @returns {boolean} Whether the parameter is "unchanged"
+	 */
+	ODataParentBinding.prototype.isUnchangedParameter = function (sName, vOtherValue) {
+		return this.mParameters[sName] === vOtherValue;
 	};
 
 	/**
@@ -1217,8 +1244,7 @@ sap.ui.define([
 	 * @override
 	 * @see sap.ui.model.odata.v4.ODataBinding#resetChangesInDependents
 	 */
-	ODataParentBinding.prototype.resetChangesInDependents = function (aPromises,
-			bIgnoreInactiveCaches) {
+	ODataParentBinding.prototype.resetChangesInDependents = function (aPromises, sPathPrefix) {
 		this.getDependentBindings().forEach(function (oDependent) {
 			aPromises.push(oDependent.oCachePromise.then(function (oCache) {
 				if (oCache) {
@@ -1228,14 +1254,16 @@ sap.ui.define([
 			}).unwrap());
 
 			// mCacheByResourcePath may have changes nevertheless
-			if (oDependent.mCacheByResourcePath && !bIgnoreInactiveCaches) {
+			if (oDependent.mCacheByResourcePath) {
 				Object.keys(oDependent.mCacheByResourcePath).forEach(function (sPath) {
-					oDependent.mCacheByResourcePath[sPath].resetChangesForPath("");
+					if (!sPathPrefix || sPath.startsWith(sPathPrefix.slice(1))) {
+						oDependent.mCacheByResourcePath[sPath].resetChangesForPath("");
+					}
 				});
 			}
 			// Reset dependents, they might have no cache, but pending changes in
 			// mCacheByResourcePath
-			oDependent.resetChangesInDependents(aPromises, bIgnoreInactiveCaches);
+			oDependent.resetChangesInDependents(aPromises, sPathPrefix);
 		});
 	};
 
@@ -1442,9 +1470,9 @@ sap.ui.define([
 	 * @override
 	 * @see sap.ui.model.odata.v4.ODataBinding#updateAfterCreate
 	 */
-	ODataParentBinding.prototype.updateAfterCreate = function () {
+	ODataParentBinding.prototype.updateAfterCreate = function (bSkipRefresh, sGroupId) {
 		return SyncPromise.all(this.getDependentBindings().map(function (oDependentBinding) {
-			return oDependentBinding.updateAfterCreate();
+			return oDependentBinding.updateAfterCreate(bSkipRefresh, sGroupId);
 		}));
 	};
 
@@ -1527,6 +1555,7 @@ sap.ui.define([
 		"doDeregisterChangeListener",
 		"getGeneration",
 		"hasPendingChangesForPath",
+		"isUnchangedParameter",
 		"updateAfterCreate"
 	].forEach(function (sMethod) { // method (still) not final, allow for "super" calls
 		asODataParentBinding.prototype[sMethod] = ODataParentBinding.prototype[sMethod];

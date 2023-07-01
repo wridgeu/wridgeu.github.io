@@ -86,7 +86,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -340,6 +340,7 @@ sap.ui.define([
 		this._attachResizeHandlers();
 		this._preventWidowWords(this._getTitle().getDomRef());
 		this._preventWidowWords(this._getDescription().getDomRef());
+		this._setDefaultIllustrationLabel();
 	};
 
 	IllustratedMessage.prototype.exit = function () {
@@ -359,6 +360,21 @@ sap.ui.define([
 
 		return this.setProperty("illustrationType", sValue);
 	};
+
+	/**
+	 * Sets the title of the IllustratedMessage as default aria-labelledby to the Illustration.
+	 * @private
+	 */
+	IllustratedMessage.prototype._setDefaultIllustrationLabel = function (sValue) {
+		var aAriaLabelledBy = this.getAssociation("ariaLabelledBy"),
+			sTitleId = this._getTitle().sId;
+
+		// check if falsy or empty array
+		if (!aAriaLabelledBy || !aAriaLabelledBy.length) {
+			this.addIllustrationAriaLabelledBy(sTitleId);
+		}
+	};
+
 
 	/**
 	 * Gets the default text for the description aggregation.
@@ -791,19 +807,29 @@ sap.ui.define([
 	};
 
 	IllustratedMessage.prototype.addIllustrationAriaLabelledBy = function(sID) {
+		var aAriaLabelledBy = this.getAssociation("ariaLabelledBy"),
+			sTitleId = this._getTitle().sId,
+			oIllustratedMessageIllustration = this._getIllustration();
+
 		this.addAssociation("ariaLabelledBy", sID, true);
 
-		var oIllustratedMessageIllustration = this._getIllustration();
+		if (aAriaLabelledBy && aAriaLabelledBy.includes(sTitleId)) {
+			this.removeIllustrationAriaLabelledBy(sTitleId);
+		}
+
 		oIllustratedMessageIllustration.addAriaLabelledBy(sID);
 
 		return this;
 	};
 
 	IllustratedMessage.prototype.removeIllustrationAriaLabelledBy = function(sID) {
+
 		this.removeAssociation("ariaLabelledBy", sID, true);
 
 		var oIllustratedMessageIllustration = this._getIllustration();
 		oIllustratedMessageIllustration.removeAriaLabelledBy(sID);
+
+		this._setDefaultIllustrationLabel();
 
 		return this;
 	};
@@ -813,6 +839,8 @@ sap.ui.define([
 
 		var oIllustratedMessageIllustration = this._getIllustration();
 		oIllustratedMessageIllustration.removeAllAriaLabelledBy(sID);
+
+		this._setDefaultIllustrationLabel();
 
 		return this;
 	};

@@ -19,7 +19,7 @@ sap.ui.define([
 	 * <code>ui5-input</code> or <code>ui5-textarea<code> UI5 web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @since 1.74

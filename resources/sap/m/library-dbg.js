@@ -70,13 +70,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @since 1.4
 	 * @public
 	 */
 	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.m",
-		version: "1.112.0",
+		version: "1.115.0",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		types: [
@@ -89,7 +89,9 @@ sap.ui.define([
 			"sap.m.BadgeState",
 			"sap.m.BadgeAnimationType",
 			"sap.m.BarDesign",
+			"sap.m.BorderDesign",
 			"sap.m.BreadcrumbsSeparatorStyle",
+			"sap.m.ButtonAccessibleRole",
 			"sap.m.ButtonType",
 			"sap.m.CarouselArrowsPlacement",
 			"sap.m.DateTimeInputType",
@@ -398,18 +400,19 @@ sap.ui.define([
 		],
 		elements: [
 			"sap.m.BadgeCustomData",
+			"sap.m.CarouselLayout",
 			"sap.m.Column",
 			"sap.m.ColumnPopoverActionItem",
 			"sap.m.ColumnPopoverCustomItem",
 			"sap.m.ColumnPopoverItem",
 			"sap.m.ColumnPopoverSortItem",
-			"sap.m.CustomDynamicDateOption",
 			"sap.m.DynamicDateOption",
 			"sap.m.DynamicDateValueHelpUIType",
 			"sap.m.FlexItemData",
 			"sap.m.FeedListItemAction",
 			"sap.m.IconTabFilter",
 			"sap.m.IconTabSeparator",
+			"sap.m.ImageCustomData",
 			"sap.m.LightBoxItem",
 			"sap.m.OverflowToolbarLayoutData",
 			"sap.m.MaskInputRule",
@@ -791,6 +794,27 @@ sap.ui.define([
 		 */
 		Footer : "Footer"
 
+	};
+
+	/**
+	 * Available Border Design.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.BorderDesign = {
+
+		/**
+		 * A solid border color dependent on the theme.
+		 * @public
+		 */
+		Solid : "Solid",
+
+		/**
+		 * Specifies no border.
+		 * @public
+		 */
+		None : "None"
 	};
 
 	/**
@@ -1712,6 +1736,28 @@ sap.ui.define([
 		 * @public
 		 */
 		Button: "Button"
+	};
+
+	/**
+	 * Enumeration for possible Button accessibility roles.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.114.0
+	 */
+	 thisLib.ButtonAccessibleRole = {
+
+		/**
+		 * Default mode.
+		 * @public
+		 */
+		Default: "Default",
+
+		/**
+		 * Button will receive <code>role="Link"</code> attibute.
+		 * @public
+		 */
+		Link: "Link"
 	};
 
 	/**
@@ -3440,7 +3486,6 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @enum {string}
-	 * @experimental Since 1.92. These keys are experimental. The API might be changed in future.
 	 */
 	thisLib.StandardDynamicDateRangeKeys = {
 
@@ -4685,6 +4730,27 @@ sap.ui.define([
 	};
 
 	/**
+	 * Available selection modes for the {@link sap.m.SinglePlanningCalendar}
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.113
+	 */
+	thisLib.SinglePlanningCalendarSelectionMode = {
+		/**
+		 * Single date selection.
+		 * @public
+		 */
+		SingleSelect: "SingleSelect",
+
+		/**
+		 * Мore than one date will be available to selection.
+		 * @public
+		 */
+		MultiSelect: "MultiSelect"
+	};
+
+	/**
 	 * Available sticky modes for the {@link sap.m.SinglePlanningCalendar}
 	 *
 	 * @enum {string}
@@ -5457,92 +5523,6 @@ sap.ui.define([
 			rm.close("div");
 		}
 	};
-
-	/**
-	 * Helper for Images.
-	 *
-	 * @namespace
-	 * @since 1.12
-	 * @protected
-	 */
-	thisLib.ImageHelper = (function() {
-
-		/**
-		 * Checks if value is not undefined, in which case the
-		 * setter function for a given property is called.
-		 * Returns true if value is set, false otherwise.
-		 *
-		 * @private
-		 */
-		function checkAndSetProperty(oControl, property, value) {
-			if (value !== undefined) {
-				var fSetter = oControl["set" + capitalize(property)];
-				if (typeof (fSetter) === "function") {
-					fSetter.call(oControl, value);
-					return true;
-				}
-			}
-			return false;
-		}
-		/** @lends sap.m.ImageHelper */
-		var oImageHelper = {
-			/**
-			 * Creates or updates an image control.
-			 *
-			 * @param {string} sImgId UD of the image to be dealt with.
-			 * @param {sap.m.Image} oImage The image to update. If undefined, a new image will be created.
-			 * @param {sap.ui.core.Control} oParent oImageControl's parentControl.
-			 * @param {object} mProperties Settings for the image control; the <code>src</code> property
-			 * MUST be contained; the keys of the object must be valid names of image settings
-			 * @param {string[]} aCssClassesToAdd Array of CSS classes which will be added if the image needs to be created.
-			 * @param {string[]} aCssClassesToRemove All CSS classes that oImageControl has and which are contained in this array
-			 * are removed before adding the CSS classes listed in aCssClassesToAdd.
-			 * @returns {sap.m.Image|sap.ui.core.Icon} The new or updated image control or icon
-			 *
-			 * @protected
-			 */
-			getImageControl: function(sImgId, oImage, oParent, mProperties, aCssClassesToAdd, aCssClassesToRemove) {
-				assert( mProperties.src , "sap.m.ImageHelper.getImageControl: mProperties do not contain 'src'");
-
-				// make sure, image is rerendered if icon source has changed
-				if (oImage && (oImage.getSrc() != mProperties.src)) {
-					oImage.destroy();
-					oImage = undefined;
-				}
-				// update or create image control
-				if (oImage && (oImage instanceof sap.m.Image || oImage instanceof sap.ui.core.Icon)) {
-					//Iterate through properties
-					for (var key in mProperties) {
-						checkAndSetProperty(oImage, key,  mProperties[key]);
-					}
-				} else {
-					//add 'id' to properties. This is required by utility method 'createControlByURI'
-					var mSettings = Object.assign({}, mProperties, {id: sImgId});
-					oImage = sap.ui.core.IconPool.createControlByURI(mSettings, sap.m.Image);
-					//Set the parent so the image gets re-rendered, when the parent is
-					oImage.setParent(oParent, null, true);
-				}
-
-				//Remove existing style classes which are contained in aCssClassesToRemove
-				//(the list of CSS classes allowed for deletion) to have them updated later on
-				//Unfortunately, there is no other way to do this but remove
-				//each class individually
-				if (aCssClassesToRemove) {
-					for (var l = 0, removeLen = aCssClassesToRemove.length; l !== removeLen; l++) {
-						oImage.removeStyleClass(aCssClassesToRemove[l]);
-					}
-				}
-				//Add style classes if necessary
-				if (aCssClassesToAdd) {
-					for (var k = 0, len = aCssClassesToAdd.length; k !== len; k++) {
-						oImage.addStyleClass(aCssClassesToAdd[k]);
-					}
-				}
-				return oImage;
-			}
-		};
-		return oImageHelper;
-	}());
 
 	/**
 	 * Helper for Popups.

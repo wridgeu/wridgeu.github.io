@@ -6,6 +6,8 @@
 sap.ui.define([
 	"./AnalyticalContentRenderer",
 	"./BaseContent",
+	"sap/f/cards/loading/AnalyticalPlaceholder",
+	"sap/m/IllustratedMessageType",
 	"sap/ui/integration/library",
 	"sap/ui/integration/util/BindingResolver",
 	"sap/base/Log",
@@ -14,6 +16,8 @@ sap.ui.define([
 ], function (
 	AnalyticalContentRenderer,
 	BaseContent,
+	AnalyticalPlaceholder,
+	IllustratedMessageType,
 	library,
 	BindingResolver,
 	Log,
@@ -88,7 +92,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private
@@ -108,6 +112,16 @@ sap.ui.define([
 		if (this._oPopover) {
 			this._oPopover.destroy();
 		}
+	};
+
+	/**
+	 * @override
+	 */
+	AnalyticalContent.prototype.createLoadingPlaceholder = function (oConfiguration) {
+		return new AnalyticalPlaceholder({
+			chartType: oConfiguration.chartType,
+			minHeight: AnalyticalContentRenderer.getMinHeight(oConfiguration)
+		});
 	};
 
 	/**
@@ -146,15 +160,22 @@ sap.ui.define([
 	AnalyticalContent.prototype.onDataChanged = function () {
 		this._createChart();
 		var oChart = this.getAggregation("_content");
+
 		if (oChart) {
 			var vizDS = oChart._getVizDataset(),
-				noData = vizDS
+				bHasData = vizDS
 					&& vizDS._FlatTableD
 					&& vizDS._FlatTableD._data
 					&& Array.isArray(vizDS._FlatTableD._data)
-					&& (!vizDS._FlatTableD._data.length);
-			if (noData) {
-				this.getParent()._handleError("No data available", true);
+					&& vizDS._FlatTableD._data.length;
+
+			if (bHasData) {
+				this.hideNoDataMessage();
+			} else {
+				this.showNoDataMessage({
+					illustrationType: IllustratedMessageType.NoEntries,
+					title: this.getCardInstance().getTranslatedText("CARD_NO_ITEMS_ERROR_LISTS")
+				});
 			}
 		}
 	};

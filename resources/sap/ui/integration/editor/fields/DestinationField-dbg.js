@@ -5,11 +5,11 @@
  */
 sap.ui.define([
 	"sap/ui/integration/editor/fields/BaseField",
-	"sap/m/Select",
-	"sap/ui/core/ListItem"
-
+	"sap/ui/core/ListItem",
+	"sap/m/ComboBox",
+	"sap/ui/model/Sorter"
 ], function (
-	BaseField, Select, ListItem
+	BaseField, ListItem, ComboBox, Sorter
 ) {
 	"use strict";
 
@@ -19,7 +19,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.DestinationField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted
@@ -35,17 +35,20 @@ sap.ui.define([
 		var oVisualization = oConfig.visualization;
 		if (!oVisualization) {
 			oVisualization = {
-				type: Select,
+				type: ComboBox,
 				settings: {
-					busy: { path: 'currentSettings>_loading' },
+					busy: { path: 'destinations>_loading' },
 					selectedKey: { path: 'currentSettings>value' },
-					forceSelection: false,
 					width: "100%",
 					items: {
-						path: "currentSettings>_values", template: new ListItem({
-							text: "{currentSettings>name}",
-							key: "{currentSettings>name}"
-						})
+						path: "destinations>_values",
+						template: new ListItem({
+							text: "{destinations>name}",
+							key: "{destinations>name}"
+						}),
+						sorter: [new Sorter({
+							path: 'name'
+						})]
 					}
 				}
 			};

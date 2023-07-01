@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.DateFormat.getDateInstance DateFormat}.
@@ -213,6 +213,20 @@ sap.ui.define([
 			}
 			this.oInputFormat = DateFormat.getInstance(oSourceOptions);
 		}
+	};
+
+	/**
+	 * Returns a language-dependent placeholder text such as "e.g. <sample value>" where <sample value> is formatted
+	 * using this type.
+	 *
+	 * @returns {string|undefined}
+	 *   The language-dependent placeholder text or <code>undefined</code> if the type does not offer a placeholder
+	 *
+	 * @experimental As of version 1.114.0
+	 * @public
+	 */
+	Date1.prototype.getPlaceholderText = function () {
+		return this.oOutputFormat.getPlaceholderText();
 	};
 
 	return Date1;

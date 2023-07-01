@@ -8,12 +8,14 @@ sap.ui.define([
 	"./BaseContent",
 	"./ComponentContentRenderer",
 	"sap/ui/integration/library",
+	"sap/m/IllustratedMessageType",
 	"sap/ui/core/ComponentContainer",
 	"sap/ui/core/Component"
 ], function (
 	BaseContent,
 	ComponentContentRenderer,
 	library,
+	IllustratedMessageType,
 	ComponentContainer,
 	Component
 ) {
@@ -33,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @experimental
 	 * @constructor
@@ -58,9 +60,8 @@ sap.ui.define([
 		}
 	};
 
-	ComponentContent.prototype.setConfiguration = function (oConfiguration) {
-		BaseContent.prototype.setConfiguration.apply(this, arguments);
-		oConfiguration = this.getParsedConfiguration();
+	ComponentContent.prototype.applyConfiguration = function () {
+		var oConfiguration = this.getParsedConfiguration();
 
 		if (!oConfiguration) {
 			return;
@@ -86,8 +87,14 @@ sap.ui.define([
 				this.fireEvent("_updated");
 			}.bind(this),
 			componentFailed: function () {
+				var oCard = this.getCardInstance();
+
 				this.fireEvent("_actionContentReady");
-				this.handleError("Card content failed to create component");
+				this.handleError({
+					illustrationType: IllustratedMessageType.ErrorScreen,
+					title: oCard.getTranslatedText("CARD_DATA_LOAD_ERROR"),
+					description: "Card content failed to create component"
+				});
 			}.bind(this)
 		});
 

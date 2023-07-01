@@ -9,7 +9,7 @@ sap.ui.define([
 ], function (library, BaseObject) {
 	"use strict";
 
-	//Shortcut to sap.ui.integration.library.CarDataMode
+	// Shortcut to sap.ui.integration.library.CardDataMode
 	var CardDataMode = library.CardDataMode;
 
 	/**
@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private

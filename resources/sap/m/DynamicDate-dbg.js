@@ -38,7 +38,7 @@ sap.ui.define([
 		 * @extends sap.ui.model.SimpleType
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @constructor
 		 * @public
@@ -54,7 +54,6 @@ sap.ui.define([
 		 * @param {int} [oConstraints.maximum] Greatest resulting date allowed for this type. Must be provided as a timestamps.
 		 * @since 1.92
 		 * @alias sap.m.DynamicDate
-		 * @experimental Since 1.92. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 		 */
 		var DynamicDate = SimpleType.extend("sap.m.DynamicDate", /** @lends sap.m.DynamicDate.prototype  */ {
 
@@ -163,15 +162,15 @@ sap.ui.define([
 							case "minimum":
 								if (iTimestamp < iConstraintValue) {
 									aViolatedConstraints.push("minimum");
-									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [new Date(iTimestamp).toDateString()]));
-									aMessages.push(oBundle.getText("Date.Minimum", [new Date(iConstraintValue).toDateString()]));
+									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [UI5Date.getInstance(iTimestamp).toDateString()]));
+									aMessages.push(oBundle.getText("Date.Minimum", [UI5Date.getInstance(iConstraintValue).toDateString()]));
 								}
 								break;
 							case "maximum":
 								if (iTimestamp > iConstraintValue) {
 									aViolatedConstraints.push("maximum");
-									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [new Date(iTimestamp).toDateString()]));
-									aMessages.push(oBundle.getText("Date.Maximum", [new Date(iConstraintValue).toDateString()]));
+									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [UI5Date.getInstance(iTimestamp).toDateString()]));
+									aMessages.push(oBundle.getText("Date.Maximum", [UI5Date.getInstance(iConstraintValue).toDateString()]));
 								}
 								break;
 						}

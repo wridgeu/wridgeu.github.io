@@ -15,7 +15,8 @@ sap.ui.define([
 	'sap/ui/thirdparty/jszip',
 	'sap/ui/core/util/File',
 	"sap/ui/performance/trace/Interaction",
-	"sap/ui/performance/Measurement"
+	"sap/ui/performance/Measurement",
+	"sap/ui/core/date/UI5Date"
 	],
 	function(
 		jQuery,
@@ -27,7 +28,8 @@ sap.ui.define([
 		JSZip,
 		File,
 		TraceInteraction,
-		Measurement
+		Measurement,
+		UI5Date
 	) {
 		"use strict";
 
@@ -38,7 +40,7 @@ sap.ui.define([
 		 * With this plugIn the performance measurements are displayed
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Interaction
 		 */
@@ -60,7 +62,7 @@ sap.ui.define([
 						return ("000" + String(i)).slice(-w);
 					};
 					this._fnFormatTime = function(fNow) {
-						var oNow = new Date(fNow),
+						var oNow =  UI5Date.getInstance(fNow),
 							iMicroSeconds = Math.floor((fNow - Math.floor(fNow)) * 1000);
 						return pad0(oNow.getHours(),2) + ":" + pad0(oNow.getMinutes(),2) + ":" + pad0(oNow.getSeconds(),2) + "." + pad0(oNow.getMilliseconds(),3) + pad0(iMicroSeconds,3);
 					};

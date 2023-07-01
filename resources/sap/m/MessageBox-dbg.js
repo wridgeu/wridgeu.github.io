@@ -54,6 +54,9 @@ sap.ui.define([
 	// shortcut for sap.m.FlexAlignItems
 	var FlexAlignItems = library.FlexAlignItems;
 
+	// shortcut for sap.m.LinkAccessibleRole
+	var LinkAccessibleRole = library.LinkAccessibleRole;
+
 	// shortcut for sap.ui.core.MessageType
 	var MessageType = coreLibrary.MessageType;
 
@@ -290,6 +293,7 @@ sap.ui.define([
 		});
 
 		oViewDetails = new Link({
+			accessibleRole: LinkAccessibleRole.Button,
 			text: MessageBox._rb.getText("MSGBOX_LINK_TITLE"),
 			press: function () {
 				if (typeof mOptions.details === "function") {
@@ -302,6 +306,7 @@ sap.ui.define([
 
 		oTryAgain = new Link({
 			text: MessageBox._rb.getText("MSGBOX_DETAILS_RETRY_LOADING"),
+			accessibleRole: LinkAccessibleRole.Button,
 			press: function () {
 				oViewDetails.setVisible(true);
 				oErrorMessage.setVisible(false);

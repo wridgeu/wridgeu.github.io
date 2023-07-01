@@ -42,7 +42,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getUpdateGroupId as #getUpdateGroupId
@@ -475,7 +475,7 @@ sap.ui.define([
 	 */
 	ODataPropertyBinding.prototype.initialize = function () {
 		if (this.isResolved()) {
-			if (this.getRootBinding().isSuspended()) {
+			if (this.isRootBindingSuspended()) {
 				this.sResumeChangeReason = ChangeReason.Change;
 			} else {
 				this.checkUpdate(true);

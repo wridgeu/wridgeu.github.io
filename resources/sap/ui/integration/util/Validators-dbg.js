@@ -11,7 +11,7 @@ sap.ui.define([], function () {
 	 * Utility class helping with input validations.
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.Validators
@@ -118,6 +118,12 @@ sap.ui.define([], function () {
 				return (b && !v.value && !v.key) || (b && !!v.key);
 			},
 			restrictToPredefinedOptionsTxt: "EDITOR_ONLY_LISTED_VALUES_ALLOWED"
+		},
+		dateRange: {
+			required: function (v, b) {
+				return !b || !!v.value;
+			},
+			requiredTxt: "EDITOR_VAL_FIELDREQ"
 		}
 	};
 

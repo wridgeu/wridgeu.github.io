@@ -167,7 +167,7 @@ function(
 		*
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.112.0
+		* @version 1.115.0
 		*
 		* @constructor
 		* @public
@@ -640,7 +640,7 @@ function(
 
 			// title alignment
 			if (oHeader && oHeader.setTitleAlignment) {
-				oHeader.setProperty("titleAlignment", this.getTitleAlignment(), true);
+				oHeader.setTitleAlignment(this.getTitleAlignment());
 			}
 
 			if (oHeader && this._getTitles(oHeader).length === 0) {

@@ -25,7 +25,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.json.JSONModel
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.integration.model.ContextModel

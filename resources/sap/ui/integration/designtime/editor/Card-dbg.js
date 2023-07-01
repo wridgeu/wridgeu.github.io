@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.widgets.Card
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @private
 	 * @constructor
 	 * @since 1.112

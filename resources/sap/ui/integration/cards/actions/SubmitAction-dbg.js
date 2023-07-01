@@ -89,9 +89,7 @@ sap.ui.define([
 			method: oSubmitActionHandler.method || "POST",
 			parameters: oSubmitActionHandler.parameters || oData,
 			headers: oSubmitActionHandler.headers,
-			xhrFields: {
-				withCredentials: !!oSubmitActionHandler.withCredentials
-			}
+			withCredentials: !!oSubmitActionHandler.withCredentials
 		};
 
 		oRequest =  BindingResolver.resolveValue(

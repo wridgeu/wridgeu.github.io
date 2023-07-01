@@ -24,7 +24,7 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -101,21 +101,21 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 		if (sState && !this._bStateSetManually) {
 			if (this.getParent() && this.getParent().isA("sap.m.GenericTile")) {
 				if (this.getParent().getState() === LoadState.Failed) {
-					this.setProperty("state", LoadState.Loaded, true);
+					this.setState(LoadState.Loaded);
 				} else if (this.getParent().getState() === LoadState.Disabled) {
-					this.setProperty("state", LoadState.Loaded, true);
-					this.setProperty("disabled", this.getState() === LoadState.Disabled, true);
+					this.setState(LoadState.Loaded);
+					this.setDisabled(this.getState() === LoadState.Disabled);
 				}
 			}
 		} else {
 			if (this.getParent() && this.getParent().isA("sap.m.GenericTile")) {
 				if (this.getParent().getState() === LoadState.Failed) {
-					this.setProperty("state", LoadState.Loaded, true);
+					this.setState(LoadState.Loaded);
 				} else if (this.getParent().getState() === LoadState.Disabled) {
-					this.setProperty("state", LoadState.Loaded, true);
-					this.setProperty("disabled", this.getState() === LoadState.Disabled, true);
+					this.setState(LoadState.Loaded);
+					this.setDisabled(this.getState() === LoadState.Disabled);
 				} else {
-					this.setProperty("state", this.getParent().getState(), true);
+					this.setState(this.getParent().getState());
 				}
 			}
 			this._bStateSetManually = true;

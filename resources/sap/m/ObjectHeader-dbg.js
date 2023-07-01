@@ -18,7 +18,8 @@ sap.ui.define([
 	'./ObjectMarker',
 	'./ObjectNumber',
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration"
+	"sap/ui/core/Configuration",
+	"sap/m/ImageHelper"
 ],
 	function(
 		library,
@@ -33,7 +34,8 @@ sap.ui.define([
     ObjectMarker,
     ObjectNumber,
 		jQuery,
-		Configuration
+		Configuration,
+		ImageHelper
 	) {
 	"use strict";
 
@@ -45,8 +47,6 @@ sap.ui.define([
 	// shortcut for sap.ui.core.TextAlign
 	var TextAlign = coreLibrary.TextAlign;
 
-	// shortcut for sap.m.ImageHelper
-	var ImageHelper = library.ImageHelper;
 
 	// shortcut for sap.m.ObjectMarkerType
 	var ObjectMarkerType = library.ObjectMarkerType;
@@ -82,7 +82,7 @@ sap.ui.define([
 	 * <code>sapUiResponsivePadding--header</code>.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public

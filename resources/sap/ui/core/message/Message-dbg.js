@@ -7,11 +7,10 @@
 // Provides the implementation for a Message
 sap.ui.define([
 	'sap/ui/base/Object',
-	'./MessageProcessor',
 	'sap/base/util/uid',
 	'sap/base/Log'
 ],
-	function(BaseObject, MessageProcessor, uid, Log) {
+	function(BaseObject, uid, Log) {
 	"use strict";
 
 	var mMessageType2Severity = {
@@ -35,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @param {object} [mParameters] a map which contains the following parameter properties:
 	 * @param {string} [mParameters.id] The message id: will be generated if no id is set
@@ -79,6 +78,9 @@ sap.ui.define([
 					? mParameters.target.slice()
 					: [mParameters.target];
 			}
+			/**
+			 * @deprecated As of version 1.79.0
+			 */
 			Object.defineProperty(this, "target", {
 				get : this.getTarget,
 				set : this.setTarget,
@@ -100,6 +102,9 @@ sap.ui.define([
 			} else {
 				this.aFullTargets = [mParameters.fullTarget || ""];
 			}
+			/**
+			 * @deprecated As of version 1.79.0
+			 */
 			Object.defineProperty(this, "fullTarget", {
 				get : function () { return this.aFullTargets[0]; },
 				set : function (sFullTarget) { this.aFullTargets[0] = sFullTarget; },
@@ -342,14 +347,14 @@ sap.ui.define([
 	/**
 	 * Set message processor
 	 *
-	 * @param {sap.ui.core.message.MessageProcessor} oMessageProcessor The Message processor
+	 * @param {sap.ui.model.Model} oMessageProcessor The Message processor
 	 * @public
 	 */
 	Message.prototype.setMessageProcessor = function(oMessageProcessor) {
-		if (oMessageProcessor instanceof MessageProcessor) {
+		if (oMessageProcessor && oMessageProcessor.isA && oMessageProcessor.isA("sap.ui.core.message.MessageProcessor")) {
 			this.processor = oMessageProcessor;
 		} else {
-			Log.error("MessageProcessor must be an instance of sap.ui.core.message.MessageProcessor");
+			Log.error("oMessageProcessor must be an instance of 'sap.ui.core.message.MessageProcessor'");
 		}
 	};
 

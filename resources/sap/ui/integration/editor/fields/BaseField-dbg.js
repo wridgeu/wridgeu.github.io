@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.BaseField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @private
 	 * @ui5-restricted
 	 * @experimental since 1.83.0
@@ -62,6 +62,9 @@ sap.ui.define([
 				visible: {
 					type: "boolean",
 					defaultValue: true
+				},
+				parameterId: {
+					type: "string"
 				}
 			},
 			aggregations: {
@@ -547,7 +550,7 @@ sap.ui.define([
 				}.bind(this));
 				return;
 			}
-			oControl = new this._visualization.type(this._visualization.settings || {});
+			oControl = new this._visualization.type(this.getParameterId() + "_control", this._visualization.settings || {});
 		} else if (this._visualization.fragment) {
 			if (typeof this._visualization.fragment === "string") {
 				if (!this._visualization.controller) {
@@ -682,7 +685,7 @@ sap.ui.define([
 	BaseField.prototype._getDynamicField = function () {
 		var oField = this.getAggregation("_dynamicField");
 		if (!oField) {
-			var oField = new MultiInput({
+			var oField = new MultiInput(this.getParameterId() + "_dynamic_control", {
 				showValueHelp: false
 			});
 			this.setAggregation("_dynamicField", oField);

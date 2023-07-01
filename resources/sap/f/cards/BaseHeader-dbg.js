@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -135,13 +135,13 @@ sap.ui.define([
 	};
 
 	BaseHeader.prototype.ontap = function (oEvent) {
-		if (this._isInteractive() && !this._isInsideToolbar(oEvent.target)) {
+		if (this.isInteractive() && !this._isInsideToolbar(oEvent.target)) {
 			this.firePress();
 		}
 	};
 
 	BaseHeader.prototype.onsapselect = function (oEvent) {
-		if (this._isInteractive() && !this._isInsideToolbar(oEvent.target)) {
+		if (this.isInteractive() && !this._isInsideToolbar(oEvent.target)) {
 			this.firePress();
 		}
 	};
@@ -248,7 +248,7 @@ sap.ui.define([
 		sFormattedText = oDateFormat.format(oUniversalDate);
 
 		// no less than "1 minute ago" should be shown, "30 seconds ago" should not be shown
-		if (oUniversalDate.getTime() + 59000 > (new Date()).getTime()) {
+		if (oUniversalDate.getTime() + 59000 > Date.now()) {
 			sFormattedText = "now"; //@todo get formatted (translated text) for "now"
 		}
 
@@ -341,7 +341,7 @@ sap.ui.define([
 		return oParent.isA("sap.f.GridContainer");
 	};
 
-	BaseHeader.prototype._isInteractive = function() {
+	BaseHeader.prototype.isInteractive = function() {
 		return this.hasListeners("press");
 	};
 

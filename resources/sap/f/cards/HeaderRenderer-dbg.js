@@ -39,12 +39,8 @@ sap.ui.define([], function () {
 			oRm.class("sapFCardHeaderLoading");
 		}
 
-		if (oHeader._isInteractive()) {
-			oRm.class("sapFCardClickable");
-		}
-
-		if (oError) {
-			oRm.class("sapFCardHeaderError");
+		if (oHeader.isInteractive()) {
+			oRm.class("sapFCardSectionClickable");
 		}
 
 		oRm.openEnd();

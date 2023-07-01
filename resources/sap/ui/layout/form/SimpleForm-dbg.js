@@ -67,7 +67,7 @@ sap.ui.define([
 	 * <b>Note:</b> If a more complex form is needed, use the <code>{@link sap.ui.layout.form.Form Form}</code> control instead.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -1654,7 +1654,7 @@ sap.ui.define([
 		var mSettings = {};
 
 		if (oLabel) {
-			sId = oLabel.getId() + "--FE";
+			sId = this.getId() + "--" + oLabel.getId() + "--FE";
 			oLabel.addStyleClass("sapUiFormLabel-CTX");
 			if (!_getFieldLayoutData.call(this, oLabel)) {
 				_createFieldLayoutData.call(this, oLabel, this._iLabelWeight, false, true, this.getLabelMinWidth());
@@ -1706,7 +1706,7 @@ sap.ui.define([
 		var mSettings = {};
 
 		if (oTitle) {
-			sId = oTitle.getId() + "--FC";
+			sId = this.getId() + "--" + oTitle.getId() + "--FC";
 			if (oTitle.isA("sap.ui.core.Title")) {
 				mSettings["title"] = oTitle;
 			} else if (oTitle.isA("sap.ui.core.Toolbar")) {

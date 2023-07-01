@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -445,7 +445,10 @@ sap.ui.define([
 	Table.prototype.onAfterRendering = function() {
 		ListBase.prototype.onAfterRendering.call(this);
 		this.updateSelectAllCheckbox();
-		this._adaptBlockLayer();
+
+		if (!this.isPropertyInitial("showOverlay")) {
+			this._handleOverlay();
+		}
 
 		if (this._bFirePopinChanged) {
 			this._firePopinChangedEvent();
@@ -486,26 +489,31 @@ sap.ui.define([
 		return this;
 	};
 
-	Table.prototype._adaptBlockLayer = function(bLastTry) {
-		if (!this.getShowOverlay()) {
-			return;
-		}
-
-		var oBlockLayer = this.getDomRef("blockedLayer");
-		if (oBlockLayer) {
-			var aValidAttributes = ["id", "class", "tabindex"];
-			oBlockLayer.getAttributeNames().forEach(function(sAttribute) {
-				if (!aValidAttributes.includes(sAttribute)) {
-					oBlockLayer.removeAttribute(sAttribute);
-				}
-			});
-			oBlockLayer.setAttribute("role", "region");
-			oBlockLayer.setAttribute("aria-labelledby", [
-				TableRenderer.getAriaLabelledBy(this),
-				TableRenderer.getAriaAnnouncement("TABLE_INVALID")
-			].join(" ").trimLeft());
-		} else if (!bLastTry) {
-			setTimeout(this._adaptBlockLayer.bind(this, true));
+	Table.prototype._handleOverlay = function() {
+		var $Overlay = this.$("overlay");
+		if (this.getShowOverlay()) {
+			var oDomRef = this.getDomRef();
+			if (!$Overlay[0]) {
+				$Overlay = jQuery("<div></div>", {
+					"id": this.getId() + "-overlay",
+					"class": "sapUiOverlay sapMTableOverlay",
+					"role": "region",
+					"tabindex": "0",
+					"aria-labelledby": [
+						TableRenderer.getAriaLabelledBy(this),
+						TableRenderer.getAriaAnnouncement("TABLE_INVALID")
+					].join(" ").trimLeft()
+				}).appendTo(oDomRef);
+			}
+			if (oDomRef.contains(document.activeElement)) {
+				this._bIgnoreFocusIn = true;
+				$Overlay.trigger("focus");
+			}
+		} else {
+			if (document.activeElement == $Overlay[0]) {
+				this.focus();
+			}
+			$Overlay.remove();
 		}
 	};
 
@@ -531,9 +539,11 @@ sap.ui.define([
 	};
 
 	Table.prototype.setShowOverlay = function(bShow) {
-		this.setProperty("showOverlay", bShow, true);
-		this.setBlocked(this.getShowOverlay());
-		this._adaptBlockLayer();
+		var bSuppressInvalidate = (this.getDomRef() != null);
+		this.setProperty("showOverlay", bShow, bSuppressInvalidate);
+		if (bSuppressInvalidate) {
+			this._handleOverlay();
+		}
 		return this;
 	};
 
@@ -775,7 +785,7 @@ sap.ui.define([
 			var clean = this._getMediaContainerWidth() || window.innerWidth;
 			this._mutex = true;
 			this._bFirePopinChanged = true;
-			this.rerender();
+			this.invalidate();
 
 			// do not re-render if resize event comes so frequently
 			setTimeout(function() {
@@ -783,7 +793,7 @@ sap.ui.define([
 				if (this._dirty != clean) {
 					this._dirty = 0;
 					this._bFirePopinChanged = true;
-					this.rerender();
+					this.invalidate();
 				}
 				this._mutex = false;
 			}.bind(this), 200);
@@ -828,8 +838,9 @@ sap.ui.define([
 
 		// update the visible column count and colspan
 		// highlight, navigation and navigated indicator columns are getting rendered always
-		this._colCount = aVisibleColumns.length + 3 + !!ListBaseRenderer.ModeOrder[this.getMode()] + $headRow.find(".sapMListTblDummyCell").length;
-		this.$("tblBody").find(".sapMGHLICell").attr("colspan", this.getColSpan());
+		var iDummyColumnLength = $headRow.find(".sapMListTblDummyCell").length;
+		this._colCount = aVisibleColumns.length + 3 + !!ListBaseRenderer.ModeOrder[this.getMode()] + iDummyColumnLength;
+		this.$("tblBody").find(".sapMGHLICell").attr("colspan", this.getColSpan() - iDummyColumnLength);
 		this.$("nodata-text").attr("colspan", this.getColCount());
 
 		if (this.hasPopin()) {
@@ -931,7 +942,8 @@ sap.ui.define([
 		if (!this._selectAllCheckBox) {
 			this._selectAllCheckBox = new CheckBox({
 				id: this.getId("sa"),
-				activeHandling: false
+				activeHandling: false,
+				tooltip: Core.getLibraryResourceBundle("sap.m").getText("TABLE_SELECT_ALL_TOOLTIP")
 			}).addStyleClass("sapMLIBSelectM").setParent(this, null, true).attachSelect(function () {
 				if (this._selectAllCheckBox.getSelected()) {
 					this.selectAll(true);
@@ -1136,7 +1148,7 @@ sap.ui.define([
 		}
 
 		var $Row = jQuery();
-		if (oEvent.target.id == this.getId("nodata")) {
+		if (jQuery(oEvent.target).closest(this.getDomRef("nodata"))[0]) {
 			$Row = this.$("nodata");
 		} else if (this.isHeaderRowEvent(oEvent)) {
 			$Row = this.$("tblHeader");
@@ -1153,6 +1165,12 @@ sap.ui.define([
 
 	// Handle shift-tab key
 	Table.prototype.onsaptabprevious = function(oEvent) {
+		if (oEvent.target.id === this.getId("overlay")) {
+			this._bIgnoreFocusIn = true;
+			this.$().attr("tabindex", "-1").trigger("focus").removeAttr("tabindex");
+			return;
+		}
+
 		if (oEvent.isMarked() || this.getKeyboardMode() == ListKeyboardMode.Edit) {
 			return;
 		}
@@ -1171,8 +1189,8 @@ sap.ui.define([
 	/**
 	 * Sets the focus on the stored focus DOM reference.
 	 *
-	 * If {@param oFocusInfo.targetInfo} is of type {@type sap.ui.core.message.Message},
-	 * the focus will be set as accurately as possible according to the information provided by {@type sap.ui.core.message.Message}.
+	 * If <code>oFocusInfo.targetInfo</code> is of type {@link sap.ui.core.message.Message},
+	 * the focus will be set as accurately as possible according to the information provided by {@link sap.ui.core.message.Message}.
 	 *
 	 * @param {object} [oFocusInfo={}] Options for setting the focus
 	 * @param {boolean} [oFocusInfo.preventScroll=false] @since 1.60 If set to <code>true</code>, the focused
@@ -1219,6 +1237,9 @@ sap.ui.define([
 			this._setFirstLastVisibleCells(oTarget);
 		} else if (oTarget.id == this.getId("nodata")) {
 			this._setFirstLastVisibleCells(oTarget);
+		} else if (!this._bIgnoreFocusIn && this.getShowOverlay()) {
+			this._bIgnoreFocusIn = true;
+			this.$("overlay").trigger("focus");
 		}
 
 		ListBase.prototype.onfocusin.call(this, oEvent);
@@ -1285,11 +1306,6 @@ sap.ui.define([
 	 * @private
 	 */
 	Table.prototype._configureAutoPopin = function() {
-		// prevent recalculation when rerendering is caused when column is moved to the popin-area
-		if (this._mutex) {
-			return;
-		}
-
 		var aVisibleColumns = this.getColumns(true).filter(function(oColumn) {
 			return oColumn.getVisible();
 		});

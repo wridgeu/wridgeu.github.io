@@ -204,7 +204,8 @@ sap.ui.define([
 		 *
 		 * @param {object} oAggregation
 		 *   An object holding the information needed for data aggregation; see
-		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}.
+		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}. The properties
+		 *   "aggregate", "group", and "groupLevels" are normalized if applicable!
 		* @param {string} [oAggregation.hierarchyQualifier]
 		*   If present, a recursive hierarchy w/o data aggregation is defined and
 		*   {@link _AggregationHelper.buildApply4Hierarchy} is invoked instead.
@@ -518,7 +519,7 @@ sap.ui.define([
 					+ (sPath || "")
 					+ ",HierarchyQualifier='" + sHierarchyQualifier
 					+ "',NodeProperty='" + sNodeProperty
-					+ "',Levels=" + (bAllLevels ? 9 : oAggregation.expandTo || 1)
+					+ "',Levels=" + (bAllLevels ? 999 : oAggregation.expandTo || 1)
 					+ ")";
 				if (bAllLevels) {
 					select("DistanceFromRootProperty");
@@ -536,7 +537,7 @@ sap.ui.define([
 		},
 
 		/**
-		 * Checks that the NodeProperty ("the hierarchy node value") has not changed.
+		 * Checks that the NodeProperty ("the hierarchy node value") has not changed (if available).
 		 *
 		 * @param {object} oOld
 		 *   The old node object
@@ -553,7 +554,8 @@ sap.ui.define([
 			var vNewNodeID = _Helper.drillDown(oNew, sNodeProperty),
 				vOldNodeID = _Helper.drillDown(oOld, sNodeProperty);
 
-			if ((bMandatory || vOldNodeID !== undefined) && vOldNodeID !== vNewNodeID) {
+			if ((bMandatory || vOldNodeID !== undefined) && vNewNodeID !== undefined
+					 && vOldNodeID !== vNewNodeID) {
 				throw new Error("Unexpected structural change: " + sNodeProperty
 					+ " from " + JSON.stringify(vOldNodeID)
 					+ " to " + JSON.stringify(vNewNodeID));

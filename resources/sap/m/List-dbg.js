@@ -30,7 +30,7 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer"],
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -80,7 +80,7 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer"],
 		ListBase.prototype.enhanceAccessibilityState.apply(this, arguments);
 
 		// update listitem Accessibility state according to the list's role attribute
-		if (this.getAriaRole() === "listbox" && oElement.isA("sap.m.ListItemBase")) {
+		if (this.getAriaRole() === "listbox" && oElement.isA("sap.m.ListItemBase") && !oElement.isGroupHeader()) {
 			mAriaProps.roledescription = null;
 			mAriaProps.role = "option";
 			mAriaProps.owns = null;

@@ -8,7 +8,7 @@
 sap.ui.define([
 	"./WaiterBase",
 	"sap/ui/thirdparty/jquery"
-], function (WaiterBase, jQueryDOM) {
+], function (WaiterBase, jQuery) {
 	"use strict";
 
 	var STATE = {
@@ -59,7 +59,7 @@ sap.ui.define([
 		},
 		hasPending: function () {
 			var aPendingModules = this._aModules.filter(function (mModule) {
-				if (!jQueryDOM(mModule.script).length) {
+				if (!jQuery(mModule.script).length) {
 					this._oLogger.trace("Script with src '" + mModule.src + "' was removed");
 					return false;
 				}

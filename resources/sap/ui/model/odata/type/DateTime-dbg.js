@@ -61,7 +61,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.DateTimeBase
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @alias sap.ui.model.odata.type.DateTime
 	 * @param {object} [oFormatOptions]
@@ -98,14 +98,25 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the type's name.
+	 * Returns the ISO string for the given model value.
 	 *
-	 * @returns {string}
-	 *   the type's name
-	 * @public
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oModelValue
+	 *   The model value, as returned by {@link #getModelValue}
+	 * @returns {string|null}
+	 *   A timestamp or date string according to ISO 8601 if the <code>displayFormat: "Date"</code>
+	 *   constraint is set, or <code>null</code> if the given model value is falsy
+	 *
+	 * @since 1.114.0
+	 * @private
+	 * @ui5-restricted sap.fe, sap.suite.ui.generic.template, sap.ui.comp, sap.ui.generic
 	 */
-	DateTime.prototype.getName = function () {
-		return "sap.ui.model.odata.type.DateTime";
+	DateTime.prototype.getISOStringFromModelValue = function (oModelValue) {
+		if (!oModelValue) {
+			return null;
+		}
+
+		var sISOString = oModelValue.toISOString();
+		return this.oConstraints && this.oConstraints.isDateOnly ? sISOString.split("T")[0] : sISOString;
 	};
 
 	/**
@@ -124,7 +135,7 @@ sap.ui.define([
 	 *   If the constraints of this type instance are violated
 	 *
 	 * @public
-	 * @see {@link sap.ui.core.Configuration.getTimezone}
+	 * @see {@link sap.ui.core.Configuration#getTimezone}
 	 * @since 1.111.0
 	 */
 	DateTime.prototype.getModelValue = function (oDate) {
@@ -133,6 +144,38 @@ sap.ui.define([
 		this.validateValue(oResult);
 
 		return oResult;
+	};
+
+	/**
+	 * Returns the model value for the given ISO string.
+	 *
+	 * @param {string|null} sISOString
+	 *   A string according to ISO 8601, as returned by {@link #getISOStringFromModelValue}
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null}
+	 *   The model representation for the given ISO string for this type,
+	 *   or <code>null</code> if the given ISO string is falsy
+	 *
+	 * @since 1.114.0
+	 * @private
+	 * @ui5-restricted sap.fe, sap.suite.ui.generic.template, sap.ui.comp, sap.ui.generic
+	 */
+	DateTime.prototype.getModelValueFromISOString = function (sISOString) {
+		if (!sISOString) {
+			return null;
+		}
+
+		return UI5Date.getInstance(sISOString);
+	};
+
+	/**
+	 * Returns the type's name.
+	 *
+	 * @returns {string}
+	 *   the type's name
+	 * @public
+	 */
+	DateTime.prototype.getName = function () {
+		return "sap.ui.model.odata.type.DateTime";
 	};
 
 	return DateTime;

@@ -30,7 +30,8 @@ sap.ui.define([
 		CountMode, ODataFilter, ODataUtils,  OperationMode) {
 	"use strict";
 
-	var aCreateParametersAllowlist = ["changeSetId", "error", "expand", "groupId", "inactive",
+	var sClassName = "sap.ui.model.odata.v2.ODataListBinding",
+		aCreateParametersAllowlist = ["changeSetId", "error", "expand", "groupId", "inactive",
 			"success"];
 
 	/**
@@ -178,10 +179,14 @@ sap.ui.define([
 
 	/**
 	 * The 'createActivate' event is fired when a property is changed on a context in an 'inactive'
-	 * state (see {@link #create}). The context then changes its state to 'transient'.
+	 * state (see {@link #create}). The context then changes its state to 'transient'. Since
+	 * 1.113.0, this default behavior can be prevented by calling
+	 * {@link sap.ui.base.Event#preventDefault}. The context will then remain in the 'inactive'
+	 * state.
 	 *
 	 * @param {sap.ui.base.Event} oEvent The event object
-	 * @param {sap.ui.model.odata.v2.ODataListBinding} oEvent.getSource() This binding
+	 * @param {sap.ui.model.odata.v2.ODataListBinding} oEvent.getSource This binding
+	 * @param {sap.ui.model.odata.v2.Context} oEvent.getParameters.context The affected context
 	 *
 	 * @event sap.ui.model.odata.v2.ODataListBinding#createActivate
 	 * @public
@@ -518,7 +523,7 @@ sap.ui.define([
 			sResolvedPath = this.getResolvedPath(); // resolved path with the new context
 			this.sDeepPath = this.oModel.resolveDeep(this.sPath, this.oContext);
 			if (!this._checkPathType()) {
-				Log.error("List Binding is not bound against a list for " + sResolvedPath);
+				Log.error("List Binding is not bound against a list for " + sResolvedPath, undefined, sClassName);
 			}
 			// ensure that data state is updated with each change of the context
 			this.checkDataState();
@@ -1024,7 +1029,8 @@ sap.ui.define([
 			that.bLengthRequested = true;
 			that.oCountHandle = null;
 
-			// in the OpertionMode.Auto, we check if the count is LE than the given threshold and set the client operation flag accordingly
+			// in the OperationMode.Auto, we check if the count is LE than the given threshold and
+			// set the client operation flag accordingly
 			if (that.sOperationMode == OperationMode.Auto) {
 				if (that.iLength <= that.mParameters.threshold) {
 					that.bThresholdRejected = false;
@@ -1042,7 +1048,7 @@ sap.ui.define([
 			if (oError.response){
 				sErrorMsg += ", " + oError.response.statusCode + ", " + oError.response.statusText + ", " + oError.response.body;
 			}
-			Log.warning(sErrorMsg);
+			Log.warning(sErrorMsg, undefined, sClassName);
 		}
 
 		// Use context and check for relative binding
@@ -1247,7 +1253,8 @@ sap.ui.define([
 		if (this.oModel.oMetadata && this.oModel.oMetadata.isLoaded() && this.bInitial
 				&& !this._hasTransientParentWithoutSubContexts()) {
 			if (!this._checkPathType()) {
-				Log.error("List Binding is not bound against a list for " + this.getResolvedPath());
+				Log.error("List Binding is not bound against a list for " + this.getResolvedPath(), undefined,
+					sClassName);
 			}
 			this.bInitial = false;
 			this._initSortersFilters();
@@ -1522,6 +1529,7 @@ sap.ui.define([
 				this.sChangeReason = ChangeReason.Sort;
 				this._fireRefresh({reason : this.sChangeReason});
 			}
+			/** @deprecated As of version 1.11.0 */
 			this._fireSort({sorter: aSorters});
 			bSuccess = true;
 		}
@@ -1551,7 +1559,8 @@ sap.ui.define([
 			fnCompare;
 
 		if (!oEntityType) {
-			Log.warning("Cannot determine sort/filter comparators, as entitytype of the collection is unknown!");
+			Log.warning("Cannot determine sort/filter comparators, as entity type of the collection is unknown!",
+				undefined, sClassName);
 			return;
 		}
 		aEntries.forEach(function(oEntry) {
@@ -1742,6 +1751,7 @@ sap.ui.define([
 				this.sChangeReason = ChangeReason.Filter;
 				this._fireRefresh({reason: this.sChangeReason});
 			}
+			/** @deprecated As of version 1.11.0 */
 			if (sFilterType === FilterType.Application) {
 				this._fireFilter({filters: this.aApplicationFilters});
 			} else {
@@ -1954,8 +1964,7 @@ sap.ui.define([
 				context : this.oContext,
 				properties : oInitialData
 			},
-			bCreationAreaAtEnd = this.isFirstCreateAtEnd(),
-			that = this;
+			bCreationAreaAtEnd = this.isFirstCreateAtEnd();
 
 		bAtEnd = !!bAtEnd;
 		if (bCreationAreaAtEnd === undefined) {
@@ -1990,9 +1999,9 @@ sap.ui.define([
 		oCreatedContextsCache.addContext(oCreatedContext, sResolvedPath,
 			this.sCreatedEntitiesKey, bAtEnd);
 		if (mCreateParameters.inactive) {
-			oCreatedContext.fetchActivated().then(function () {
-				that.fireEvent("createActivate");
-			});
+			oCreatedContext.fetchActivationStarted()
+				.then(this.fireCreateActivate.bind(this, oCreatedContext))
+				.catch(this.oModel.getReporter(sClassName));
 		}
 		this._fireChange({reason : ChangeReason.Add});
 
@@ -2228,8 +2237,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Assigns the "createActivate"-event to all already exisiting inactive contexts which are
-	 * belonging to this binding.
+	 * Assigns the "createActivate"-event to all already existing inactive contexts which belong to
+	 * this binding.
 	 *
 	 * @private
 	 */
@@ -2238,11 +2247,32 @@ sap.ui.define([
 
 		this._getCreatedContexts().forEach(function (oContext) {
 			if (oContext.isInactive()) {
-				oContext.fetchActivated().then(function () {
-					that.fireEvent("createActivate");
-				});
+				oContext.fetchActivationStarted()
+					.then(that.fireCreateActivate.bind(that, oContext))
+					.catch(that.oModel.getReporter(sClassName));
 			}
 		});
+	};
+
+	/**
+	 * Fires the 'createActivate' event and deactivates the given context in case the application's event handler
+	 * calls <code>preventDefault</code> on the event.
+	 *
+	 * @param {sap.ui.model.odata.v2.Context} oContext
+	 *   The context which is activated
+	 *
+	 * @private
+	 */
+	ODataListBinding.prototype.fireCreateActivate = function (oContext) {
+		if (this.fireEvent("createActivate", {context : oContext}, /*bAllowPreventDefault*/true)) {
+			oContext.finishActivation();
+			this._fireChange({reason : ChangeReason.Change});
+		} else {
+			oContext.cancelActivation();
+			oContext.fetchActivationStarted()
+				.then(this.fireCreateActivate.bind(this, oContext))
+				.catch(this.oModel.getReporter(sClassName));
+		}
 	};
 
 	return ODataListBinding;

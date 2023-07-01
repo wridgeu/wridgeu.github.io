@@ -11,8 +11,9 @@ sap.ui.define([
     'sap/base/util/deepEqual',
     'sap/m/p13n/SelectionPanel',
     'sap/m/p13n/modules/xConfigAPI',
-    'sap/ui/core/Configuration'
-], function (diff, BaseObject, merge, deepEqual, SelectionPanel, xConfigAPI, Configuration) {
+    'sap/ui/core/Configuration',
+    'sap/ui/core/mvc/View'
+], function (diff, BaseObject, merge, deepEqual, SelectionPanel, xConfigAPI, Configuration, View) {
 	"use strict";
 
     /**
@@ -21,6 +22,9 @@ sap.ui.define([
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
 	 * @param {object} [mSettings] Initial settings for the new control
      * @param {sap.ui.core.Control} mSettings.control The control instance that is personalized by this controller
+     * @param {function} [mSettings.getKeyForItem] By default the SelectionController tries to identify the existing item through the
+     * key by checking if there is an existing item with this id. This behaviour can be overruled by implementing this method which will
+     * provide the according item of the <code>targetAggregation</code> to return the according key associated to this item.
      * @param {string} mSettings.targetAggregation The name of the aggregation that is now managed by this controller
 	 *
 	 * @class
@@ -29,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @public
 	 * @alias sap.m.p13n.SelectionController
@@ -52,7 +56,7 @@ sap.ui.define([
             }
 
             this._sTargetAggregation = mSettings.targetAggregation;
-            this._fSelector = mSettings.selector;
+            this._fSelector = mSettings.getKeyForItem;
 
             this._oP13nData = null;
             this._bLiveMode = false;
@@ -123,13 +127,26 @@ sap.ui.define([
         return oSelectionPanel.setP13nData(oAdaptationData.items);
     };
 
+    var getViewForControl = function(oControl) {
+        if (oControl instanceof View) {
+            return oControl;
+        }
+
+        if (oControl && typeof oControl.getParent === "function") {
+            oControl = oControl.getParent();
+            return getViewForControl(oControl);
+        }
+    };
+
     SelectionController.prototype.getCurrentState = function(){
         var aState = [], aAggregationItems = this.getAdaptationControl().getAggregation(this.getTargetAggregation()) || [];
+        var oView = getViewForControl(this.getAdaptationControl());
         aAggregationItems.forEach(function(oItem, iIndex) {
-            var bRelevant = this._fSelector ? this._fSelector({key: oItem.getId()}) : oItem.getVisible();
-            if (bRelevant) {
+            var sId = oView ? oView.getLocalId(oItem.getId()) : oItem.getId();
+            var vRelevant = this._fSelector ? this._fSelector(oItem) : oItem.getVisible();
+            if (vRelevant) {
                 aState.push({
-                    key: oItem.getId()
+                    key: typeof vRelevant === "boolean" ? sId : vRelevant
                 });
             }
 		}.bind(this));
@@ -326,14 +343,13 @@ sap.ui.define([
 		   nIdx = this._indexOfByKeyName(aTarget, sKey);
 		   if (nIdx === -1) {
 			   oItem = merge({}, aSource[i]);
-			   oItem.index = i;
 			   mDeleteInserts.deletes.push(oItem);
-		   } else if ((nIdx === i) && aDeltaAttributes.length){
-			   if (this._verifyDeltaAttributes(aSource[i], aTarget[i], aDeltaAttributes)) {
+		   } else if (aDeltaAttributes.length){
+			   if (this._verifyDeltaAttributes(aSource[i], aTarget[nIdx], aDeltaAttributes)) {
 				   mDeleteInserts.deletes.push(aSource[i]);
 
-				   oItem = merge({}, aTarget[i]);
-			       oItem.index = i;
+				   oItem = merge({}, aTarget[nIdx]);
+				   oItem.index = nIdx;
 				   mDeleteInserts.inserts.push(oItem);
 			   }
 		   }
@@ -379,7 +395,7 @@ sap.ui.define([
         var oChangeContent = {};
 
         // Index
-        if (oProperty.index >= 0) {
+        if (oProperty.hasOwnProperty("index") && oProperty.index >= 0) {
             oChangeContent.index = oProperty.index;
         }
 
@@ -393,16 +409,18 @@ sap.ui.define([
     };
 
     SelectionController.prototype._createAddRemoveChange = function(oControl, sOperation, oContent){
+		var oChangeContent = oContent;
+
+		if (sOperation === this.getChangeOperations()["add"]) {
+			oChangeContent.value = true;
+			oChangeContent.targetAggregation = this.getTargetAggregation();
+		}
+
         var oAddRemoveChange = {
             selectorElement: oControl,
             changeSpecificData: {
                 changeType: sOperation,
-                content: {
-                    key: oContent.key,
-                    targetAggregation: this.getTargetAggregation(),
-                    index: oContent.index,
-                    value: sOperation === this.getChangeOperations()["add"]
-                }
+                content:  oChangeContent
             }
         };
         return oAddRemoveChange;
@@ -449,7 +467,7 @@ sap.ui.define([
 
         var oP13nData = this.prepareAdaptationData(oPropertyHelper, function(mItem, oProperty){
             var oExisting = mItemState[oProperty.name || oProperty.key];
-            mItem.visible = this._fSelector ? this._fSelector(oProperty) : (!!oExisting);
+            mItem.visible = !!oExisting;
             mItem.position =  oExisting ? oExisting.position : -1;
             return !(oProperty.visible === false || (this._aStableKeys.indexOf(oProperty.name || oProperty.key) > -1));
         }.bind(this));
@@ -480,8 +498,10 @@ sap.ui.define([
      */
     SelectionController.prototype.update = function(oPropertyHelper) {
         if (this._oPanel) {
-            var oAdaptationData = this.mixInfoAndState(oPropertyHelper);
-            this._oPanel.setP13nData(oAdaptationData.items);
+			if (!this._oPanel.isDestroyed()) {
+				var oAdaptationData = this.mixInfoAndState(oPropertyHelper);
+				this._oPanel.setP13nData(oAdaptationData.items);
+			}
         } else if (this._oAdaptationModel){
             //'setData' causes unnecessary rerendering in some cases
             var oP13nData = this.mixInfoAndState(oPropertyHelper);

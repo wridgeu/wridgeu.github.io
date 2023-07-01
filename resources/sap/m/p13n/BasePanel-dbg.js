@@ -5,8 +5,26 @@
  */
 
 sap.ui.define([
-	'sap/ui/model/json/JSONModel', 'sap/m/VBox', 'sap/ui/core/Control', 'sap/m/Column', 'sap/m/Text', 'sap/ui/model/Filter', "sap/m/Table", "sap/m/OverflowToolbar", "sap/m/SearchField", "sap/m/ToolbarSpacer", "sap/m/OverflowToolbarButton", "sap/m/OverflowToolbarLayoutData", "sap/ui/core/dnd/DragDropInfo"
-], function(JSONModel, VBox, Control, Column, Text, Filter, Table, OverflowToolbar, SearchField, ToolbarSpacer, OverflowToolbarButton, OverflowToolbarLayoutData, DragDropInfo) {
+	'sap/ui/model/json/JSONModel',
+	'sap/m/VBox',
+	'sap/ui/core/Control',
+	'sap/m/Column',
+	'sap/m/Text',
+	'sap/ui/model/Filter',
+	"sap/m/Table",
+	"sap/m/OverflowToolbar",
+	"sap/m/SearchField",
+	"sap/m/ToolbarSpacer",
+	"sap/m/OverflowToolbarButton",
+	"sap/m/OverflowToolbarLayoutData",
+	"sap/ui/core/dnd/DragDropInfo",
+	'sap/ui/core/ShortcutHintsMixin',
+	"sap/ui/events/KeyCodes",
+	"sap/base/Log",
+	"sap/ui/Device",
+	"sap/m/library",
+	"sap/base/util/UriParameters"
+], function(JSONModel, VBox, Control, Column, Text, Filter, Table, OverflowToolbar, SearchField, ToolbarSpacer, OverflowToolbarButton, OverflowToolbarLayoutData, DragDropInfo, ShortcutHintsMixin, KeyCodes, Log, Device, library, UriParameters) {
 	"use strict";
 
 	/**
@@ -34,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @public
 	 * @abstract
@@ -140,6 +158,9 @@ sap.ui.define([
 		}
 	});
 
+	// shortcut for sap.m.MultiSelectMode
+	var MultiSelectMode = library.MultiSelectMode;
+
 	//inner model name
 	BasePanel.prototype.P13N_MODEL = "$p13n";
 
@@ -154,6 +175,13 @@ sap.ui.define([
 	//defines the name of the attribute describing the presence/active state
 	BasePanel.prototype.PRESENCE_ATTRIBUTE = "visible";
 	BasePanel.prototype.WIDTH = "30rem";
+
+	BasePanel.prototype.applySettings = function(mSettings) {
+		Control.prototype.applySettings.apply(this, arguments);
+		if (!mSettings || (mSettings && mSettings.enableReorder === undefined)) {
+			this._updateMovement(true);
+		}
+	};
 
 	BasePanel.prototype.init = function() {
 		Control.prototype.init.apply(this, arguments);
@@ -170,8 +198,9 @@ sap.ui.define([
 
 		this._setInnerLayout();
 
-		// disable 'select all'
-		this._oListControl.setMultiSelectMode("ClearAll");
+		// experimentally enable select all
+		var oParams = UriParameters.fromQuery(window.location.search);
+		this._oListControl.setMultiSelectMode(oParams.get("sap-ui-xx-p13nSelectAll") == "true" ? MultiSelectMode.SelectAll : MultiSelectMode.ClearAll);
 	};
 
 	BasePanel.prototype.onAfterRendering = function() {
@@ -311,23 +340,30 @@ sap.ui.define([
 	};
 
 	BasePanel.prototype._getMoveTopButton = function() {
-		if (!this._oMoveTopBtn) {
-			this._oMoveTopBtn = new OverflowToolbarButton(this.getId() + "-moveTopBtn",{
+		if (!this._oMoveTopButton) {
+			this._oMoveTopButton = new OverflowToolbarButton(this.getId() + "-moveTopBtn", {
 				type: "Transparent",
 				tooltip: this._getResourceText("p13n.MOVE_TO_TOP"),
 				icon: "sap-icon://collapse-group",
 				press: [this._onPressButtonMoveToTop, this],
 				visible: false
 			});
-			this.addDependent(this._oMoveTopBtn);
+			this.addDependent(this._oMoveTopButton);
+
+			ShortcutHintsMixin.addConfig(this._oMoveTopButton, {
+				addAccessibilityLabel: true,
+				message: this._getResourceText(Device.os.macintosh ? "p13n.SHORTCUT_MOVE_TO_TOP_MAC" : "p13n.SHORTCUT_MOVE_TO_TOP") // Cmd+Home or Ctrl+Home
+				},
+				this
+			);
 		}
 
-		return this._oMoveTopBtn;
+		return this._oMoveTopButton;
 	};
 
 	BasePanel.prototype._getMoveUpButton = function() {
 		if (!this._oMoveUpButton) {
-			this._oMoveUpButton = new OverflowToolbarButton(this.getId() + "-moveUpBtn",{
+			this._oMoveUpButton = new OverflowToolbarButton(this.getId() + "-moveUpBtn", {
 				type: "Transparent",
 				tooltip: this._getResourceText("p13n.MOVE_UP"),
 				icon: "sap-icon://navigation-up-arrow",
@@ -335,6 +371,14 @@ sap.ui.define([
 				visible: false
 			});
 			this.addDependent(this._oMoveUpButton);
+
+			ShortcutHintsMixin.addConfig(this._oMoveUpButton, {
+				addAccessibilityLabel: true,
+				message: this._getResourceText(Device.os.macintosh ? "p13n.SHORTCUT_MOVE_UP_MAC" : "p13n.SHORTCUT_MOVE_UP") // Cmd+CursorUp or Ctrl+CursorUp
+				},
+				this
+			);
+
 		}
 
 		return this._oMoveUpButton;
@@ -342,7 +386,7 @@ sap.ui.define([
 
 	BasePanel.prototype._getMoveDownButton = function() {
 		if (!this._oMoveDownButton) {
-			this._oMoveDownButton = new OverflowToolbarButton(this.getId() + "-moveDownpBtn",{
+			this._oMoveDownButton = new OverflowToolbarButton(this.getId() + "-moveDownpBtn", {
 				type: "Transparent",
 				tooltip: this._getResourceText("p13n.MOVE_DOWN"),
 				icon: "sap-icon://navigation-down-arrow",
@@ -350,6 +394,13 @@ sap.ui.define([
 				visible: false
 			});
 			this.addDependent(this._oMoveDownButton);
+
+			ShortcutHintsMixin.addConfig(this._oMoveDownButton, {
+				addAccessibilityLabel: true,
+				message: this._getResourceText(Device.os.macintosh ? "p13n.SHORTCUT_MOVE_DOWN_MAC" : "p13n.SHORTCUT_MOVE_DOWN") // Cmd+CursorDown or Ctrl+CursorDown
+				},
+				this
+			);
 		}
 
 		return this._oMoveDownButton;
@@ -357,7 +408,7 @@ sap.ui.define([
 
 	BasePanel.prototype._getMoveBottomButton = function() {
 		if (!this._oMoveBottomButton) {
-			this._oMoveBottomButton = new OverflowToolbarButton(this.getId() + "-moveBottomBtn",{
+			this._oMoveBottomButton = new OverflowToolbarButton(this.getId() + "-moveBottomBtn", {
 				type: "Transparent",
 				tooltip: this._getResourceText("p13n.MOVE_TO_BOTTOM"),
 				icon: "sap-icon://expand-group",
@@ -365,6 +416,14 @@ sap.ui.define([
 				visible: false
 			});
 			this.addDependent(this._oMoveBottomButton);
+
+			ShortcutHintsMixin.addConfig(this._oMoveBottomButton, {
+				addAccessibilityLabel: true,
+				message: this._getResourceText(Device.os.macintosh ? "p13n.SHORTCUT_MOVE_TO_BOTTOM_MAC" : "p13n.SHORTCUT_MOVE_TO_BOTTOM") // Cmd+End or Ctrl+End
+				},
+				this
+			);
+
 		}
 
 		return this._oMoveBottomButton;
@@ -372,8 +431,8 @@ sap.ui.define([
 
 	BasePanel.prototype._onResize = function(aResizeEntity) {
 		var oDomRect = aResizeEntity[0].contentRect;
-		if (this._oMoveTopBtn) {
-			this._oMoveTopBtn.setVisible(oDomRect.width > 400);
+		if (this._oMoveTopButton) {
+			this._oMoveTopButton.setVisible(oDomRect.width > 400);
 		}
 		if (this._oMoveBottomButton) {
 			this._oMoveBottomButton.setVisible(oDomRect.width > 400);
@@ -399,9 +458,47 @@ sap.ui.define([
 		if (oRow && oRow.aDelegates.length < 1) {
 			oRow.addEventDelegate({
 				onmouseover: this._hoverHandler.bind(this),
-				onfocusin: this._focusHandler.bind(this)
+				onfocusin: this._focusHandler.bind(this),
+				onkeydown: this._keydownHandler.bind(this)
 			});
 		}
+	};
+
+	BasePanel.prototype._keydownHandler = function(oEvent) {
+		if (!this.getEnableReorder()){
+			return;
+		}
+
+		if (oEvent.isMarked()) {
+			return;
+		}
+
+		// Log.info("onKeyDown", oEvent.ctrlKey  + " | " + oEvent.which + " | " + oEvent.key);
+
+		if ((oEvent.metaKey || oEvent.ctrlKey )) {
+			var oButton;
+			if (oEvent.which === KeyCodes.HOME) {
+				oButton = this._getMoveTopButton();
+			}
+			if (oEvent.which === KeyCodes.ARROW_UP) {
+				oButton = this._getMoveUpButton();
+			}
+			if (oEvent.which === KeyCodes.ARROW_DOWN) {
+				oButton = this._getMoveDownButton();
+			}
+			if (oEvent.which === KeyCodes.END) {
+				oButton = this._getMoveBottomButton();
+			}
+
+			if (oButton && oButton.getParent() && oButton.getVisible() && oButton.getEnabled()) {
+				// Mark the event to ensure that parent handlers (e.g. FLP) can skip their processing if needed. Also prevent potential browser defaults
+				oEvent.setMarked();
+				oEvent.preventDefault();
+
+				oButton.firePress();
+			}
+		}
+
 	};
 
 	BasePanel.prototype._focusHandler = function(oEvt) {
@@ -742,7 +839,7 @@ sap.ui.define([
 		this._oSelectionBindingInfo = null;
 		this._oSelectedItem = null;
 		this._oListControl = null;
-		this._oMoveTopBtn = null;
+		this._oMoveTopButton = null;
 		this._oMoveUpButton = null;
 		this._oMoveDownButton = null;
 		this._oMoveBottomButton = null;

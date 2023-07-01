@@ -43,7 +43,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.cardEditor.propertyEditor.parametersEditor.ParametersEditor
 	 * @author SAP SE
 	 * @since 1.70
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @experimental 1.70
@@ -82,6 +82,7 @@ sap.ui.define([
 		var bVisibleToUser = this.getBoolenValue(oConfigValue.value.visibleToUser, vItemMetadata.visibleToUser, true);
 		var bEditable = this.getBoolenValue(oConfigValue.value.editable, vItemMetadata.editable, true);
 		var bEditableToUser = this.getBoolenValue(oConfigValue.value.editableToUser, vItemMetadata.editableToUser, true);
+		var iMaxLength = oConfigValue.value.maxLength || vItemMetadata.maxLength || 0;
 		var bRequired = this.getBoolenValue(oConfigValue.value.required, vItemMetadata.required, false);
 		var bExpanded = this.getBoolenValue(oConfigValue.value.expanded, vItemMetadata.expanded, true);
 		var sLevel = oConfigValue.value.level || vItemMetadata.level || "0";
@@ -232,6 +233,16 @@ sap.ui.define([
 				enabled: true,
 				visible: sType !== "group" && sType !== "separator",
 				type: "boolean",
+				itemKey: sKey
+			},
+			{
+				label: this.getI18nProperty("CARD_EDITOR.PARAMETERS.MAXLENGTH"),
+				path: "maxLength",
+				allowBindings: true,
+				value: iMaxLength,
+				enabled: true,
+				visible: sType === "string",
+				type: "integer",
 				itemKey: sKey
 			},
 			{

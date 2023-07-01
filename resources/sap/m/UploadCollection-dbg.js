@@ -92,7 +92,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -2213,6 +2213,7 @@ sap.ui.define([
 			MessageBox.show(sMessageText, {
 				title: this._oRb.getText("UPLOADCOLLECTION_DELETE_TITLE"),
 				actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
+                emphasizedAction: MessageBox.Action.OK,
 				onClose: this._onCloseMessageBoxDeleteItem.bind(this),
 				dialogId: "messageBoxDeleteFile",
 				styleClass: sCompact

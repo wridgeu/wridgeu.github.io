@@ -6,10 +6,12 @@
 sap.ui.define([
 	"sap/ui/integration/library",
 	"sap/base/Log",
-	"sap/ui/base/ManagedObject"
+	"sap/ui/base/ManagedObject",
+	"sap/base/util/fetch"
 ], function (library,
 			 Log,
-			 ManagedObject) {
+			 ManagedObject,
+			 fetch) {
 	"use strict";
 
 	/**
@@ -24,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -192,6 +194,28 @@ sap.ui.define([
 	 */
 	Extension.prototype.getCard = function () {
 		return this._oCardInterface;
+	};
+
+	/**
+	 * Starts the process of fetching a resource from the network, returning a promise that is fulfilled once the response is available.
+	 * Use this method to override the default behavior when fetching network resources.
+	 * Mimics the browser native Fetch API.
+	 * @public
+	 * @experimental Since 1.113. The API might change.
+	 * @param {string} sResource This defines the resource that you wish to fetch.
+	 * @param {object} mOptions An object containing any custom settings that you want to apply to the request.
+	 * @param {object} mRequestSettings The map of request settings defined in the card manifest. Use this only for reading, they can not be modified.
+	 * @returns {Promise<Response>} A <code>Promise</code> that resolves to a <code>Response</code> object.
+	 */
+	Extension.prototype.fetch = function (sResource, mOptions, mRequestSettings) {
+		var oCard = this._oCard,
+			oHost = this._oCard.getHostInstance();
+
+		if (oHost) {
+			return oHost.fetch(sResource, mOptions, mRequestSettings, oCard);
+		} else {
+			return fetch(sResource, mOptions);
+		}
 	};
 
 	/**

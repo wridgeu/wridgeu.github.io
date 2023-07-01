@@ -19,7 +19,8 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	var CardDataMode = library.CardDataMode;
+	var CardDataMode = library.CardDataMode,
+		CardPreviewMode = library.CardPreviewMode;
 
 	/**
 	 * Constructor for a new <code>Preview</code> that show a image, abstract live preview
@@ -29,7 +30,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.editor.CardPreview
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted
@@ -97,17 +98,18 @@ sap.ui.define([
 				oRm.openEnd();
 				oRm.close("div");
 				// TODO unsupported DOM structure: button is not a child of the root element
-				if ((oControl._getModes().indexOf("Live") > -1 && oControl._getModes().indexOf("Abstract") > -1)
-				|| (oControl._getModes().indexOf("Mock") > -1 && oControl._getModes().indexOf("Abstract") > -1)) {
+				var sModes = oControl._getModes();
+				if (sModes.indexOf("Abstract") > -1 && (sModes.indexOf("Live") > -1 || sModes.indexOf("Mock") > -1 || sModes.indexOf("MockData") > -1)) {
 					oRm.renderControl(oControl._getModeToggleButton());
 				}
-				if (oControl._getModes() !== "Abstract" && (!sPreviewPosition || sPreviewPosition === "right" || sPreviewPosition === "left")) {
+
+				if (sModes !== "Abstract" && (!sPreviewPosition || sPreviewPosition === "right" || sPreviewPosition === "left")) {
 					oRm.renderControl(oControl._getResizeToggleButton());
 				}
 				if (sPreviewPosition === "top" || sPreviewPosition === "bottom") {
-					document.body.style.setProperty("--sapUiIntegrationEditorPreviewWidth", oControl.getParentWidth());
-					document.body.style.setProperty("--sapUiIntegrationEditorPreviewHeight", oControl.getParentHeight());
+					document.body.style.setProperty("--sapUiIntegrationEditorPreviewWidth", oControl.getEditor().getWidth());
 				}
+				document.body.style.setProperty("--sapUiIntegrationEditorPreviewHeight", oControl.getEditor().getHeight());
 				oRm.close("div");
 			}
 		}
@@ -152,12 +154,13 @@ sap.ui.define([
 		Control.prototype.destroy.apply(this, arguments);
 		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewWidth");
 		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewHeight");
+		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewCardHeight");
 	};
 
 	CardPreview.prototype.onAfterRendering = function () {
 		var oPreview = this.getAggregation("cardPreview"),
 		    sModes = this._getModes();
-		if ((sModes.indexOf("Live") > -1 || sModes.indexOf("Mock") > -1) && oPreview && oPreview.getDomRef() && oPreview.getDomRef().getElementsByClassName("sapVizFrame")) {
+		if ((sModes.indexOf("Live") > -1 || sModes.indexOf("Mock") > -1 || sModes.indexOf("MockData") > -1) && oPreview && oPreview.getDomRef() && oPreview.getDomRef().getElementsByClassName("sapVizFrame")) {
 			window.setTimeout(function() {
 				try {
 					var vizFrameId = oPreview.getDomRef().getElementsByClassName("sapVizFrame")[0].id;
@@ -182,124 +185,35 @@ sap.ui.define([
 	 */
 	CardPreview.prototype._getCardPreview = function () {
 		var oPreview = null;
-		if (this._getCurrentMode() === "Abstract") {
-			if (this.getSettings().preview.src) {
-				oPreview = this._getImagePlaceholder();
-			} else {
-				oPreview = this._getCardPlaceholderPreview();
-			}
-		} else if (this._getCurrentMode() === "Live" || this._getCurrentMode() === "Mock") {
+		if (this._getCurrentMode() === "Abstract" && this.getSettings().preview.src) {
+			oPreview = this._getImagePlaceholder();
+		} else if (this._getCurrentMode() !== "None") {
 			oPreview = this._getCardRealPreview();
 		}
 		if (oPreview) {
 			this.setAggregation("cardPreview", oPreview);
+			oPreview.removeStyleClass("sapUiIntegrationDTPreviewNoScale");
+			oPreview.removeStyleClass("sapUiIntegrationDTPreviewScaleBasic");
+			oPreview.removeStyleClass("withScale");
+			oPreview.removeStyleClass("withScaleSpec");
 			if (!this.getSettings().preview || this.getSettings().preview.scaled !== false) {
-				oPreview.removeStyleClass("sapUiIntegrationDTPreviewScale");
-				oPreview.removeStyleClass("sapUiIntegrationDTPreviewScaleSpec");
 				var sLanguge = Core.getConfiguration().getLanguage().replaceAll('_', '-');
 				if (this._getCurrentSize() !== "Full") {
+					oPreview.addStyleClass("sapUiIntegrationDTPreviewScaleBasic");
 					if (sLanguge.startsWith("ar") || sLanguge.startsWith("he")) {
 						// for the languages "ar-SA"(Arabic) and "he-IL"(Hebrew) which write from right to left, use spec style
-						oPreview.addStyleClass("sapUiIntegrationDTPreviewScaleSpec");
+						oPreview.addStyleClass("withScaleSpec");
 					} else {
-						oPreview.addStyleClass("sapUiIntegrationDTPreviewScale");
+						oPreview.addStyleClass("withScale");
 					}
+				} else {
+					oPreview.addStyleClass("sapUiIntegrationDTPreviewNoScale");
 				}
 			} else {
 				oPreview.addStyleClass("sapUiIntegrationDTPreviewNoScale");
 			}
 		}
 		return oPreview;
-	};
-
-	/**
-	 * returns the a scaled placeholder of the card based on the current settings
-	 */
-	CardPreview.prototype._getCardPlaceholderPreview = function () {
-		var oCard = this.getCard(),
-			placeholder;
-
-		function _map(s, x) {
-			return oCard.getManifestEntry(s) ? x || "{bound}" : null;
-		}
-		var header = null;
-		if (oCard.getManifestEntry("/sap.card/header")) {
-			var type = oCard.getManifestEntry("/sap.card/header/type");
-			if (type && type.toUpperCase() === "NUMERIC") {
-				header = {
-					"title": _map("/sap.card/header/title"),
-					"type": "Numeric",
-					"subTitle": _map("/sap.card/header/subTitle"),
-					"unitOfMeasurement": _map("/sap.card/header/unitOfMeasurement"),
-					"mainIndicator": _map("/sap.card/header/mainIndicator", {
-						"number": "{bound}",
-						"unit": "{bound}",
-						"trend": "{bound}",
-						"state": "{bound}"
-					}),
-					"details": _map("/sap.card/header/details"),
-					"sideIndicators": [
-						_map("/sap.card/header/sideIndicators/0", {
-							"title": "Deviation",
-							"number": "{bound}",
-							"unit": "{bound}"
-						}),
-						_map("/sap.card/header/sideIndicators/1", {
-							"title": "Target",
-							"number": "{bound}",
-							"unit": "{bound}"
-						})
-					]
-				};
-			} else {
-				header = {
-					"title": _map("/sap.card/header/title"),
-					"subTitle": _map("/sap.card/header/subTitle"),
-					"status": _map("/sap.card/header/status"),
-					"icon": _map("/sap.card/header/icon", {
-						"src": "{bound}"
-					})
-				};
-			}
-		}
-		var oCurrent = this.getEditor().getCurrentSettings();
-		placeholder = {
-			"sap.app": {
-				"type": "card",
-				"id": oCard.getManifestEntry("/sap.app/id") + ".abstractPreview"
-			},
-			"sap.card": {
-				"type": oCard.getManifestEntry("/sap.card/type") === "List" ? "List" : "Component",
-				"header": header,
-				"content": {
-					"maxItems": Math.min(oCurrent["/sap.card/content/maxItems"] || 6, 6),
-					"item": {
-						"title": {
-							"value": _map("/sap.card/content/item/value")
-						},
-						"icon": _map("/sap.card/content/item/icon", {
-							"src": "{bound}"
-						}),
-						"description": _map("/sap.card/content/item/description"),
-						"info": {
-							"value": _map("/sap.card/content/item/info")
-						}
-					}
-				}
-			}
-		};
-
-		if (!this._oCardPlaceholder) {
-			this._oCardPlaceholder = new Card({
-				dataMode: CardDataMode.Active,
-				readonly: true
-			});
-			this._oCardPlaceholder._setPreviewMode(true);
-			this._oCardPlaceholder.onfocusin = this._onfocusin.bind(this);
-		}
-		this._oCardPlaceholder.setManifest(placeholder);
-		this._oCardPlaceholder.refresh();
-		return this._oCardPlaceholder;
 	};
 
 	/**
@@ -321,6 +235,7 @@ sap.ui.define([
 	 * returns the real scaled instance of the card
 	 */
 	CardPreview.prototype._getCardRealPreview = function () {
+		var that = this;
 		if (!this._oCardPreview) {
 			var bReadonly = !this.getSettings().preview.interactive;
 			this._oCardPreview = new Card({
@@ -329,12 +244,33 @@ sap.ui.define([
 				readonlyZIndex: this.getEditor()._iZIndex + 1
 			});
 			this._oCardPreview.setBaseUrl(this.getCard().getBaseUrl());
-			if (this._currentMode === "Mock") {
-				this._oCardPreview.setProperty("useMockData", true);
-			}
 			if (bReadonly) {
 				this._oCardPreview.onfocusin = this._onfocusin.bind(this);
 			}
+			// for some Cards, such as component Card, need to reset the Card height for css since the Card Content
+			// will not trigger onAfterRendering of the Card after loaded, then the height value may be wrong
+			this._oCardPreview.attachEvent("_ready", function () {
+				var oCardContent = this._oCardPreview.getCardContent();
+				if (oCardContent) {
+					oCardContent.addEventDelegate({
+						"onAfterRendering": function() {
+							this._resetHeight();
+						}
+					}, this);
+				}
+			}.bind(this));
+			this._oCardPreview.onAfterRendering = function () {
+				Card.prototype.onAfterRendering.call(this);
+				that._resetHeight();
+			};
+		}
+		if (this._currentMode === "MockData") {
+			this._oCardPreview.setProperty("useMockData", true);
+			this._oCardPreview.setPreviewMode(CardPreviewMode.MockData);
+		} else if (this._currentMode === "Abstract") {
+			this._oCardPreview.setPreviewMode(CardPreviewMode.Abstract);
+		} else if (this._currentMode === "Live") {
+			this._oCardPreview.setPreviewMode(CardPreviewMode.Off);
 		}
 		this._initalChanges = this._initalChanges || this._oCardPreview.getManifestChanges() || [];
 		var aChanges = this._initalChanges.concat([this.getEditor().getCurrentSettings()]);
@@ -345,6 +281,17 @@ sap.ui.define([
 		this._oCardPreview.editor = this._oCardPreview.editor || {};
 		this._oCardPreview.preview = this._oCardPreview.editor.preview = this;
 		return this._oCardPreview;
+	};
+
+	CardPreview.prototype._resetHeight = function () {
+		var oCardDom = this._oCardPreview.getDomRef();
+		if (oCardDom && this._getCurrentSize() !== "Full" ) {
+			var sHeight = oCardDom.offsetHeight;
+			document.body.style.setProperty("--sapUiIntegrationEditorPreviewCardHeight", sHeight + "px");
+			document.body.style.setProperty("--sapUiIntegrationEditorPreviewHeight", (sHeight * 0.45 + 56)  + "px");
+		} else {
+			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewCardHeight");
+		}
 	};
 
 	/**
@@ -399,16 +346,17 @@ sap.ui.define([
 		//default setting - abstract preview
 		mSettings.preview = mSettings.preview || {};
 		mSettings.preview.modes = mSettings.preview.modes || "Abstract";
-		// Mock mode is only used for Component Card now, replace it with "Live" for other Cards
+		// MockData mode is only used for Component Card now, replace it with "Live" for other Cards
 		var sType = this.getCard().getManifestEntry("/sap.card/type");
 		if (sType !== "Component") {
+			mSettings.preview.modes = mSettings.preview.modes.replace("MockData", "Live");
 			mSettings.preview.modes = mSettings.preview.modes.replace("Mock", "Live");
 		}
 		return mSettings.preview.modes;
 	};
 
 	/**
-	 * returns the current mode of the preview, "Abstract" or "Live" or "Mock"
+	 * returns the current mode of the preview, "Abstract" or "Live" or "MockData"
 	 */
 	CardPreview.prototype._getCurrentMode = function () {
 		var sModes = this._getModes();
@@ -417,13 +365,16 @@ sap.ui.define([
 				case "Abstract":
 				case "AbstractLive":
 				case "AbstractMock":
+				case "AbstractMockData":
 					this._currentMode = "Abstract"; break;
 				case "Live":
 				case "LiveAbstract":
 					this._currentMode = "Live"; break;
 				case "Mock":
 				case "MockAbstract":
-					this._currentMode = "Mock"; break;
+				case "MockData":
+				case "MockDataAbstract":
+					this._currentMode = "MockData"; break;
 				default: this._currentMode = "None";
 			}
 		}
@@ -431,19 +382,21 @@ sap.ui.define([
 	};
 
 	/**
-	 * toggles the current mode from "Abstract" to "Live" or "Mock" and vice versa
+	 * toggles the current mode from "Abstract" to "Live" or "MockData" and vice versa
 	 */
 	CardPreview.prototype._toggleCurrentMode = function () {
 		var sModes = this._getModes();
-		if (sModes.indexOf("Live") > -1 && sModes.indexOf("Abstract") > -1) {
-			this._currentMode = this._getCurrentMode() === "Abstract" ? "Live" : "Abstract";
-		} else if (sModes.indexOf("Mock") > -1 && sModes.indexOf("Abstract") > -1) {
-			this._currentMode = this._getCurrentMode() === "Abstract" ? "Mock" : "Abstract";
+		if (sModes.indexOf("Abstract") > -1) {
+			if (sModes.indexOf("Live") > -1) {
+				this._currentMode = this._getCurrentMode() === "Abstract" ? "Live" : "Abstract";
+			} else if (sModes.indexOf("Mock") > -1 || sModes.indexOf("MockData") > -1) {
+				this._currentMode = this._getCurrentMode() === "Abstract" ? "MockData" : "Abstract";
+			}
 		}
 	};
 
 	/**
-	 * toggles the current mode from "Abstract" to "Live" or "Mock" and vice versa
+	 * toggles the current mode from "Abstract" to "Live" or "MockData" and vice versa
 	 * @returns {sap.m.ToggleButton}
 	 */
 	 CardPreview.prototype._getModeToggleButton = function () {
@@ -492,12 +445,12 @@ sap.ui.define([
 		if (currentMode === "Abstract") {
 			tb.setIcon("sap-icon://media-play");
 			tb.setPressed(false);
-			if (this._getModes().indexOf("Mock") > -1) {
-				tb.setTooltip(oBundle.getText("CARDEDITOR_PREVIEW_BTN_MOCKPREVIEW"));
+			if (this._getModes().indexOf("Mock") > -1 || this._getModes().indexOf("MockData") > -1) {
+				tb.setTooltip(oBundle.getText("CARDEDITOR_PREVIEW_BTN_MOCKDATAPREVIEW"));
 			} else {
 				tb.setTooltip(oBundle.getText("CARDEDITOR_PREVIEW_BTN_LIVEPREVIEW"));
 			}
-		} else if (currentMode === "Live" || currentMode === "Mock") {
+		} else if (currentMode === "Live" || currentMode === "MockData") {
 			tb.setIcon("sap-icon://media-pause");
 			tb.setPressed(true);
 			tb.setTooltip(oBundle.getText("CARDEDITOR_PREVIEW_BTN_SAMPLEPREVIEW"));
@@ -525,11 +478,9 @@ sap.ui.define([
 		if (this._currentSize === "Normal") {
 			this.getEditor().setWidth(this.getParentWidth());
 			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewWidth");
-			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewHeight");
 		} else {
 			this.getEditor().setWidth("0");
 			document.body.style.setProperty("--sapUiIntegrationEditorPreviewWidth", this.getParentWidth());
-			document.body.style.setProperty("--sapUiIntegrationEditorPreviewHeight", this.getParentHeight());
 		}
 	};
 
@@ -558,7 +509,7 @@ sap.ui.define([
 		this._oSizeToggleButton.removeStyleClass("sapUiIntegrationDTPreviewResizeButtonOnlyFull");
 		this._oSizeToggleButton.removeStyleClass("sapUiIntegrationDTPreviewResizeButtonOnlyFullSpec");
 		var sLanguge = Core.getConfiguration().getLanguage().replaceAll('_', '-');
-		if (this._getModes() === "Mock" || this._getModes() === "Live") {
+		if (this._getModes() === "Mock" || this._getModes() === "MockData" || this._getModes() === "Live") {
 			if (this._getCurrentSize() === "Full") {
 				if (sLanguge.startsWith("ar") || sLanguge.startsWith("he")) {
 					this._oSizeToggleButton.addStyleClass("sapUiIntegrationDTPreviewResizeButtonOnlyFullSpec");

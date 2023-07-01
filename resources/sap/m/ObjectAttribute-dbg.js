@@ -43,7 +43,7 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 	 * <code>text</code> property is styled and acts as a link. In this case the <code>text</code>
 	 * property must also be set, as otherwise there will be no link displayed for the user.
 	 * @extends sap.ui.core.Control
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -201,11 +201,11 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 
 		if (this._bEmptyIndicatorMode) {
 			//inner text control is used in order to display properly the empty indicator
-			this.getAggregation('_textControl').setProperty("emptyIndicatorMode", EmptyIndicatorMode.On, true);
+			this.getAggregation('_textControl').setEmptyIndicatorMode(EmptyIndicatorMode.On);
 		}
 
-		oAttrAggregation.setProperty('text', sResult, true);
-		oAttrAggregation.setProperty('textDirection', sTextDir, true);
+		oAttrAggregation.setText(sResult);
+		oAttrAggregation.setTextDirection(sTextDir);
 
 		//if attribute is used inside responsive ObjectHeader or in ObjectListItem - only 1 line
 		if (oParent && oParent.isA("sap.m.ObjectListItem")) {
@@ -232,10 +232,10 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 	 */
 	ObjectAttribute.prototype._setControlWrapping = function(oAttrAggregation, bWrap, iMaxLines) {
 		if (oAttrAggregation.isA("sap.m.Link")) {
-			oAttrAggregation.setProperty('wrapping', bWrap, true);
+			oAttrAggregation.setWrapping(bWrap);
 		}
 		if (oAttrAggregation.isA("sap.m.Text")) {
-			oAttrAggregation.setProperty('maxLines', iMaxLines, true);
+			oAttrAggregation.setMaxLines(iMaxLines);
 		}
 	};
 

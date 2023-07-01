@@ -157,7 +157,7 @@ sap.ui.define([
 		 * @hideconstructor
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 */
 		ODataMetaModel = MetaModel.extend("sap.ui.model.odata.v4.ODataMetaModel", {
 				constructor : constructor
@@ -706,6 +706,7 @@ sap.ui.define([
 		this.sDefaultBindingMode = BindingMode.OneTime;
 		this.mETags = {};
 		this.sLanguage = sLanguage;
+		// no need to use UI5Date.getInstance as only the timestamp is relevant
 		this.oLastModified = new Date(0);
 		this.oMetadataPromise = null;
 		this.oModel = oModel;
@@ -3479,8 +3480,10 @@ sap.ui.define([
 		}
 
 		// handle & remove Date, ETag and Last-Modified headers
+		// no need to use UI5Date.getInstance as only the timestamp is relevant
 		oLastModified = mScope.$LastModified ? new Date(mScope.$LastModified) : null;
 		this.mETags[sUrl] = mScope.$ETag ? mScope.$ETag : oLastModified;
+		// no need to use UI5Date.getInstance as only the timestamp is relevant
 		oDate = mScope.$Date ? new Date(mScope.$Date) : new Date();
 		oLastModified = oLastModified || oDate; // @see #getLastModified
 		if (this.oLastModified < oLastModified) {

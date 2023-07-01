@@ -124,7 +124,7 @@ sap.ui.define([
 		 * @since 1.44.0
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @public
 		 * @alias sap.m.HeaderContainer
@@ -203,8 +203,7 @@ sap.ui.define([
 					height: {type: "sap.ui.core.CSSSize", group: "Appearance"},
 					/**
 					* Enables grid layout in mobile view.
-                                        * @private
-                                        * @since 1.99
+        			* @since 1.99
 					* @experimental since 1.99
 					*/
 					gridLayout: {type: "boolean", defaultValue: false}
@@ -344,6 +343,12 @@ sap.ui.define([
 						this._oItemNavigation.setTabIndex0();
 						this._oItemNavigation.setCycling(false);
 
+						//Respecting Global Shortcuts like alt+right/left, cmd+right/left which is used for browser navigation with keyboard
+	                    this._oItemNavigation.setDisabledModifiers({
+	                        sapnext: ["alt", "meta"],
+	                        sapprevious: ["alt", "meta"]
+                        });
+
 						this._handleMobileScrolling();
 					}
 					if (this._isMobileView()) {
@@ -423,11 +428,11 @@ sap.ui.define([
 				Log.warning("No width provided", this);
 			}
 			if (Device.system.desktop) {
-				this._oArrowPrev.setProperty("icon", sIconPrev, true);
-				this._oArrowNext.setProperty("icon", sIconNext, true);
+				this._oArrowPrev.setIcon(sIconPrev);
+				this._oArrowNext.setIcon(sIconNext);
 			} else if (Device.system.phone || Device.system.tablet) {
-				this._oArrowPrev.setProperty("src", sIconPrev, true);
-				this._oArrowNext.setProperty("src", sIconNext, true);
+				this._oArrowPrev.setSrc(sIconPrev);
+				this._oArrowNext.setSrc(sIconNext);
 			}
 
 			// before rendering starts, content items need to be updated - see _callSuperMethod

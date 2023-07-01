@@ -81,7 +81,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -119,14 +119,12 @@ sap.ui.define([
 				frameType: {type: "sap.m.FrameType", group: "Misc", defaultValue: FrameType.OneByOne},
 				/**
 				 * Backend system context information
-				 * @private
 				 * @since 1.92.0
 				 * @experimental Since 1.92
 				 */
 				systemInfo: {type:"string",  group: "Misc", defaultValue:null},
 				/**
 				 * Application information such as ID/Shortcut
-				 * @private
 				 * @since 1.92.0
 				 * @experimental Since 1.92
 				 */
@@ -239,7 +237,16 @@ sap.ui.define([
 				 * @experimental Since 1.106
 				 * @since 1.106
 				 */
-				 renderOnThemeChange: {type: "boolean", group: "Misc", defaultValue: false}
+				 renderOnThemeChange: {type: "boolean", group: "Misc", defaultValue: false},
+				/**
+				 * Show Badge Information associated with a Tile. Limited to 3 characters.
+				 * When enabled, the badge information is displayed inside a folder icon.
+				 * Display limited only for tile in IconMode in TwoByHalf frameType.
+				 * Characters currently trimmed to 3.
+				 * @experimental Since 1.113
+				 * @since 1.113
+				 */
+				tileBadge: { type: "string", group: "Misc", defaultValue: "" }
 			},
 			defaultAggregation: "tileContent",
 			aggregations: {
@@ -603,7 +610,7 @@ sap.ui.define([
 		}
 		var iTiles = this.getTileContent().length;
 		for (var i = 0; i < iTiles; i++) {
-			this.getTileContent()[i].setProperty("disabled", this.getState() === LoadState.Disabled, true);
+			this.getTileContent()[i].setDisabled(this.getState() === LoadState.Disabled);
 		}
 
 		this._initScopeContent("sapMGT");
@@ -634,7 +641,7 @@ sap.ui.define([
 		}
 
 		if (this.getFrameType() === FrameType.Auto) {
-			this.setProperty("frameType", FrameType.OneByOne, true);
+			this.setFrameType(FrameType.OneByOne);
 		}
 		//sets the maxlines for the appshortcut and systeminfo in different tile sizes
 		if (this.getMode() !== GenericTileMode.LineMode && (this.getAppShortcut() || this.getSystemInfo())) {
@@ -761,8 +768,8 @@ sap.ui.define([
 			iLines = sFrameType === FrameType.OneByOne || sFrameType === FrameType.TwoByHalf ? 1 : 2;
 
 		//Default maxLines
-		this._oAppShortcut.setProperty("maxLines", iLines, true);
-		this._oSystemInfo.setProperty("maxLines", iLines, true);
+		this._oAppShortcut.setMaxLines(iLines);
+		this._oSystemInfo.setMaxLines(iLines);
 
 		if (this.getFrameType() === FrameType.TwoByHalf) {
 			var bAppShortcutMore = this.getAppShortcut().length > 11,
@@ -770,9 +777,9 @@ sap.ui.define([
 
 			// Line break to happen after 11 characters, App Shortcut to have more priority in display
 			if ((bAppShortcutMore && bSystemInfoMore) || bAppShortcutMore) {
-				this._oAppShortcut.setProperty("maxLines", 2, true);
+				this._oAppShortcut.setMaxLines(2);
 			} else if (bSystemInfoMore) {
-				this._oSystemInfo.setProperty("maxLines", 2, true);
+				this._oSystemInfo.setMaxLines(2);
 			}
 		}
 	};
@@ -1363,17 +1370,17 @@ sap.ui.define([
 			} else if (frameType === FrameType.TwoByHalf) {
 				iHeaderLines = (bSubheader) ? 1 : 2;
 			}
-			this._oTitle.setProperty("maxLines", iHeaderLines, true);
-			this._oSubTitle.setProperty("maxLines", iSubHeaderLines, true);
+			this._oTitle.setMaxLines(iHeaderLines);
+			this._oSubTitle.setMaxLines(iSubHeaderLines);
 		} else if (frameType === FrameType.TwoByOne && this.getMode() === GenericTileMode.ActionMode) {
-			this._oTitle.setProperty("maxLines", 2, true);
+			this._oTitle.setMaxLines(2);
 		} else if (frameType === FrameType.OneByHalf || frameType === FrameType.TwoByHalf) {
-			this._oTitle.setProperty("maxLines", 2, true);
+			this._oTitle.setMaxLines(2);
 		} else {
 			if (bSubheader) {
-				this._oTitle.setProperty("maxLines", 4, true);
+				this._oTitle.setMaxLines(4);
 			} else {
-				this._oTitle.setProperty("maxLines", 5, true);
+				this._oTitle.setMaxLines(5);
 			}
 		}
 		this._changeTileContentContentVisibility(false);
@@ -1401,28 +1408,28 @@ sap.ui.define([
 					if (aTileCnt !== null) {
 						if ((frameType === FrameType.OneByHalf && aTileCnt.getMetadata().getName() === "sap.m.ImageContent")) {
 							bIsImageContent = true;
-							this._oTitle.setProperty("maxLines", 2, true);
+							this._oTitle.setMaxLines(2);
 							break;
 						} else {
-							this._oTitle.setProperty("maxLines", 1, true);
+							this._oTitle.setMaxLines(1);
 							break;
 						}
 					}
-					this._oTitle.setProperty("maxLines", 2, true);
+					this._oTitle.setMaxLines(2);
 				}
 			} else {
-				this._oTitle.setProperty("maxLines", 2, true);
+				this._oTitle.setMaxLines(2);
 			}
 		} else if (frameType === FrameType.TwoByOne && this.getMode() === GenericTileMode.ActionMode) {
 			if (bSubheader) {
-				this._oTitle.setProperty("maxLines", 1, true);
+				this._oTitle.setMaxLines(1);
 			} else {
-				this._oTitle.setProperty("maxLines", 2, true);
+				this._oTitle.setMaxLines(2);
 			}
 		} else if (bSubheader) {
-			this._oTitle.setProperty("maxLines", 2, true);
+			this._oTitle.setMaxLines(2);
 		} else {
-			this._oTitle.setProperty("maxLines", 3, true);
+			this._oTitle.setMaxLines(3);
 		}
 
 		this._changeTileContentContentVisibility(true, frameType, bIsImageContent);
@@ -1669,8 +1676,8 @@ sap.ui.define([
 	GenericTile.prototype._generateFailedText = function () {
 		var sCustomFailedMsg = this.getFailedText();
 		var sFailedMsg = sCustomFailedMsg ? sCustomFailedMsg : this._sFailedToLoad;
-		this._oFailedText.setProperty("text", sFailedMsg, true);
-		this._oFailedText.setAggregation("tooltip", sFailedMsg, true);
+		this._oFailedText.setText(sFailedMsg);
+		this._oFailedText.setTooltip(sFailedMsg);
 	};
 
 	/**
@@ -1873,7 +1880,7 @@ sap.ui.define([
 			useIconTooltip: false,
 			src: oIcon
 		});
-		if (!this._oIcon){
+		if (!this._oIcon) {
 			this._oIcon = IconPool.createControlByURI({
 				height: this.getFrameType() === FrameType.OneByOne ? "2rem" : "1.25rem",
 				width: this.getFrameType() === FrameType.OneByOne ? "2rem" : "1.25rem",
@@ -1898,23 +1905,20 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns true if Current Tile is in IconMode, FrameType is OneByOne or TwoByHalf, backgroundColor, TileIcon Properties are set.
+	 * Checks if Current Tile is in IconMode, FrameType is OneByOne or TwoByHalf, backgroundColor, TileIcon Properties are set.
+	 * @returns {boolean} - indicates whether icon mode is supported or not.
 	 */
 	GenericTile.prototype._isIconMode = function () {
-		if (this.getMode() === GenericTileMode.IconMode
-			&& (this.getFrameType() === FrameType.OneByOne || this.getFrameType() === FrameType.TwoByHalf)){
-				if (this.getTileIcon() && this.getBackgroundColor()) {
-					return true;
-				} else {
-					if (!this.getIconLoaded()) {
-						return true;
-					} else {
-						return false;
-					}
-				}
-		} else {
-			return false;
-		}
+		var sMode = this.getMode(),
+			sFrameType = this.getFrameType(),
+			sTileIcon = this.getTileIcon(),
+			sBackgroundColor = this.getBackgroundColor(),
+			bIsIconLoaded = this.getIconLoaded();
+
+		this._sTileBadge = sFrameType === FrameType.TwoByHalf && this.getTileBadge().trim().substring(0, 3);
+		return sMode === GenericTileMode.IconMode &&
+			(sFrameType === FrameType.OneByOne || sFrameType === FrameType.TwoByHalf) &&
+			((sTileIcon && sBackgroundColor) || (this._sTileBadge && sBackgroundColor) || !bIsIconLoaded);
 	};
 
 	/**

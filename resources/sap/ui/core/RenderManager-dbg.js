@@ -234,7 +234,7 @@ sap.ui.define([
 	 *
 	 * @extends Object
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @alias sap.ui.core.RenderManager
 	 * @public
 	 */
@@ -1045,6 +1045,9 @@ sap.ui.define([
 				// push them to the style stack that will be read by the first writeClasses/openEnd/voidEnd call to append additional classes
 				aStyleStack.push(oControlStyles);
 
+				// mark that the rendering phase has been started
+				oControl._bRenderingPhase = true;
+
 				// execute the control renderer according to rendering interface
 				if (bDomInterface) {
 
@@ -1080,6 +1083,9 @@ sap.ui.define([
 					// compare after rendering buffer size with the before rendering buffer size to determine whether the control produced any output
 					oControl.bOutput = (aBuffer.length != iBufferLength);
 				}
+
+				// mark that the rendering phase is over
+				oControl._bRenderingPhase = false;
 
 				// pop from the style stack after rendering for the next control
 				aStyleStack.pop();
@@ -2097,7 +2103,7 @@ sap.ui.define([
 	 * Returns the renderer class for a given control instance
 	 *
 	 * @param {sap.ui.core.Control} oControl the control that should be rendered
-	 * @returns {object} the renderer class for a given control instance
+	 * @returns {sap.ui.core.ControlRenderer} the renderer class for a given control instance
 	 * @public
 	 */
 	RenderManager.prototype.getRenderer = function(oControl) {

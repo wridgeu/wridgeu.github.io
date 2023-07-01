@@ -4,10 +4,14 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/integration/library",
 	"sap/ui/integration/widgets/Card",
 	"sap/ui/integration/util/ManifestResolver"
-], function (Card, ManifestResolver) {
+], function (library, Card, ManifestResolver) {
 	"use strict";
+
+	//Shortcut to sap.ui.integration.library.CardDataMode
+	var CardDataMode = library.CardDataMode;
 
 	/**
 	 * Constructor for a new <code>SkeletonCard</code>.
@@ -19,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.widgets.Card
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private
@@ -32,6 +36,11 @@ sap.ui.define([
 			library: "sap.ui.integration"
 		}
 	});
+
+	SkeletonCard.prototype.init = function () {
+		Card.prototype.init.apply(this, arguments);
+		this.setDataMode(CardDataMode.Active);
+	};
 
 	/**
 	 * Resolves the card manifest to a static manifest.
@@ -48,6 +57,14 @@ sap.ui.define([
 	 */
 	SkeletonCard.prototype.isSkeleton = function () {
 		return true;
+	};
+
+	/**
+	 * @override
+	 */
+	SkeletonCard.prototype.refresh = function () {
+		Card.prototype.refresh.apply(this);
+		this.startManifestProcessing();
 	};
 
 	/**

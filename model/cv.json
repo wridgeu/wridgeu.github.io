@@ -1,98 +1,110 @@
 [
-    {
-        "company": "awenɢ meᴅia",
-        "website": "https://aweng.media/",
-        "nodes": [
-            {
-                "description": "Role: ",
-                "position":"Web Developer & Project Management",
-                "nodes": [
-                    {
-                        "textFrom":"From: ",
-                        "textTo":"To: ",
-                        "from": "01.04.2022",
-                        "to": "Now"
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "company": "Accenture DACH",
-        "website": "https://www.accenture.com/",
-        "nodes": [
-            {
-                "description": "Role: ",
-                "position":"UI5 Architect",
-                "nodes": [
-                    {
-                        "textFrom":"From: ",
-                        "textTo":"To: ",
-                        "from": "01.04.2022",
-                        "to": "Now"
-                    }
-                ]
-            },
-            {
-                "description": "Role: ",
-                "position": " IT Consultant / SAP ABAP Developer",
-                "nodes": [
-                    {
-                        "textFrom":"From: ",
-                        "textTo":"To: ",
-                        "from": "01.11.2021",
-                        "to": "Now"
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "company": "SALT Solutions GmbH",
-        "website": "https://www.salt-solutions.de/",
-        "nodes": [
-            {
-                "description": "Role: ",
-                "position": "IT Consultant / SAP ABAP Developer",
-                "nodes": [
-                    {
-                        "textFrom":"From: ",
-                        "textTo":"To: ",
-                        "from": "01.07.2017",
-                        "to": "01.11.2021"
-                    }
-                ]
-            },
-            {
-                "description": "Role: ",
-                "position": "Training as Application Developer",
-                "nodes": [
-                    {
-                        "textFrom":"From: ",
-                        "textTo":"To: ",
-                        "from": "01.09.2014",
-                        "to": "01.07.2017"
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "company": "Vogel Business Media GmbH & Co. KG",
-        "website": "https://www.vogel.de/",
-        "nodes": [
-            {
-                "description": "Role: ",
-                "position": "Intern in Media Design",
-                "nodes": [
-                    {
-                        "textFrom":"From: ",
-                        "textTo":"To: ",
-                        "from": "04.03.2013",
-                        "to": "15.03.2013"
-                    }
-                ]
-            }
-        ]
-    }
+	{
+		"company": "awenɢ meᴅia",
+		"website": "https://aweng.media/",
+		"nodes": [
+			{
+				"description": "Role: ",
+				"position": "Web Developer & Project Management",
+				"nodes": [
+					{
+						"textFrom": "From: ",
+						"textTo": "To: ",
+						"from": "01.04.2022",
+						"to": "Now"
+					}
+				]
+			}
+		]
+	},
+	{
+		"company": "Accenture DACH",
+		"website": "https://www.accenture.com/",
+		"nodes": [
+			{
+				"description": "Role: ",
+				"position": "Senior Developer / MES MOM Consultant/Specialist",
+				"nodes": [
+					{
+						"textFrom": "From: ",
+						"textTo": "To: ",
+						"from": "01.06.2023",
+						"to": "Now"
+					}
+				]
+			},
+			{
+				"description": "Role: ",
+				"position": "Senior Developer / MES MOM Senior Analyst (UI5 Architect)",
+				"nodes": [
+					{
+						"textFrom": "From: ",
+						"textTo": "To: ",
+						"from": "01.04.2022",
+						"to": "01.06.2023"
+					}
+				]
+			},
+			{
+				"description": "Role: ",
+				"position": "SAP ABAP Developer/Consultant",
+				"nodes": [
+					{
+						"textFrom": "From: ",
+						"textTo": "To: ",
+						"from": "01.11.2021",
+						"to": "01.06.2022"
+					}
+				]
+			}
+		]
+	},
+	{
+		"company": "SALT Solutions GmbH",
+		"website": "https://www.salt-solutions.de/",
+		"nodes": [
+			{
+				"description": "Role: ",
+				"position": "IT Consultant / SAP ABAP Developer",
+				"nodes": [
+					{
+						"textFrom": "From: ",
+						"textTo": "To: ",
+						"from": "01.07.2017",
+						"to": "01.11.2021"
+					}
+				]
+			},
+			{
+				"description": "Role: ",
+				"position": "Training as Application Developer",
+				"nodes": [
+					{
+						"textFrom": "From: ",
+						"textTo": "To: ",
+						"from": "01.09.2014",
+						"to": "01.07.2017"
+					}
+				]
+			}
+		]
+	},
+	{
+		"company": "Vogel Business Media GmbH & Co. KG",
+		"website": "https://www.vogel.de/",
+		"nodes": [
+			{
+				"description": "Role: ",
+				"position": "Intern in Media Design",
+				"nodes": [
+					{
+						"textFrom": "From: ",
+						"textTo": "To: ",
+						"from": "04.03.2013",
+						"to": "15.03.2013"
+					}
+				]
+			}
+		]
+	}
 ]

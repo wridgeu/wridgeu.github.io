@@ -74,7 +74,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
@@ -98,25 +98,6 @@ sap.ui.define([
 		ODataContextBinding = ContextBinding.extend("sap.ui.model.odata.v4.ODataContextBinding", {
 				constructor : constructor
 			});
-
-	/**
-	 * Returns the path for the return value context. Supports bound operations on an entity or a
-	 * collection.
-	 *
-	 * @param {string} sPath
-	 *   The bindings's path; either a resolved model path or a resource path; for example:
-	 *   "Artists(ArtistID='42',IsActiveEntity=true)/special.cases.EditAction(...)" or
-	 *   "/Artists(ArtistID='42',IsActiveEntity=true)/special.cases.EditAction(...)" or
-	 *   "Artists/special.cases.Create(...)" or "/Artists/special.cases.Create(...)"
-	 * @param {string} sResponsePredicate The key predicate of the response entity
-	 * @returns {string} The path for the return value context.
-	 */
-	function getReturnValueContextPath(sPath, sResponsePredicate) {
-		var sBoundParameterPath = sPath.slice(0, sPath.lastIndexOf("/")),
-			i = sBoundParameterPath.indexOf("(");
-
-		return (i < 0 ? sBoundParameterPath : sPath.slice(0, i)) + sResponsePredicate;
-	}
 
 	//*********************************************************************************************
 	// ODataContextBinding
@@ -269,49 +250,8 @@ sap.ui.define([
 					mParameters, fnGetEntity, bIgnoreETag, fnOnStrictHandlingFailed);
 			}).then(function (oResponseEntity) {
 				return fireChangeAndRefreshDependentBindings().then(function () {
-					var sContextPredicate, oOldValue, sResponsePredicate, oResult;
-
-					if (that.isReturnValueLikeBindingParameter(oOperationMetadata)) {
-						oOldValue = that.oContext.getValue();
-						// Note: sContextPredicate missing e.g. when collection-bound
-						sContextPredicate = oOldValue
-							&& _Helper.getPrivateAnnotation(oOldValue, "predicate");
-						sResponsePredicate = _Helper.getPrivateAnnotation(
-							oResponseEntity, "predicate");
-
-						if (sResponsePredicate) {
-							if (sContextPredicate === sResponsePredicate) {
-								// this is sync, because the entity to be patched is available in
-								// the context (we already read its predicate)
-								that.oContext.patch(oResponseEntity);
-							}
-							if (that.hasReturnValueContext()) {
-								if (bReplaceWithRVC) {
-									that.oCache = null;
-									that.oCachePromise = SyncPromise.resolve(null);
-									oResult = that.oContext.getBinding()
-										.doReplaceWith(that.oContext, oResponseEntity,
-											sResponsePredicate);
-									oResult.setNewGeneration();
-
-									return oResult;
-								}
-
-								that.oReturnValueContext = Context.createNewContext(that.oModel,
-									that,
-									getReturnValueContextPath(sResolvedPath, sResponsePredicate));
-								// set the resource path for late property requests
-								that.oCache.setResourcePath(
-									that.oReturnValueContext.getPath().slice(1));
-
-								return that.oReturnValueContext;
-							}
-						}
-					}
-
-					if (bReplaceWithRVC) {
-						throw new Error("Cannot replace w/o return value context");
-					}
+					return that.handleOperationResult(sResolvedPath, oOperationMetadata,
+						oResponseEntity, bReplaceWithRVC);
 				});
 			}, function (oError) {
 				// Note: operation metadata is only needed to handle server messages, it is
@@ -341,7 +281,7 @@ sap.ui.define([
 	ODataContextBinding.prototype.adjustPredicate = function (sTransientPredicate, sPredicate) {
 		asODataParentBinding.prototype.adjustPredicate.apply(this, arguments);
 		if (this.mCacheQueryOptions) {
-			// Note: this.oCache === null because of special case in #createAndSetCache
+			// There are mCacheQueryOptions, but #prepareDeepCreate prevented creating the cache
 			this.fetchCache(this.oContext, true);
 		}
 		if (this.oElementContext) {
@@ -594,7 +534,7 @@ sap.ui.define([
 		function getOriginalResourcePath(oResponseEntity) {
 			if (that.isReturnValueLikeBindingParameter(oOperationMetadata)) {
 				if (that.hasReturnValueContext()) {
-					return getReturnValueContextPath(sOriginalResourcePath,
+					return _Helper.getReturnValueContextPath(sOriginalResourcePath,
 						_Helper.getPrivateAnnotation(oResponseEntity, "predicate"));
 				}
 				if (_Helper.getPrivateAnnotation(vEntity, "predicate")
@@ -971,7 +911,7 @@ sap.ui.define([
 				if (!this.oContext.getBinding) {
 					throw new Error("Cannot replace this parent context: " + this.oContext);
 				} // Note: parent context need not have a key predicate!
-				this.oContext.getBinding().checkKeepAlive(this.oContext);
+				this.oContext.getBinding().checkKeepAlive(this.oContext, true);
 			}
 		} else if (bReplaceWithRVC) {
 			throw new Error("Cannot replace when operation is not relative");
@@ -1035,11 +975,10 @@ sap.ui.define([
 				? SyncPromise.resolve(this.oCache)
 				: this.oCachePromise,
 			oError,
-			oRootBinding = this.getRootBinding(),
 			that = this;
 
 		// dependent binding will update its value when the suspended binding is resumed
-		if (oRootBinding && oRootBinding.isSuspended()) {
+		if (this.isRootBindingSuspended()) {
 			oError = new Error("Suspended binding provides no value");
 			oError.canceled = "noDebugLog";
 			throw oError;
@@ -1245,6 +1184,69 @@ sap.ui.define([
 	};
 
 	/**
+	 * Handles the result of an executed operation and creates a return value context if possible.
+	 *
+	 * @param {string} sResolvedPath
+	 *   The resolved path
+	 * @param {object} oOperationMetadata
+	 *   The operation's metadata
+	 * @param {object} oResponseEntity
+	 *   The result of the executed operation
+	 * @param {boolean} [bReplaceWithRVC]
+	 *   Whether this operation binding's parent context, which must belong to a list binding, is
+	 *   replaced with the operation's return value context and that new list context is returned
+	 *   instead.
+	 * @returns {sap.ui.model.odata.v4.Context}
+	 *   The return value context or <code>undefined</code> if it is not possible to create one
+	 * @throws {Error}
+	 *   If <code>bReplaceWithRVC</code> is given, but no return value context can be created
+	 *
+	 * @private
+	 */
+	ODataContextBinding.prototype.handleOperationResult = function (sResolvedPath,
+			oOperationMetadata, oResponseEntity, bReplaceWithRVC) {
+		var sContextPredicate, oOldValue, sResponsePredicate, sNewPath, oResult;
+
+		if (this.isReturnValueLikeBindingParameter(oOperationMetadata)) {
+			oOldValue = this.oContext.getValue();
+			// Note: sContextPredicate missing e.g. when collection-bound
+			sContextPredicate = oOldValue && _Helper.getPrivateAnnotation(oOldValue, "predicate");
+			sResponsePredicate = _Helper.getPrivateAnnotation(oResponseEntity, "predicate");
+
+			if (sResponsePredicate) {
+				if (sContextPredicate === sResponsePredicate) {
+					// this is sync, because the entity to be patched is available in
+					// the context (we already read its predicate)
+					this.oContext.patch(oResponseEntity);
+				}
+				if (this.hasReturnValueContext()) {
+					if (bReplaceWithRVC) {
+						this.oCache = null;
+						this.oCachePromise = SyncPromise.resolve(null);
+						oResult = this.oContext.getBinding()
+							.doReplaceWith(this.oContext, oResponseEntity, sResponsePredicate);
+						oResult.setNewGeneration();
+
+						return oResult;
+					}
+
+					sNewPath = _Helper.getReturnValueContextPath(sResolvedPath, sResponsePredicate);
+					this.oReturnValueContext = Context.createNewContext(this.oModel,
+						this, sNewPath);
+					// set the resource path for late property requests
+					this.oCache.setResourcePath(sNewPath.slice(1));
+
+					return this.oReturnValueContext;
+				}
+			}
+		}
+
+		if (bReplaceWithRVC) {
+			throw new Error("Cannot replace w/o return value context");
+		}
+	};
+
+	/**
 	 * Determines whether an operation binding creates a return value context on {@link #execute}.
 	 * The following conditions must hold for a return value context to be created:
 	 * 1. Operation is bound.
@@ -1284,7 +1286,7 @@ sap.ui.define([
 		this.bInitial = false;
 		// Here no other code but the event for the ManagedObject is expected. The binding should be
 		// useable for controller code without calling initialize.
-		if (this.isResolved() && !this.getRootBinding().isSuspended()) {
+		if (this.isResolved() && !this.isRootBindingSuspended()) {
 			this._fireChange({reason : ChangeReason.Change});
 		}
 	};

@@ -5,6 +5,7 @@
  */
 sap.ui.define([
 	"./BaseFactory",
+	"sap/m/IllustratedMessageType",
 	"sap/ui/integration/cards/actions/CardActions",
 	"sap/ui/integration/cards/AdaptiveContent",
 	"sap/ui/integration/cards/AnalyticalContent",
@@ -18,6 +19,7 @@ sap.ui.define([
 	"sap/ui/integration/cards/WebPageContent"
 ], function (
 	BaseFactory,
+	IllustratedMessageType,
 	CardActions,
 	AdaptiveContent,
 	AnalyticalContent,
@@ -40,7 +42,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.BaseFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private
@@ -59,10 +61,9 @@ sap.ui.define([
 			throw new Error(sType.toUpperCase() + " content type is not supported.");
 		}
 
-		var oContent = new Content();
-
-		// Set the card ID as association to the content
-		oContent.setCard(oCard);
+		var oContent = new Content({
+			card: oCard
+		});
 
 		if (oContent instanceof AdaptiveContent) {
 			oContent.setCardDataProvider(oCard._oDataProvider);
@@ -75,6 +76,8 @@ sap.ui.define([
 		oContent.setActions(new CardActions({
 			card: oCard
 		}));
+		oContent.setConfiguration(mConfig.contentManifest);
+		oContent.setNoDataConfiguration(mConfig.noDataConfiguration);
 
 		if (!(oContent instanceof AdaptiveContent)) {
 			oContent.setDataConfiguration(mConfig.contentManifest.data);
@@ -88,7 +91,12 @@ sap.ui.define([
 				return true;
 			}).catch(function (sError) {
 				if (sError) {
-					oCard._handleError(sError);
+					oCard._handleError({
+						type: IllustratedMessageType.ErrorScreen,
+						title: oCard.getTranslatedText("CARD_DATA_LOAD_DEPENDENCIES_ERROR"),
+						description: oCard.getTranslatedText("CARD_ERROR_REQUEST_DESCRIPTION"),
+						details: sError
+					});
 				}
 				return false;
 			})
@@ -97,7 +105,7 @@ sap.ui.define([
 		oContent.getLoadDependenciesPromise()
 			.then(function (bLoadSuccessful) {
 				if (bLoadSuccessful && !oContent.isDestroyed()) {
-					oContent.setConfiguration(mConfig.contentManifest);
+					oContent.applyConfiguration();
 				}
 			});
 

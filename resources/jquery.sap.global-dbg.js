@@ -32,6 +32,7 @@ sap.ui.define([
 	// former sap-ui-core.js dependencies
 	"sap/ui/Device",
 	"sap/ui/core/Configuration",
+	"sap/base/config",
 
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/thirdparty/jqueryui/jquery-ui-position",
@@ -48,6 +49,7 @@ sap.ui.define([
 
 	Device,
 	Configuration,
+	BaseConfig,
 
 	jQuery /*, jqueryUiPosition, ui5loaderAutoconfig, jquerySapStubs, URI, PasteEventFix */) {
 	"use strict";
@@ -195,14 +197,18 @@ sap.ui.define([
 	}
 
 	// check whether noConflict must be used...
-	if ( Configuration.getValue("noConflict") ) {
+	if (BaseConfig.get({
+			name: "sapUiNoConflict",
+			type: BaseConfig.Type.Boolean,
+			freeze: true
+		})) {
 		jQuery.noConflict();
 	}
 
 	/**
 	 * Root Namespace for the jQuery plug-in provided by SAP SE.
 	 *
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @namespace
 	 * @public
 	 * @static
@@ -1306,7 +1312,7 @@ sap.ui.define([
 		 * @private
 		 */
 		var oLog = _ui5loader.logger = Log.getLogger("sap.ui.ModuleSystem",
-				(/sap-ui-xx-debug(M|-m)odule(L|-l)oading=(true|x|X)/.test(location.search) || Configuration.getValue("xx-debugModuleLoading")) ? Log.Level.DEBUG : Math.min(Log.getLevel(), Log.Level.INFO)
+				BaseConfig.get({name: "sapUiXxDebugModuleLoading", type: BaseConfig.Type.Boolean, external: true, freeze: true}) ? Log.Level.DEBUG : Math.min(Log.getLevel(), Log.Level.INFO)
 			),
 
 			mKnownSubtypes = LoaderExtensions.getKnownSubtypes(),
@@ -1939,7 +1945,7 @@ sap.ui.define([
 	// --------------------- support hooks ---------------------------------------------------------
 
 	// TODO should be in core, but then the 'callback' could not be implemented
-	if ( !Configuration.getValue("productive") ) {
+	if ( !BaseConfig.get({name: "sapUiProductive", type: BaseConfig.Type.Boolean, freeze: true}) ) {
 		SupportHotkeys.init(getModuleSystemInfo);
 		TestRecorderHotkeyListener.init(getModuleSystemInfo);
 	}

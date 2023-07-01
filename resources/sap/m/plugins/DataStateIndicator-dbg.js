@@ -19,7 +19,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @public
 	 * @since 1.73
@@ -57,7 +57,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 					 */
 					dataState: {type: "sap.ui.model.DataState"},
 					/**
-					 * The messages (@see sap.ui.core.message.Message) from the current <code>dataState</code> object filtered by the given <code>filter</code> function.
+					 * The messages ({@link sap.ui.core.message.Message}) from the current <code>dataState</code> object filtered by the given <code>filter</code> function.
 					 */
 					filteredMessages: {type: "object[]"}
 				}
@@ -298,7 +298,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			});
 
 			this._sCombinedType = this._getCombinedType(aMessages);
-			if (aMessages.length == 1 && oFirstMessage.getTarget() && oFirstMessage.getTarget().endsWith(oBinding.getPath())) {
+			if (aMessages.length == 1 && isMessageRelatedToPath(oFirstMessage, oBinding.getPath())) {
 				sMessage = oFirstMessage.getMessage();
 			} else {
 				sMessage = this._translate(this._sCombinedType.toUpperCase());
@@ -473,6 +473,18 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 		return Core.getLibraryResourceBundle("sap.m").getText(sBundleText);
 	};
 
+	/**
+	 * Checks whether the given message is related to the given binding path.
+	 * @param {sap.ui.core.message.Message} oMessage
+	 * @param {string} sPath
+	 * @returns {boolean} Whether the message is related to the path
+	 * @private
+	 */
+	function isMessageRelatedToPath(oMessage, sPath) {
+		return oMessage.getTargets().some(function(sTarget) {
+			return sTarget.endsWith(sPath);
+		});
+	}
 
 	/**
 	 * Plugin-specific control configurations

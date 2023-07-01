@@ -36,6 +36,7 @@ sap.ui.define([
 	"sap/ui/core/Configuration",
 	"sap/ui/core/library",
 	"sap/ui/core/message/Message",
+	"sap/ui/core/message/MessageManager",
 	"sap/ui/core/message/MessageParser",
 	"sap/ui/model/_Helper",
 	"sap/ui/model/BindingMode",
@@ -57,7 +58,7 @@ sap.ui.define([
 ], function(_CreatedContextsCache, Context, ODataAnnotations, ODataContextBinding, ODataListBinding,
 		ODataTreeBinding, assert, Log, encodeURL, deepEqual, deepExtend, each, extend,
 		isEmptyObject, isPlainObject, merge, uid, UriParameters, SyncPromise, Configuration,
-		coreLibrary, Message, MessageParser, _Helper, BindingMode, BaseContext, FilterProcessor,
+		coreLibrary, Message, MessageManager, MessageParser, _Helper, BindingMode, BaseContext, FilterProcessor,
 		Model, CountMode, MessageScope, ODataMetadata, ODataMetaModel, ODataMessageParser,
 		ODataPropertyBinding, ODataUtils, OperationMode, UpdateMethod, OData, URI, isCrossOriginURL
 ) {
@@ -212,7 +213,7 @@ sap.ui.define([
 	 * This model is not prepared to be inherited from.
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -223,7 +224,6 @@ sap.ui.define([
 
 		constructor : function(vServiceUrl, mParameters) {
 			Model.apply(this, arguments);
-
 			var sUser,
 				sPassword,
 				mHeaders,
@@ -2561,12 +2561,20 @@ sap.ui.define([
 		var that = this,
 			oMetadata = this.oMetadata,
 			oEntityType,
-			oEntity = this._getObject(sPath),
 			aExpand = [], aSelect = [];
 
 		if (!this.oMetadata.isLoaded()) {
 			return true;
 		}
+		var bCanonical;
+		if (mParameters) {
+			bCanonical = mParameters.canonicalRequest;
+		}
+		bCanonical = this._isCanonicalRequestNeeded(bCanonical);
+		if (bCanonical) {
+			sPath = this.resolve(sPath, undefined, bCanonical) || sPath;
+		}
+		var oEntity = this._getObject(sPath);
 		oEntityType = this.oMetadata._getEntityTypeByPath(sPath);
 
 		// Created entities should never be reloaded, as they do not exist on
@@ -3636,6 +3644,8 @@ sap.ui.define([
 			var sContentID, sEntityKey, i;
 
 			for (i = 0; i < oRequest.parts.length; i++) {
+				var sOriginalDeepPath, sOriginalUri;
+
 				if (bAborted || oRequest.parts[i].request._aborted) {
 					that._processAborted(oRequest.parts[i].request, oResponse);
 				} else if (oResponse.message) {
@@ -3648,6 +3658,7 @@ sap.ui.define([
 
 							mContentID2KeyAndDeepPath[sContentID] = {
 								key : sEntityKey,
+								functionImport : !!oRequest.request.functionMetadata,
 								deepPath : oRequest.request.deepPath.replace(
 									"('" + sContentID + "')",
 										sEntityKey.slice(sEntityKey.indexOf("(")))
@@ -3655,7 +3666,10 @@ sap.ui.define([
 						} else {
 							// creation request must have been successful -> map entry exists
 							sEntityKey = mContentID2KeyAndDeepPath[sContentID].key;
-
+							if (mContentID2KeyAndDeepPath[sContentID].functionImport) {
+								sOriginalDeepPath = oRequest.request.deepPath;
+								sOriginalUri = oRequest.request.requestUri;
+							}
 							oRequest.request.requestUri =
 								oRequest.request.requestUri.replace("$" + sContentID, sEntityKey);
 							oRequest.request.deepPath =
@@ -3666,6 +3680,12 @@ sap.ui.define([
 					that._processSuccess(oRequest.parts[i].request, oResponse,
 						oRequest.parts[i].fnSuccess, mGetEntities, mChangeEntities, mEntityTypes,
 						/*bBatch*/false, /*aRequests*/undefined, mContentID2KeyAndDeepPath);
+
+					if (sOriginalUri) {
+						// restore original values for potential retry of function import
+						oRequest.request.deepPath = sOriginalDeepPath;
+						oRequest.request.requestUri = sOriginalUri;
+					}
 				}
 			}
 		}
@@ -3951,10 +3971,6 @@ sap.ui.define([
 			oGroupEntry = oRequestGroup.map[sRequestKey];
 			var oStoredRequest = oGroupEntry.request;
 			oRequest.deepPath = oStoredRequest.deepPath;
-			if (this.sMessageScope === MessageScope.BusinessObject) {
-				oRequest.headers["sap-message-scope"] = oStoredRequest.headers["sap-message-scope"];
-			}
-
 			if (oGroupEntry.bRefreshAfterChange === undefined) { // If not already defined, overwrite with new flag
 				oGroupEntry.bRefreshAfterChange = bRefreshAfterChange;
 			}
@@ -4682,7 +4698,6 @@ sap.ui.define([
 			undefined, true, oContext.hasSubContexts());
 
 		if (oCreated) {
-			oRequest.created = true;
 			// for createEntry requests we need to flag request again
 			if (oExpandRequest) {
 				oRequest.expandRequest = oExpandRequest;
@@ -4692,7 +4707,9 @@ sap.ui.define([
 			if (bFunctionImport) {
 				oRequest.functionTarget = this.oMetadata._getCanonicalPathOfFunctionImport(
 					oCreated.functionMetadata, oCreated.urlParameters);
+				oRequest.functionMetadata = oCreated.functionMetadata;
 			} else {
+				oRequest.created = true;
 				this._addSubEntitiesToPayload(oContext, oPayload);
 			}
 		}
@@ -4767,11 +4784,14 @@ sap.ui.define([
 	 * Error handling for requests.
 	 *
 	 * @param {object} oError The error object
-	 * @param {object} oRequest The request object
+	 * @param {object} [oRequest]
+	 *   The request object
+	 *   Note: This parameter is mandatory iff the given error object represents a response to a failed request.
+	 * @param {string} [sReportingClassName] The name of the reporting class
 	 * @returns {map} A map of error information
 	 * @private
 	 */
-	ODataModel.prototype._handleError = function(oError, oRequest) {
+	ODataModel.prototype._handleError = function(oError, oRequest, sReportingClassName) {
 		var sToken,
 			mParameters = {message : oError.message};
 
@@ -4795,11 +4815,30 @@ sap.ui.define([
 			mParameters.headers = oError.response.headers;
 			mParameters.responseText = oError.response.body;
 		} else if (!oError.$reported) {
-			Log.error("The following problem occurred: " + oError.message, undefined, sClassName);
+			Log.error("The following problem occurred: " + oError.message, oError.stack,
+				sReportingClassName || sClassName);
 		}
 		oError.$reported = true;
 
 		return mParameters;
+	};
+
+	/**
+	 * Returns a function to be used as a SyncPromise catch handler in order to report not yet reported errors.
+	 *
+	 * @param {string} sReportingClassName
+	 *   The name of the reporting class
+	 * @returns {function(Error)}
+	 *   A catch handler function expecting an <code>Error</code> instance
+	 *
+	 * @private
+	 */
+	ODataModel.prototype.getReporter = function (sReportingClassName) {
+		var that = this;
+
+		return function (oError) {
+			that._handleError(oError, undefined, sReportingClassName);
+		};
 	};
 
 	/**
@@ -4933,14 +4972,13 @@ sap.ui.define([
 			mHeaders["Accept"] = "text/plain, */*;q=0.5";
 		}
 
-		// format handling
 		if (sMethod === "MERGE" && !this.bUseBatch) {
 			mHeaders["x-http-method"] = "MERGE";
 			sMethod = "POST";
 		}
 
-		// deep path handling
-		if (this.sMessageScope === MessageScope.BusinessObject) {
+		if (this.sMessageScope === MessageScope.BusinessObject
+				&& mHeaders["sap-messages"] !== "transientOnly") {
 			if (this.bIsMessageScopeSupported) {
 				mHeaders["sap-message-scope"] = this.sMessageScope;
 			} else {
@@ -5330,6 +5368,18 @@ sap.ui.define([
 	 * entities. Otherwise they are ignored, and the <code>response</code> can be processed in the
 	 * <code>success</code> callback.
 	 *
+	 * The <code>contextCreated</code> property of the returned object is a function that returns a
+	 * Promise which resolves with an <code>sap.ui.model.odata.v2.Context</code>. This context can
+	 * be used to modify the function import parameter values and to bind the function call's result.
+	 * Changes of a parameter value via that context after the function import has been processed
+	 * lead to another function call with the modified parameters. Changed function import
+	 * parameters are considered as pending changes, see {@link #hasPendingChanges} or
+	 * {@link #getPendingChanges}, and can be reset via {@link #resetChanges}. If the function
+	 * import returns an entity or a collection of entities, the <code>$result</code> property
+	 * relative to that context can be used to bind the result to a control, see
+	 * {@link topic:6c47b2b39db9404582994070ec3d57a2#loio6cb8d585ed594ee4b447b5b560f292a4 Binding of
+	 * Function Import Parameters}.
+	 *
 	 * @param {string} sFunctionName
 	 *   The name of the function import starting with a slash, for example <code>/Activate</code>.
 	 * @param {object} [mParameters]
@@ -5469,6 +5519,12 @@ sap.ui.define([
 				bFunctionFailed = false,
 				fnSuccessFromParameters = fnSuccess;
 
+			function resetFunctionCallData() { // cleanup to allow retriggering function calls
+				oFunctionResult = undefined;
+				oFunctionResponse = undefined;
+				bFunctionFailed = false;
+			}
+
 			oFunctionMetadata = that.oMetadata._getFunctionImportMetadata(sFunctionName, sMethod);
 			if (!oFunctionMetadata) {
 				Log.error("Function '" + sFunctionName + "' not found in the metadata", that,
@@ -5521,6 +5577,7 @@ sap.ui.define([
 						oData = Object.assign({}, oFunctionResult, oData);
 						fnSuccessFromParameters(oData, oFunctionResponse);
 					}
+					resetFunctionCallData();
 				};
 				fnError = function (oError) {
 					if (oFunctionResult) {
@@ -5535,6 +5592,7 @@ sap.ui.define([
 						if (fnSuccessFromParameters) {
 							fnSuccessFromParameters(oFunctionResult, oFunctionResponse);
 						}
+						resetFunctionCallData();
 						return;
 					}
 					if (!bFunctionFailed) {
@@ -5549,7 +5607,7 @@ sap.ui.define([
 						// expandAfterFunctionCallFailed=true that it can be passed to requestFailed
 						// and requestCompleted event handlers
 						oError.expandAfterFunctionCallFailed = true;
-						//bFunctionFailed = false; // not needed as function calls are not retried
+						resetFunctionCallData();
 					}
 				};
 			}
@@ -5565,7 +5623,8 @@ sap.ui.define([
 					key : sFunctionName.substring(1),
 					method : sMethod,
 					success : fnSuccess
-				}
+				},
+				deepPath : sFunctionName
 			};
 
 			sKey = that._addEntity(oData);
@@ -5591,8 +5650,8 @@ sap.ui.define([
 				oExpandRequest.contentID = sUID;
 				oRequest.expandRequest = oExpandRequest;
 				oRequest.contentID = sUID;
-				// expandRequest and contentID do not need to be added to
-				// oData.__metadata.created as function calls are not retried
+				oData.__metadata.created.expandRequest = oExpandRequest;
+				oData.__metadata.created.contentID = oExpandRequest.contentID;
 			}
 
 			mRequests = that.mRequests;
@@ -6175,9 +6234,10 @@ sap.ui.define([
 
 			each(mChangedEntities, function(sKey, oData) {
 				var oCreatedInfo, oRequest, oRequestHandle0,
+					oContext = that.getContext("/" + sKey),
 					oGroupInfo = that._resolveGroup(sKey);
 
-				if (that.getContext("/" + sKey).hasTransientParent()) {
+				if (oContext.hasTransientParent() || oContext.isInactive()) {
 					return;
 				}
 
@@ -6353,7 +6413,7 @@ sap.ui.define([
 		} else {
 			delete this.mChangedEntities[sKey];
 		}
-		sap.ui.getCore().getMessageManager().removeMessages(this.getMessagesByEntity(sKey,
+		MessageManager.removeMessages(this.getMessagesByEntity(sKey,
 			/*bExcludePersistent*/!bDeleteEntity));
 
 		return pMetaDataLoaded;
@@ -6362,19 +6422,21 @@ sap.ui.define([
 	/**
 	 * Resets pending changes and aborts corresponding requests.
 	 *
-	 * By default, only changes triggered through {@link #createEntry} or {@link #setProperty} are
-	 * taken into account. If <code>bAll</code> is set, also deferred requests triggered through
-	 * {@link #create}, {@link #update} or {@link #remove} are taken into account.
+	 * By default, only changes triggered through {@link #createEntry} or {@link #setProperty}, and
+	 * tree hierarchy changes are taken into account. If <code>bAll</code> is set, also deferred
+	 * requests triggered through {@link #create}, {@link #update} or {@link #remove} are taken
+	 * into account.
 	 *
 	 * With a given <code>aPath</code> only specified entities are reset. Note that tree hierarchy
 	 * changes are only affected if a given path is equal to the tree binding's resolved binding
 	 * path.
 	 *
 	 * If <code>bDeleteCreatedEntities</code> is set, the entity is completely removed, provided it
-	 * has been created
+	 * has been created by one of the following methods:
 	 * <ul>
-	 *   <li>via {@link #createEntry} and it is not yet persisted in the back end, or</li>
-	 *   <li>via {@link #callFunction}.</li>
+	 *   <li>{@link #createEntry}, provided it is not yet persisted in the back end
+	 *      and is active (see {@link sap.ui.model.odata.v2.Context#isInactive}),</li>
+	 *   <li>{@link #callFunction}.</li>
 	 * </ul>
 	 *
 	 * @param {array} [aPath]
@@ -6386,7 +6448,10 @@ sap.ui.define([
 	 *   since 1.95.0
 	 * @returns {Promise}
 	 *   Resolves when all regarded changes have been reset.
+	 *
 	 * @public
+	 * @see #getPendingChanges
+	 * @see #hasPendingChanges
 	 */
 	ODataModel.prototype.resetChanges = function (aPath, bAll, bDeleteCreatedEntities) {
 		var aRemoveKeys,
@@ -6451,8 +6516,11 @@ sap.ui.define([
 			});
 		} else {
 			each(this.mChangedEntities, function (sKey, oChangedEntity) {
-				that._discardEntityChanges(sKey,
-					oChangedEntity.__metadata.created && bDeleteCreatedEntities);
+				var bDeleteEntity = that.getContext("/" + sKey).isInactive()
+						? false // inactive entities are not removed, but only changes are reset
+						: oChangedEntity.__metadata.created && bDeleteCreatedEntities;
+
+				that._discardEntityChanges(sKey, bDeleteEntity);
 			});
 		}
 		this.getBindings().forEach(function (oBinding) {
@@ -6491,7 +6559,7 @@ sap.ui.define([
 		var oContextToActivate, oChangeObject, bCreated, sDeepPath, oEntityMetadata, oEntityType,
 			oEntry, sGroupId, oGroupInfo, bIsNavPropExpanded, sKey, mKeys, oNavPropRefInfo, oOriginalEntry,
 			oOriginalValue, mParams, aParts, sPropertyPath, oRef, bRefreshAfterChange, oRequest,
-			mRequests, oRequestHandle, sResolvedPath,
+			mRequests, oRequestHandle, oRequestQueueingPromise, sResolvedPath,
 			mChangedEntities = {},
 			oEntityInfo = {},
 			bFunction = false,
@@ -6528,12 +6596,14 @@ sap.ui.define([
 		oOriginalEntry = this._getObject('/' + sKey, null, true);
 		oOriginalValue = this._getObject(sPath, oContext, true);
 
+		bFunction = oOriginalEntry.__metadata.created && oOriginalEntry.__metadata.created.functionImport;
+
 		//clone property
 		if (!this.mChangedEntities[sKey]) {
 			oEntityMetadata = oEntry.__metadata;
 			oEntry = {};
 			oEntry.__metadata = Object.assign({}, oEntityMetadata);
-			if (oEntityInfo.propertyPath.length > 0){
+			if (!bFunction && oEntityInfo.propertyPath.length > 0) {
 				var iIndex = sDeepPath.lastIndexOf(oEntityInfo.propertyPath);
 				oEntry.__metadata.deepPath = sDeepPath.substring(0, iIndex - 1);
 			}
@@ -6551,8 +6621,6 @@ sap.ui.define([
 			oChangeObject = oChangeObject[aParts[i]];
 		}
 
-		bFunction = oOriginalEntry.__metadata.created && oOriginalEntry.__metadata.created.functionImport;
-
 		// Update property value on change object
 		oChangeObject[sPropertyPath] = _Helper.isPlainObject(oValue)
 			? _Helper.merge({}, oValue)
@@ -6569,7 +6637,11 @@ sap.ui.define([
 		oEntityType = this.oMetadata._getEntityTypeByPath(oEntityInfo.key);
 		oNavPropRefInfo = oEntityType && this.oMetadata._getNavPropertyRefInfo(oEntityType, sPropertyPath);
 		bIsNavPropExpanded = oNavPropRefInfo && oOriginalEntry[oNavPropRefInfo.name] && oOriginalEntry[oNavPropRefInfo.name].__ref;
-		if (bIsNavPropExpanded && oNavPropRefInfo.keys.length === 1) {
+		if (bIsNavPropExpanded && oNavPropRefInfo.keys.length === 1
+			// only if the referenced entity has exactly 1 key we can update the reference; more
+			// keys are not yet supported; for draft enabled entities not all key properties are
+			// maintained as referential constraints
+			&& this.oMetadata._getEntityTypeByPath(oNavPropRefInfo.entitySet).key.propertyRef.length === 1) {
 			if (oValue === null) {
 				oRef = null;
 			} else {
@@ -6581,6 +6653,15 @@ sap.ui.define([
 				oRef = this.createKey(oNavPropRefInfo.entitySet, mKeys);
 			}
 			oChangeObject[oNavPropRefInfo.name] = { __ref: oRef };
+		}
+
+		oRequestQueueingPromise = this.oMetadata.loaded();
+		if (oEntry.__metadata.created && !bFunction) {
+			oContextToActivate = this.oCreatedContextsCache.findCreatedContext(sResolvedPath);
+			if (oContextToActivate && oContextToActivate.isInactive()) {
+				oContextToActivate.startActivation();
+				oRequestQueueingPromise = Promise.all([oRequestQueueingPromise, oContextToActivate.fetchActivated()]);
+			}
 		}
 
 		//reset clone if oValue equals the original value
@@ -6598,7 +6679,7 @@ sap.ui.define([
 				mChangedEntities[sKey] = true;
 				this.checkUpdate(false, bAsyncUpdate, mChangedEntities);
 
-				that.oMetadata.loaded().then(function() {
+				oRequestQueueingPromise.then(function() {
 					//setProperty with no change does not create a request the first time so no handle exists
 					that.abortInternalRequest(that._resolveGroup(sKey).groupId, {requestKey: sKey});
 				});
@@ -6622,13 +6703,7 @@ sap.ui.define([
 
 		bRefreshAfterChange = this._getRefreshAfterChange(undefined, sGroupId);
 
-		if (oEntry.__metadata.created && !oEntry.__metadata.created.functionImport) {
-			oContextToActivate = this.oCreatedContextsCache.findCreatedContext(sResolvedPath);
-			if (oContextToActivate) {
-				oContextToActivate.activate();
-			}
-		}
-		this.oMetadata.loaded().then(function () {
+		oRequestQueueingPromise.then(function () {
 			oRequestHandle = {
 				abort: function() {
 					oRequest._aborted = true;
@@ -6753,8 +6828,11 @@ sap.ui.define([
 	 * {@link #create}, {@link #update}, and {@link #remove} are taken into account.
 	 *
 	 * @param {boolean}[bAll=false] If set to true, deferred requests are also taken into account.
-	 * @return {boolean} <code>true</code> if there are pending changes, <code>false</code> otherwise.
+	 * @returns {boolean} <code>true</code> if there are pending changes, <code>false</code> otherwise.
+	 *
 	 * @public
+	 * @see #getPendingChanges
+	 * @see #resetChanges
 	 */
 	ODataModel.prototype.hasPendingChanges = function(bAll) {
 		var bChangedEntities,
@@ -6782,15 +6860,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the changed properties of all changed entities in a map which are still pending. The
-	 * key is the string name of the entity, and the value is an object which contains the changed
-	 * properties. The tree hierarchy changes for removed nodes are represented via an empty object.
+	 * Returns the pending changes in this model.
 	 *
-	 * In contrast to the two related functions {@link #hasPendingChanges} and {@link #resetChanges}, only
-	 * client data changes are supported.
+	 * Only changes triggered through {@link #createEntry} or {@link #setProperty}, and tree hierarchy changes are
+	 * taken into account. Changes are returned as a map from the changed entity's key to an object containing the
+	 * changed properties. A node removed from a tree hierarchy has the empty object as value in this map; all other
+	 * pending entity deletions are not contained in the map.
 	 *
-	 * @return {Object<string,object>} the pending changes in a map
+	 * @returns {Object<string,object>} The map of pending changes
+	 *
 	 * @public
+	 * @see #hasPendingChanges
+	 * @see #resetChanges
 	 */
 	ODataModel.prototype.getPendingChanges = function() {
 		var sChangedEntityKey,
@@ -6875,7 +6956,7 @@ sap.ui.define([
 			});
 			that._removeEntity(sKey);
 			//cleanup Messages for created Entry
-			sap.ui.getCore().getMessageManager().removeMessages(
+			MessageManager.removeMessages(
 				this.getMessagesByEntity(oContext.getPath(), true));
 		}
 	};
@@ -7565,6 +7646,10 @@ sap.ui.define([
 			delete this.pAnnotationsLoaded;
 		}
 
+		if (this.oMessageParser) {
+			this.oMessageParser.destroy();
+			delete this.oMessageParser;
+		}
 	};
 
 	/**

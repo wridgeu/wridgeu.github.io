@@ -16,7 +16,7 @@ sap.ui.define([
 		 *
 		 * @alias sap.f.changeHandler.MoveDynamicPageTitleActions
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 * @experimental Since 1.52
 		 */
 		var MoveActions = { };
@@ -40,7 +40,7 @@ sap.ui.define([
 			var oMovedElementInfo = oChange.getContent().movedElements[0];
 			var iTargetIndex = oMovedElementInfo.targetIndex;
 			var oMovedElement;
-			var iOriginalIndex;
+			var iOriginalIndex = oMovedElementInfo.sourceIndex;
 
 			return Promise.resolve()
 				.then(oModifier.bySelector.bind(oModifier, oMovedElementInfo.selector, oAppComponent, oView))
@@ -52,7 +52,6 @@ sap.ui.define([
 					var oPromise;
 					aButtons.some(function(oButton, iButtonIndex) {
 						if (oModifier.getId(oButton) === oModifier.getId(oMovedElement)) {
-							iOriginalIndex = iButtonIndex;
 							oPromise = Promise.resolve()
 								.then(oModifier.removeAggregation.bind(oModifier, oControl, ACTION_AGGREGATION_NAME, oButton))
 								.then(oModifier.insertAggregation.bind(oModifier, oControl, "dependents", oButton, undefined, oView));
@@ -148,6 +147,11 @@ sap.ui.define([
 				},
 				getTargetIndex: function(oChange) {
 					return oChange.getContent().movedElements[0].targetIndex;
+				},
+				setIndexInRevertData: function(oChange, iIndex) {
+					var oRevertData = oChange.getRevertData();
+					oRevertData.index = iIndex;
+					oChange.setRevertData(oRevertData);
 				}
 			};
 		};

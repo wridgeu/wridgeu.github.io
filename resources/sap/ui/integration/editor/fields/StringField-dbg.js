@@ -23,7 +23,6 @@ sap.ui.define([
 	"sap/base/util/restricted/_debounce",
 	"sap/ui/core/Core",
 	"sap/ui/model/json/JSONModel",
-	"sap/ui/integration/editor/EditorResourceBundles",
 	"sap/base/util/deepClone",
 	"sap/ui/model/Sorter",
 	"sap/m/GroupHeaderListItem",
@@ -47,7 +46,6 @@ sap.ui.define([
 	_debounce,
 	Core,
 	JSONModel,
-	EditorResourceBundles,
 	deepClone,
 	Sorter,
 	GroupHeaderListItem,
@@ -67,7 +65,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.StringField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted
@@ -81,6 +79,7 @@ sap.ui.define([
 
 	StringField.prototype.initVisualization = function (oConfig) {
 		var oVisualization = oConfig.visualization;
+		var oItem;
 		if (!oVisualization) {
 			// check if value contains {{parameters.XX}} syntax
 			var aResult = oConfig.value ? oConfig.value.match(REGEXP_PARAMETERS) : undefined;
@@ -144,6 +143,7 @@ sap.ui.define([
 							},
 							editable: oConfig.editable,
 							visible: oConfig.visible,
+							maxLength: oConfig.maxLength,
 							placeholder: oConfig.placeholder
 						}
 					};
@@ -163,7 +163,7 @@ sap.ui.define([
 					};
 				}
 			} else if (oConfig.enum) {
-				var oItem = new ListItem({
+				oItem = new ListItem({
 					key: {
 						path: "currentSettings>"
 					},
@@ -189,7 +189,7 @@ sap.ui.define([
 					}
 				};
 			} else if (oConfig.values) {
-				var oItem = this.formatListItem(oConfig.values.item);
+				oItem = this.formatListItem(oConfig.values.item);
 				if (!oConfig.values.item.key) {
 					oConfig.values.item.key = oConfig.values.item.text;
 				}
@@ -239,10 +239,11 @@ sap.ui.define([
 						},
 						editable: oConfig.editable,
 						visible: oConfig.visible,
+						maxLength: oConfig.maxLength,
 						placeholder: oConfig.placeholder,
 						valueHelpIconSrc: "sap-icon://translate",
 						showValueHelp: true,
-						valueHelpRequest: this.openTranslationListPopup,
+						valueHelpRequest: this.openTranslationListPopup.bind(this),
 						change: function(oEvent) {
 							//add current change into translation texts
 							var oControl = oEvent.getSource();
@@ -272,6 +273,7 @@ sap.ui.define([
 						},
 						editable: oConfig.editable,
 						visible: oConfig.visible,
+						maxLength: oConfig.maxLength,
 						placeholder: oConfig.placeholder
 					}
 				};
@@ -283,6 +285,26 @@ sap.ui.define([
 			}
 		} else if (oVisualization.type === "TextArea") {
 			oVisualization.type = "sap/m/TextArea";
+		} else if (oVisualization.type === "Select" && oConfig.values) {
+			oItem = this.formatListItem(oConfig.values.item);
+			var oSettings = Object.assign({
+				selectedKey: {
+					path: 'currentSettings>value'
+				},
+				forceSelection: false,
+				editable: oConfig.editable,
+				visible: oConfig.visible,
+				showSecondaryValues: false,
+				width: "100%",
+				items: {
+					path: '',
+					template: oItem
+				}
+			}, oVisualization.settings || {});
+			oVisualization = {
+				type: Select,
+				settings: oSettings
+			};
 		}
 		this._visualization = oVisualization;
 		this.attachAfterInit(this._afterInit);
@@ -338,7 +360,7 @@ sap.ui.define([
 	//get origin values in i18n files
 	StringField.prototype.getOriginTranslatedValues = function(oConfig) {
 		var aOriginTranslatedValues = [];
-		var aEditorResourceBundles = EditorResourceBundles.getInstance();
+		var aEditorResourceBundles = this._oEditorResourceBundles.getResourceBundles();
 		//get translation key of the value
 		var sKey;
 		if (oConfig._translatedDefaultPlaceholder && oConfig._translatedDefaultPlaceholder.startsWith("{i18n>") && oConfig._translatedDefaultPlaceholder.endsWith("}")) {
@@ -368,7 +390,7 @@ sap.ui.define([
 			}
 			var oLanguage = {
 				"key": p,
-				"desription": oResourceBundleTemp.language,
+				"description": oResourceBundleTemp.language,
 				"value": sTranslatedValue,
 				"originValue": sOriginValue,
 				"editable": true
@@ -413,6 +435,7 @@ sap.ui.define([
 		var that = this;
 		var oControl = oEvent.getSource();
 		var oField = oControl.getParent();
+		var sParameterId = oField.getParameterId();
 		var oConfig = oField.getConfiguration();
 
 		if (!that._aOriginTranslatedValues) {
@@ -464,7 +487,7 @@ sap.ui.define([
 		}
 		var sPlacement = oField.getPopoverPlacement(oControl._oValueHelpIcon);
 		if (!that._oTranslationPopover) {
-			var oList = new List({
+			var oList = new List(sParameterId + "_translation_popover_value_list", {
 				//mode: "Delete",
 				items: {
 					path: "languages>/translatedLanguages",
@@ -473,7 +496,7 @@ sap.ui.define([
 							new VBox({
 								items: [
 									new Text({
-										text: "{languages>desription}"
+										text: "{languages>description}"
 									}),
 									new Input({
 										value: "{languages>value}",
@@ -485,7 +508,7 @@ sap.ui.define([
 						customData: [
 							new CustomData({
 								key: "{languages>key}",
-								value: "{languages>desription}"
+								value: "{languages>description}"
 							})
 						]
 					}),
@@ -497,7 +520,7 @@ sap.ui.define([
 					groupHeaderFactory: oField.getGroupHeader
 				}
 			});
-			that._oTranslationPopover = new Popover({
+			that._oTranslationPopover = new Popover(sParameterId + "_translation_popover", {
 				placement: sPlacement,
 				contentWidth: "300px",
 				contentHeight: "345px",
@@ -511,10 +534,10 @@ sap.ui.define([
 						}).addStyleClass("sapMHeaderTitle"),
 						new VBox({
 							items: [
-								new Text({
-									text: "{languages>/currentLanguage/desription}"
+								new Text(sParameterId + "_translation_popover_currentlanguage_description_label", {
+									text: "{languages>/currentLanguage/description}"
 								}),
-								new Input({
+								new Input(sParameterId + "_translation_popover_currentlanguage_value_input", {
 									value: "{languages>/currentLanguage/value}",
 									editable: false
 								})
@@ -529,7 +552,7 @@ sap.ui.define([
 				footer: new OverflowToolbar({
 					content: [
 						new ToolbarSpacer(),
-						new Button({
+						new Button(sParameterId + "_translation_popover_save_btn", {
 							type: "Emphasized",
 							text: oResourceBundle.getText("EDITOR_FIELD_TRANSLATION_LIST_POPOVER_BUTTON_SAVE"),
 							enabled: "{languages>/isUpdated}",
@@ -553,7 +576,7 @@ sap.ui.define([
 								that._oTranslationPopover.close();
 							}
 						}),
-						new Button({
+						new Button(sParameterId + "_translation_popover_cancel_btn", {
 							text: oResourceBundle.getText("EDITOR_FIELD_TRANSLATION_LIST_POPOVER_BUTTON_CANCEL"),
 							press: function () {
 								that._oTranslationPopover.close();

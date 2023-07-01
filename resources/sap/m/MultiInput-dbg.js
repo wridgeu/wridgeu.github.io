@@ -17,6 +17,7 @@ sap.ui.define([
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/core/IconPool',
+	'sap/ui/Device',
 	'./MultiInputRenderer',
 	"sap/ui/dom/containsOrEquals",
 	"sap/m/inputUtils/completeTextSelected",
@@ -37,6 +38,7 @@ function(
 	ManagedObjectObserver,
 	ResizeHandler,
 	IconPool,
+	Device,
 	MultiInputRenderer,
 	containsOrEquals,
 	completeTextSelected,
@@ -105,7 +107,7 @@ function(
 	* @implements sap.ui.core.ISemanticFormContent
 	*
 	* @author SAP SE
-	* @version 1.112.0
+	* @version 1.115.0
 	*
 	* @constructor
 	* @public
@@ -137,6 +139,15 @@ function(
 				 * @since 1.36
 				 */
 				maxTokens: {type: "int", group: "Behavior"},
+
+				/**
+				 * If this is set to true, suggest event is fired when user types in the input.
+				 * Changing the suggestItems aggregation in suggest event listener will show suggestions within a popup.
+				 * When runs on phone, input will first open a dialog where the input and suggestions are shown.
+				 * When runs on a tablet, the suggestions are shown in a popup next to the input.
+				 * <b>Note:</b> Default value for this property is false for the {@link sap.m.Input}.
+				 */
+				showSuggestion : {type : "boolean", group : "Behavior", defaultValue : true},
 
 				/**
 				 * Changed when tokens are changed. The value for sap.ui.core.ISemanticFormContent interface.
@@ -277,6 +288,21 @@ function(
 			/* Prevent closing of n more popover when input is clicked */
 			._getPopup().setExtraContent([oTokenizer, this]);
 
+		oTokenizer.getTokensPopup().addEventDelegate({
+			onAfterRendering: function() {
+				var iInputWidth = this.getDomRef().getBoundingClientRect().width;
+				var sPopoverMaxWidth = getComputedStyle(this.getDomRef()).getPropertyValue("--sPopoverMaxWidth");
+
+				if (iInputWidth <= parseInt(sPopoverMaxWidth) && !Device.system.phone) {
+					oTokenizer.getTokensPopup().getDomRef().style.setProperty("max-width", "40rem");
+				} else {
+					oTokenizer.getTokensPopup().getDomRef().style.setProperty("max-width", iInputWidth + "px");
+				}
+
+				oTokenizer.getTokensPopup().getDomRef().style.setProperty("min-width", iInputWidth + "px");
+			}
+		}, this);
+
 		this.setAggregation("tokenizer", oTokenizer);
 
 		/* Aggregation forwarding does not invalidate outer control, but we need to have that invalidation */
@@ -343,7 +369,6 @@ function(
 		this._aTokenValidators = [];
 
 		this.setShowValueHelp(true);
-		this.setShowSuggestion(true);
 		this._getSuggestionsPopover().getPopover()
 			.attachBeforeOpen(function () {
 				if (that.isMobileDevice() !== true) {
@@ -876,7 +901,7 @@ function(
 
 		// if only one piece of text was pasted, we can assume that the user wants to alter it before it is converted into a token
 		// in this case we leave it as plain text input
-		if (this._shouldSkipTokenCreationOnPaste(aSeparatedText)) {
+		if (aSeparatedText.length <= 1) {
 			return;
 		}
 
@@ -1524,25 +1549,8 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype._onBeforeOpenTokensPicker = function () {
-		var oTokenizer = this.getAggregation("tokenizer"),
-			oPopover = oTokenizer.getTokensPopup(),
-			oDomRef = this.getDomRef(),
-			bEditable = this.getEditable(),
-			iCurrentWidth, iCalculatedWidth;
-
 		this._setValueVisible(false);
 		this._manageListsVisibility(true);
-
-		if (oDomRef && oPopover) {
-			// Popover's width was calculated once in its onBeforeOpen method and is set in PX
-			iCurrentWidth = parseInt(oPopover.getContentWidth());
-			iCalculatedWidth = isNaN(iCurrentWidth) || oDomRef.offsetWidth > iCurrentWidth ? oDomRef.offsetWidth : iCurrentWidth;
-
-			iCalculatedWidth = ((oTokenizer.getTokens().length === 1) || !bEditable) ? "auto" :
-				(iCalculatedWidth / parseFloat(library.BaseFontSize)) + "rem";
-
-			oPopover.setContentWidth(iCalculatedWidth);
-		}
 	};
 
 	/**
@@ -1964,7 +1972,7 @@ function(
 		if (!this.getMaxTokens() || this.getTokens().length < this.getMaxTokens()) {
 			this._bIsValidating = true;
 			this.addValidateToken({
-				text: sValue,
+				text: ManagedObject.escapeSettingsValue(sValue),
 				token: oToken,
 				suggestionObject: oItem,
 				validationCallback: this._validationCallback.bind(this, iOldLength)
@@ -2029,18 +2037,6 @@ function(
 				fValidateCallback && fValidateCallback(false);
 			}
 		};
-	};
-
-	/**
-	 * Should return true/false if token creation on paste should be skipped
-	 *
-	 * @param aSeparatedText array with pasted text parts
-	 * @returns {boolean}
-	 * @ui5-restricted sap.ui.comp.smartfilterbar.FilterProvider
-	 * @private
-	 */
-	MultiInput.prototype._shouldSkipTokenCreationOnPaste = function (aSeparatedText) {
-		return aSeparatedText.length <= 1;
 	};
 
 	/**

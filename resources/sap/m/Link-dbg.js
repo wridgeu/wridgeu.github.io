@@ -86,7 +86,7 @@ function(
 	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent, sap.ui.core.ITitleContent, sap.ui.core.IAccessKeySupport
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -371,12 +371,15 @@ function(
 	 * @private
 	 */
 	Link.prototype._handlePress = function(oEvent) {
+		var oTarget = oEvent.target,
+			bEmptyHref;
 
 		if (this.getEnabled()) {
 			// mark the event for components that needs to know if the event was handled by the link
 			oEvent.setMarked();
 
-			if (!this.firePress({ctrlKey: !!oEvent.ctrlKey, metaKey: !!oEvent.metaKey}) || !this.getHref()) { // fire event and check return value whether default action should be prevented
+			bEmptyHref = oTarget.classList.contains("sapMLnk") && oTarget.getAttribute("href") == "#";
+			if (!this.firePress({ctrlKey: !!oEvent.ctrlKey, metaKey: !!oEvent.metaKey}) || bEmptyHref) { // fire event and check return value whether default action should be prevented
 				oEvent.preventDefault();
 			}
 		} else { // disabled
@@ -391,12 +394,7 @@ function(
 	 * @private
 	 */
 	Link.prototype.onsapenter = Link.prototype._handlePress;
-
-	if (Device.support.touch) {
-		Link.prototype.ontap = Link.prototype._handlePress;
-	} else {
-		Link.prototype.onclick = Link.prototype._handlePress;
-	}
+	Link.prototype.onclick = Link.prototype._handlePress;
 
 	/**
 	 * Handles the touch event on mobile devices.

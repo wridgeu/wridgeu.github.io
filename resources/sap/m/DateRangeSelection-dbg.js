@@ -88,19 +88,51 @@ sap.ui.define([
 	 *
 	 * The user can enter a date by:
 	 * <ul><li>Using the calendar that opens in a popup</li>
-	 * <li>Typing it in directly in the input field</li></ul>
+	 * <li>Typing it directly in the input field</li></ul>
 	 *
 	 * On app level, there are two options to provide a date for the
 	 * <code>DateRangeSelection</code> - date range as a string to the
-	 * <code>value</code> property or JavaScript Date objects to the
+	 * <code>value</code> property or UI5Date/JavaScript Date objects to the
 	 * <code>dateValue</code> and <code>secondDateValue</code> properties (only one of
 	 * these options should be used at a time):
 	 *
 	 * <ul><li>Use the <code>value</code> property if the date range is already provided as
 	 * a formatted string</li>
+	 * @example <caption> binding the <code>value</code> property by using types </caption>
+	 * new sap.ui.model.json.JSONModel({start:'2022-11-10', end:'2022-11-15'});
+	 *
+	 * new sap.m.DateRangeSelection({
+	 *     value: {
+	 *         type: "sap.ui.model.type.DateInterval",
+	 *         parts: [{
+	 *             type: "sap.ui.model.type.Date",
+	 *             path: "/start",
+	 *             formatOptions: {
+	 *                 source: {
+	 *                     pattern: "yyyy-MM-dd"
+	 *                 }
+	 *             }
+	 *         },
+	 *         {
+	 *             type: "sap.ui.model.type.Date",
+	 *             path:"/end",
+	 *             formatOptions: {
+	 *             source: {
+	 *                 pattern: "yyyy-MM-dd"
+	 *             }
+	 *         }}]
+	 *     }
+	 * });
+	 *
+	 * <b>Note:</b> There are multiple binding type choices, such as:
+	 * sap.ui.model.type.Date
+	 * sap.ui.model.odata.type.DateTime
+	 * sap.ui.model.odata.type.DateTimeOffset
+	 * See {@link sap.ui.model.type.Date}, {@link sap.ui.model.odata.type.DateTime} or {@link sap.ui.model.odata.type.DateTimeOffset}
+	 *
 	 * <li>Use the <code>dateValue</code> and <code>secondDateValue</code> properties
-	 * if the date range is already provided as JavaScript Date objects or you want to
-	 * work with JavaScript Date objects</li></ul>
+	 * if the date range is already provided as UI5Date or JavaScript Date objects or you want to
+	 * work with UI5Date or JavaScript Date objects</li></ul>
 	 *
 	 * <h3>Formatting</h3>
 	 *
@@ -131,8 +163,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.112.0
-	 * @version 1.112.0
+	 * @version 1.115.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -152,7 +184,7 @@ sap.ui.define([
 				delimiter : {type : "string", group : "Misc", defaultValue : '-'},
 
 				/**
-				 * The end date of the range as JavaScript Date object. This is independent from any formatter.
+				 * The end date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 				 *
 				 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 				 */
@@ -360,9 +392,9 @@ sap.ui.define([
 	};
 
 	/**
-	 * Converts the parameter to a Javascript Date, if it is a timestamp integer.
-	 * @param {Date|int} vBindingDate A timestamp or a Javascript Date
-	 * @returns {Date} A Javascript Date object
+	 * Converts the parameter to a UI5Date or JavaScript Date, if it is a timestamp integer.
+	 * @param {Date|module:sap/ui/core/date/UI5Date|int} vBindingDate A timestamp or a date instance
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} A date instance
 	 * @private
 	 */
 	function _normalizeDateValue(vBindingDate) {
@@ -370,8 +402,8 @@ sap.ui.define([
 	}
 
 	/**
-	 * Converts the parameter to a timestamp integer, if it is a Javascript Date.
-	 * @param {Date|int} vBindingDate A timestamp or a Javascript Date
+	 * Converts the parameter to a timestamp integer, if it is a UI5Date or JavaScript Date.
+	 * @param {Date|module:sap/ui/core/date/UI5Date|int} vBindingDate A timestamp or a date instance
 	 * @returns {int} A timestamp integer
 	 * @private
 	 */
@@ -440,20 +472,47 @@ sap.ui.define([
 
 	//Following setters/getters are due to backward compatibility with original primary version of composite sap.m.DateRangeSelection,
 	//that consisted of original primary sap.m.DateRangeSelection
+
+	/**
+	 * Set the start date of the range.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oFrom A date instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 * @deprecated since version 1.22.0, replaced by <code>dateValue</code> property of the {@link sap.m.DateTimeField}
+	 */
 	DateRangeSelection.prototype.setFrom = function(oFrom) {
 		this.setDateValue(oFrom);
 		return this;
 	};
 
+	/**
+	 * Get the start date of the range.
+	 * @returns {Date} the start date of the date range
+	 * @public
+	 * @deprecated since version 1.22.0, replaced by <code>dateValue</code> property of the {@link sap.m.DateTimeField}
+	 */
 	DateRangeSelection.prototype.getFrom = function() {
 		return this.getDateValue();
 	};
 
+	/**
+	 * Set the end date of the range.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oTo A date instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 * @deprecated since version 1.22.0, replaced by <code>secondDateValue</code> property
+	 */
 	DateRangeSelection.prototype.setTo = function(oTo) {
 		this.setSecondDateValue(oTo);
 		return this;
 	};
 
+	/**
+	 * Get the end date of the range.
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} the end date of the date range
+	 * @public
+	 * @deprecated since version 1.22.0, replaced by <code>secondDateValue</code> property
+	 */
 	DateRangeSelection.prototype.getTo = function() {
 		return this.getSecondDateValue();
 	};
@@ -463,11 +522,11 @@ sap.ui.define([
 	/**
 	 * Getter for property <code>dateValue</code>.
 	 *
-	 * The start date of the range as JavaScript Date object. This is independent from any formatter.
+	 * The start date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date} the value of property <code>dateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>dateValue</code>
 	 * @public
 	 * @name sap.m.DateRangeSelection#getDateValue
 	 * @function
@@ -476,18 +535,18 @@ sap.ui.define([
 	/**
 	 * Setter for property <code>dateValue</code>.
 	 *
-	 * The start date of the range as JavaScript Date object. This is independent from any formatter.
+	 * The start date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {Date} oDateValue New value for property <code>dateValue</code>
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDateValue New value for property <code>dateValue</code>
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateRangeSelection.prototype.setDateValue = function(oDateValue) {
 
 		if (!this._isValidDate(oDateValue)) {
-			throw new Error("Date must be a JavaScript date object; " + this);
+			throw new Error("Date must be a JavaScript or UI5Date date object; " + this);
 		}
 
 		if (deepEqual(this.getDateValue(), oDateValue)) {
@@ -504,11 +563,11 @@ sap.ui.define([
 	/**
 	 * Getter for property <code>secondDateValue</code>.
 	 *
-	 * The end date of the range as JavaScript Date object. This is independent from any formatter.
+	 * The end date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date} the value of property <code>secondDateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>secondDateValue</code>
 	 * @public
 	 * @name sap.m.DateRangeSelection#getSecondDateValue
 	 * @function
@@ -517,18 +576,18 @@ sap.ui.define([
 	/**
 	 * Setter for property <code>secondDateValue</code>.
 	 *
-	 * The start date of the range as JavaScript Date object. This is independent from any formatter.
+	 * The start date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {Date} oSecondDateValue New value for property <code>dateValue</code>
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oSecondDateValue New value for property <code>dateValue</code>
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateRangeSelection.prototype.setSecondDateValue = function(oSecondDateValue) {
 
 		if (!this._isValidDate(oSecondDateValue)) {
-			throw new Error("Date must be a JavaScript date object; " + this);
+			throw new Error("Date must be a JavaScript or UI5Date date object; " + this);
 		}
 
 		if (deepEqual(this.getSecondDateValue(), oSecondDateValue)) {
@@ -549,9 +608,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Set minimum date that can be shown and selected in the <code>DatePicker</code>. This must be a JavaScript date object.
-	 * @param {Date} oDate A JavaScript Date
+	 * Set minimum date that can be shown and selected in the <code>DatePicker</code>. This must be a UI5Date or JavaScript Date object.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
 	 */
 	DateRangeSelection.prototype.setMinDate = function(oDate) {
 
@@ -569,9 +629,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Set maximum date that can be shown and selected in the <code>DatePicker</code>. This must be a JavaScript date object.
-	 * @param {Date} oDate A JavaScript Date
+	 * Set maximum date that can be shown and selected in the <code>DatePicker</code>. This must be a UI5Date or JavaScript Date object.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
 	 */
 	DateRangeSelection.prototype.setMaxDate = function(oDate) {
 

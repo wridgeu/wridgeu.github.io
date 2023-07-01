@@ -17,6 +17,7 @@ sap.ui.define([
 	"sap/ui/core/delegate/ScrollEnablement",
 	"sap/ui/Device",
 	"sap/ui/base/ManagedObject",
+	"sap/ui/dom/getScrollbarSize",
 	"sap/f/DynamicPageTitle",
 	"sap/f/DynamicPageHeader",
 	"./DynamicPageRenderer",
@@ -35,6 +36,7 @@ sap.ui.define([
 	ScrollEnablement,
 	Device,
 	ManagedObject,
+	getScrollbarSize,
 	DynamicPageTitle,
 	DynamicPageHeader,
 	DynamicPageRenderer,
@@ -110,7 +112,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -1332,7 +1334,9 @@ sap.ui.define([
 		var bScrollBarNeeded = this._needsVerticalScrollBar(),
 			oWrapperElement = this.$wrapper.get(0),
 			iTitleHeight = this.$titleArea.get(0).getBoundingClientRect().height,
-			iTitleWidth = this._getTitleAreaWidth();
+			iTitleWidth = this._getTitleAreaWidth(),
+			iScrollbarWidth = getScrollbarSize().width,
+			sClipPath;
 
 		// the top area of the scroll container is reserved for showing the title element,
 		// (where the title element is positioned absolutely on top of the scroll container),
@@ -1346,9 +1350,16 @@ sap.ui.define([
 		// (2) also make the area underneath the title invisible (using clip-path)
 		// to allow usage of *transparent background* of the title element
 		// (otherwise content from the scroll *overflow* will show underneath the transparent title element)
-		oWrapperElement.style.clipPath = 'polygon(0px ' + Math.floor(iTitleHeight) + 'px, '
+		sClipPath = 'polygon(0px ' + Math.floor(iTitleHeight) + 'px, '
 			+ iTitleWidth + 'px ' + Math.floor(iTitleHeight) + 'px, '
-			+ iTitleWidth + 'px 0, 100% 0, 100% 100%, 0 100%)';
+			+ iTitleWidth + 'px 0, 100% 0, 100% 100%, 0 100%)'; //
+
+		if (Core.getConfiguration().getRTL()) {
+			sClipPath = 'polygon(0px 0px, ' + iScrollbarWidth + 'px 0px, '
+			+ iScrollbarWidth + 'px ' + iTitleHeight + 'px, 100% '
+			+ iTitleHeight + 'px, 100% 100%, 0 100%)';
+		}
+		oWrapperElement.style.clipPath = sClipPath;
 
 		this.toggleStyleClass("sapFDynamicPageWithScroll", bScrollBarNeeded);
 
@@ -1356,11 +1367,9 @@ sap.ui.define([
 	};
 
 	DynamicPage.prototype._updateFitContainer = function (bNeedsVerticalScrollBar) {
-		var bNoScrollBar = typeof bNeedsVerticalScrollBar !== 'undefined' ? !bNeedsVerticalScrollBar : !this._needsVerticalScrollBar(),
-			bFitContent = this.getFitContent(),
-			bToggleClass = bFitContent || bNoScrollBar;
+		var bNoScrollBar = typeof bNeedsVerticalScrollBar !== 'undefined' ? !bNeedsVerticalScrollBar : !this._needsVerticalScrollBar();
 
-		this.$contentFitContainer.toggleClass("sapFDynamicPageContentFitContainer", bToggleClass);
+		this.$contentFitContainer.toggleClass("sapFDynamicPageContentFitContainer", bNoScrollBar);
 	};
 
 	/**

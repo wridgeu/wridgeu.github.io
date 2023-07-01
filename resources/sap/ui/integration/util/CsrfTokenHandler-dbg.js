@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @param {sap.ui.integration.Host} oHost The Host which will be used for resolve CSRF tokens.
@@ -143,15 +143,15 @@ sap.ui.define([
 
 	/**
 	 * Checks if a response contains an expired CSRF Token.
-	 * @param {object} jqXHR The request.
+	 * @param {object} oResponse The response.
 	 */
-	CsrfTokenHandler.prototype.isExpiredToken = function (jqXHR) {
-		if (!jqXHR) {
+	CsrfTokenHandler.prototype.isExpiredToken = function (oResponse) {
+		if (!oResponse) {
 			return false;
 		}
 
-		var sXCSRFHeader = jqXHR.getResponseHeader(TOKEN_DEFAULT_HEADER);
-		return sXCSRFHeader && sXCSRFHeader.toLowerCase() === "required" && jqXHR.status === 403;
+		var sXCSRFHeader = oResponse.headers.get(TOKEN_DEFAULT_HEADER);
+		return sXCSRFHeader && sXCSRFHeader.toLowerCase() === "required" && oResponse.status === 403;
 	};
 
 	/**
@@ -180,7 +180,7 @@ sap.ui.define([
 					sTokenValue = oModel.getProperty(oCsrfTokenConfig.data.path);
 					oModel.destroy();
 				} else {
-					sTokenValue = oCsrfTokenDataProvider.getLastJQXHR().getResponseHeader(TOKEN_DEFAULT_HEADER);
+					sTokenValue = oCsrfTokenDataProvider.getLastResponse().headers.get(TOKEN_DEFAULT_HEADER);
 				}
 
 				resolve(sTokenValue);

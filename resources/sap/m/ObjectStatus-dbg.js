@@ -12,15 +12,12 @@ sap.ui.define([
 	'sap/ui/core/IndicationColorSupport',
 	'sap/ui/core/library',
 	'sap/ui/base/DataType',
-	'./ObjectStatusRenderer'
+	'./ObjectStatusRenderer',
+	'sap/m/ImageHelper'
 ],
-	function(library, Control, ValueStateSupport, IndicationColorSupport, coreLibrary, DataType, ObjectStatusRenderer) {
+	function(library, Control, ValueStateSupport, IndicationColorSupport, coreLibrary, DataType, ObjectStatusRenderer, ImageHelper) {
 	"use strict";
 
-
-
-	// shortcut for sap.m.ImageHelper
-	var ImageHelper = library.ImageHelper;
 
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
@@ -47,7 +44,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public

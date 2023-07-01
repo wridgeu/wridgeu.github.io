@@ -30,10 +30,11 @@ sap.ui.define([
 	"sap/m/IllustratedMessage",
 	"sap/m/IllustratedMessageType",
 	"sap/m/IllustratedMessageSize",
-	"sap/ui/core/Core"
+	"sap/ui/core/Core",
+	"sap/ui/core/InvisibleText"
 ], function (Control, KeyCodes, Log, deepEqual, MobileLibrary, Button, Dialog, List, MessageBox, OverflowToolbar,
 			 StandardListItem, Text, ToolbarSpacer, FileUploader, UploadSetItem, Uploader, Renderer, UploaderHttpRequestMethod,
-			DragDropInfo, DropInfo, Library, UploadSetToolbarPlaceholder, IllustratedMessage,IllustratedMessageType, IllustratedMessageSize, Core) {
+			DragDropInfo, DropInfo, Library, UploadSetToolbarPlaceholder, IllustratedMessage,IllustratedMessageType, IllustratedMessageSize, Core, InvisibleText) {
 	"use strict";
 
 	/**
@@ -47,7 +48,7 @@ sap.ui.define([
 	 * and requests, unified behavior of instant and deferred uploads, as well as improved progress indication.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @constructor
 	 * @public
 	 * @since 1.63
@@ -87,13 +88,13 @@ sap.ui.define([
 				 */
 				noDataDescription: {type: "string", defaultValue: null},
 				/**
-				 * Defines custom text for the 'No data' text label.
+				 * Defines custom text for the drag and drop text label.
 				 */
-				 dragDropText: {type: "string", defaultValue: null},
-				 /**
-				  * Defines custom text for the 'No data' description label.
-				  */
-				 dragDropDescription: {type: "string", defaultValue: null},
+				dragDropText: {type: "string", defaultValue: null},
+				/**
+				 * Defines custom text for the drag and drop description label.
+				 */
+				dragDropDescription: {type: "string", defaultValue: null},
 				/**
 				 * Defines whether the upload process should be triggered as soon as the file is added.<br>
 				 * If set to <code>false</code>, no upload is triggered when a file is added.
@@ -503,7 +504,6 @@ sap.ui.define([
 		this._mListItemIdToItemMap = {};
 		this._oUploadButton = null;
 		this._oDragIndicator = false;
-		this._bAttachEventListener = false;
 
 		// Drag&drop
 		this._$Body = null;
@@ -513,6 +513,9 @@ sap.ui.define([
 		this._aGroupHeadersAdded = [];
 		this._iFileUploaderPH = null;
 		this._oItemToUpdate = null;
+		//Setting invisible text
+		this._oInvisibleText = new InvisibleText();
+		this._oInvisibleText.toStatic();
 		var oIllustratedMessage = new IllustratedMessage({
 				illustrationType: IllustratedMessageType.NoData,
 				illustrationSize: IllustratedMessageSize.Auto,
@@ -521,9 +524,11 @@ sap.ui.define([
 			});
 
 		this.setAggregation("_illustratedMessage", oIllustratedMessage);
-		oIllustratedMessage.addIllustrationAriaLabelledBy(oIllustratedMessage.getId());
+		oIllustratedMessage.addIllustrationAriaLabelledBy(this._oInvisibleText.getId());
+		this._oInvisibleText.setText(this._oRb.getText("UPLOAD_SET_ILLUSTRATED_MESSAGE"));
 		this._cloudFilePickerControl = null;
 		this._oListEventDelegate = null;
+		this.addDependent(this._oInvisibleText);
 	};
 
 	UploadSet.prototype.exit = function () {
@@ -642,7 +647,7 @@ sap.ui.define([
 				this._handleItemEditCancelation(oEvent, oItem);
 				break;
 			case KeyCodes.DELETE:
-				if (!oItem.$("fileNameEdit").hasClass("sapMInputFocused")) {
+				if (!oItem.$("fileNameEdit").hasClass("sapMInputFocused") && oItem.getEnabledRemove() && oItem.getVisibleRemove()) {
 					this._handleItemDelete(oEvent, oItem);
 				}
 				break;
@@ -800,6 +805,7 @@ sap.ui.define([
 		});
 		if (!deepEqual(this.getFileTypes(), aTypes)) {
 			this.setProperty("fileTypes", aTypes, true);
+			this.getDefaultFileUploader().setFileType(aTypes);
 			this._checkRestrictions();
 		}
 		return this;
@@ -808,6 +814,7 @@ sap.ui.define([
 	UploadSet.prototype.setMaxFileNameLength = function (iNewMax) {
 		if (this.getMaxFileNameLength() !== iNewMax) {
 			this.setProperty("maxFileNameLength", iNewMax, true);
+			this.getDefaultFileUploader().setMaximumFilenameLength(iNewMax);
 			this._checkRestrictions();
 		}
 		return this;
@@ -816,6 +823,7 @@ sap.ui.define([
 	UploadSet.prototype.setMaxFileSize = function (iNewMax) {
 		if (this.getMaxFileSize() !== iNewMax) {
 			this.setProperty("maxFileSize", iNewMax, true);
+			this.getDefaultFileUploader().setMaximumFileSize(iNewMax);
 			this._checkRestrictions();
 		}
 		return this;
@@ -831,6 +839,7 @@ sap.ui.define([
 		});
 		if (!deepEqual(this.getMediaTypes(), aTypes)) {
 			this.setProperty("mediaTypes", aTypes, true);
+			this.getDefaultFileUploader().setMimeType(aTypes);
 			this._checkRestrictions();
 		}
 		return this;
@@ -859,12 +868,14 @@ sap.ui.define([
 	};
 
 	UploadSet.prototype.setUploadButtonInvisible = function (bUploadButtonInvisible) {
-		if (this.getUploadButtonInvisible() === bUploadButtonInvisible) {
-			return this;
+		if (bUploadButtonInvisible !== this.getUploadButtonInvisible()) {
+			var bVisible = !bUploadButtonInvisible;
+			this.getDefaultFileUploader().setVisible(bVisible);
+			if (this._oUploadButton) {
+				this._oUploadButton.setVisible(bVisible);
+			}
+			this.setProperty("uploadButtonInvisible", bUploadButtonInvisible, true);
 		}
-		this.setProperty("uploadButtonInvisible", bUploadButtonInvisible, true);
-		this.getDefaultFileUploader().setVisible(!bUploadButtonInvisible);
-
 		return this;
 	};
 
@@ -916,7 +927,8 @@ sap.ui.define([
 
 	UploadSet.prototype._getIllustratedMessage = function () {
 		var oAggregation = this.getAggregation("_illustratedMessage");
-		if (oAggregation) {
+		// Invoke rendering of illustrated message only when the list is empty else no scope of illustrated message.
+		if (oAggregation && this._oList && this._oList.getItems && !this._oList.getItems().length) {
 			if (this._getDragIndicator()) {
 				oAggregation.setIllustrationType(IllustratedMessageType.UploadCollection);
 				oAggregation.setTitle(this.getDragDropText());
@@ -937,7 +949,8 @@ sap.ui.define([
 			this._oUploadButton = new Button({
 				id: this.getId() + "-uploadButton",
 				type: MobileLibrary.ButtonType.Standard,
-				visible: this.getUploadEnabled(),
+				enabled: this.getUploadEnabled(),
+				visible: !this.getUploadButtonInvisible(),
 				text: this._oRb.getText("UPLOADCOLLECTION_UPLOAD"),
 				ariaDescribedBy: this.getAggregation("_illustratedMessage").getId(),
 				press: function () {
@@ -1009,15 +1022,8 @@ sap.ui.define([
 	UploadSet.prototype._onDragEnterFile = function (oEvent) {
 		var oDragSession = oEvent.getParameter("dragSession");
 		var oDraggedControl = oDragSession.getDragControl();
-		if (!this._bAttachEventListener) {
-            window.addEventListener("focus", function() {
-                this._oDragIndicator = false;
-                this._getIllustratedMessage();
-            }.bind(this), true);
-            this._bAttachEventListener = true;
-        }
 		this._oDragIndicator = true;
-        this._getIllustratedMessage();
+    this._getIllustratedMessage();
 		if (oDraggedControl) {
 			oEvent.preventDefault();
 		}
@@ -1175,6 +1181,8 @@ sap.ui.define([
 				enabled: this.getUploadEnabled(),
 				fileType: this.getFileTypes(),
 				mimeType: this.getMediaTypes(),
+				maximumFilenameLength: this.getMaxFileNameLength(),
+				maximumFileSize: this.getMaxFileSize(),
 				icon: "",
 				iconFirst: false,
 				multiple: this.getDirectory() ? false : this.getMultiple(),
@@ -1445,6 +1453,13 @@ sap.ui.define([
 		oItem._setContainsError(false);
 		oItem._setInEditMode(false);
 		this._oEditedItem = null;
+	};
+
+	UploadSet.prototype.handleItemGetDisabled = function (oItem) {
+		if (!this._oEditedItem || this._oEditedItem.getId() !== oItem.getId()) {
+			return;
+		}
+		this._handleItemEditCancelation(null, oItem);
 	};
 
 	UploadSet.prototype._handleItemDelete = function (oEvent, oItem) {
@@ -1774,11 +1789,15 @@ sap.ui.define([
 	};
 
 	UploadSet.prototype._fireFileSizeExceed = function (oItem) {
-		this.fireFileSizeExceeded({item: oItem});
+		var oSendItem = new UploadSetItem();
+		oSendItem.setFileName(oItem.getParameter('fileName'));
+		this.fireFileSizeExceeded({item: oSendItem});
 	};
 
 	UploadSet.prototype._fireFilenameLengthExceed = function (oItem) {
-		this.fireFileNameLengthExceeded({item: oItem});
+		var oSendItem = new UploadSetItem();
+		oSendItem.setFileName(oItem.getParameter('fileName'));
+		this.fireFileNameLengthExceeded({item: oSendItem});
 	};
 
 	/**
@@ -2083,6 +2102,17 @@ sap.ui.define([
 			enableDuplicateCheck:this.getSameFilenameAllowed(),
 			select: this._onCloudPickerFileChange.bind(this)
 		});
+	};
+
+	// Using UploadSet's dragleave abstract method with custom implementation to capture UploadSet dragleave event
+	UploadSet.prototype.ondragleave = function (oEvent) {
+		var oDragSession = oEvent.dragSession;
+		// condition to reset the illustrated message to default message from drag & drop message on leaving the drop area.
+		// getDropControl returns the valid drop target underneath the drop control, if no dropcontrol available UploadSet control to reset the illustrated message
+		if (!oDragSession || !oDragSession.getDropControl() || (oDragSession && !oEvent.relatedTarget)) {
+			this._oDragIndicator = false;
+      this._getIllustratedMessage();
+		}
 	};
 
 	return UploadSet;

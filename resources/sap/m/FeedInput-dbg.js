@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -469,7 +469,7 @@ sap.ui.define([
 			this._oButton = new Button(this.getId() + "-button", {
 				enabled : false,
 				type : ButtonType.Default,
-				icon : "sap-icon://feeder-arrow",
+				icon : "sap-icon://paper-plane",
 				tooltip : this.getButtonTooltip(),
 				press : jQuery.proxy(function () {
 					this._oTextArea.focus();

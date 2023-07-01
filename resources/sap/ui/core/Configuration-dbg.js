@@ -13,11 +13,14 @@ sap.ui.define([
 	"./format/TimezoneUtil",
 	'sap/ui/thirdparty/URI',
 	"sap/ui/core/_ConfigurationProvider",
+	"sap/ui/core/date/CalendarWeekNumbering",
 	"sap/base/util/UriParameters",
 	"sap/base/util/deepEqual",
 	"sap/base/util/Version",
 	"sap/base/Log",
 	"sap/base/assert",
+	"sap/base/config",
+	"sap/base/strings/camelize",
 	"sap/base/util/deepClone",
 	"sap/base/util/extend",
 	"sap/base/util/isEmptyObject"
@@ -30,11 +33,14 @@ sap.ui.define([
 		TimezoneUtil,
 		URI,
 		_ConfigurationProvider,
+		CalendarWeekNumbering,
 		UriParameters,
 		deepEqual,
 		Version,
 		Log,
 		assert,
+		BaseConfig,
+		camelize,
 		deepClone,
 		extend,
 		isEmptyObject
@@ -44,9 +50,41 @@ sap.ui.define([
 	// Singleton instance for configuration
 	var oConfiguration;
 	var M_SETTINGS;
-	var VERSION = "1.112.0";
+	var VERSION = "1.115.0";
+	var mCompatVersion;
 
 	// Helper Functions
+	var Object_hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
+
+	function _calcCompatVersions() {
+		var PARAM_CVERS = "sapUiCompatversion";
+
+		function _getCVers(key){
+			var v = !key ? DEFAULT_CVERS || BASE_CVERS.toString()
+					: BaseConfig.get({
+						name: camelize(PARAM_CVERS + "-" + key.toLowerCase()),
+						type: BaseConfig.Type.String
+					}) || DEFAULT_CVERS || M_COMPAT_FEATURES[key] || BASE_CVERS.toString();
+			v = Version(v.toLowerCase() === "edge" ? VERSION : v);
+			//Only major and minor version are relevant
+			return Version(v.getMajor(), v.getMinor());
+		}
+
+		var DEFAULT_CVERS = BaseConfig.get({
+			name: PARAM_CVERS,
+			type: BaseConfig.Type.String
+		});
+		var BASE_CVERS = Version("1.14");
+		mCompatVersion = {};
+
+		mCompatVersion._default = _getCVers();
+		for (var n in M_COMPAT_FEATURES) {
+			mCompatVersion[n] = _getCVers(n);
+		}
+
+		return mCompatVersion;
+	}
+
 	function detectLanguage() {
 
 		function navigatorLanguage() {
@@ -175,7 +213,7 @@ sap.ui.define([
 		}
 	}
 
-	var M_ANIMATION_MODE = {
+	var M_ANIMATION_MODE = /** @lends sap.ui.core.Configuration.AnimationMode */{
 		/**
 		 * <code>full</code> represents a mode with unrestricted animation capabilities.
 		 * @public
@@ -210,6 +248,7 @@ sap.ui.define([
 		"timezone"              : { type : "string",   defaultValue : TimezoneUtil.getLocalTimezone() },
 		"formatLocale"          : { type : "Locale",   defaultValue : null },
 		"calendarType"          : { type : "string",   defaultValue : null },
+		"calendarWeekNumbering" : { type : CalendarWeekNumbering, defaultValue : CalendarWeekNumbering.Default},
 		"trailingCurrencyCode"  : { type : "boolean",  defaultValue : true },
 		"accessibility"         : { type : "boolean",  defaultValue : true },
 		"autoAriaBodyRole"      : { type : "boolean",  defaultValue : false,     noUrl:true }, //whether the framework automatically adds the ARIA role 'application' to the html body
@@ -342,7 +381,7 @@ sap.ui.define([
 		init: function() {
 			this.bInitialized = true;
 
-			this.oFormatSettings = new Configuration.FormatSettings(this);
+			this.oFormatSettings = new FormatSettings(this);
 
 			/* Object that carries the real configuration data */
 			var config = this; // eslint-disable-line consistent-this
@@ -367,28 +406,12 @@ sap.ui.define([
 				}).concat(config.modules);
 			}
 
-			var PARAM_CVERS = "compatversion";
-			var DEFAULT_CVERS = oCfg[PARAM_CVERS];
-			var BASE_CVERS = Version("1.14");
-			this._compatversion = {};
-
-			function _getCVers(key){
-				var v = !key ? DEFAULT_CVERS || BASE_CVERS.toString()
-						: oCfg[PARAM_CVERS + "-" + key.toLowerCase()] || DEFAULT_CVERS || M_COMPAT_FEATURES[key] || BASE_CVERS.toString();
-				v = Version(v.toLowerCase() === "edge" ? VERSION : v);
-				//Only major and minor version are relevant
-				return Version(v.getMajor(), v.getMinor());
-			}
-
-			this._compatversion._default = _getCVers();
-			for (var n in M_COMPAT_FEATURES) {
-				this._compatversion[n] = _getCVers(n);
-			}
+			var oUriParams;
 
 			// apply the settings from the url (only if not blocked by app configuration)
 			if ( !config.ignoreUrlParams ) {
 				var sUrlPrefix = "sap-ui-";
-				var oUriParams = UriParameters.fromQuery(window.location.search);
+				oUriParams = UriParameters.fromQuery(window.location.search);
 
 				// first map SAP parameters, can be overwritten by "sap-ui-*" parameters
 				if ( oUriParams.has('sap-language') ) {
@@ -424,13 +447,7 @@ sap.ui.define([
 					// because the initialization should not trigger a "*Changed" event
 					var sTimezone = oUriParams.get('sap-timezone');
 					if (checkTimezone(sTimezone)) {
-						/*
-						TODO Timezone Configuration: re-activate following line when re-enabling Configuration#setTimezone
 						this.timezone = sTimezone;
-						*/
-						this._experimentalTimezone = sTimezone;
-					} else {
-						this._experimentalTimezone = undefined;
 					}
 				}
 
@@ -478,21 +495,6 @@ sap.ui.define([
 				}
 			}
 
-			// map of SAP parameters (allows general access)
-			config.sapparams = config.sapparams || {};
-
-			// set the SAP logon language to the SAP params
-			config.sapparams['sap-language'] = this.getSAPLogonLanguage();
-
-			// read the SAP parameters from URL or META tag
-			['sap-client', 'sap-server', 'sap-system'].forEach(function(sName) {
-				if (!config.ignoreUrlParams && oUriParams.get(sName)) {
-					config.sapparams[sName] = oUriParams.get(sName);
-				} else {
-					config.sapparams[sName] = getMetaTagValue(sName);
-				}
-			});
-
 			// calculate RTL mode
 			this.derivedRTL = Locale._impliesRTL(config.language);
 
@@ -533,11 +535,6 @@ sap.ui.define([
 			}
 
 			config['xx-fiori2Adaptation'] = vAdaptations;
-
-			// determine default for binding syntax
-			if ( config["bindingSyntax"] === "default" ) {
-				config["bindingSyntax"] = (config.getCompatibilityVersion("sapCoreBindingSyntax").compareTo("1.26") < 0) ? "simple" : "complex";
-			}
 
 			config["allowlistService"] = config["allowlistService"] || /* fallback to legacy config */ config["whitelistService"];
 
@@ -668,11 +665,11 @@ sap.ui.define([
 		 * @public
 		 */
 		getCompatibilityVersion : function (sFeature) {
-			if (typeof (sFeature) === "string" && this._compatversion[sFeature]) {
-				return this._compatversion[sFeature];
+			var mCompatVersion = _calcCompatVersions();
+			if (typeof (sFeature) === "string" && mCompatVersion[sFeature]) {
+				return mCompatVersion[sFeature];
 			}
-
-			return this._compatversion._default;
+			return mCompatVersion._default;
 		},
 
 		/**
@@ -698,7 +695,12 @@ sap.ui.define([
 		 * @returns {boolean} Whether placeholders are active or not
 		 */
 		getPlaceholder : function() {
-			return this.getValue("xx-placeholder");
+			return BaseConfig.get({
+				name: "sapUiXxPlaceholder",
+				type: BaseConfig.Type.Boolean,
+				external: true,
+				defaultValue: true
+			});
 		},
 
 		/**
@@ -790,10 +792,6 @@ sap.ui.define([
 		},
 
 		/**
-		 * <b>Note: Due to compatibility considerations, the time zone can only be changed for test
-		 * purposes via the <code>sap-timezone</code> URL parameter. If this parameter is not set,
-		 * the time zone of the browser/host system is returned.</b>
-		 *
 		 * Retrieves the configured IANA timezone ID.
 		 *
 		 * @returns {string} The configured IANA timezone ID, e.g. "America/New_York"
@@ -801,9 +799,7 @@ sap.ui.define([
 		 * @since 1.99.0
 		 */
 		getTimezone : function () {
-			// TODO Timezone Configuration: re-activate following line when re-enabling Configuration#setTimezone
-			// return this.getValue("timezone");
-			return this._experimentalTimezone || TimezoneUtil.getLocalTimezone();
+			return this.getValue("timezone");
 		},
 
 		/**
@@ -880,7 +876,6 @@ sap.ui.define([
 			if ( oLocale.toString() != this.getLanguageTag() || sSAPLogonLanguage !== this.sapLogonLanguage ) {
 				this.language = oLocale;
 				this.sapLogonLanguage = sSAPLogonLanguage || undefined;
-				this.sapparams['sap-language'] = this.getSAPLogonLanguage();
 				mChanges = this._collect();
 				mChanges.language = this.getLanguageTag();
 				this.derivedRTL = Locale._impliesRTL(oLocale);
@@ -893,10 +888,15 @@ sap.ui.define([
 		},
 
 		/**
-		 * <b>Note: Due to compatibility considerations, this function has no effect in this release.
-		 * The timezone configuration will always reflect the timezone of the browser/host system.</b>
-		 *
 		 * Sets the timezone such that all date and time based calculations use this timezone.
+		 *
+		 * <b>Important:</b> It is strongly recommended to only use this API at the earliest point
+		 * of time while initializing a UI5 app. A later adjustment of the time zone should be
+		 * avoided. It can lead to unexpected data inconsistencies in a running application,
+		 * because date objects could still be related to a previously configured time zone.
+		 * Instead, the app should be completely restarted with the new time zone.
+		 * For more information, see
+		 * {@link topic:6c9e61dc157a40c19460660ece8368bc Dates, Times, Timestamps, and Time Zones}.
 		 *
 		 * When the timezone has changed, the Core will fire its
 		 * {@link sap.ui.core.Core#event:localizationChanged localizationChanged} event.
@@ -911,10 +911,6 @@ sap.ui.define([
 			check(sTimezone == null || typeof sTimezone === 'string',
 				"Configuration.setTimezone: sTimezone must be null or be a string", /* warn= */ true);
 
-			Log.warning("Timezone configuration cannot be changed at the moment");
-			sTimezone != null && checkTimezone(sTimezone);
-			/*
-			TODO Timezone Configuration: re-activate following code when re-enabling Configuration#setTimezone
 			if (sTimezone == null || !checkTimezone(sTimezone)) {
 				sTimezone = TimezoneUtil.getLocalTimezone();
 			}
@@ -924,7 +920,7 @@ sap.ui.define([
 				var mChanges = this._collect();
 				mChanges.timezone = sTimezone;
 				this._endCollect();
-			} */
+			}
 			return this;
 		},
 
@@ -938,18 +934,6 @@ sap.ui.define([
 		 */
 		getLocale : function () {
 			return this.getValue("language");
-		},
-
-		/**
-		 * Returns an SAP parameter by it's name (e.g. sap-client, sap-system, sap-server).
-		 *
-		 * @experimental
-		 * @since 1.45.0
-		 * @param {string} sName The parameter name
-		 * @return {string} The SAP parameter value
-		 */
-		getSAPParam : function (sName) {
-			return this.sapparams && this.sapparams[sName];
 		},
 
 		/**
@@ -1072,6 +1056,46 @@ sap.ui.define([
 				this.calendarType = mChanges.calendarType = sCalendarType;
 				this._endCollect();
 			}
+			return this;
+		},
+
+		/**
+		 * Returns the calendar week numbering algorithm used to determine the first day of the week
+		 * and the first calendar week of the year, see {@link sap.ui.core.date.CalendarWeekNumbering}.
+		 *
+		 * @returns {sap.ui.core.date.CalendarWeekNumbering} The calendar week numbering algorithm
+		 *
+		 * @public
+		 * @since 1.113.0
+		 */
+		getCalendarWeekNumbering: function() {
+			return this.getValue("calendarWeekNumbering");
+		},
+
+		/**
+		 * Sets the calendar week numbering algorithm which is used to determine the first day of the week
+		 * and the first calendar week of the year, see {@link sap.ui.core.date.CalendarWeekNumbering}.
+		 *
+		 * @param {sap.ui.core.date.CalendarWeekNumbering} sCalendarWeekNumbering
+		 *   The calendar week numbering algorithm
+		 * @returns {this}
+		 *   <code>this</code> to allow method chaining
+		 * @throws {Error}
+		 *   If <code>sCalendarWeekNumbering</code> is not a valid calendar week numbering algorithm,
+		 *   defined in {@link sap.ui.core.date.CalendarWeekNumbering}
+		 *
+		 * @public
+		 * @since 1.113.0
+		 */
+		setCalendarWeekNumbering: function(sCalendarWeekNumbering) {
+			checkEnum(CalendarWeekNumbering, sCalendarWeekNumbering, "calendarWeekNumbering");
+
+			if (this.calendarWeekNumbering !== sCalendarWeekNumbering) {
+				var mChanges = this._collect();
+				this.calendarWeekNumbering = mChanges.calendarWeekNumbering = sCalendarWeekNumbering;
+				this._endCollect();
+			}
+
 			return this;
 		},
 
@@ -1280,7 +1304,7 @@ sap.ui.define([
 			// ui5loader-autoconfig calculates detailed information also for the partial debug
 			// mode and writes it to window["sap-ui-debug"].
 			// Only a value of true must be reflected by this getter
-			return window["sap-ui-debug"] === true || this.getValue("debug");
+			return window["sap-ui-debug"] === true || BaseConfig.get({name: "sapUiDebug", type: BaseConfig.Type.Boolean, external: true});
 		},
 
 		/**
@@ -1308,7 +1332,7 @@ sap.ui.define([
 		 * @public
 		 */
 		getNoDuplicateIds : function () {
-			return this.getValue("noDuplicateIds");
+			return BaseConfig.get({ name: "sapUiNoDuplicateIds", type: BaseConfig.Type.Boolean, defaultValue: true, external: true });
 		},
 
 		/**
@@ -1343,7 +1367,12 @@ sap.ui.define([
 		 * @ui5-restricted sap.ui.core.Core, sap.watt, com.sap.webide, sap.ui.fl, sap.ui.rta, sap.ui.comp, SAP Business Application Studio
 		 */
 		getDesignMode : function() {
-			return this.getValue("xx-designMode");
+			return BaseConfig.get({
+				name: "sapUiXxDesignMode",
+				type: BaseConfig.Type.Boolean,
+				external: true,
+				freeze: true
+			});
 		},
 
 		/**
@@ -1355,7 +1384,12 @@ sap.ui.define([
 		 * @ui5-restricted sap.watt, com.sap.webide
 		 */
 		getSuppressDeactivationOfControllerCode : function() {
-			return this.getValue("xx-suppressDeactivationOfControllerCode");
+			return BaseConfig.get({
+				name: "sapUiXxSuppressDeactivationOfControllerCode",
+				type: BaseConfig.Type.Boolean,
+				external: true,
+				freeze: true
+			});
 		},
 
 		/**
@@ -1399,7 +1433,7 @@ sap.ui.define([
 		 * @public
 		 */
 		getAppCacheBuster : function() {
-			return this.getValue("appCacheBuster");
+			return BaseConfig.get({name: "sapUiAppCacheBuster", type: BaseConfig.Type.StringArray, external: true, freeze: true});
 		},
 
 		/**
@@ -1409,7 +1443,7 @@ sap.ui.define([
 		 * @public
 		 */
 		getAppCacheBusterMode : function() {
-			return this.getValue("xx-appCacheBusterMode");
+			return BaseConfig.get({name: "sapUiXxAppCacheBusterMode", type: BaseConfig.Type.String, defaultValue: "sync", external: true, freeze: true});
 		},
 
 		/**
@@ -1421,7 +1455,7 @@ sap.ui.define([
 		 * @ui5-restricted
 		 */
 		getAppCacheBusterHooks : function() {
-			return this.getValue("xx-appCacheBusterHooks");
+			return BaseConfig.get({name: "sapUiXxAppCacheBusterHooks", type: BaseConfig.Type.Object, defaultValue: undefined, freeze: true});
 		},
 
 		/**
@@ -1432,7 +1466,7 @@ sap.ui.define([
 		 * @ui5-restricted
 		 */
 		getDisableCustomizing : function() {
-			return this.getValue("xx-disableCustomizing");
+			return BaseConfig.get({name: "sapUiXxDisableCustomizing", type: BaseConfig.Type.Boolean});
 		},
 
 		/**
@@ -1456,12 +1490,12 @@ sap.ui.define([
 		 * @since 1.16.3
 		 */
 		getPreload : function() {
-			// determine preload mode (e.g. resolve default or auto)
-			var sPreloadMode = this.getValue("preload");
 			// if debug sources are requested, then the preload feature must be deactivated
-			if ( this.getDebug() === true ) {
-				sPreloadMode = "";
+			if (this.getDebug() === true) {
+				return "";
 			}
+			// determine preload mode (e.g. resolve default or auto)
+			var sPreloadMode = BaseConfig.get({name: "sapUiPreload", type: BaseConfig.Type.String, defaultValue: "auto", external: true});
 			// when the preload mode is 'auto', it will be set to 'async' or 'sync' for optimized sources
 			// depending on whether the ui5loader is configured async
 			if ( sPreloadMode === "auto" ) {
@@ -1484,11 +1518,20 @@ sap.ui.define([
 		 */
 		getSyncCallBehavior : function() {
 			var syncCallBehavior = 0; // ignore
-			if ( this.getValue('xx-nosync') === 'warn' || /(?:\?|&)sap-ui-xx-nosync=(?:warn)/.exec(window.location.search) ) {
+			var mOptions = {
+				name: "sapUiXxNoSync",
+				type: BaseConfig.Type.String,
+				external: true,
+				freeze: true
+			};
+			var sNoSync = BaseConfig.get(mOptions);
+			if (sNoSync === 'warn') {
 				syncCallBehavior = 1;
-			}
-			if ( this.getValue('xx-nosync') === true || this.getValue('xx-nosync') === 'true' || /(?:\?|&)sap-ui-xx-nosync=(?:x|X|true)/.exec(window.location.search) ) {
-				syncCallBehavior = 2;
+			} else {
+				mOptions.type = BaseConfig.Type.Boolean;
+				if (BaseConfig.get(mOptions)) {
+					syncCallBehavior = 2;
+				}
 			}
 			return syncCallBehavior;
 		},
@@ -1500,7 +1543,7 @@ sap.ui.define([
 		 * @private
 		 */
 		getDepCache : function() {
-			return this.getValue("xx-depCache");
+			return BaseConfig.get({name: "sapUiXxDepCache", type: BaseConfig.Type.Boolean, external: true});
 		},
 
 		/**
@@ -1511,7 +1554,7 @@ sap.ui.define([
 		 * @since 1.33.0
 		 */
 		getManifestFirst : function() {
-			return this.getValue("manifestFirst");
+			return BaseConfig.get({name: "sapUiManifestFirst", type: BaseConfig.Type.Boolean, external: true});
 		},
 
 		/**
@@ -1568,7 +1611,7 @@ sap.ui.define([
 		 * @experimental Since 1.16.3, might change completely.
 		 */
 		getComponentPreload : function() {
-			return this.getValue("xx-componentPreload") || this.getPreload();
+			return BaseConfig.get({name: "sapUiXxComponentPreload", type: BaseConfig.Type.String, external: true}) || this.getPreload();
 		},
 
 		/**
@@ -1751,13 +1794,13 @@ sap.ui.define([
 		 * @public
 		 */
 		getActiveTerminologies : function() {
-			return this.getValue("activeTerminologies");
+			return BaseConfig.get({name: "sapUiActiveTerminologies", type: BaseConfig.Type.StringArray, defaultValue: undefined, external: true});
 		},
 
 		/**
 		 * Returns the security token handlers of an OData V4 model.
 		 *
-		 * @returns {function[]} the security token handlers (an empty array if there are none)
+		 * @returns {Array<function(sap.ui.core.URI):Promise>} the security token handlers (an empty array if there are none)
 		 * @public
 		 * @since 1.95.0
 		 * @see #setSecurityTokenHandlers
@@ -1781,7 +1824,7 @@ sap.ui.define([
 		 * Sets the security token handlers for an OData V4 model. See chapter
 		 * {@link topic:9613f1f2d88747cab21896f7216afdac/section_STH Security Token Handling}.
 		 *
-		 * @param {function[]} aSecurityTokenHandlers - The security token handlers
+		 * @param {Array<function(sap.ui.core.URI):Promise>} aSecurityTokenHandlers - The security token handlers
 		 * @public
 		 * @since 1.95.0
 		 * @see #getSecurityTokenHandlers
@@ -1792,6 +1835,19 @@ sap.ui.define([
 					"Not a function: " + fnSecurityTokenHandler);
 			});
 			this.securityTokenHandlers = aSecurityTokenHandlers.slice();
+		},
+
+		getBindingSyntax: function() {
+			var sBindingSyntax = BaseConfig.get({
+				name: "sapUiBindingSyntax",
+				type: BaseConfig.Type.String,
+				defaultValue: "default",
+				freeze: true
+			});
+			if ( sBindingSyntax === "default" ) {
+				sBindingSyntax = (this.getCompatibilityVersion("sapCoreBindingSyntax").compareTo("1.26") < 0) ? "simple" : "complex";
+			}
+			return sBindingSyntax;
 		},
 
 		/**
@@ -1882,7 +1938,7 @@ sap.ui.define([
 		 */
 		getValue: function(sName) {
 			var vValue;
-			if (typeof sName !== "string" || !Object.prototype.hasOwnProperty.call(M_SETTINGS, sName)) {
+			if (typeof sName !== "string" || !Object_hasOwn(M_SETTINGS, sName)) {
 				throw new TypeError(
 					"Parameter 'sName' must be the name of a valid configuration option (one of "
 					+ Object.keys(M_SETTINGS).map(function(key) {
@@ -2036,11 +2092,11 @@ sap.ui.define([
 	 * the modifications. To be on the safe side, applications should do any modifications
 	 * early in their lifecycle or recreate any model/UI that is locale dependent.
 	 *
-	 * @name sap.ui.core.Configuration.FormatSettings
+	 * @alias sap.ui.core.Configuration.FormatSettings
 	 * @extends sap.ui.base.Object
 	 * @public
 	 */
-	BaseObject.extend("sap.ui.core.Configuration.FormatSettings", /** @lends sap.ui.core.Configuration.FormatSettings.prototype */ {
+	var FormatSettings = BaseObject.extend("sap.ui.core.Configuration.FormatSettings", /** @lends sap.ui.core.Configuration.FormatSettings.prototype */ {
 		constructor : function(oConfiguration) {
 			this.oConfiguration = oConfiguration;
 			this.mSettings = {};
@@ -2064,10 +2120,11 @@ sap.ui.define([
 		 * @public
 		 */
 		getFormatLocale : function() {
-			function fallback(that) {
-				var oLocale = that.oConfiguration.getValue("language");
+			function fallback(oFormatSettings) {
+				var oLocale = oFormatSettings.oConfiguration.getValue("language");
 				// if any user settings have been defined, add the private use subtag "sapufmt"
-				if ( !isEmptyObject(that.mSettings) ) {
+				if (!isEmptyObject(oFormatSettings.mSettings)
+						|| oFormatSettings.oConfiguration.getCalendarWeekNumbering() !== CalendarWeekNumbering.Default) {
 					// TODO move to Locale/LocaleData
 					var l = oLocale.toString();
 					if ( l.indexOf("-x-") < 0 ) {
@@ -2342,7 +2399,7 @@ sap.ui.define([
 		 * }
 		 * </code>
 		 * @public
-		 * @returns {object} the mapping between custom currencies and its digits
+		 * @returns {Object<string,object>} the mapping between custom currencies and its digits
 		 */
 		getCustomCurrencies : function() {
 			return this.mSettings["currency"];
@@ -2379,7 +2436,7 @@ sap.ui.define([
 		 * Custom currencies must not only consist of digits but contain at least one non-digit character, e.g. "a",
 		 * so that the measure part can be distinguished from the number part.
 		 * @public
-		 * @param {object} mCurrencies currency map which is set
+		 * @param {Object<string,object>} mCurrencies currency map which is set
 		 * @returns {this} Returns <code>this</code> to allow method chaining
 		 */
 		setCustomCurrencies : function(mCurrencies) {
@@ -2403,7 +2460,7 @@ sap.ui.define([
 		 * </code>
 		 *
 		 * @public
-		 * @param {object} mCurrencies adds to the currency map
+		 * @param {Object<string,object>} mCurrencies adds to the currency map
 		 * @returns {this} Returns <code>this</code> to allow method chaining
 		 * @see sap.ui.core.Configuration.FormatSettings#setCustomCurrencies
 		 */
@@ -2436,6 +2493,7 @@ sap.ui.define([
 		 * @param {int} iValue must be an integer value between 0 and 6
 		 * @returns {this} Returns <code>this</code> to allow method chaining
 		 * @public
+		 * @deprecated Since 1.113.0. Use {@link sap.ui.core.Configuration#setCalendarWeekNumbering} instead.
 		 */
 		setFirstDayOfWeek : function(iValue) {
 			check(typeof iValue == "number" && iValue >= 0 && iValue <= 6, "iValue must be an integer value between 0 and 6");
@@ -2566,12 +2624,21 @@ sap.ui.define([
 		},
 
 		/**
+		 * The object that contains the information for date calendar customizing
+		 *
+		 * @typedef {object} sap.ui.core.Configuration.LegacyDateCalendarCustomizing
+		 * @public
+		 *
+		 * @property {"A"|"B"} dateFormat The IO of the date format. It has value "A" or "B".
+		 * @property {string} islamicMonthStart The Islamic date in format "yyyyMMdd".
+		 * @property {string} gregDate The corresponding Gregorian date in format "yyyyMMdd".
+		 */
+
+		/**
 		 * Allows to specify the customizing data for Islamic calendar support
 		 *
-		 * @param {object[]} aMappings contains the customizing data for the support of Islamic calendar.
-		 * @param {string} aMappings[].dateFormat The date format
-		 * @param {string} aMappings[].islamicMonthStart The Islamic date
-		 * @param {string} aMappings[].gregDate The corresponding Gregorian date
+		 * @param {Array<sap.ui.core.Configuration.LegacyDateCalendarCustomizing>} aMappings contains the customizing
+		 *  data for the support of Islamic calendar.
 		 * @returns {this} Returns <code>this</code> to allow method chaining
 		 * @public
 		 */
@@ -2587,7 +2654,8 @@ sap.ui.define([
 		/**
 		 * Returns the currently set customizing data for Islamic calendar support
 		 *
-		 * @return {object[]} Returns an array contains the customizing data. Each element in the array has properties: dateFormat, islamicMonthStart, gregDate. For details, please see {@link #setLegacyDateCalendarCustomizing}
+		 * @return {Array<sap.ui.core.Configuration.LegacyDateCalendarCustomizing>} Returns an array contains the
+		 *  customizing data. For details, please see {@link #setLegacyDateCalendarCustomizing}
 		 * @public
 		 */
 		getLegacyDateCalendarCustomizing : function() {

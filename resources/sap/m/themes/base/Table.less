@@ -253,7 +253,7 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 }
 
 /* define outline for the block layer */
-.sapMListTblCnt > .sapUiBlockLayerOnly:focus {
+.sapMListTblCnt > .sapMTableOverlay:focus {
 	outline: @_sap_m_ListItemBase_Focus_Outline;
 	outline-offset: @_sap_m_ListItemBase_Focus_OffsetWithGap;
 }
@@ -457,26 +457,6 @@ html[data-sap-ui-browser^='ff'] .sapMTableRowCustomFocus:focus > :not(.sapMListT
 
 .sapUiSizeCompact .sapMListTblCell.sapMListTblCellNoData {
 	font-size: @sapUiListTableTextSize;
-}
-
-/* overwrite text control styles */
-.sapMListTblCell {
-	.sapMLnk,
-	.sapMText,
-	.sapMLabel,
-	.sapMObjectNumber,
-	.sapMObjectIdentifier,
-	.sapMObjStatus {
-		line-height: 1.4;
-
-		.sapMObjStatusText {
-			line-height: inherit;
-		}
-
-		.sapUiSizeCompact & {
-			vertical-align: middle;
-		}
-	}
 }
 
 /* special class name to add margin to multiline contents */

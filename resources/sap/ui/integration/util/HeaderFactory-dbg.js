@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.BaseFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private
@@ -59,6 +59,7 @@ sap.ui.define([
 		}
 
 		var oCard = this._oCard,
+			sId = oCard.getId() + "-header",
 			bIsInDialog = oCard.getOpener(),
 			oBindingInfo,
 			oHeader;
@@ -71,10 +72,10 @@ sap.ui.define([
 
 		switch (mConfiguration.type) {
 			case "Numeric":
-				oHeader = new NumericHeader(mConfiguration, oToolbar);
+				oHeader = new NumericHeader(sId, mConfiguration, oToolbar);
 				break;
 			default:
-				oHeader = new Header(mConfiguration, oToolbar, oCard._oIconFormatter);
+				oHeader = new Header(sId, mConfiguration, oToolbar, oCard._oIconFormatter);
 				break;
 		}
 

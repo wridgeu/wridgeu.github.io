@@ -66,7 +66,7 @@ sap.ui.define([
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @constructor
 		 * @public
@@ -102,7 +102,7 @@ sap.ui.define([
 
 					/**
 					 * Specifies whether clear icon is shown.
-					 * Pressing the icon will clear input's value and fire the change and liveChange events.
+					 * Pressing the icon will clear input's value.
 					 * @since 1.96
 					 */
 					showClearIcon: { type: "boolean", defaultValue: false },

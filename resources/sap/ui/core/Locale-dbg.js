@@ -38,7 +38,7 @@ sap.ui.define(['sap/ui/base/Object', 'sap/base/assert', './CalendarType'],
 		 *
 		 * @extends sap.ui.base.Object
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 * @public
 		 * @alias sap.ui.core.Locale
 		 */
@@ -150,7 +150,7 @@ sap.ui.define(['sap/ui/base/Object', 'sap/base/assert', './CalendarType'],
 			 * a dash '-' and one or more extension token, each separated
 			 * again with a dash.
 			 *
-			 * Use {@link #getExtensions} to get the individual extension tokens as an array.
+			 * Use {@link #getExtensionSubtags} to get the individual extension tokens as an array.
 			 *
 			 * @returns {string|null} the extension or <code>null</code>
 			 * @public

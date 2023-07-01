@@ -27,7 +27,8 @@ sap.ui.define([
 
 	var sAnimationMode = Core.getConfiguration().getAnimationMode(),
 		bHasAnimations = sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal,
-		iServerSideAfterTransitionDelay = 200;
+		iServerSideAfterTransitionDelay = 200,
+		oResourceBundle = Core.getLibraryResourceBundle("sap.m");
 
 	/**
 	 * Constructor for a new Paginator.
@@ -40,7 +41,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @ui5-restricted
@@ -91,6 +92,7 @@ sap.ui.define([
 			src: "sap-icon://slim-arrow-left",
 			useIconTooltip: false,
 			decorative: false,
+			tooltip: oResourceBundle.getText("PAGINGBUTTON_PREVIOUS"),
 			press: this.previous.bind(this)
 		}));
 
@@ -98,6 +100,7 @@ sap.ui.define([
 			src: "sap-icon://slim-arrow-right",
 			useIconTooltip: false,
 			decorative: false,
+			tooltip: oResourceBundle.getText("PAGINGBUTTON_NEXT"),
 			press: this.next.bind(this)
 		}));
 	};
@@ -139,7 +142,7 @@ sap.ui.define([
 			iTotalCount,
 			bInitialized;
 
-		if (!oContent || !oContent.isA("sap.ui.integration.cards.BaseContent")) {
+		if (!oContent || !oContent.isA("sap.ui.integration.cards.BaseContent") || !oContent.hasData()) {
 			this.setPageCount(0);
 			return;
 		}
@@ -166,7 +169,7 @@ sap.ui.define([
 		iTotalCount = this.getTotalCount() || oContent.getDataLength();
 
 		this.setPageCount(Math.ceil(iTotalCount / this.getPageSize()));
-		this.setPageNumber(Math.min(Math.max(0, this.getPageNumber()), this.getPageCount() - 1));
+		this.setPageNumber(Math.min(Math.max(0, this.getPageNumber()), this._getLastPageNumber()));
 
 		this.sliceData();
 	};
@@ -405,7 +408,7 @@ sap.ui.define([
 			return;
 		}
 
-		this.setPageNumber(Math.min(this.getPageCount() - 1, this.getPageNumber() + 1));
+		this.setPageNumber(Math.min(this._getLastPageNumber(), this.getPageNumber() + 1));
 		this.sliceData();
 	};
 
@@ -427,6 +430,10 @@ sap.ui.define([
 			pageCount: this.getPageCount(),
 			pageIndex: this.getPageNumber()
 		};
+	};
+
+	Paginator.prototype._getLastPageNumber = function () {
+		return Math.max(0, this.getPageCount() - 1);
 	};
 
 	return Paginator;

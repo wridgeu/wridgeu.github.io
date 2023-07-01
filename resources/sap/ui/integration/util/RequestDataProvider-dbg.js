@@ -5,14 +5,13 @@
  */
 sap.ui.define([
 	"sap/ui/integration/util/DataProvider",
-	"sap/ui/thirdparty/jquery",
 	"sap/base/Log",
 	"sap/ui/model/odata/v4/ODataUtils",
 	"sap/ui/core/Core",
+	"sap/base/util/fetch",
 	"sap/base/util/deepClone"
-], function (DataProvider, jQuery, Log, ODataUtils, Core, deepClone) {
+], function (DataProvider, Log, ODataUtils, Core, fetch, deepClone) {
 	"use strict";
-	/*global Response*/
 
 	/**
 	 * @const List of HTTP response status codes for which the request can be retried.
@@ -21,6 +20,39 @@ sap.ui.define([
 
 	var aModes = ["no-cors", "same-origin", "cors"];
 	var aMethods = ["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE", "OPTIONS"];
+	var mDataTypeHeaders = {
+		"json": "application/json, */*",
+		"xml": "application/xml, text/xml, */*"
+	};
+
+	function combineUrlAndParams(sUrl, oParameters) {
+		// url query parameters
+		var sParamsString = Object.entries(oParameters).map(function (oParam) {
+			return encodeURIComponent(oParam[0]) + "=" + encodeURIComponent(oParam[1]);
+		});
+
+		return sUrl + (sUrl.indexOf("?") !== -1 ? "&" : "?") + sParamsString.join('&');
+	}
+
+	function isJsonResponse(oResponse) {
+		var sContentType = oResponse.headers.get("Content-Type");
+
+		if (!sContentType) {
+			return false;
+		}
+
+		return sContentType.indexOf("application/json") !== -1;
+	}
+
+	function isXmlResponse(oResponse) {
+		var sContentType = oResponse.headers.get("Content-Type");
+
+		if (!sContentType) {
+			return false;
+		}
+
+		return sContentType.indexOf("application/xml") !== -1 || sContentType.indexOf("text/xml") !== -1;
+	}
 
 	/**
 	 * Constructor for a new <code>RequestDataProvider</code>.
@@ -33,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.DataProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @private
@@ -74,8 +106,8 @@ sap.ui.define([
 		DataProvider.prototype.destroy.apply(this, arguments);
 	};
 
-	RequestDataProvider.prototype.getLastJQXHR = function () {
-		return this._lastJQXHR;
+	RequestDataProvider.prototype.getLastResponse = function () {
+		return this._lastResponse;
 	};
 
 	/**
@@ -108,7 +140,7 @@ sap.ui.define([
 	};
 
 	RequestDataProvider.prototype._handleExpiredToken = function (oError) {
-		if (this._oCsrfTokenHandler.isExpiredToken(this.getLastJQXHR())) {
+		if (this._oCsrfTokenHandler.isExpiredToken(this.getLastResponse())) {
 			// csrf token has expired, reset the token and retry this whole request
 			this._oCsrfTokenHandler.resetTokenByRequest(this.getSettings().request);
 
@@ -132,45 +164,59 @@ sap.ui.define([
 			Log.error("To specify dataType property in the Request Configuration, first set allowCustomDataType to 'true'.");
 		}
 
-		var vData = oRequestConfig.parameters,
-			sUrl = oRequestConfig.url,
+		var sUrl = oRequestConfig.url,
+			oParameters = oRequestConfig.parameters,
 			sDataType = (this.getAllowCustomDataType() && oRequestConfig.dataType) || "json",
 			mHeaders = oRequestConfig.headers || {},
 			mBatchRequests = oRequestConfig.batch,
 			oBatchSerialized,
-			oRequest;
+			oRequest,
+			vBody,
+			sMethod = oRequestConfig.method && oRequestConfig.method.toUpperCase() || "GET",
+			bJsonRequest = this._hasHeader(oRequestConfig, "Content-Type", "application/json"),
+			bGetMethod = ["GET", "HEAD"].includes(sMethod);
 
 		if ( !sUrl.startsWith("/")) {
 			sUrl = this._getRuntimeUrl(oRequestConfig.url);
 		}
 
-		// if not 'application/x-www-form-urlencoded', data has to be serialized manually
-		if (this._hasHeader(oRequestConfig, "Content-Type", "application/json")) {
-			vData = JSON.stringify(oRequestConfig.parameters);
+		if (oParameters) {
+			if (bJsonRequest) {
+				// application/json
+				vBody = JSON.stringify(oParameters);
+			} else if (bGetMethod) {
+				sUrl = combineUrlAndParams(sUrl, oParameters);
+			} else {
+				// application/x-www-form-urlencoded
+				vBody = new URLSearchParams(oParameters);
+			}
 		}
 
 		if (mBatchRequests) {
 			oBatchSerialized = ODataUtils.serializeBatchRequest(Object.values(mBatchRequests));
-			sDataType = "text";
-			vData = oBatchSerialized.body;
+			vBody = oBatchSerialized.body;
 			mHeaders = Object.assign({}, mHeaders, oBatchSerialized.headers);
 		}
 
 		oRequest = {
-			"mode": oRequestConfig.mode || "cors",
-			"url": sUrl,
-			"method": (oRequestConfig.method && oRequestConfig.method.toUpperCase()) || "GET",
-			"dataType": sDataType,
-			"data": vData,
-			"headers": mHeaders,
-			"timeout": oRequestConfig.timeout !== undefined ? oRequestConfig.timeout : 15000,
-			"xhrFields": {
-				"withCredentials": !!oRequestConfig.withCredentials
+			url: sUrl,
+			options: {
+				mode: oRequestConfig.mode || "cors",
+				method: sMethod,
+				headers: new Headers(mHeaders)
 			}
 		};
 
-		if (!vData) {
-			delete oRequest.data;
+		if (vBody) {
+			oRequest.options.body = vBody;
+		}
+
+		if (oRequestConfig.withCredentials) {
+			oRequest.options.credentials = "include";
+		}
+
+		if (!oRequest.options.headers.get("Accept") && mDataTypeHeaders[sDataType]) {
+			oRequest.options.headers.set("Accept", mDataTypeHeaders[sDataType]);
 		}
 
 		oRequest = this._modifyRequestBeforeSent(oRequest, this.getSettings());
@@ -192,58 +238,54 @@ sap.ui.define([
 			}.bind(this));
 	};
 
-	/**
-	 * Sends a request with jQuery.ajax(). Wrapped in a Promise.
-	 * @param {Object} oRequest The request to be sent with jQuery.ajax().
-	 * @param {boolean} bNoRetry Set to true if this request should not be retried when failed.
-	 * @returns {Promise} A Promise which is resolved when request is done and rejected when it fails.
-	 */
 	RequestDataProvider.prototype._request = function (oRequest, bNoRetry) {
-		return new Promise(function (resolve, reject) {
-			jQuery.ajax(oRequest).done(
-				function (vData, sTextStatus, jqXHR) {
-					if (this.bIsDestroyed) {
-						reject("RequestDataProvider is already destroyed before the response is received.");
-						return;
+		var fnFetch = this._getFetchMethod();
+		return fnFetch(oRequest.url, oRequest.options)
+			.then(function (oResponse) {
+				if (this.bIsDestroyed) {
+					return Promise.reject("RequestDataProvider is already destroyed before the response is received.");
+				}
+
+				this._lastResponse = oResponse;
+
+				if (!oResponse.ok) {
+					return oResponse.text().then(function (sResponseText) {
+						var aError = [oResponse.status + " " + oResponse.statusText, oResponse, sResponseText, oRequest];
+						if (bNoRetry) {
+							return Promise.reject(aError);
+						}
+
+						return this._retryRequest(aError);
+					}.bind(this));
+				}
+
+				return oResponse.text().then(function (vData) {
+					if (isJsonResponse(oResponse)) {
+						vData = JSON.parse(vData !== "" ? vData : null);
+					} else if (isXmlResponse(oResponse)) {
+						vData = (new window.DOMParser()).parseFromString(vData, "text/xml");
 					}
 
-					this._lastJQXHR = jqXHR;
+					return [vData, oResponse];
+				});
 
-					resolve([vData, jqXHR]);
-				}.bind(this)
-			).fail(
-				function (jqXHR, sTextStatus, sError) {
-					var aError = [sError, jqXHR];
-
-					if (this.bIsDestroyed) {
-						reject("RequestDataProvider is already destroyed while error in the response occurred.");
-						return;
-					}
-
-					this._lastJQXHR = jqXHR;
-
-					if (bNoRetry) {
-						reject(aError);
-						return;
-					}
-
-					this._retryRequest(aError, oRequest).then(resolve, reject);
-				}.bind(this));
-		}.bind(this));
+			}.bind(this), function (oError) {
+				return Promise.reject([oError.toString(), null, null, oRequest]);
+			});
 	};
 
 	/**
 	 * Retries to send the given request if response status code allows it
 	 * and if a retry-after value is specified in response header or in the request settings.
-	 * @param {Array} aError The error from the previous failed request.
-	 * @param {Object} oRequest The request to be sent.
+	 * @param {Array} aError The error information from first failure.
 	 * @returns {Promise} A Promise which is fulfilled if retry is successful and rejected otherwise.
 	 */
-	RequestDataProvider.prototype._retryRequest = function (aError, oRequest) {
-		var jqXHR = aError[1],
-			iRetryAfter = this._getRetryAfter(jqXHR);
+	RequestDataProvider.prototype._retryRequest = function (aError) {
+		var oResponse = aError[1],
+			oRequest = aError[3],
+			iRetryAfter = this._getRetryAfter(oResponse);
 
-		if (!RETRY_STATUS_CODES.includes(jqXHR.status)) {
+		if (!RETRY_STATUS_CODES.includes(oResponse.status)) {
 			// Request should not be retried.
 			return Promise.reject(aError);
 		}
@@ -254,7 +296,8 @@ sap.ui.define([
 		}
 
 		if (this._iRetryAfterTimeout) {
-			return Promise.reject("The retry was already scheduled.");
+			aError[0] = "The retry was already scheduled.";
+			return Promise.reject(aError);
 		}
 
 		return new Promise(function (resolve, reject) {
@@ -267,12 +310,12 @@ sap.ui.define([
 
 	/**
 	 * Reads retry-after value from response headers or from settings.
-	 * @param {Object} jqXHR The jQuery XHR response.
+	 * @param {Response} oResponse The failed response.
 	 * @returns {int} The number of seconds after which to retry the request.
 	 */
-	RequestDataProvider.prototype._getRetryAfter = function (jqXHR) {
+	RequestDataProvider.prototype._getRetryAfter = function (oResponse) {
 		var oRequestConfig = this.getSettings().request,
-			vRetryAfter = jqXHR.getResponseHeader("Retry-After") || oRequestConfig.retryAfter;
+			vRetryAfter = oResponse.headers.get("Retry-After") || oRequestConfig.retryAfter;
 
 		if (!vRetryAfter) {
 			return 0;
@@ -288,6 +331,32 @@ sap.ui.define([
 		}
 
 		return parseInt(vRetryAfter);
+	};
+
+	/**
+	 * Gets the method which should execute the HTTP fetch.
+	 * @private
+	 * @returns {Function} The function to use for HTTP fetch.
+	 */
+	RequestDataProvider.prototype._getFetchMethod = function () {
+		var oRequestSettings = this.getSettings().request,
+			oCard = Core.byId(this.getCard()),
+			oExtension = oCard && oCard.getAggregation("_extension"),
+			oHost = Core.byId(this.getHost());
+
+		if (oExtension) {
+			return function (sResource, mOptions) {
+				return oExtension.fetch(sResource, mOptions, deepClone(oRequestSettings, 1000));
+			};
+		}
+
+		if (oHost) {
+			return function (sResource, mOptions) {
+				return oHost.fetch(sResource, mOptions, deepClone(oRequestSettings, 1000), oCard);
+			};
+		}
+
+		return fetch;
 	};
 
 	/**
@@ -317,14 +386,32 @@ sap.ui.define([
 	RequestDataProvider.prototype._isValidRequest = function (oRequest) {
 
 		if (!oRequest) {
+			Log.error("Request is not valid. Request object is missing.");
 			return false;
 		}
 
-		if (aModes.indexOf(oRequest.mode) === -1) {
+		if (!oRequest.url) {
+			Log.error("Request is not valid. URL is missing.");
 			return false;
 		}
 
-		if (aMethods.indexOf(oRequest.method) === -1) {
+		if (!oRequest.options) {
+			Log.error("Request is not valid. Options are missing.");
+			return false;
+		}
+
+		if (aModes.indexOf(oRequest.options.mode) === -1) {
+			Log.error("Request is not valid. Mode is not among " + aModes.toString());
+			return false;
+		}
+
+		if (aMethods.indexOf(oRequest.options.method) === -1) {
+			Log.error("Request is not valid. Method is not among " + aModes.toString());
+			return false;
+		}
+
+		if (oRequest.options.headers && !(oRequest.options.headers instanceof Headers)) {
+			Log.error("Request is not valid. The headers option is not instance of Headers interface.");
 			return false;
 		}
 
@@ -344,7 +431,7 @@ sap.ui.define([
 	 */
 	RequestDataProvider.prototype._deserializeBatchResponse = function (mBatchRequests, sResponseBody) {
 		return new Promise(function(resolve, reject) {
-			var sContentType = this.getLastJQXHR().getResponseHeader("Content-Type"),
+			var sContentType = this.getLastResponse().headers.get("Content-Type"),
 				aBatchResponses = ODataUtils.deserializeBatchResponse(sContentType, sResponseBody, false),
 				aKeys = Object.keys(mBatchRequests),
 				mResult = {};
@@ -375,30 +462,29 @@ sap.ui.define([
 	/**
 	 * Override if modification to the request is needed.
 	 * Allows the host to modify the headers or the full request.
-	 * @param {Object} oRequest The current request
+	 * @param {Object} oRequest The current request.
 	 * @param {Object} oSettings The request settings
 	 * @returns {map} The modified headers
 	 */
 	RequestDataProvider.prototype._modifyRequestBeforeSent = function (oRequest, oSettings) {
 		var oCard = Core.byId(this.getCard()),
 			oHost = Core.byId(this.getHost()),
-			oClonedRequest;
+			oModifiedHeaders;
 
 		if (!oHost) {
 			return oRequest;
 		}
 
-		oClonedRequest = deepClone(oRequest, 100);
-
 		if (oHost.modifyRequestHeaders) {
-			oClonedRequest.headers = oHost.modifyRequestHeaders(oClonedRequest.headers, oSettings, oCard);
+			oModifiedHeaders = oHost.modifyRequestHeaders(Object.fromEntries(oRequest.options.headers), oSettings, oCard);
+			oRequest.options.headers = new Headers(oModifiedHeaders);
 		}
 
 		if (oHost.modifyRequest) {
-			oClonedRequest = oHost.modifyRequest(oClonedRequest, oSettings, oCard);
+			oRequest = oHost.modifyRequest(oRequest, oSettings, oCard);
 		}
 
-		return oClonedRequest;
+		return oRequest;
 	};
 
 	/**

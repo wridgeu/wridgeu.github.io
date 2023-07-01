@@ -49,7 +49,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @constructor
 		 * @private
@@ -439,11 +439,22 @@ sap.ui.define([
 		TimePickerInternals.prototype._getTimeSeparators = function (sDisplayFormat) {
 			var aFormatParts = DateFormat.getInstance({ pattern: sDisplayFormat }).aFormatArray,
 				aSeparators = [],
+				bAmPmMarker,
 				bPreviousWasEntity,
 				iIndex;
 
+				if (!aFormatParts.length) {
+					return aSeparators;
+				}
+
+				if (aFormatParts[0].type !== 'text') {
+					aSeparators.push("");
+				}
+
 				for (iIndex = 0; iIndex < aFormatParts.length; iIndex++) {
-					if (aFormatParts[iIndex].type !== "text") {
+					if (aFormatParts[iIndex].type === 'amPmMarker') {
+						bAmPmMarker = true;
+					} else if (aFormatParts[iIndex].type !== "text") {
 						if (bPreviousWasEntity) {
 							// there was previous non-separator entity, and this one is the same too, so add empty separator
 							aSeparators.push("");
@@ -457,6 +468,8 @@ sap.ui.define([
 						bPreviousWasEntity = false;
 					}
 				}
+
+				bAmPmMarker && aSeparators.push("");
 
 				return aSeparators;
 		};

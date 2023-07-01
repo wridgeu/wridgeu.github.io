@@ -145,7 +145,7 @@ function(
 	 * </ul>
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @extends sap.m.ComboBoxBase
@@ -1099,12 +1099,13 @@ function(
 		}, this).length;
 
 		if (bAlreadySelected) {
-			this._sInitialValueState = this.getValueState();
-
-			this._sInitialValueStateText = this.getValueStateText();
-			this.setValueStateText(sAlreadySelectedText);
+			if (!this._bAlreadySelected) {
+				this._sInitialValueState = this.getValueState();
+				this._sInitialValueStateText = this.getValueStateText();
+			}
 
 			this._bAlreadySelected = true;
+			this.setValueStateText(sAlreadySelectedText);
 			this.setValueState("Error");
 
 			return;
@@ -1221,6 +1222,19 @@ function(
 		oInput.attachChange(this._handleInnerInputChange.bind(this));
 
 		return oInput;
+	};
+
+	/**
+	 * Handles dialog's OK button press.
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._handleOkPress = function () {
+		ComboBoxBase.prototype._handleOkPress.apply(this, arguments);
+
+		if (this.getValue()) {
+			this._selectItemByKey();
+		}
 	};
 
 	/**
@@ -1380,10 +1394,19 @@ function(
 	 */
 	MultiComboBox.prototype.onAfterRenderingPicker = function() {
 		var fnOnAfterRenderingPopupType = this["_onAfterRendering" + this.getPickerType()];
+		var iInputWidth = this.getDomRef().getBoundingClientRect().width;
+		var sPopoverMaxWidth = getComputedStyle(this.getDomRef()).getPropertyValue("--sPopoverMaxWidth");
 
 		if (fnOnAfterRenderingPopupType) {
 			fnOnAfterRenderingPopupType.call(this);
 		}
+
+		if (iInputWidth <= parseInt(sPopoverMaxWidth) && !Device.system.phone) {
+			this.getPicker().getDomRef().style.setProperty("max-width", "40rem");
+		} else {
+			this.getPicker().getDomRef().style.setProperty("max-width", iInputWidth + "px");
+		}
+
 	};
 
 	/**
@@ -1393,6 +1416,7 @@ function(
 	 */
 	MultiComboBox.prototype.onBeforeOpen = function() {
 		ComboBoxBase.prototype.onBeforeOpen.apply(this, arguments);
+		var oSuggestionsPopover = this._getSuggestionsPopover();
 		var fnPickerTypeBeforeOpen = this["_onBeforeOpen" + this.getPickerType()],
 			oDomRef = this.getFocusDomRef();
 
@@ -1410,6 +1434,8 @@ function(
 		if (fnPickerTypeBeforeOpen) {
 			fnPickerTypeBeforeOpen.call(this);
 		}
+
+		oSuggestionsPopover.resizePopup(this);
 	};
 
 	/**
@@ -2069,10 +2095,16 @@ function(
 	 *
 	 * @private
 	 */
-	MultiComboBox.prototype._handleInputFocusOut = function () {
-		var oInput = this.isPickerDialog() ? this.getPickerTextField() : this,
-		sUpdateValue = this._sOldInput || this._sOldValue || "";
-		oInput.updateDomValue(sUpdateValue);
+	MultiComboBox.prototype._handleInputFocusOut = function (oEvent) {
+		var bIsPickerDialog = this.isPickerDialog(),
+		oInput = bIsPickerDialog ? this.getPickerTextField() : this,
+		sUpdateValue = this._sOldInput || this._sOldValue || "",
+		bOkButtonPressed = bIsPickerDialog && oEvent.relatedTarget && oEvent.relatedTarget.id.indexOf("-popup-closeButton") > -1;
+
+		if (!bOkButtonPressed) {
+			oInput.updateDomValue(sUpdateValue);
+		}
+
 		this._bIsPasteEvent = null;
 	};
 
@@ -3152,7 +3184,11 @@ function(
 
 			// add the mapped item type of sap.m.StandardListItem to the list
 			// do not prevent invalidation as invalidations will stack
-			this._getList().addItem(oListItem);
+			if (oListItem.isA("sap.m.GroupHeaderListItem")) {
+				this._getList().addItemGroup(null, oListItem);
+			} else {
+				this._getList().addItem(oListItem);
+			}
 
 			// add active state to the selected item
 			if (this.isItemSelected(aItems[i])) {

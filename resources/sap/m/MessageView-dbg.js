@@ -24,6 +24,7 @@ sap.ui.define([
 	"./Link",
 	"./MessageItem",
 	"./GroupHeaderListItem",
+	'sap/ui/core/InvisibleText',
 	"sap/ui/core/library",
 	"sap/ui/base/ManagedObject",
 	"./MessageViewRenderer",
@@ -51,6 +52,7 @@ sap.ui.define([
 	Link,
 	MessageItem,
 	GroupHeaderListItem,
+	InvisibleText,
 	coreLibrary,
 	ManagedObject,
 	MessageViewRenderer,
@@ -112,7 +114,7 @@ sap.ui.define([
 	 * The responsiveness of the <code>MessageView</code> is determined by the container in which it is embedded. For that reason the control could not be visualized if the
 	 * container’s sizes are not defined.
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -600,13 +602,16 @@ sap.ui.define([
 			content: "<span id=\"" + sCloseBtnDescrId + "\" class=\"sapMMsgViewHiddenContainer\">" + sCloseBtnDescr + "</span>"
 		});
 
-		var sHeadingDescr = this._oResourceBundle.getText("MESSAGEPOPOVER_ARIA_HEADING");
-		var sHeadingDescrId = this.getId() + "-HeadingDescr";
-		var oHeadingARIAHiddenDescr = new HTML(sHeadingDescrId, {
+		var sHeadingDescr = this._oResourceBundle.getText("MESSAGEPOPOVER_ARIA_HEADING"),
+		sHeadingDescrId = this.getId() + "-HeadingDescr",
+		sSegmentedBtnDescrId = InvisibleText.getStaticId("sap.m", "MESSAGEVIEW_SEGMENTED_BTN_DESCRIPTION"),
+		oHeadingARIAHiddenDescr = new HTML(sHeadingDescrId, {
 			content: "<span id=\"" + sHeadingDescrId + "\" class=\"sapMMsgViewHiddenContainer\" role=\"heading\">" + sHeadingDescr + "</span>"
 		});
 
-		this._oSegmentedButton = new SegmentedButton(this.getId() + "-segmented", {}).addStyleClass("sapMSegmentedButtonNoAutoWidth");
+		this._oSegmentedButton = new SegmentedButton(this.getId() + "-segmented", {
+			ariaLabelledBy: sSegmentedBtnDescrId
+		}).addStyleClass("sapMSegmentedButtonNoAutoWidth");
 
 		this._oListHeader = new Toolbar({
 			content: [this._oSegmentedButton, new ToolbarSpacer(), oCloseBtnARIAHiddenDescr, oHeadingARIAHiddenDescr]

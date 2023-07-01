@@ -106,7 +106,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -569,11 +569,19 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.onAfterRenderingPicker = function() {
 			var fnOnAfterRenderingPickerType = this["onAfterRendering" + this.getPickerType()];
+			var iInputWidth = this.getDomRef().getBoundingClientRect().width;
+			var sPopoverMaxWidth = getComputedStyle(this.getDomRef()).getPropertyValue("--sPopoverMaxWidth");
 
 			fnOnAfterRenderingPickerType && fnOnAfterRenderingPickerType.call(this);
 
 			// hide the list while scrolling to selected item, if necessary
 			fnSelectedItemOnViewPort.call(this, false);
+
+			if (iInputWidth <= parseInt(sPopoverMaxWidth) && !Device.system.phone) {
+				this.getPicker().getDomRef().style.setProperty("max-width", "40rem");
+			} else {
+				this.getPicker().getDomRef().style.setProperty("max-width", iInputWidth + "px");
+			}
 		};
 
 		/**
@@ -876,9 +884,10 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.onBeforeOpen = function() {
 			ComboBoxBase.prototype.onBeforeOpen.apply(this, arguments);
+			var oSuggestionsPopover = this._getSuggestionsPopover();
 			var fnPickerTypeBeforeOpen = this["onBeforeOpen" + this.getPickerType()];
 
-				this.setProperty("_open", true);
+			this.setProperty("_open", true);
 
 			// the dropdown list can be opened by calling the .open() method (without
 			// any end user interaction), in this case if items are not already loaded
@@ -890,6 +899,7 @@ sap.ui.define([
 			// call the hook to add additional content to the list
 			this.addContent();
 			fnPickerTypeBeforeOpen && fnPickerTypeBeforeOpen.call(this);
+			oSuggestionsPopover.resizePopup(this);
 		};
 
 		/**
@@ -1714,13 +1724,13 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.setSelectedKey = function(sKey) {
 			sKey = this.validateProperty("selectedKey", sKey);
-			var bDefaultKey = (sKey === this.getMetadata().getProperty("selectedKey").defaultValue),
+			var bShouldResetSelection = this.shouldResetSelection(sKey),
 				// the correct solution for tackling the coupling of selectedKey and value should be by using debounce
 				// however this makes the API async, which alters the existing behaviour of the control
 				// that's why the solution is implemented with skipModelUpdate property
 				bSkipModelUpdate = this.isBound("selectedKey") && this.isBound("value") && this.getBindingInfo("selectedKey").skipModelUpdate;
 
-			if (bDefaultKey) {
+			if (bShouldResetSelection) {
 				this.setSelection(null);
 
 				// if the setSelectedKey in called from ManagedObject's updateProperty
@@ -1748,6 +1758,17 @@ sap.ui.define([
 
 			this._sValue = this.getValue();
 			return this._setPropertyProtected("selectedKey", sKey);
+		};
+
+		/**
+		 * Determines if the Control's selection should get reset.
+		 * @param {string} sKey New value for property <code>selectedKey</code>.
+		 * @returns {boolean} If the Control's has to be reset
+		 * @private,
+		 * @ui5-restricted sap.ui.comp.smartfield.ComboBox
+		 */
+		ComboBox.prototype.shouldResetSelection = function(sKey) {
+			return (sKey === this.getMetadata().getProperty("selectedKey").defaultValue);
 		};
 
 		/**

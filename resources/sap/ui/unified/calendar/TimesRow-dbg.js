@@ -41,7 +41,7 @@ sap.ui.define([
 	"use strict";
 
 	/*
-	 * <code>UniversalDate</code> objects are used inside the <code>TimesRow</code>, whereas JavaScript dates are used in the API.
+	 * <code>UniversalDate</code> objects are used inside the <code>TimesRow</code>, whereas UI5Date or JavaScript dates are used in the API.
 	 * This means that a conversion must be performed for the API functions.
 	 */
 
@@ -59,9 +59,9 @@ sap.ui.define([
 	 * If used inside the CalendarTimeInterval the properties and aggregation are directly taken from the parent
 	 * (to not duplicate and synchronize DateRanges and so on...).
 	 *
-	 * The TimesRow works with JavaScript Date objects.
+	 * The TimesRow works with UI5Date or JavaScript Date objects.
 	 * @extends sap.ui.core.Control
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -73,7 +73,7 @@ sap.ui.define([
 		library : "sap.ui.unified",
 		properties : {
 			/**
-			 * A date as JavaScript Date object. The month including this date is rendered and this date is focused initially (if no other focus is set).
+			 * A date as UI5Date or JavaScript Date object. The month including this date is rendered and this date is focused initially (if no other focus is set).
 			 * If the date property is not in the range <code>startDate</code> + <code>items</code> in the rendering phase,
 			 * it is set to the <code>startDate</code>.
 			 * So after setting the <code>startDate</code> the date should be set to be in the visible range.
@@ -81,7 +81,7 @@ sap.ui.define([
 			date : {type : "object", group : "Data"},
 
 			/**
-			 * Start date, as JavaScript Date object, of the row.
+			 * Start date, as UI5Date or JavaScript Date object, of the row.
 			 */
 			startDate : {type : "object", group : "Data"},
 
@@ -176,7 +176,7 @@ sap.ui.define([
 			focus : {
 				parameters : {
 					/**
-					 * date, as JavaScript Date object, of the focused time.
+					 * date, as UI5Date or JavaScript Date object, of the focused time.
 					 */
 					date : {type : "object"},
 					/**
@@ -289,9 +289,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Setter <code>date</code> value.
-	 * @param {Date} oDate A JavaScript Date
+	 * Setter for the <code>date</code> property.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
 	 */
 	TimesRow.prototype.setDate = function(oDate){
 
@@ -317,9 +319,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets start date, as JavaScript Date object of the row.
-	 * @param {Date} oStartDate A JavaScript Date
+	 * Sets start date, as UI5Date or JavaScript Date object, of the row.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oStartDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
 	 */
 	TimesRow.prototype.setStartDate = function(oStartDate){
 
@@ -353,7 +357,7 @@ sap.ui.define([
 	TimesRow.prototype._getStartDate = function(){
 
 		if (!this._oUTCStartDate) {
-			this._oUTCStartDate = CalendarUtils._createUniversalUTCDate(new Date(), undefined, true);
+			this._oUTCStartDate = CalendarUtils._createUniversalUTCDate(UI5Date.getInstance(), undefined, true);
 			this._oUTCStartDate = this._getIntervalStart(this._oUTCStartDate);
 		}
 
@@ -363,7 +367,7 @@ sap.ui.define([
 	/**
 	 * Displays the given date without setting the focus.
 	 *
-	 * @param {Date} oDate A JavaScript Date
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -904,7 +908,7 @@ sap.ui.define([
 	 * Checks if a date is focusable in the current rendered output.
 	 * This means that if it is not rendered, it is not focusable.
 	 *
-	 * @param {Date} oDate JavaScript Date object for focused date.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate date instance for focused date.
 	 * @returns {boolean} flag if focusable
 	 * @public
 	 */
@@ -1239,18 +1243,18 @@ sap.ui.define([
 					oStartDate = oDate;
 					if (!bMove) {
 						// in move mode do not set date. this bring broblems if on backward move the start date would be changed
-						oDateRange.setProperty("startDate", CalendarUtils._createLocalDate(new Date(oStartDate.getTime()), true));
-						oDateRange.setProperty("endDate", CalendarUtils._createLocalDate(new Date(oEndDate.getTime()), true));
+						oDateRange.setProperty("startDate", CalendarUtils._createLocalDate(UI5Date.getInstance(oStartDate.getTime()), true));
+						oDateRange.setProperty("endDate", CalendarUtils._createLocalDate(UI5Date.getInstance(oEndDate.getTime()), true));
 					}
 				} else if (oDate.getTime() >= oStartDate.getTime()) {
 					// single day ranges are allowed
 					oEndDate = oDate;
 					if (!bMove) {
-						oDateRange.setProperty("endDate", CalendarUtils._createLocalDate(new Date(oEndDate.getTime()), true));
+						oDateRange.setProperty("endDate", CalendarUtils._createLocalDate(UI5Date.getInstance(oEndDate.getTime()), true));
 					}
 				}
 			} else {
-				oDateRange.setProperty("startDate", CalendarUtils._createLocalDate(new Date(oDate.getTime()), true));
+				oDateRange.setProperty("startDate", CalendarUtils._createLocalDate(UI5Date.getInstance(oDate.getTime()), true));
 				oDateRange.setProperty("endDate", undefined);
 			}
 		} else {
@@ -1275,7 +1279,7 @@ sap.ui.define([
 					}
 				} else {
 					// not selected -> select
-					oDateRange = new DateRange({startDate: CalendarUtils._createLocalDate(new Date(oDate.getTime()), true)});
+					oDateRange = new DateRange({startDate: CalendarUtils._createLocalDate(UI5Date.getInstance(oDate.getTime()), true)});
 					oAggOwner.addAggregation("selectedDates", oDateRange);
 				}
 			}

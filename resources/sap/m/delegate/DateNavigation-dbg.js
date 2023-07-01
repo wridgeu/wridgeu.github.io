@@ -15,7 +15,7 @@ sap.ui.define([
 		EventProvider,
 		CalendarUtils,
 		CalendarDate,
-        UI5Date,
+		UI5Date,
 		unifiedLibrary
 	) {
 		"use strict";

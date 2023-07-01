@@ -42,24 +42,6 @@ sap.ui.define([
 	}
 
 	/**
-	 * Returns the formatter. Creates it lazily.
-	 * @param {sap.ui.model.odata.type.Time} oType
-	 *   the <code>Time</code> instance
-	 * @returns {sap.ui.core.format.DateFormat}
-	 *   the formatter
-	 */
-	function getFormatter(oType) {
-		var oFormatOptions;
-
-		if (!oType.oFormat) {
-			oFormatOptions = extend({strictParsing : true}, oType.oFormatOptions);
-			oFormatOptions.UTC = true;
-			oType.oFormat = DateFormat.getTimeInstance(oFormatOptions);
-		}
-		return oType.oFormat;
-	}
-
-	/**
 	 * Verifies that the given object is really a <code>Time</code> object in the model format.
 	 * @param {any} o
 	 *   the object to test
@@ -156,7 +138,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @alias sap.ui.model.odata.type.Time
 	 * @param {object} [oFormatOptions]
@@ -206,11 +188,78 @@ sap.ui.define([
 			case "any":
 				return oValue;
 			case "string":
-				return getFormatter(this).format(toDate(oValue));
+				return this.getFormat().format(toDate(oValue));
 			default:
 				throw new FormatException("Don't know how to format " + this.getName() + " to "
 					+ sTargetType);
 		}
+	};
+
+	/**
+	 * Returns a date object for a given model value.
+	 *
+	 * @param {object|null} oModelValue
+	 *   The model value of this type. Can be retrieved via {@link sap.ui.model.odata.type.Time#getModelValue}.
+	 * @param {int} oModelValue.ms
+	 *   The time in milliseconds, ranging from 0 (1970-01-01T00:00:00.000Z) to 86399999 (1970-01-01T23:59:59.999Z)
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null}
+	 *   An instance of <code>Date</code> for which the local getters <code>getHours()</code>,
+	 *   <code>getMinutes()</code>, <code>getSeconds()</code>, and <code>getMilliseconds()</code> can be used to get the
+	 *   corresponding hours, minutes, seconds, and milliseconds of the given model value
+	 *
+	 * @since 1.113.0
+	 * @private
+	 * @ui5-restricted sap.fe, sap.suite.ui.generic.template, sap.ui.comp, sap.ui.generic
+	 */
+	Time.prototype.getDateValue = function (oModelValue) {
+		var oResult;
+
+		if (!oModelValue) {
+			return null;
+		}
+
+		oResult = UI5Date.getInstance(oModelValue.ms);
+		oResult.setFullYear(1970, 0, 1);
+		oResult.setHours(oResult.getUTCHours(), oResult.getUTCMinutes(), oResult.getUTCSeconds(),
+			oResult.getUTCMilliseconds());
+
+		return oResult;
+	};
+
+	/**
+	 * @override
+	 */
+	Time.prototype.getFormat = function () {
+		if (!this.oFormat) {
+			var oFormatOptions = extend({strictParsing : true}, this.oFormatOptions);
+			oFormatOptions.UTC = true;
+			this.oFormat = DateFormat.getTimeInstance(oFormatOptions);
+		}
+
+		return this.oFormat;
+	};
+
+	/**
+	 * Returns the ISO string for the given model value.
+	 *
+	 * @param {object|null} oModelValue
+	 *   The model value, as returned by {@link #getModelValue}
+	 * @param {int} oModelValue.ms
+	 *   The time in milliseconds, ranging from 0 (1970-01-01T00:00:00.000Z) to 86399999 (1970-01-01T23:59:59.999Z)
+	 * @returns {string|null}
+	 *   The time as string in the extended format without the 'T' e.g. "23:58:59.123" according to ISO 8601,
+	 *   or <code>null</code> if the given model value is falsy
+	 *
+	 * @since 1.114.0
+	 * @private
+	 * @ui5-restricted sap.fe, sap.suite.ui.generic.template, sap.ui.comp, sap.ui.generic
+	 */
+	Time.prototype.getISOStringFromModelValue = function (oModelValue) {
+		if (!oModelValue) {
+			return null;
+		}
+
+		return UI5Date.getInstance(oModelValue.ms).toISOString().slice(11, -1);
 	};
 
 	/**
@@ -263,6 +312,27 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns the model value for the given ISO string.
+	 *
+	 * @param {string|null} sISOString
+	 *   A string according to ISO 8601, as returned by {@link #getISOStringFromModelValue}
+	 * @returns {{__edmType: string, ms: int}|null}
+	 *   The model representation for the given ISO string for this type, or <code>null</code> if
+	 *   the given ISO string is falsy
+	 *
+	 * @since 1.114.0
+	 * @private
+	 * @ui5-restricted sap.fe, sap.suite.ui.generic.template, sap.ui.comp, sap.ui.generic
+	 */
+	Time.prototype.getModelValueFromISOString = function (sISOString) {
+		if (!sISOString) {
+			return null;
+		}
+
+		return toModel(UI5Date.getInstance("1970-01-01T" + sISOString + "Z"));
+	};
+
+	/**
 	 * Returns the type's name.
 	 *
 	 * @returns {string}
@@ -298,7 +368,7 @@ sap.ui.define([
 			throw new ParseException("Don't know how to parse " + this.getName() + " from "
 				+ sSourceType);
 		}
-		oDate = getFormatter(this).parse(sValue);
+		oDate = this.getFormat().parse(sValue);
 		if (!oDate) {
 			throw new ParseException(getErrorMessage(this));
 		}

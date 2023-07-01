@@ -296,6 +296,17 @@ sap.ui.define([
 		},
 
 		/**
+		 * Override the function to avoid creating facade for this instance to expose the settings properties that are
+		 * given through {@link #enhanceSettings}.
+		 *
+		 * @return {this} The Lib instance itself
+		 * @override
+		 */
+		getInterface: function() {
+			return this;
+		},
+
+		/**
 		 * Indicates whether the {@link sap.ui.core.Lib#enhanceSettings} is called
 		 *
 		 * @returns {boolean} Whether a library's setting is enhanced with additional metadata
@@ -511,7 +522,7 @@ sap.ui.define([
 
 				if (mOptions.sync) {
 					try {
-						sap.ui.requireSync(sLibPackage + '/library-preload-lazy');
+						sap.ui.requireSync(sLibPackage + '/library-preload-lazy'); // legacy-relevant: Sync path
 					} catch (e) {
 						Log.error("failed to load '" + sLibPackage + "/library-preload-lazy.js" + "' synchronously (" + (e && e.message || e) + ")");
 					}
@@ -1102,10 +1113,25 @@ sap.ui.define([
 	 * @public
 	 */
 	Library.all = function() {
+		// return only libraries that are initialized (settings enhanced)
+		return Library._all(false /* bIgnoreSettingsEnhanced */);
+	};
+
+	/**
+	 * Returns a map that contains the libraries that are already initialized (by calling {@link #.init}). Each library
+	 * instance is saved in the map under its name as key.
+	 *
+	 * @param {boolean} [bIgnoreSettingsEnhanced=false] All libraries are returned when it's set to true. Otherwise only
+	 *  the libraries with their settings enhanced are returned.
+	 * @returns {object} A map of libraries. Each library is saved in the map under its name as key.
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	Library._all = function(bIgnoreSettingsEnhanced) {
 		var mInitLibraries = {};
 
 		Object.keys(mLibraries).forEach(function(sKey) {
-			if (mLibraries[sKey].isSettingsEnhanced()) {
+			if (bIgnoreSettingsEnhanced || mLibraries[sKey].isSettingsEnhanced()) {
 				mInitLibraries[sKey] = mLibraries[sKey];
 			}
 		});
@@ -1531,6 +1557,9 @@ sap.ui.define([
 	 * @param {sap.ui.base.Metadata|object} [oEvent.getParameters.metadata] metadata for the added entity type.
 	 *         Either an instance of sap.ui.core.ElementMetadata if it is a Control or Element, or a library info object
 	 *         if it is a library. Note that the API of all metadata objects is not public yet and might change.
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.fl, sap.ui.support
 	 */
 
 	/**
@@ -1538,6 +1567,9 @@ sap.ui.define([
 	 *
 	 * @param {function} fnFunction Callback to be called when the <code>libraryChanged</code> event is fired
 	 * @param {object} [oListener] Optional context object to call the callback on
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.fl, sap.ui.support
 	 */
 	Library.attachLibraryChanged = function(fnFunction, oListener) {
 		_oEventProvider.attachEvent("LibraryChanged", fnFunction, oListener);
@@ -1548,11 +1580,22 @@ sap.ui.define([
 	 *
 	 * @param {function} fnFunction function to unregister
 	 * @param {object} [oListener] context object given during registration
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.fl, sap.ui.support
 	 */
 	Library.detachLibraryChanged = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent("LibraryChanged", fnFunction, oListener);
 	};
 
+	/**
+	 * Fires a libraryChanged event when:
+	 *   - a new library was loaded
+	 *   - a control/element was added to a library
+	 * @param {object} oParams the event parameters
+	 *
+	 * @private
+	 */
 	Library.fireLibraryChanged = function(oParams) {
 		// notify registered Core listeners
 		_oEventProvider.fireEvent("LibraryChanged", oParams);

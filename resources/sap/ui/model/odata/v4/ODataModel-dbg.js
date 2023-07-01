@@ -39,6 +39,7 @@ sap.ui.define([
 	"sap/ui/core/Configuration",
 	"sap/ui/core/library",
 	"sap/ui/core/message/Message",
+	"sap/ui/core/message/MessageManager",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/Context",
 	"sap/ui/model/Model",
@@ -46,8 +47,8 @@ sap.ui.define([
 	"sap/ui/thirdparty/URI"
 ], function (ODataContextBinding, ODataListBinding, ODataMetaModel, ODataPropertyBinding,
 		SubmitMode, _GroupLock, _Helper, _MetadataRequestor, _Parser, _Requestor, assert, Log,
-		SyncPromise, CacheManager, Configuration, coreLibrary, Message, BindingMode, BaseContext,
-		Model, OperationMode, URI) {
+		SyncPromise, CacheManager, Configuration, coreLibrary, Message, MessageManager, BindingMode,
+		BaseContext, Model, OperationMode, URI) {
 	"use strict";
 
 	var sClassName = "sap.ui.model.odata.v4.ODataModel",
@@ -227,7 +228,7 @@ sap.ui.define([
 		 * @extends sap.ui.model.Model
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 */
 		ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */{
@@ -881,8 +882,9 @@ sap.ui.define([
 	 *   Whether this binding is considered for a match when {@link #getKeepAliveContext} is called;
 	 *   only the value <code>true</code> is allowed. Must not be combined with <code>$apply</code>,
 	 *   <code>$$aggregation</code>, <code>$$canonicalPath</code>, or <code>$$sharedRequest</code>.
-	 *   If the binding is relative, <code>$$ownRequest</code> must be set as well.
-	 *   Supported since 1.99.0
+	 *   If the binding is relative, <code>$$ownRequest</code> must be set as well. Supported since
+	 *   1.99.0; since 1.113.0 it can be combined with <code>$$aggregation</code> for a recursive
+	 *   hierarchy.
 	 * @param {string} [mParameters.$$groupId]
 	 *   The group ID to be used for <b>read</b> requests triggered by this binding; if not
 	 *   specified, either the parent binding's group ID (if the binding is relative) or the
@@ -1483,8 +1485,11 @@ sap.ui.define([
 	 *   <li> the key-value pairs are encoded via encodeURIComponent.
 	 * </ul>
 	 *
-	 * @param {string} sCanonicalPath
-	 *   The canonical path of the entity to delete, starting with a '/'
+	 * @param {string|sap.ui.model.odata.v4.Context} vCanonicalPath
+	 *   The canonical path of the entity to delete, starting with a '/'; since 1.115.0, a context
+	 *   instance can be given to determine both the path and ETag used for deletion on the server,
+	 *   but no bindings are affected and {@link sap.ui.model.odata.v4.Context#delete} should be
+	 *   used with a <code>null</code> group ID to clean up on the client side later
 	 * @param {string} [sGroupId]
 	 *   The group ID that is used for the DELETE request; if not specified, the model's
 	 *   {@link #getUpdateGroupId update group ID} is used; the resulting group ID must not have
@@ -1507,11 +1512,22 @@ sap.ui.define([
 	 * @public
 	 * @since 1.103.0
 	 */
-	ODataModel.prototype.delete = function (sCanonicalPath, sGroupId, bRejectIfNotFound) {
-		var that = this;
+	ODataModel.prototype.delete = function (vCanonicalPath, sGroupId, bRejectIfNotFound) {
+		var bInAllBindings,
+			oPromise,
+			that = this;
 
-		if (sCanonicalPath[0] !== "/") {
-			throw new Error("Invalid path: " + sCanonicalPath);
+		if (typeof vCanonicalPath === "string") {
+			if (vCanonicalPath[0] !== "/") {
+				throw new Error("Invalid path: " + vCanonicalPath);
+			}
+			bInAllBindings = true;
+			oPromise = Promise.resolve([vCanonicalPath, "*"]);
+		} else {
+			oPromise = Promise.all([
+				vCanonicalPath.fetchCanonicalPath(),
+				vCanonicalPath.fetchValue("@odata.etag", /*oListener*/null, /*bCached*/true)
+			]);
 		}
 		_Helper.checkGroupId(sGroupId);
 		sGroupId = sGroupId || this.getUpdateGroupId();
@@ -1519,17 +1535,22 @@ sap.ui.define([
 			throw new Error("Illegal update group ID: " + sGroupId);
 		}
 
-		return this.oRequestor.request("DELETE",
-			sCanonicalPath.slice(1) + _Helper.buildQuery(this.mUriParameters),
-			this.lockGroup(sGroupId, this, true, true),
-			{"If-Match" : "*"}
-		).catch(function (oError) {
-			if (oError.status !== 404 && oError.status !== 412 || bRejectIfNotFound) {
-				throw oError;
-			} // else: map 404/412 to 200
-		}).then(function () {
-			that.aAllBindings.forEach(function (oBinding) {
-				oBinding.onDelete(sCanonicalPath);
+		return oPromise.then(function (aResults) {
+			return that.oRequestor.request("DELETE",
+					aResults[0].slice(1) + _Helper.buildQuery(that.mUriParameters),
+					that.lockGroup(sGroupId, that, true, true),
+					{"If-Match" : aResults[1]}
+			).catch(function (oError) {
+				if (bRejectIfNotFound
+						|| !(oError.status === 404 || bInAllBindings && oError.status === 412)) {
+					throw oError;
+				} // else: map 404/412 to 204
+			}).then(function () {
+				if (bInAllBindings) {
+					that.aAllBindings.forEach(function (oBinding) {
+						oBinding.onDelete(vCanonicalPath);
+					});
+				}
 			});
 		});
 	};
@@ -1685,6 +1706,10 @@ sap.ui.define([
 			this.mPath2DataRequestedCount[sPath] = 1;
 			this.fireEvent("dataRequested", {path : sPath});
 		}
+	};
+
+	ODataModel.prototype.fireMessageChange = function (mParameters) {
+		MessageManager.updateMessages(mParameters.oldMessages, mParameters.newMessages);
 	};
 
 	/**
@@ -2144,6 +2169,41 @@ sap.ui.define([
 	 */
 	ODataModel.prototype.isList = function () {
 		throw new Error("Unsupported operation: v4.ODataModel#isList");
+	};
+
+	/**
+	 * Creates a lock for the given group ID. Even an automatic {@link #submitBatch} has to wait
+	 * until all such locks are unlocked. The goal of such a lock is to wait with automatic PATCH
+	 * requests triggered by user input until an event handler is called and executes an action.
+	 *
+	 * @param {string} sGroupId
+	 *   A group ID
+	 * @returns {object}
+	 *   The group lock (with methods <code>isLocked</code> and <code>unlock</code>)
+	 * @throws {Error}
+	 *   If the given group does not have {@link sap.ui.model.odata.v4.SubmitMode.Auto}
+	 *
+	 * @private
+	 * @since 1.115.0
+	 * @ui5-restricted sap.fe
+	 */
+	ODataModel.prototype.lock = function (sGroupId) {
+		var oGroupLock;
+
+		if (!this.isAutoGroup(sGroupId)) {
+			throw new Error("Group ID does not use automatic batch requests: " + sGroupId);
+		}
+
+		oGroupLock = this.lockGroup(sGroupId, this, true);
+
+		return {
+			isLocked : function () {
+				return oGroupLock.isLocked();
+			},
+			unlock : function () {
+				oGroupLock.unlock();
+			}
+		};
 	};
 
 	/**
@@ -2719,9 +2779,9 @@ sap.ui.define([
 	 * Submits the requests associated with the given group ID in one batch request. Requests from
 	 * subsequent calls to this method for the same group ID may be combined in one batch request
 	 * using separate change sets. For group IDs with {@link sap.ui.model.odata.v4.SubmitMode.Auto},
-	 * only a single change set is used; this method is useful to repeat failed updates or creates
-	 * (see {@link sap.ui.model.odata.v4.ODataListBinding#create}) together with all other requests
-	 * for the given group ID in one batch request.
+	 * this method is useful to repeat failed updates or creates (see
+	 * {@link sap.ui.model.odata.v4.ODataListBinding#create}) together with all other requests for
+	 * the given group ID in one batch request.
 	 *
 	 * {@link #resetChanges} can be used to reset all pending changes instead. After that, or when
 	 * the promise returned by this method is fulfilled, {@link #hasPendingChanges} will not report
@@ -2746,9 +2806,8 @@ sap.ui.define([
 		this.checkBatchGroupId(sGroupId);
 		if (this.isAutoGroup(sGroupId)) {
 			this.oRequestor.relocateAll("$parked." + sGroupId, sGroupId);
-		} else {
-			this.oRequestor.addChangeSet(sGroupId);
 		}
+		this.oRequestor.addChangeSet(sGroupId);
 
 		return new Promise(function (resolve) {
 			that.addPrerenderingTask(function () {

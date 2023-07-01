@@ -29,7 +29,6 @@ sap.ui.define([
 	"sap/m/Toolbar",
 	"sap/m/ToolbarSpacer",
 	"sap/m/Button",
-	"sap/m/ToggleButton",
 	"sap/m/CheckBox",
 	"sap/m/Dialog",
 	"sap/m/Input",
@@ -70,7 +69,6 @@ sap.ui.define([
 	Toolbar,
 	ToolbarSpacer,
 	Button,
-	ToggleButton,
 	CheckBox,
 	Dialog,
 	Input,
@@ -626,7 +624,7 @@ sap.ui.define([
 		oVariantModifiedText.addStyleClass("sapMVarMngmtModified");
 		oVariantModifiedText.addStyleClass("sapMVarMngmtClickable");
 
-		this.oVariantPopoverTrigger = new ToggleButton(this.getId() + "-trigger", {
+		this.oVariantPopoverTrigger = new Button(this.getId() + "-trigger", {
 			icon: "sap-icon://slim-arrow-down",
 			type: ButtonType.Transparent,
 			tooltip: this._oRb.getText("VARIANT_MANAGEMENT_TRIGGER_TT"),
@@ -1115,10 +1113,8 @@ sap.ui.define([
 			],
 			afterOpen: function() {
 				this.bPopoverOpen = true;
-				this.oVariantPopoverTrigger.setPressed(true);
 			}.bind(this),
 			afterClose: function() {
-				this.oVariantPopoverTrigger.setPressed(false);
 				if (this.bPopoverOpen) {
 					setTimeout(function() {
 						this.bPopoverOpen = false;
@@ -1577,17 +1573,6 @@ sap.ui.define([
 			this.oVariantPopOver.close();
 		}
 
-//		if (this.getManualVariantKey()) {
-//			this.oInputManualKey.setVisible(true);
-//			this.oInputManualKey.setEnabled(true);
-//			this.oInputManualKey.setValueState(ValueState.None);
-//			this.oInputManualKey.setValueStateText(null);
-//			this.oLabelKey.setVisible(true);
-//		} else {
-//			this.oInputManualKey.setVisible(false);
-//			this.oLabelKey.setVisible(false);
-//		}
-
 		if (!bDoNotOpen) {
 			this.oSaveAsDialog.open();
 		}
@@ -2019,11 +2004,6 @@ sap.ui.define([
 
 		var fPress = function(oEvent) {
 			this._handleManageDeletePressed(oEvent.oSource.getBindingContext(sModelName).getObject());
-			var oListItem = oEvent.oSource.getParent();
-			if (oListItem) {
-				oListItem.setVisible(false);
-			}
-
 			this._reCheckVariantNameConstraints();
 		}.bind(this);
 
@@ -2086,9 +2066,9 @@ sap.ui.define([
 		});
 
 		if ((this.getStandardVariantKey() === oItem.getKey()) || (this.getDefaultKey() === oItem.getKey())) {
-			oFavoriteIcon.addStyleClass("sapMVarMngmtFavNonInteractiveColor");
+			this._setIconStyleClass(oFavoriteIcon, "sapMVarMngmtFavNonInteractiveColor");
 		} else {
-			oFavoriteIcon.addStyleClass("sapMVarMngmtFavColor");
+			this._setIconStyleClass(oFavoriteIcon, "sapMVarMngmtFavColor");
 		}
 
 		if (this.getDisplayTextForExecuteOnSelectionForStandardVariant() && (this.getStandardVariantKey() === oItem.getKey())) {
@@ -2142,7 +2122,7 @@ sap.ui.define([
 			}
 		}
 
-		return new ColumnListItem({
+		var oListItem = new ColumnListItem({
 			cells: [
 				oFavoriteIcon,
 				oNameControl,
@@ -2169,6 +2149,12 @@ sap.ui.define([
 				})
 			]
 		});
+
+		if (this._getDeletedItems() && this._getDeletedItems().indexOf(oItem.getKey()) > -1) {
+			oListItem.setVisible(false);
+		}
+
+		return oListItem;
 	};
 
 
@@ -2208,19 +2194,25 @@ sap.ui.define([
 			return;
 		}
 
-		if (oItem.getKey() === this.getStandardVariantKey()) {
+		if (!oItem || (oItem.getKey() === this.getStandardVariantKey())) {
 			return;
 		}
 
 		if (bToInActive && oIcon.hasStyleClass("sapMVarMngmtFavColor")) {
 			oIcon.removeStyleClass("sapMVarMngmtFavColor");
-			oIcon.addStyleClass("sapMVarMngmtFavNonInteractiveColor");
+			this._setIconStyleClass(oIcon, "sapMVarMngmtFavNonInteractiveColor");
 		} else if (oIcon.hasStyleClass("sapMVarMngmtFavNonInteractiveColor")) {
 			oIcon.removeStyleClass("sapMVarMngmtFavNonInteractiveColor");
-			oIcon.addStyleClass("sapMVarMngmtFavColor");
+			this._setIconStyleClass(oIcon, "sapMVarMngmtFavColor");
 		}
 	};
 
+	VariantManagement.prototype._setIconStyleClass = function(oIcon, sStyleClass) {
+		if (oIcon) {
+			oIcon.addStyleClass(sStyleClass);
+			oIcon.setNoTabStop(sStyleClass === "sapMVarMngmtFavNonInteractiveColor");
+		}
+	};
 
 	VariantManagement.prototype._handleManageTitleChange = function(oInput, oItem) {
 		this._checkVariantNameConstraints(oInput, oItem.getKey());
@@ -2263,45 +2255,45 @@ sap.ui.define([
 			this._bDeleteOccured = true;
 
 			this._getDeletedItems().forEach(function(sKey) {
-				var oItem = this._getItemByKey(sKey);
-				if (oItem) {
-					oItem.setVisible(true);
+				var oListItem = this._getRowForKey(sKey);
+				if (oListItem && !oListItem.getVisible()) {
+					oListItem.setVisible(true);
 				}
 			}.bind(this));
+
+			this._clearDeletedItems();
 		}
 
 		this.getItems().forEach(function(oItem) {
-			if (oItem.getVisible()) {
-				oItem.setTitle(oItem.getOriginalTitle());
-				oItem.setFavorite(oItem.getOriginalFavorite());
-				oItem.setExecuteOnSelect(oItem.getOriginalExecuteOnSelect());
-				oItem.setContexts(oItem.getOriginalContexts());
-			}
+			oItem.setTitle(oItem.getOriginalTitle());
+			oItem.setFavorite(oItem.getOriginalFavorite());
+			oItem.setExecuteOnSelect(oItem.getOriginalExecuteOnSelect());
+			oItem.setContexts(oItem.getOriginalContexts());
 		});
 
 		if (this._sOriginalDefaultKey !== this.getDefaultKey()) {
+			var sPrevDefaultKey = this.getDefaultKey();
 			this.setDefaultKey(this._sOriginalDefaultKey);
+
+			if (sPrevDefaultKey !== this.getStandardVariantKey()) {
+				var oRow = this._getRowForKey(sPrevDefaultKey);
+				if (oRow) {
+					var oIcon = oRow.getCells()[VariantManagement.COLUMN_FAV_IDX];
+					this._toggleIconActivityState(oIcon, this._getItemByKey(sPrevDefaultKey), false);
+				}
+			}
 		}
 
 		this._clearRenamedItems();
-		this._clearDeletedItems();
 
 		if (this._oManagedObjectModel) {
 			this._oManagedObjectModel.checkUpdate();
 		}
 
 		this.fireManageCancel();
-
-		//fireManageCancel may have deleted the ManageViews dialog
-//		if (this.oManagementDialog) {
-//			this.oManagementTable.getBinding("items").filter(this._getVisibleFilter());
-//		}
 	};
 
 	VariantManagement.prototype._handleManageFavoriteChanged = function(oIcon, oItem) {
-		//		if (!this._anyInErrorState(this.oManagementTable)) {
-		//			this.oManagementSave.setEnabled(true);
-		//		}
 		if (this.getStandardVariantKey() === oItem.getKey()) {
 			return;
 		}
@@ -2318,34 +2310,6 @@ sap.ui.define([
 	};
 
 
-
-	VariantManagement.prototype._getRowForKey = function(sKey) {
-		var oRowForKey = null;
-		if (this.oManagementTable) {
-			this.oManagementTable.getItems().some(function(oRow) {
-				var oColumnItem = oRow.getCells()[0].getParent();
-				var oItem = this.getModel("$mVariants").getObject(oColumnItem.getBindingContextPath());
-				if (sKey === oItem.getKey()) {
-					oRowForKey = oRow;
-				}
-
-				return oRowForKey !== null;
-			}.bind(this));
-		}
-
-		return oRowForKey;
-	};
-
-	VariantManagement.prototype._determineIndex = function(sPath) {
-		var nIdx = -1;
-		var nPos = sPath.indexOf('/', 1);
-		if (nPos > 0) {
-			nIdx = parseInt(sPath.substring(nPos + 1));
-		}
-
-		return nIdx;
-	};
-
 	VariantManagement.prototype._handleManageDeletePressed = function(oItem) {
 		var sKey = oItem.getKey();
 
@@ -2354,7 +2318,6 @@ sap.ui.define([
 			return;
 		}
 
-		oItem.setVisible(false);
 		this._addDeletedItem(oItem);
 
 		if (sKey === this.getDefaultKey()) {
@@ -2371,12 +2334,12 @@ sap.ui.define([
 			}
 		}
 
-//		var oModel = this.oManagementTable.getModel("$mVariants");
-//		if (oModel) {
-//			oModel.checkUpdate();
-//		}
+		var oListItem = this._getRowForKey(oItem.getKey());
+		if (oListItem) {
+			oListItem.setVisible(false);
+		}
 
-		this.oManagementTable.getBinding("items").filter(this._getVisibleFilter());
+		//this.oManagementTable.getBinding("items").filter(this._getVisibleFilter());
 
 		this.oManagementCancel.focus();
 	};
@@ -2445,6 +2408,13 @@ sap.ui.define([
 		if (this._getDeletedItems().length > 0) {
 			this._bDeleteOccured = true;
 
+			this._getDeletedItems().forEach(function(sKey) {
+				var oItem = this._getItemByKey(sKey);
+				if (oItem) {
+					oItem.setVisible(false);
+				}
+			}.bind(this));
+
 			this._getDeletedItems().some(function(sItemKey) {
 				if (sItemKey === this.getSelectedKey()) {
 					var sKey = this.getStandardVariantKey();
@@ -2510,7 +2480,6 @@ sap.ui.define([
 		}
 	};
 
-
 	VariantManagement.prototype._anyInErrorStateManageTable = function(oManagementTable) {
 		var oInput;
 		var bInError = false;
@@ -2566,6 +2535,33 @@ sap.ui.define([
 
 	// UTILS
 
+	VariantManagement.prototype._getRowForKey = function(sKey) {
+		var oRowForKey = null;
+		if (this.oManagementTable) {
+			this.oManagementTable.getItems().some(function(oRow) {
+				var oColumnItem = oRow.getCells()[0].getParent();
+				var oItem = this.getModel("$mVariants").getObject(oColumnItem.getBindingContextPath());
+				if (sKey === oItem.getKey()) {
+					oRowForKey = oRow;
+				}
+
+				return oRowForKey !== null;
+			}.bind(this));
+		}
+
+		return oRowForKey;
+	};
+
+	VariantManagement.prototype._determineIndex = function(sPath) {
+		var nIdx = -1;
+		var nPos = sPath.indexOf('/', 1);
+		if (nPos > 0) {
+			nIdx = parseInt(sPath.substring(nPos + 1));
+		}
+
+		return nIdx;
+	};
+
 	VariantManagement.prototype._getFilters = function(oFilter) {
 		var aFilters = [];
 
@@ -2576,7 +2572,7 @@ sap.ui.define([
 		aFilters.push(this._getVisibleFilter());
 
 		if (this.getSupportFavorites()) {
-			aFilters.push(this._getFilterFavorites());
+			aFilters.push(this._getFavoriteFilter());
 		}
 
 		return aFilters;
@@ -2590,7 +2586,7 @@ sap.ui.define([
 		});
 	};
 
-	VariantManagement.prototype._getFilterFavorites = function() {
+	VariantManagement.prototype._getFavoriteFilter = function() {
 		return new Filter({
 			path: "favorite",
 			operator: FilterOperator.EQ,
@@ -2800,7 +2796,6 @@ sap.ui.define([
 		}
 
 		this._oRolesComponentContainer = null;
-
 
 		if (this._oRolesDialog && !this._oRolesDialog._bIsBeingDestroyed) {
 			this._oRolesDialog.destroy();

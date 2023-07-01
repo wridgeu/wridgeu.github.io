@@ -97,7 +97,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -1312,7 +1312,7 @@ function(
 			this._hideBusyIndicator();
 
 			/* reset focused position */
-			if (this._oItemNavigation) {
+			if (this._oItemNavigation && document.activeElement.id != this.getId("nodata")) {
 				this._oItemNavigation.iFocusedIndex = -1;
 			}
 		}
@@ -2164,8 +2164,8 @@ function(
 			// alt/meta + left/right in the browser is used by default for navigating backwards or forwards in the browser history
 			// notify item navigation not to handle alt, meta key modifiers
 			this._oItemNavigation.setDisabledModifiers({
-				sapnext : ["alt", "meta"],
-				sapprevious : ["alt", "meta"]
+				sapnext : ["alt", "meta", "ctrl"],
+				sapprevious : ["alt", "meta", "ctrl"]
 			});
 		}
 
@@ -2180,6 +2180,10 @@ function(
 
 		// clear invalidations
 		this._bItemNavigationInvalidated = false;
+
+		if (document.activeElement == oNavigationRoot) {
+			jQuery(oNavigationRoot).trigger("focus");
+		}
 	};
 
 	/*
@@ -2272,7 +2276,7 @@ function(
 			return;
 		}
 
-		if (oEvent.target.id == this.getId("nodata")) {
+		if (jQuery(this.getDomRef("nodata")).find(":sapTabbable").addBack().get(-1) == oEvent.target) {
 			this.forwardTab(true);
 			oEvent.setMarked();
 		}
@@ -2719,11 +2723,12 @@ function(
 	 * the list is scrolled to the last available item.
 	 *
 	 * Growing in combination with <code>growingScrollToLoad=true</code> can result in loading of
-	 * new items when scrolling to the bottom of the list.
+	 * new items when scrolling to the bottom of the list.<br>
+	 * <b>Note:</b> This method only works if the control is placed inside a scrollable container (for example, <code>sap.m.Page</code>).
+	 * Calling this method if the <code>ListBase</code> control is placed outside the container, will reject the <code>Promise</code> by throwing an error.
 	 *
 	 * @param {number} iIndex The list item index that must be scrolled into the viewport
-	 * @returns {Promise} A <code>Promise</code> that resolves after the table scrolls to the row with the given index.<br>
-	 * <b>Note:</b> This method can only be used if the control is inside a scrollable scroll container (e.g <code>sap.m.Page</code>).
+	 * @returns {Promise} A <code>Promise</code> that resolves after the table scrolls to the row with the given index.
 	 *
 	 * @since 1.76
 	 * @public

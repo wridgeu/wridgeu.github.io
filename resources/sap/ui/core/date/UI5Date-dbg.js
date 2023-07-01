@@ -47,17 +47,20 @@ sap.ui.define([
 	 * @class A date implementation considering the configured time zone
 	 *
 	 *   A subclass of JavaScript <code>Date</code> that considers the configured time zone, see
-	 *   {@link sap.ui.core.Configuration.getTimezone}. All JavaScript <code>Date</code> functions
+	 *   {@link sap.ui.core.Configuration#getTimezone}. All JavaScript <code>Date</code> functions
 	 *   that use the local browser time zone, like <code>getDate</code>,
 	 *   <code>setDate</code>, and <code>toString</code>, are overwritten and use the
 	 *   configured time zone to compute the values.
 	 *
 	 *   Use {@link module:sap/ui/core/date/UI5Date.getInstance} to create new date instances.
 	 *
+	 *   <b>Note:</b> Adjusting the time zone in a running application can lead to unexpected data
+	 *   inconsistencies. For more information, see {@link sap.ui.core.Configuration#setTimezone}.
+	 *
 	 * @hideconstructor
 	 * @public
 	 * @since 1.111.0
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 */
 	function UI5Date(vDateParts, sTimezoneID) {
 		var oDateInstance = UI5Date._createDateInstance(vDateParts);
@@ -940,20 +943,23 @@ sap.ui.define([
 	 * in <code>getDate</code>, <code>toString</code>, or <code>setHours</code>. The supported
 	 * parameters are the same as the ones supported by the JavaScript Date constructor.
 	 *
+	 * <b>Note:</b> Adjusting the time zone in a running application can lead to unexpected data
+	 * inconsistencies. For more information, see {@link sap.ui.core.Configuration#setTimezone}.
+	 *
 	 * @param {int|string|Date|module:sap/ui/core/date/UI5Date|null} [vYearOrValue]
 	 *   Same meaning as in the JavaScript Date constructor
 	 * @param {int|string} [vMonthIndex]
 	 *   Same meaning as in the JavaScript Date constructor
-	 * @param {int|string} [vDay=1] Same meaning as in the Date constructor
-	 * @param {int|string} [vHours=0] Same meaning as in the Date constructor
-	 * @param {int|string} [vMinutes=0] Same meaning as in the Date constructor
-	 * @param {int|string} [vSeconds=0] Same meaning as in the Date constructor
-	 * @param {int|string} [vMilliseconds=0] Same meaning as in the Date constructor
+	 * @param {int|string} [vDay=1] Same meaning as in the JavaScript Date constructor
+	 * @param {int|string} [vHours=0] Same meaning as in the JavaScript Date constructor
+	 * @param {int|string} [vMinutes=0] Same meaning as in the JavaScript Date constructor
+	 * @param {int|string} [vSeconds=0] Same meaning as in the JavaScript Date constructor
+	 * @param {int|string} [vMilliseconds=0] Same meaning as in the JavaScript Date constructor
 	 * @returns {Date|module:sap/ui/core/date/UI5Date}
 	 *   The date instance that considers the configured time zone in all local getters and setters.
 	 *
 	 * @public
-	 * @see sap.ui.core.Configuration.getTimezone
+	 * @see sap.ui.core.Configuration#getTimezone
 	 */
 	UI5Date.getInstance = function () {
 		var sTimezone = Configuration.getTimezone();

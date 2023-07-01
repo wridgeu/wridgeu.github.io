@@ -24,7 +24,8 @@ sap.ui.define([
 	"sap/ui/core/Fragment",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Configuration",
-	"sap/ui/core/Lib"
+	"sap/ui/core/Lib",
+	"sap/ui/core/message/MessageManager"
 ], function(
 	moduleTreeHelper,
 	Device,
@@ -45,7 +46,8 @@ sap.ui.define([
 	Fragment,
 	jQuery,
 	Configuration,
-	Library
+	Library,
+	MessageManager
 ) {
 	"use strict";
 
@@ -1013,7 +1015,7 @@ sap.ui.define([
 
 					// register message validation and trigger it once to validate the value coming from local storage
 					var oCustomBootstrapURL =  this._getControl("customBootstrapURL", this._SUPPORT_ASSISTANT_POPOVER_ID);
-					sap.ui.getCore().getMessageManager().registerObject(oCustomBootstrapURL, true);
+					MessageManager.registerObject(oCustomBootstrapURL, true);
 				}.bind(this));
 			}
 			return this._pAssistantPopover;

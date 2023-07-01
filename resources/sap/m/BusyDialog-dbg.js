@@ -62,7 +62,7 @@ sap.ui.define(['./library',
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @public
 		 * @alias sap.m.BusyDialog
@@ -266,7 +266,7 @@ sap.ui.define(['./library',
 		BusyDialog.prototype.open = function () {
 			var aAriaLabelledBy = this.getAriaLabelledBy();
 
-			Log.debug("sap.m.BusyDialog.open called at " + new Date().getTime());
+			Log.debug("sap.m.BusyDialog.open called at " + Date.now());
 
 			if (aAriaLabelledBy && aAriaLabelledBy.length) {
 				if (!this._oDialog._$dialog) {
@@ -387,7 +387,9 @@ sap.ui.define(['./library',
 				if (sText) {
 					this._oLabel = new Label(this.getId() + '-TextLabel', {text: sText}).addStyleClass('sapMBusyDialogLabel');
 					this._oDialog.insertAggregation('content', this._oLabel, 0);
-					this._oDialog.addAriaLabelledBy(this._oLabel.getId());
+					if (this._oDialog.getShowHeader()) {
+						this._oDialog.addAriaLabelledBy(this._oLabel.getId());
+					}
 				}
 			} else {
 				if (sText) {

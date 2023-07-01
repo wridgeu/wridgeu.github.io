@@ -40,7 +40,8 @@ sap.ui.define([
 			oCard = oCardContent.getCardInstance(),
 			bLoading = oCardContent.isLoading(),
 			bIsAbstractPreviewMode =  oCard && oCard.getPreviewMode() === CardPreviewMode.Abstract,
-			oMessageContainer = oCardContent.getAggregation("_messageContainer");
+			oMessageContainer = oCardContent.getAggregation("_messageContainer"),
+			oBlockingMessage = oCardContent.getAggregation("_blockingMessage");
 
 		sClass += sType;
 
@@ -48,8 +49,8 @@ sap.ui.define([
 			.class(sClass)
 			.class("sapFCardBaseContent");
 
-		if (oCardContent.hasListeners("press")) {
-			oRm.class("sapFCardClickable");
+		if (oCardContent.isInteractive()) {
+			oRm.class("sapFCardSectionClickable");
 		}
 
 		if (oCard && oCard.getHeight() === "auto") { // if there is no height specified the default value is "auto"
@@ -71,7 +72,11 @@ sap.ui.define([
 			oRm.renderControl(oMessageContainer);
 		}
 
-		this.renderContent(oRm, oCardContent);
+		if (oBlockingMessage) {
+			oRm.renderControl(oBlockingMessage);
+		} else {
+			this.renderContent(oRm, oCardContent);
+		}
 
 		oRm.close("div");
 	};

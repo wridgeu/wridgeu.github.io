@@ -80,7 +80,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @public
 	 * @since 1.110
@@ -129,6 +129,12 @@ sap.ui.define([
 						 */
 						openBy : {type : "sap.ui.core.Element"}
 					}
+				},
+				/**
+				 * Fires after the column menu is closed
+				 * @since 1.112
+				 */
+				afterClose: {
 				}
 			}
 		},
@@ -192,10 +198,6 @@ sap.ui.define([
 		}
 		this._initQuickActionContainer();
 
-		if (this._oItemsContainer) {
-			this._oItemsContainer.destroy();
-			this._oItemsContainer = null;
-		}
 		this._initItemsContainer();
 
 		if (!this.getParent()) {
@@ -238,10 +240,22 @@ sap.ui.define([
 			if (this._oQuickActionContainer) {
 				this._oQuickActionContainer.destroyFormContainers();
 			}
-
+			if (this._oItemsContainer) {
+				this._getAllEffectiveItems().forEach(function(oMenuItem){
+					if (oMenuItem.destroyContent instanceof Function) {
+						oMenuItem.destroyContent();
+					}
+				});
+				this._oItemsContainer.destroy();
+				this._oItemsContainer = null;
+			}
 			this._oPopover.close();
 			ControlEvents.unbindAnyEvent(this.fAnyEventHandlerProxy);
 		}
+	};
+
+	Menu.prototype._onPopoverAfterClose = function () {
+		this.fireAfterClose();
 	};
 
 	Menu.prototype.exit = function () {
@@ -280,11 +294,11 @@ sap.ui.define([
 			ariaLabelledBy: this.getId() + "-menuDescription",
 			showArrow: false,
 			showHeader: Device.system.phone,
-			placement: library.PlacementType.Bottom,
+			placement: library.PlacementType.VerticalPreferredBottom,
 			content: new AssociativeControl({control: this, height: true}),
 			horizontalScrolling: false,
 			verticalScrolling: false,
-			afterClose: [this.close, this]
+			afterClose: [this._onPopoverAfterClose, this]
 		});
 		this.addDependent(this._oPopover);
 		this._oPopover.addStyleClass("sapMTCMenuPopup");
@@ -293,42 +307,35 @@ sap.ui.define([
 			"onAfterRendering": this._focusItem
 		}, this);
 
+		this._oPopover.addEventDelegate({
+			"onsapfocusleave": this.handleFocusLeave
+		}, this);
+
 		this._oPopover._oControl.oPopup.setAutoClose(false);
 	};
 
-	Menu.prototype.onsapfocusleave = function(oEvent){
+	Menu.prototype.handleFocusLeave = function(oEvent){
 		if (!this.isOpen()) {
 			return;
 		}
-		this.handleOuterEvent(this.getId(), oEvent);
+
+		if (oEvent.relatedControlId &&
+			(!containsOrEquals(this.getDomRef(), jQuery(document.getElementById(oEvent.relatedControlId)).get(0)) && !isInControlTree(this, Core.byId(oEvent.relatedControlId)))) {
+			this.close();
+		}
 	};
 
 	Menu.prototype.handleOuterEvent = function(oMenuId, oEvent) {
-		var isInMenuHierarchy = false,
-			touchEnabled = Device.support.touch || Device.system.combi;
+		var touchEnabled = Device.support.touch || Device.system.combi;
 
 		if (touchEnabled && (oEvent.isMarked("delayedMouseEvent") || oEvent.isMarked("cancelAutoClose"))) {
 			return;
 		}
 
 		if (oEvent.type == "mousedown" || oEvent.type == "touchstart") {
-			if (containsOrEquals(this.getDomRef(), oEvent.target) ||
-				containsOrEquals(Core.getStaticAreaRef(), oEvent.target) ||
-				isInControlTree(this, Element.closestTo(oEvent.target))) {
-				isInMenuHierarchy = true;
+			if (!containsOrEquals(this.getDomRef(), oEvent.target) && !containsOrEquals(Core.getStaticAreaRef(), oEvent.target) && !isInControlTree(this, Element.closestTo(oEvent.target))) {
+				this.close();
 			}
-		} else if (oEvent.type == "sapfocusleave") {
-			if (oEvent.relatedControlId && containsOrEquals(this.getDomRef(), jQuery(document.getElementById(oEvent.relatedControlId)).get(0)) ||
-				isInControlTree(this, Core.byId(oEvent.relatedControlId))) {
-				isInMenuHierarchy = true;
-				if (oEvent.relatedControlId === this._oPopover._oControl.getId()) {
-					document.getElementById(this.getId() + "-focusDummy").focus();
-				}
-			}
-		}
-
-		if (!isInMenuHierarchy) {
-			this.close();
 		}
 	};
 
@@ -444,7 +451,7 @@ sap.ui.define([
 			}, this],
 			afterViewSwitch: [function (oEvent) {
 				var mParameters = oEvent.getParameters();
-				oEvent.getSource().oLayout.setShowFooter(mParameters.target !== "$default");
+				this._oItemsContainer.getLayout().setShowFooter(mParameters.target !== "$default");
 
 				this._previousView = mParameters.source;
 				if (mParameters.target !== "$default") {
@@ -456,7 +463,6 @@ sap.ui.define([
 					}
 				} else {
 					this._focusItem();
-					this._oPopover && this._oPopover.invalidate();
 				}
 			}, this]
 		});

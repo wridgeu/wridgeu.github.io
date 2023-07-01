@@ -41,6 +41,7 @@ sap.ui.define([
 	 *   Whether a grand total is needed
 	 *
 	 * @alias sap.ui.model.odata.v4.lib._AggregationCache
+	 * @borrows sap.ui.model.odata.v4.lib._CollectionCache#addKeptElement as #addKeptElement
 	 * @borrows sap.ui.model.odata.v4.lib._CollectionCache#requestSideEffects as #requestSideEffects
 	 * @constructor
 	 * @extends sap.ui.model.odata.v4.lib._Cache
@@ -80,6 +81,7 @@ sap.ui.define([
 			}
 		}
 		this.oFirstLevel = this.createGroupLevelCache(null, bHasGrandTotal || !!fnLeaves);
+		this.addKeptElement = this.oFirstLevel.addKeptElement; // @borrows ...
 		this.requestSideEffects = this.oFirstLevel.requestSideEffects; // @borrows ...
 		this.oGrandTotalPromise = undefined;
 		if (bHasGrandTotal) {
@@ -131,17 +133,20 @@ sap.ui.define([
 	 *   level cache is given
 	 * @throws {Error}
 	 *   In case an unexpected element or placeholder would be overwritten, if the given offset is
-	 *   negative, if a resulting array index is out of bounds, or in case of a duplicate predicate
+	 *   negative, if a resulting array index is out of bounds, in case of a duplicate predicate, or
+	 *   if a kept-alive element has been modified on both client and server
 	 *
 	 * @private
 	 */
 	_AggregationCache.prototype.addElements = function (vReadElements, iOffset, oCache, iStart) {
 		var aElements = this.aElements,
-			sNodeProperty = this.oAggregation.$NodeProperty;
+			sHierarchyQualifier = this.oAggregation.hierarchyQualifier,
+			sNodeProperty = this.oAggregation.$NodeProperty,
+			that = this;
 
 		function addElement(oElement, i) {
 			var oOldElement = aElements[iOffset + i],
-				oOtherElement,
+				oKeptElement,
 				sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
 
 			if (oOldElement) { // check before overwriting
@@ -153,10 +158,20 @@ sap.ui.define([
 			} else if (iOffset + i >= aElements.length) {
 				throw new Error("Array index out of bounds: " + (iOffset + i));
 			}
-			oOtherElement = aElements.$byPredicate[sPredicate];
-			if (oOtherElement && oOtherElement !== oElement
-					&& !(oOtherElement instanceof SyncPromise)) {
-				throw new Error("Duplicate predicate: " + sPredicate);
+			oKeptElement = aElements.$byPredicate[sPredicate];
+			if (oKeptElement && oKeptElement !== oElement
+					&& !(oKeptElement instanceof SyncPromise)) {
+				if (!sHierarchyQualifier) {
+					throw new Error("Duplicate predicate: " + sPredicate);
+				}
+				if (!oKeptElement["@odata.etag"]
+						|| oElement["@odata.etag"] === oKeptElement["@odata.etag"]) {
+					// no ETag used or known yet, or ETag unchanged
+					_Helper.updateNonExisting(oElement, oKeptElement);
+				} else if (that.hasPendingChangesForPath(sPredicate)) {
+					throw new Error("Modified on client and on server: "
+						+ that.sResourcePath + sPredicate);
+				} // else: ETag changed, ignore kept element!
 			}
 
 			aElements.$byPredicate[sPredicate] = aElements[iOffset + i] = oElement;
@@ -342,13 +357,16 @@ sap.ui.define([
 	 * @param {object|string} vGroupNodeOrPath
 	 *   The group node or its path relative to the cache; a group node instance (instead of a path)
 	 *   MUST only be given in case of "expanding" continued
+	 * @param {function} [fnDataRequested]
+	 *   The function is called just before the back-end request is sent.
+	 *   If no back-end request is needed, the function is not called.
 	 * @returns {sap.ui.base.SyncPromise<number>}
 	 *   A promise that is resolved with the number of nodes at the next level
 	 *
 	 * @public
 	 * @see #collapse
 	 */
-	_AggregationCache.prototype.expand = function (oGroupLock, vGroupNodeOrPath) {
+	_AggregationCache.prototype.expand = function (oGroupLock, vGroupNodeOrPath, fnDataRequested) {
 		var oCache,
 			iCount,
 			aElements = this.aElements,
@@ -402,7 +420,9 @@ sap.ui.define([
 		}
 
 		// prefetch from the group level cache
-		return oCache.read(0, this.iReadLength, 0, oGroupLock).then(function (oResult) {
+		return oCache.read(
+			0, this.iReadLength, 0, oGroupLock, fnDataRequested
+		).then(function (oResult) {
 			var iIndex = that.aElements.indexOf(oGroupNode) + 1,
 				iLevel = oGroupNode["@$ui5.node.level"],
 				oSubtotals = _AggregationHelper.getCollapsedObject(oGroupNode),
@@ -753,7 +773,12 @@ sap.ui.define([
 		}
 
 		return SyncPromise.all(aReadPromises).then(function () {
-			var aElements = that.aElements.slice(iIndex, iIndex + iLength);
+			var aElements = that.aElements.slice(iIndex, iIndex + iLength)
+					.map(function (oElement) {
+						return _Helper.hasPrivateAnnotation(oElement, "placeholder")
+							? undefined
+							: oElement;
+					});
 
 			aElements.$count = that.aElements.$count;
 
@@ -959,12 +984,69 @@ sap.ui.define([
 	};
 
 	/**
-	 * Refreshes the kept-alive elements. Nothing to do here, we have no kept-alive elements.
-	 *
-	 * @public
+	 * @override
 	 * @see sap.ui.model.odata.v4.lib._CollectionCache#refreshKeptElements
 	 */
-	_AggregationCache.prototype.refreshKeptElements = function () {};
+	_AggregationCache.prototype.refreshKeptElements = function (oGroupLock, fnOnRemove) {
+		// "super" call (like @borrows ...)
+		return this.oFirstLevel.refreshKeptElements.call(this, oGroupLock, fnOnRemove, true);
+	};
+
+	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.lib._CollectionCache#reset
+	 */
+	_AggregationCache.prototype.reset = function (aKeptElementPredicates, sGroupId, mQueryOptions,
+			oAggregation, bIsGrouped) {
+		var fnResolve,
+			that = this;
+
+		if (bIsGrouped) {
+			throw new Error("Unsupported grouping via sorter");
+		}
+
+		aKeptElementPredicates.forEach(function (sPredicate) {
+			var oKeptElement = that.aElements.$byPredicate[sPredicate];
+
+			if (_Helper.hasPrivateAnnotation(oKeptElement, "placeholder")) {
+				throw new Error("Unexpected placeholder");
+			}
+			delete oKeptElement["@$ui5.node.isExpanded"];
+			delete oKeptElement["@$ui5.node.level"];
+			delete oKeptElement["@$ui5._"];
+			_Helper.setPrivateAnnotation(oKeptElement, "predicate", sPredicate);
+		});
+
+		this.oAggregation = oAggregation;
+		this.sDownloadUrl = _Cache.prototype.getDownloadUrl.call(this, "");
+		// "super" call (like @borrows ...)
+		this.oFirstLevel.reset.call(this, aKeptElementPredicates, sGroupId, mQueryOptions);
+		if (sGroupId) {
+			this.oBackup.oCountPromise = this.oCountPromise;
+			this.oBackup.oFirstLevel = this.oFirstLevel;
+		}
+		this.oCountPromise = undefined;
+		if (mQueryOptions.$count) {
+			this.oCountPromise = new SyncPromise(function (resolve) {
+				fnResolve = resolve;
+			});
+			this.oCountPromise.$resolve = fnResolve;
+		}
+		this.oFirstLevel = this.createGroupLevelCache();
+	};
+
+	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.lib._CollectionCache#restore
+	 */
+	_AggregationCache.prototype.restore = function (bReally) {
+		if (bReally) {
+			this.oCountPromise = this.oBackup.oCountPromise;
+			this.oFirstLevel = this.oBackup.oFirstLevel;
+		}
+		// "super" call (like @borrows ...)
+		this.oFirstLevel.restore.call(this, bReally);
+	};
 
 	/**
 	 * Returns the cache's URL.
@@ -1162,10 +1244,6 @@ sap.ui.define([
 	 *   Example: Products
 	 * @param {string} sDeepResourcePath
 	 *   The deep resource path to be used to build the target path for bound messages
-	 * @param {object} [oAggregation]
-	 *   An object holding the information needed for data aggregation; see also "OData Extension
-	 *   for Data Aggregation Version 4.0"; must already be normalized by
-	 *   {@link _AggregationHelper.buildApply}
 	 * @param {object} mQueryOptions
 	 *   A map of key-value pairs representing the query string, the value in this pair has to
 	 *   be a string or an array of strings; if it is an array, the resulting query string
@@ -1174,6 +1252,10 @@ sap.ui.define([
 	 *   Examples:
 	 *   {foo : "bar", "bar" : "baz"} results in the query string "foo=bar&bar=baz"
 	 *   {foo : ["bar", "baz"]} results in the query string "foo=bar&foo=baz"
+	 * @param {object} [oAggregation]
+	 *   An object holding the information needed for data aggregation; see also "OData Extension
+	 *   for Data Aggregation Version 4.0"; must already be normalized by
+	 *   {@link _AggregationHelper.buildApply}
 	 * @param {boolean} [bSortExpandSelect]
 	 *   Whether the paths in $expand and $select shall be sorted in the cache's query string. When
 	 *   using min, max, grand total, or data aggregation they will always be sorted.
@@ -1196,8 +1278,8 @@ sap.ui.define([
 	 *
 	 * @public
 	 */
-	_AggregationCache.create = function (oRequestor, sResourcePath, sDeepResourcePath, oAggregation,
-			mQueryOptions, bSortExpandSelect, bSharedRequest, bIsGrouped) {
+	_AggregationCache.create = function (oRequestor, sResourcePath, sDeepResourcePath,
+			mQueryOptions, oAggregation, bSortExpandSelect, bSharedRequest, bIsGrouped) {
 		var bHasGrandTotal, bHasGroupLevels;
 
 		function checkExpandSelect() {

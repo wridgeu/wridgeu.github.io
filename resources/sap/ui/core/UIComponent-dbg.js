@@ -55,7 +55,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Component
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @alias sap.ui.core.UIComponent
 	 * @since 1.9.2
 	 */
@@ -119,18 +119,20 @@ sap.ui.define([
 	 *
 	 * <pre>
 	 *     routing: {
-	 *         "routes": {
-	 *             "welcome": {
+	 *         "routes": [
+	 *             {
+	 *                 "name": "welcome",
 	 *                 // If the URL has no hash e.g.: index.html or index.html# , this route will be matched.
 	 *                 "pattern": "",
 	 *                 // Displays the target called "welcome" specified in metadata.routing.targets.welcome.
 	 *                 "target": "welcome"
-	 *             }
-	 *             "product": {
+	 *             },
+	 *             {
+	 *                 "name": "product",
 	 *                 "pattern": "Product/{id}",
 	 *                 "target": "product"
 	 *             }
-	 *         }
+	 *         ],
 	 *         // Default values for targets
 	 *         "config": {
 	 *             // For a detailed documentation of these parameters have a look at the sap.ui.core.routing.Targets documentation
@@ -140,13 +142,13 @@ sap.ui.define([
 	 *             "viewNamespace": "myApplication.namespace",
 	 *             // If you are using the mobile library, you have to use an sap.m.Router, to get support for
 	 *             // the controls sap.m.App, sap.m.SplitApp, sap.m.NavContainer and sap.m.SplitContainer.
-	 *             "routerClass": "sap.m.routing.Router"
+	 *             "routerClass": "sap.m.routing.Router",
 	 *             // What happens if no route matches the hash?
 	 *             "bypassed": {
 	 *                 // the not found target gets displayed
 	 *                 "target": "notFound"
 	 *             }
-	 *         }
+	 *         },
 	 *         "targets": {
 	 *             "welcome": {
 	 *                 // Referenced by the route "welcome"
@@ -157,7 +159,7 @@ sap.ui.define([
 	 *                 // Referenced by the route "Product"
 	 *                 "viewName": "Product",
 	 *                 "viewLevel": 1
-	 *             }
+	 *             },
 	 *             "notFound": {
 	 *                 // Referenced by the bypassed section of the config
 	 *                 "viewName": "NotFound"
@@ -167,11 +169,11 @@ sap.ui.define([
 	 *
 	 * </pre>
 	 *
-	 * @property {object} [routes]
-	 * An object containing the routes that should be added to the router. See {@link sap.ui.core.routing.Route}
+	 * @property {Array<sap.ui.core.routing.$RouteSettings>|Object<string,sap.ui.core.routing.$RouteSettings>} [routes]
+	 * An array containing the routes that should be added to the router. See {@link sap.ui.core.routing.Route}
 	 * for the allowed properties.
 	 *
-	 * @property {object} [targets]
+	 * @property {object} [Object<string,sap.ui.core.routing.$TargetSettings>]
 	 * Since 1.28.1. An object containing the targets that will be available for the router and the <code>Targets</code>
 	 * instance. See {@link sap.ui.core.routing.Targets} for the allowed values.
 	 *
@@ -426,7 +428,8 @@ sap.ui.define([
 	function getConstructorFunctionFor (vRoutingObjectConstructor) {
 		var fnConstructor;
 		if (typeof vRoutingObjectConstructor === "string") {
-			fnConstructor = ObjectPath.get(vRoutingObjectConstructor);
+			fnConstructor = sap.ui.require(vRoutingObjectConstructor.replace(/\./g, "/"))
+				|| ObjectPath.get(vRoutingObjectConstructor);
 			if (!fnConstructor) {
 				Log.error("The specified class for router or targets '" + vRoutingObjectConstructor + "' is undefined.", this);
 			}

@@ -6,8 +6,9 @@
 
 sap.ui.define([
 	"sap/ui/Device",
-	"sap/ui/core/IconPool"
-], function (Device, IconPool) {
+	"sap/ui/core/IconPool",
+	"./library"
+], function (Device, IconPool, library) {
 		"use strict";
 
 		var SidePanelRenderer = {
@@ -15,10 +16,16 @@ sap.ui.define([
 		};
 
 		SidePanelRenderer.render = function(oRm, oControl) {
+
 			var bActionBarExpanded = oControl.getActionBarExpanded();
+			var sPosition = oControl.getSidePanelPosition();
+
 
 			oRm.openStart("div", oControl);
 			oRm.class("sapFSP");
+			if (!Device.system.phone && library.SidePanelPosition.Left === sPosition ) {
+				oRm.class("sapFSPLeft");
+			}
 			oControl._isSingleItem() && oRm.class("sapFSPSingleItem");
 			bActionBarExpanded && oControl.getItems().length !== 1 && oRm.class("sapFSPActionBarExpanded");
 			oControl._getSideContentExpanded() && oRm.class("sapFSPSideContentExpanded");
@@ -44,6 +51,10 @@ sap.ui.define([
 			!bActionBarExpanded && oRm.attr("title", sItemText);
 			oRm.class("sapFSPItem");
 
+			if (!oItem.getEnabled()) {
+				oRm.class("sapFSPDisabled");
+			}
+
 			if ((!bOverflowItem && bItemSelected) || (bOverflowItem && oControl._bOverflowMenuOpened)) {
 				oRm.class("sapFSPSelected");
 				oRm.attr(sAriaAttribute, "true");
@@ -57,7 +68,8 @@ sap.ui.define([
 			oRm.openEnd();
 
 			oRm.renderControl(IconPool.createControlByURI({
-				src: iIndex === 0 && bSingleItem && bPhone ? "sap-icon://navigation-up-arrow" : oItem.getIcon()
+				src: iIndex === 0 && bSingleItem && bPhone ? "sap-icon://navigation-up-arrow" : oItem.getIcon(),
+				useIconTooltip: false
 			}));
 
 			if ((bSingleItem && bPhone)

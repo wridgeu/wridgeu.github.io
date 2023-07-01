@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @public
 	 * @since 1.97
@@ -162,6 +162,12 @@ sap.ui.define([
 	 */
 	Popup.prototype.setReset = function(fnReset) {
 		if (this._oPopup) {
+			var oCustomHeader = this._oPopup.getCustomHeader();
+
+			if (oCustomHeader) {
+				oCustomHeader.destroy();
+			}
+
 			this._oPopup.setCustomHeader(this._createTitle());
 			this._oPopup.invalidate();
 		}
@@ -317,14 +323,14 @@ sap.ui.define([
 				this._onClose(oContainer, "Escape");
 			}.bind(this),
 			buttons: [
-				new Button(this.getId() + "-confirmBtn", {
+				new Button(this.getId() + this._getIdPrefix() + "-confirmBtn", {
 					text:  mDialogSettings.confirm && mDialogSettings.confirm.text ?  mDialogSettings.confirm.text : oResourceBundle.getText("p13n.POPUP_OK"),
 					type: "Emphasized",
 					press: function() {
 						this._onClose(oContainer, "Ok");
 					}.bind(this)
 
-				}), new Button(this.getId() + "-cancelBtn", {
+				}), new Button(this.getId() + this._getIdPrefix() + "-cancelBtn", {
 					text: oResourceBundle.getText("p13n.POPUP_CANCEL"),
 					press: function () {
 						this._onClose(oContainer, "Cancel");
@@ -340,6 +346,10 @@ sap.ui.define([
 		});
 
 		return oContainer;
+	};
+
+	Popup.prototype._getIdPrefix = function() {
+		return "";
 	};
 
 	Popup.prototype._createTitle = function() {
@@ -413,6 +423,7 @@ sap.ui.define([
 	};
 
 	Popup.prototype.exit = function() {
+		Control.prototype.exit.apply(this, arguments);
 		if (this._oPopup) {
 			this._oPopup.destroy();
 		}

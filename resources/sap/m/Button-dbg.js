@@ -51,6 +51,9 @@ sap.ui.define([
 	// shortcut for sap.m.ButtonAccessibilityType
 	var ButtonAccessibilityType = library.ButtonAccessibilityType;
 
+	// shortcut for sap.m.ButtonAccessibleRole
+	var ButtonAccessibleRole = library.ButtonAccessibleRole;
+
 	// shortcut for sap.m.BadgeState
 	var BadgeState = library.BadgeState;
 
@@ -93,7 +96,7 @@ sap.ui.define([
 	 * @mixes sap.ui.core.ContextMenuSupport
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -175,6 +178,17 @@ sap.ui.define([
 				 * @since 1.84.0
 				 */
 				ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None},
+
+				/**
+				 * Describes the accessibility role of the button:<ul>
+				 * <li><code>ButtonAccessibleRole.Default</code> - The accessibility semantics is derived from the button tag and no role attribute is rendered.
+				 * <li><code>ButtonAccessibleRole.Link</code> - The accessibility semantics is derived from a custom role attribute with "link" value.
+				 *
+				 * NOTE: Use link role only with a press handler, which performs a navigation. In all other scenarios the default button semantics is recommended.
+				 *
+				 * @since 1.114.0
+				 */
+				 accessibleRole : {type : "sap.m.ButtonAccessibleRole", group : "Accessibility", defaultValue : ButtonAccessibleRole.Default},
 
 				/**
 				 * Indicates whether the access keys ref of the control should be highlighted.
@@ -920,7 +934,9 @@ sap.ui.define([
 	 * @protected
 	 */
 	Button.prototype.getAccessibilityInfo = function() {
-		var sDesc = this._getText() || this.getTooltip_AsString();
+		var sDesc = this._getText() || this.getTooltip_AsString(),
+			sAccessibleRole = this.getAccessibleRole();
+
 		if (!sDesc && this._getAppliedIcon()) {
 			var oIconInfo = IconPool.getIconInfo(this._getAppliedIcon());
 			if (oIconInfo) {
@@ -929,7 +945,7 @@ sap.ui.define([
 		}
 
 		return {
-			role: "button",
+			role: sAccessibleRole === ButtonAccessibleRole.Default ? "button" : sAccessibleRole.toLowerCase(),
 			type: Core.getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_BUTTON"),
 			description: sDesc,
 			focusable: this.getEnabled(),

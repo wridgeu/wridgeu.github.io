@@ -96,6 +96,7 @@ sap.ui.define([
 		this._aPendingRequests = [];
 		this._aPendingChildrenRequests = [];
 		this._aPendingSubtreeRequests = [];
+		// TODO: No longer required in legacy-free UI5
 		// Whether ODataTreeBindingFlat#submitChanges has been called
 		this._bSubmitChangesCalled = false;
 	};
@@ -2132,7 +2133,7 @@ sap.ui.define([
 		var bChangeDetected = false;
 
 		this._map(function (oNode, oRecursionBreaker) {
-			if (oNode.key in mChangedEntities) {
+			if (oNode && oNode.key in mChangedEntities) {
 				bChangeDetected = true;
 				oRecursionBreaker.broken = true;
 			}
@@ -3557,7 +3558,7 @@ sap.ui.define([
 		var oContext = oNode.context;
 
 		if (oNode.nodeState.added) {
-			this.oModel.deleteCreatedEntry(oContext);
+			this.oModel._discardEntityChanges(oContext.getPath().slice(1), true);
 
 			return undefined;
 		} else {

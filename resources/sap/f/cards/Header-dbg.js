@@ -46,7 +46,7 @@ sap.ui.define([
 	 * @implements sap.f.cards.IHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -180,7 +180,7 @@ sap.ui.define([
 	Header.prototype._getTitle = function () {
 		var oTitle = this.getAggregation("_title");
 		if (!oTitle) {
-			oTitle = new Text().addStyleClass("sapFCardTitle");
+			oTitle = new Text(this.getId() + "-title").addStyleClass("sapFCardTitle");
 			this.setAggregation("_title", oTitle);
 		}
 		return oTitle;

@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.m.p13n.BasePanel
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @private
 	 * @ui5-restricted sap.m, sap.ui.mdc
@@ -352,7 +352,12 @@ sap.ui.define([
 							this._addQueryRow();
 						}
 						//In case an item has been removed, focus the Select control of the new 'none' row
-						this.getInitialFocusedControl().focus();
+						//Needs timeout because the new queryRow and control might not be rendered
+						setTimeout(function() {
+							if (!this.bIsDestroyed) {
+								this.getInitialFocusedControl().focus();
+							}
+						}.bind(this), 0);
 
 						this._getP13nModel().checkUpdate(true);
 					}.bind(this)

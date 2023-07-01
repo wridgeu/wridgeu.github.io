@@ -34,7 +34,7 @@ sap.ui.define([
 	 * @class Item that represents one file to be uploaded using the {@link sap.m.upload.UploadSet} control.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 * @constructor
 	 * @public
 	 * @since 1.63
@@ -332,6 +332,9 @@ sap.ui.define([
 			this.setProperty("enabledEdit", bEnable, true);
 			if (this.getParent()) {
 				this._getEditButton().setEnabled(bEnable);
+				if (!bEnable) {
+					this.getParent().handleItemGetDisabled(this);
+				}
 			}
 		}
 		return this;
@@ -342,6 +345,9 @@ sap.ui.define([
 			this.setProperty("visibleEdit", bVisible, true);
 			if (this.getParent()) {
 				this._getEditButton().setVisible(bVisible);
+				if (!bVisible) {
+					this.getParent().handleItemGetDisabled(this);
+				}
 			}
 		}
 		return this;
@@ -729,7 +735,13 @@ sap.ui.define([
 
 	UploadSetItem.prototype._setInEditMode = function (bInEditMode) {
 		if (bInEditMode && !this._bInEditMode) {
-			var oSplit = UploadSetItem._splitFileName(this.getFileName());
+			var oSplit = UploadSetItem._splitFileName(this.getFileName()),
+				iMaxLength = this.getParent().getMaxFileNameLength(),
+				iFileExtensionLength = oSplit.extension ? oSplit.extension.length + 1 : 0;
+			iMaxLength = iMaxLength ? iMaxLength : 0;
+			var iNameMaxLength = iMaxLength - iFileExtensionLength;
+			iNameMaxLength = iNameMaxLength < 0 ? 0 : iNameMaxLength;
+			this._getFileNameEdit().setProperty("maxLength", iNameMaxLength, true);
 			this._getFileNameEdit().setValue(oSplit.name);
 		}
 		this._bInEditMode = bInEditMode;
@@ -904,19 +916,20 @@ sap.ui.define([
 	};
 
 	UploadSetItem.prototype._renderAttributes = function (oRm) {
-		var iLastAttribure = this.getAttributes().length - 1;
-
-		if (this.getAttributes().length > 0) {
-			oRm.openStart("div").class("sapMUCAttrContainer").openEnd();
-			this.getAttributes().forEach(function (oAttribute, iIndex) {
-				oRm.renderControl(oAttribute.addStyleClass("sapMUCAttr"));
-				if (iIndex < iLastAttribure && oAttribute.getVisible()) {
-					oRm.openStart("div").class("sapMUCSeparator").openEnd();
-					oRm.text("\u00a0\u00B7\u00a0").close("div");
-				}
-			});
-			oRm.close("div");
+		if (this.getAttributes().length === 0) {
+			return;
 		}
+		var bFirstVisible = false;
+		oRm.openStart("div").class("sapMUCAttrContainer").openEnd();
+		this.getAttributes().forEach(function (oAttribute, iIndex) {
+			if (bFirstVisible && oAttribute.getVisible()) {
+				oRm.openStart("div").class("sapMUCSeparator").openEnd();
+				oRm.text("\u00a0\u00B7\u00a0").close("div");
+			}
+			bFirstVisible = bFirstVisible || oAttribute.getVisible();
+			oRm.renderControl(oAttribute.addStyleClass("sapMUCAttr"));
+		});
+		oRm.close("div");
 	};
 
 	UploadSetItem.prototype._renderMarkers = function (oRm) {
@@ -930,19 +943,20 @@ sap.ui.define([
 	};
 
 	UploadSetItem.prototype._renderStatuses = function (oRm) {
-		var iLastStatus = this.getStatuses().length - 1;
-
-		if (this.getStatuses().length > 0) {
-			oRm.openStart("div").class("sapMUCStatusContainer").openEnd();
-			this.getStatuses().forEach(function (oStatus, iIndex) {
-				oRm.renderControl(oStatus);
-				if (iIndex < iLastStatus) {
-					oRm.openStart("div").class("sapMUCSeparator").openEnd();
-					oRm.text("\u00a0\u00B7\u00a0").close("div");
-				}
-			});
-			oRm.close("div");
+		if (this.getStatuses().length === 0) {
+			return;
 		}
+		var bFirstVisible = false;
+		oRm.openStart("div").class("sapMUCStatusContainer").openEnd();
+		this.getStatuses().forEach(function (oStatus, iIndex) {
+			if (bFirstVisible && oStatus.getVisible()) {
+				oRm.openStart("div").class("sapMUCSeparator").openEnd();
+				oRm.text("\u00a0\u00B7\u00a0").close("div");
+			}
+			bFirstVisible = bFirstVisible || oStatus.getVisible();
+			oRm.renderControl(oStatus);
+		});
+		oRm.close("div");
 	};
 
 	UploadSetItem.prototype._renderStateAndProgress = function (oRm) {

@@ -33,7 +33,7 @@ sap.ui.define([
 		 * @extends sap.m.StandardListItem
 		 *
 		 * @author SAP SE
-		 * @version 1.112.0
+		 * @version 1.115.0
 		 *
 		 * @constructor
 		 * @private
@@ -74,10 +74,9 @@ sap.ui.define([
 			if (oLink && !oLink.getAriaDescribedBy().length) {
 				oDescribedByText = this._getLinkAriaDescribedBy();
 
-				oLink.setProperty("text", this.getTitle(), true);
-				oLink.addAssociation('ariaDescribedBy', oDescribedByText.getId(), true);
-
-				this.setAggregation("linkAriaDescribedBy", oDescribedByText, true);
+				oLink.setText(this.getTitle());
+				oLink.addAriaDescribedBy(oDescribedByText.getId());
+				this.setLinkAriaDescribedBy(oDescribedByText);
 			}
 		};
 

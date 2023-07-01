@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.112.0
+	 * @version 1.115.0
 	 *
 	 * @constructor
 	 * @public
@@ -88,7 +88,7 @@ sap.ui.define([
 				valueFormat: {type: "string", group: "Data", defaultValue: null},
 
 				/**
-				 * Holds a reference to a JavaScript Date Object. The <code>value</code> (string)
+				 * Holds a reference to a UI5Date or JavaScript Date object. The <code>value</code> (string)
 				 * property will be set according to it. Alternatively, if the <code>value</code>
 				 * and <code>valueFormat</code> pair properties are supplied instead,
 				 * the <code>dateValue</code> will be instantiated according to the parsed
@@ -100,7 +100,7 @@ sap.ui.define([
 				dateValue: {type: "object", group: "Data", defaultValue: null},
 
 				/**
-				 * Holds a reference to a JavaScript Date Object to define the initially focused
+				 * Holds a reference to a UI5Date or JavaScript Date object to define the initially focused
 				 * date/time when the picker popup is opened.
 				 *
 				 * <b>Notes:</b>
@@ -108,7 +108,7 @@ sap.ui.define([
 				 * <li>Setting this property does not change the <code>value</code> property.</li>
 				 * <li>Depending on the context this property is used in ({@link sap.m.TimePicker},
 				 * {@link sap.m.DatePicker} or {@link sap.m.DateTimePicker}), it takes into account only the time part, only
-				 * the date part or both parts of the JavaScript Date Object.</li>
+				 * the date part or both parts of the UI5Date or JavaScript Date object.</li>
 				 * </ul>
 				 * @since 1.54
 				 */
@@ -207,18 +207,37 @@ sap.ui.define([
 	};
 
 	/**
+	 * Determines if a user is currently typing into the input field and this interaction should be taken with priority.
+	 * @returns {boolean} True if a user interaction is currently getting handled with priority.
+	 */
+	DateTimeField.prototype._inPreferredUserInteraction = function() {
+		if (this._bPreferUserInteraction && this.getDomRef()) {
+			var oInnerDomRef = this.getFocusDomRef(),
+				sInputDOMValue = oInnerDomRef && this._getInputValue(),
+				sInputPropertyValue = this.getProperty("value"),
+				bInputFocused = document.activeElement === oInnerDomRef;
+
+			// if the user is currently in the field and he has typed a value,
+			// the changes from the model should not overwrite the user input
+			return bInputFocused && sInputDOMValue && (sInputPropertyValue !== sInputDOMValue);
+		}
+
+		return false;
+	};
+
+	/**
 	 * Setter for property <code>dateValue</code>.
 	 *
-	 * The date and time in DateTimeField as JavaScript Date object.
+	 * The date and time in DateTimeField as UI5Date or JavaScript Date object.
 	 *
-	 * @param {Date} oDate A JavaScript Date
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateTimeField.prototype.setDateValue = function (oDate) {
 
 		if (!this._isValidDate(oDate)) {
-			throw new Error("Date must be a JavaScript date object; " + this);
+			throw new Error("Date must be a JavaScript or UI5Date date object; " + this);
 		}
 
 		if (deepEqual(this.getDateValue(), oDate)) {

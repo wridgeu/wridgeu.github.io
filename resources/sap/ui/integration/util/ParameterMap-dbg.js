@@ -5,9 +5,11 @@
  */
 
 sap.ui.define([
-	'sap/ui/core/Core'
+	'sap/ui/core/Core',
+	'sap/ui/core/date/UI5Date'
 ], function(
-	Core
+	Core,
+	UI5Date
 ) {
 	"use strict";
 
@@ -32,7 +34,7 @@ sap.ui.define([
 	 */
 	function getTimeIso() {
 
-		return new Date().toISOString();
+		return UI5Date.getInstance().toISOString();
 	}
 
 	/**
@@ -42,7 +44,7 @@ sap.ui.define([
 	 */
 	function getDateIso () {
 
-		return new Date().toISOString().slice(0, 10);
+		return UI5Date.getInstance().toISOString().slice(0, 10);
 	}
 
 	/**
