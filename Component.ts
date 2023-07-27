@@ -19,6 +19,7 @@ sap.ui.loader.config({
 				"sapmarco/projectpages/resources/thirdparty/marked/lib/marked.umd",
 		},
 	},
+	async: true,
 	shim: {
 		"sapmarco/projectpages/resources/thirdparty/marked/lib/marked.umd": {
 			amd: true,
