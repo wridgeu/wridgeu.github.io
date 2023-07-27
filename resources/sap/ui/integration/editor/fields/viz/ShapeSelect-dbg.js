@@ -19,7 +19,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.viz.ShapeSelect
 	 * @author SAP SE
 	 * @since 1.84.0
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 * @private
 	 * @experimental since 1.84.0
 	 * @ui5-restricted

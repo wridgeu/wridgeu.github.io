@@ -58,7 +58,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @private
@@ -183,7 +183,8 @@ sap.ui.define([
 			oMicrochart = new Microchart({
 				valueColor: oChartSettings.color,
 				displayValue: oChartSettings.displayValue,
-				chart: oChart
+				chart: oChart,
+				visible: oChartSettings.visible
 			});
 		}
 
@@ -205,7 +206,8 @@ sap.ui.define([
 
 			oMicrochart = new Microchart({
 				displayValue: oChartSettings.displayValue,
-				chart: oChart
+				chart: oChart,
+				visible: oChartSettings.visible
 			});
 		}
 

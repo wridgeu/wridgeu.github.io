@@ -50,7 +50,8 @@
         "1.37.0",
         "1.38.0",
         "1.39.0",
-        "1.40.0"
+        "1.40.0",
+        "1.41.0"
       ]
     },
     "designtime": {
@@ -219,6 +220,10 @@
                   "$ref": "#/definitions/simpleBinding"
                 }
               ]
+            },
+            "visible": {
+              "description": "Represents the visibility of the paginator",
+              "$ref": "#/definitions/visibility"
             }
           }
         },
@@ -268,6 +273,7 @@
           "type": {
             "const": "Analytical"
           }
+
         }
       },
       "then": {
@@ -2586,6 +2592,10 @@
               "$ref": "#/definitions/statusTextFormatter"
             }
           ]
+        },
+        "visible": {
+          "description": "Represents the visibility of the status text",
+          "$ref": "#/definitions/visibility"
         }
       }
     },
@@ -2873,6 +2883,10 @@
         "value": {
           "type": "string",
           "description": "The value of the field"
+        },
+        "visible": {
+          "description": "Represents the visibility of the field",
+          "$ref": "#/definitions/visibility"
         }
       }
     },
@@ -2931,7 +2945,15 @@
           "type": "string"
         },
         "parameters": {
-          "$ref": "#/definitions/parameters"
+          "description": "Parameters passed to the navigation action handler",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/parameters"
+            },
+            {
+              "$ref": "#/definitions/ibnActionParameters"
+            }
+          ]
         },
         "target": {
           "description": "Specifies where to open the 'url', if it is provided",
@@ -2951,6 +2973,40 @@
       "description": "Represents parameters that are passed in the actions",
       "type": "object",
       "additionalProperties": true
+    },
+    "ibnActionParameters": {
+      "description": "Parameters for an intent based navigation",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ibnTarget"
+      ],
+      "ibnTarget": {
+        "description": "An application identifier consisting of semanticObject and action",
+        "$ref": "#/definitions/ibnTarget"
+      },
+      "ibnParam": {
+        "description": "Key/value pairs for parameters of the target application",
+        "$ref": "#/definitions/parameters"
+      },
+      "ibnAppSpecificRoute": {
+        "description": "An application specific route that is passed to the target application",
+        "type": "string"
+      }
+    },
+    "ibnTarget": {
+      "description": "The application identifier consisting of semanticObject and action or ",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semanticObject", "action"
+      ],
+      "semanticObject": {
+        "type": "string"
+      },
+      "action": {
+        "type": "string"
+      }
     },
     "state": {
       "description": "Represents state of an entity",
@@ -3432,6 +3488,10 @@
           "items": {
             "$ref": "#/definitions/Microchart.Bullet.Threshold"
           }
+        },
+        "visible": {
+          "description": "Represents the visibility of the chart",
+          "$ref": "#/definitions/visibility"
         }
       }
     },
@@ -3497,6 +3557,10 @@
           "items": {
             "$ref": "#/definitions/Microchart.StackedBar.Bar"
           }
+        },
+        "visible": {
+          "description": "Represents the visibility of the chart bar",
+          "$ref": "#/definitions/visibility"
         }
       }
     },

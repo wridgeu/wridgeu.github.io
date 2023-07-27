@@ -183,7 +183,7 @@ sap.ui.define([
 	 * @extends sap.f.CardBase
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 * @public
 	 * @constructor
 	 * @see {@link topic:5b46b03f024542ba802d99d67bc1a3f4 Cards}
@@ -236,7 +236,8 @@ sap.ui.define([
 				},
 
 				/**
-				 * Defines the base URL of the Card Manifest. It should be used when manifest property is an object instead of a URL.
+				 * Defines the base URL of the card manifest. It should be used when manifest property is an object instead of a URL.
+				 * If both manifest URL and base URL are defined - the base URL will be used for loading dependencies.
 				 * @experimental Since 1.70
 				 * @since 1.70
 				 */
@@ -532,6 +533,8 @@ sap.ui.define([
 			this._bDataReady = true;
 		}.bind(this);
 
+		this._fireStateChangedBound = this._fireStateChanged.bind(this);
+
 		/**
 		 * Facade of the {@link sap.ui.integration.widgets.Card} control.
 		 * @interface
@@ -539,7 +542,7 @@ sap.ui.define([
 		 * @experimental since 1.79
 		 * @public
 		 * @author SAP SE
-		 * @version 1.115.0
+		 * @version 1.116.0
 		 * @borrows sap.ui.integration.widgets.Card#getDomRef as getDomRef
 		 * @borrows sap.ui.integration.widgets.Card#setVisible as setVisible
 		 * @borrows sap.ui.integration.widgets.Card#getParameters as getParameters
@@ -843,7 +846,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Instantiates a Card Manifest and applies it.
+	 * Instantiates a card manifest and applies it.
 	 *
 	 * @private
 	 * @param {object|string} vManifest The manifest URL or the manifest JSON.
@@ -876,6 +879,10 @@ sap.ui.define([
 					throw new Error(CARD_DESTROYED_ERROR);
 				}
 
+				if (!this._oCardManifest.get("/sap.app/id")) {
+					this._logSevereError("Card sap.app/id entry in the manifest is mandatory");
+				}
+
 				return this._oCardManifest.loadDependenciesAndIncludes();
 			}.bind(this))
 			.then(function () {
@@ -884,7 +891,6 @@ sap.ui.define([
 				}
 
 				Measurement.end(this._sPerformanceId + "initManifest");
-				this._registerManifestModulePath();
 				this._isManifestReady = true;
 				this.fireManifestReady();
 
@@ -1219,10 +1225,10 @@ sap.ui.define([
 		this.resetPaginator();
 	};
 
-	/*
-	* @private
-	* @ui5-restricted sap.ui.integration
-	* */
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 */
 	Card.prototype.refreshAllData = function () {
 		var oHeader = this.getCardHeader(),
 			oContent = this.getCardContent(),
@@ -1287,6 +1293,7 @@ sap.ui.define([
 		this._oIntegrationRb = null;
 		this._aActiveLoadingProviders = null;
 		this._oContentMessage = null;
+		clearTimeout(this._iFireStateChangedCallId);
 
 		if (this._oActionsToolbar) {
 			this._oActionsToolbar.destroy();
@@ -1360,22 +1367,6 @@ sap.ui.define([
 		}
 
 		this._setLoadingProviderState(false);
-	};
-
-	/**
-	 * Registers the manifest ID as a module path.
-	 */
-	Card.prototype._registerManifestModulePath = function () {
-		if (!this._oCardManifest) {
-			return;
-		}
-
-		this._sAppId = this._oCardManifest.get("/sap.app/id");
-		if (this._sAppId) {
-			LoaderExtensions.registerResourcePath(this._sAppId.replace(/\./g, "/"), this._oCardManifest.getUrl() || "/");
-		} else {
-			this._logSevereError("Card sap.app/id entry in the manifest is mandatory");
-		}
 	};
 
 	/**
@@ -1551,7 +1542,7 @@ sap.ui.define([
 
 		if (oContent) {
 			oContent.showBlockingMessage(oSettings);
-			this._fireStateChanged();
+			this.scheduleFireStateChanged();
 		}
 	};
 
@@ -1642,7 +1633,7 @@ sap.ui.define([
 	 * Absolute paths are not changed.
 	 *
 	 * @example
-	 * oCard.getRuntimeUrl("images/Avatar.png") === "sample/card/images/Avatar.png"
+	 * oCard.getRuntimeUrl("images/Avatar.png") === "{cardBaseUrl}/images/Avatar.png"
 	 * oCard.getRuntimeUrl("http://www.someurl.com/Avatar.png") === "http://www.someurl.com/Avatar.png"
 	 * oCard.getRuntimeUrl("https://www.someurl.com/Avatar.png") === "https://www.someurl.com/Avatar.png"
 	 *
@@ -1651,7 +1642,7 @@ sap.ui.define([
 	 * @returns {string} The resolved URL.
 	 */
 	Card.prototype.getRuntimeUrl = function (sUrl) {
-		var sAppId = this._sAppId,
+		var sAppId = this._oCardManifest ? this._oCardManifest.get("/sap.app/id") : null,
 			sAppName,
 			sSanitizedUrl = sUrl && sUrl.trim().replace(/^\//, "");
 
@@ -2029,7 +2020,6 @@ sap.ui.define([
 				serviceManager: this._oServiceManager,
 				dataProviderFactory: this._oDataProviderFactory,
 				iconFormatter: this._oIconFormatter,
-				appId: this._sAppId,
 				noDataConfiguration: this._oCardManifest.get(MANIFEST_PATHS.NO_DATA_MESSAGES)
 			});
 		} catch (e) {
@@ -2594,6 +2584,23 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Schedules to fire the stateChanged event. If called multiple times in the same tick, only one stateChanged will be fired.
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 */
+	Card.prototype.scheduleFireStateChanged = function () {
+		if (this._iFireStateChangedCallId) {
+			clearTimeout(this._iFireStateChangedCallId);
+		}
+
+		this._iFireStateChangedCallId = setTimeout(this._fireStateChangedBound, 0);
+	};
+
+	/**
+	 * Fires the stateChanged event of the card and of the host if any.
+	 * @private
+	 */
 	Card.prototype._fireStateChanged = function () {
 		var oHostInstance = this.getHostInstance();
 
@@ -2610,9 +2617,31 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Fires the initial ready event of the card and of the host if any.
+	 * This ready event is fired only once and will not be fired consecutively, even if the card is fully refreshed.
+	 * @private
+	 */
+	Card.prototype._fireInitialized = function () {
+		if (this._bInitializedFired) {
+			return;
+		}
+
+		var oHostInstance = this.getHostInstance();
+
+		this.fireEvent("_initialized");
+		this._bInitializedFired = true;
+
+		if (oHostInstance) {
+			oHostInstance.fireCardInitialized({
+				card: this
+			});
+		}
+	};
+
 	Card.prototype._fireDataChange = function () {
 		this.fireEvent("_dataChange");
-		this._fireStateChanged();
+		this.scheduleFireStateChanged();
 	};
 
 	Card.prototype._fireContentDataChange = function () {
@@ -2625,7 +2654,8 @@ sap.ui.define([
 		this._setActionButtonsEnabled(true);
 		this._validateContentControls(false, true);
 		this.fireEvent("_ready");
-		this._fireStateChanged();
+		this._fireInitialized();
+		this.scheduleFireStateChanged();
 	};
 
 	/**

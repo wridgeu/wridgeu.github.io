@@ -61,7 +61,7 @@ sap.ui.define([
 	 *
 	 * The TimesRow works with UI5Date or JavaScript Date objects.
 	 * @extends sap.ui.core.Control
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @public

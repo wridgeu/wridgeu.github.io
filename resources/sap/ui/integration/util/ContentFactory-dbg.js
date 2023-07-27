@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.BaseFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @private
@@ -69,7 +69,6 @@ sap.ui.define([
 			oContent.setCardDataProvider(oCard._oDataProvider);
 		}
 
-		oContent._sAppId = mConfig.appId;
 		oContent.setServiceManager(mConfig.serviceManager);
 		oContent.setDataProviderFactory(mConfig.dataProviderFactory);
 		oContent.setIconFormatter(mConfig.iconFormatter);

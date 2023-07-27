@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @public
@@ -226,7 +226,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Extension.prototype._setCard = function (oCard, oCardInterface) {
-		this._oCard = oCard;
+		this._oCard = oCard; // @ui5-restricted sap.insights.CardExtension
 		this._oCardInterface = oCardInterface;
 	};
 

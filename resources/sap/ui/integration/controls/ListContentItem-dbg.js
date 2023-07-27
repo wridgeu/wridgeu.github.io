@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @private
@@ -63,6 +63,12 @@ sap.ui.define([
 				 * Defines the additional information for the title.
 				 */
 				description: { type: "string", group: "Misc", defaultValue: null },
+
+				/**
+				 * Defines whether the description should be visible.
+				 * @since 1.116
+				 */
+				descriptionVisible: { type: "boolean", defaultValue: true },
 
 				/**
 				 * Defines the list item icon.
@@ -110,6 +116,12 @@ sap.ui.define([
 				info: { type : "string", group: "Misc", defaultValue: null },
 
 				/**
+				 * Defines whether the info should be visible.
+				 * @since 1.115
+				 */
+				infoVisible: {type: "boolean", defaultValue: true },
+
+				/**
 				 * Defines the value state of the information text.
 				 */
 				infoState: { type : "sap.ui.core.ValueState", group: "Misc", defaultValue: ValueState.None },
@@ -127,12 +139,7 @@ sap.ui.define([
 				/**
 				 * Defines the layout type of the attributes.
 				 */
-				attributesLayoutType: { type: "sap.ui.integration.AttributesLayoutType", defaultValue: AttributesLayoutType.TwoColumns },
-
-				/**
-				 * Defines whether the info should be visible.
-				 */
-				infoVisible: {type: "boolean", defaultValue: true}
+				attributesLayoutType: { type: "sap.ui.integration.AttributesLayoutType", defaultValue: AttributesLayoutType.TwoColumns }
 			},
 			aggregations: {
 				microchart: { type: "sap.ui.integration.controls.Microchart", multiple: false },
@@ -180,7 +187,7 @@ sap.ui.define([
 	ListContentItem.prototype.getLinesCount = function () {
 		var iLines = 1; // at least 1 line for the mandatory title
 
-		if (this.getDescription()) {
+		if (this.getDescription() && this.getDescriptionVisible()) {
 			iLines += 1;
 		}
 
@@ -190,7 +197,7 @@ sap.ui.define([
 			iLines += Math.ceil(this._getVisibleAttributes().length / 2);
 		}
 
-		if (this.getMicrochart()) {
+		if (this.getMicrochart() && this.getMicrochart().getVisible()) {
 			iLines += 1;
 		}
 

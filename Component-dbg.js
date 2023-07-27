@@ -1,10 +1,9 @@
 "use strict";
 
-sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sap/ui/core/ComponentSupport", "sap/ui/core/date/Gregorian"], function (UIComponent, sap_ui_Device, __deviceModelCreator, sap_ui_core_ComponentSupport, sap_ui_core_date_Gregorian) {
+sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sap/ui/core/ComponentSupport", "sap/ui/core/date/Gregorian"], function (UIComponent, Device, __deviceModelCreator, sap_ui_core_ComponentSupport, sap_ui_core_date_Gregorian) {
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
   }
-  const support = sap_ui_Device["support"];
   const deviceModelCreator = _interopRequireDefault(__deviceModelCreator); // import additional dependencies to bundle them properly
   /**
    * Configures the UI5 Module Loader to handle marked
@@ -52,7 +51,7 @@ sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sa
         // check whether FLP has already set the content density class; do nothing in this case
         if (document.body.classList.contains("sapUiSizeCozy") || document.body.classList.contains("sapUiSizeCompact")) {
           this._contentDensityClass = "";
-        } else if (!support.touch) {
+        } else if (!Device.support.touch) {
           // apply "compact" mode if touch is not supported
           this._contentDensityClass = "sapUiSizeCompact";
         } else {

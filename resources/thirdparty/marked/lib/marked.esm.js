@@ -1,5 +1,5 @@
 /**
- * marked v5.1.0 - a markdown parser
+ * marked v5.1.2 - a markdown parser
  * Copyright (c) 2011-2023, Christopher Jeffrey. (MIT Licensed)
  * https://github.com/markedjs/marked
  */
@@ -2846,7 +2846,7 @@ class Marked {
 
   #onError(silent, async, callback) {
     return (e) => {
-      e.message += '\nPlease report this to https://github.com/markedjs/this.';
+      e.message += '\nPlease report this to https://github.com/markedjs/marked.';
 
       if (silent) {
         const msg = '<p>An error occurred:</p><pre>'

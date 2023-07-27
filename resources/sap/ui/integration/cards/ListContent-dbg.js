@@ -70,7 +70,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @private
@@ -191,7 +191,13 @@ sap.ui.define([
 					items: aResolvedItems
 				};
 			} else {
-				aResolvedItems.push(BindingResolver.resolveValue(oConfiguration.item, this, oItem.getBindingContext().getPath()));
+				var oResolvedItem = BindingResolver.resolveValue(oConfiguration.item, this, oItem.getBindingContext().getPath());
+
+				if (oResolvedItem.icon && oResolvedItem.icon.src) {
+					oResolvedItem.icon.src = this._oIconFormatter.formatSrc(oResolvedItem.icon.src);
+				}
+
+				aResolvedItems.push(oResolvedItem);
 			}
 		}.bind(this));
 
@@ -294,6 +300,7 @@ sap.ui.define([
 			mSettings = {
 				title: mItem.title && (mItem.title.value || mItem.title),
 				description: mItem.description && (mItem.description.value || mItem.description),
+				descriptionVisible: mItem.description ? mItem.description.visible : undefined,
 				highlight: mItem.highlight,
 				highlightText: mItem.highlightText,
 				info: mItem.info && mItem.info.value,
@@ -390,7 +397,8 @@ sap.ui.define([
 				chart: oChart.getChart(),
 				colorsLoad: function () {
 					this.fireEvent(LEGEND_COLORS_LOAD);
-				}.bind(this)
+				}.bind(this),
+				visible: oChartSettings.visible
 			});
 
 			oLegend.initItemsTitles(oChartSettings.bars, this.getBindingContext().getPath());

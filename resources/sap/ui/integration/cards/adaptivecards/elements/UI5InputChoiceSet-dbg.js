@@ -20,7 +20,7 @@ sap.ui.define([
 	 * <code>ui5-select</code>, or container with <code>ui5-radio-button</code>, or <code>ui5-checkbox</code> web components.
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @private
 	 * @since 1.74

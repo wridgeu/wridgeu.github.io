@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @private
@@ -149,7 +149,7 @@ sap.ui.define([
 		this.setSettings(JSON.parse(sSettingsJson));
 
 		if (this._bActive) {
-			this._scheduleDataUpdate();
+			this._scheduleDataUpdate(0);
 		}
 	};
 
@@ -281,22 +281,20 @@ sap.ui.define([
 			return;
 		}
 
-		setTimeout(function () {
-			this.triggerDataUpdate();
-		}.bind(this), iInterval * 1000);
+		this._scheduleDataUpdate(iInterval * 1000);
 	};
-
 
 	/**
 	 * Schedules the call to triggerDataUpdate.
+	 * @param {int} iTimeout timeout in ms
 	 * @private
 	 */
-	DataProvider.prototype._scheduleDataUpdate = function () {
+	DataProvider.prototype._scheduleDataUpdate = function (iTimeout) {
 		if (this._iDataUpdateCallId) {
 			clearTimeout(this._iDataUpdateCallId);
 		}
 
-		this._iDataUpdateCallId = setTimeout(this.triggerDataUpdate.bind(this), 0);
+		this._iDataUpdateCallId = setTimeout(this.triggerDataUpdate.bind(this), iTimeout);
 	};
 
 	/**

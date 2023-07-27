@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @extends sap.f.cards.Header
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @private
@@ -66,6 +66,7 @@ sap.ui.define([
 
 			if (mConfiguration.status && mConfiguration.status.text && !mConfiguration.status.text.format) {
 				mSettings.statusText = mConfiguration.status.text;
+				mSettings.statusVisible = mConfiguration.status.visible;
 			}
 
 			if (mConfiguration.icon) {
@@ -91,6 +92,7 @@ sap.ui.define([
 			FHeader.call(this, sId, mSettings);
 
 			this._oConfiguration = mConfiguration;
+			this._oIconFormatter = oIconFormatter;
 		},
 
 		metadata: {
@@ -221,6 +223,10 @@ sap.ui.define([
 
 		if (oBindingInfo) {
 			oConfiguration.status.text = oBindingInfo;
+		}
+
+		if (oConfiguration.icon && oConfiguration.icon.src) {
+			oConfiguration.icon.src = this._oIconFormatter.formatSrc(BindingResolver.resolveValue(oConfiguration.icon.src, this));
 		}
 
 		return oConfiguration;

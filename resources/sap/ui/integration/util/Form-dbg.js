@@ -12,7 +12,8 @@ sap.ui.define([
 	"./Validators",
 	"./BindingHelper",
 	"./BindingResolver",
-	"./DateRangeHelper"
+	"./DateRangeHelper",
+	"./Duration"
 ], function (
 	ManagedObject,
 	coreLibrary,
@@ -22,7 +23,8 @@ sap.ui.define([
 	Validators,
 	BindingHelper,
 	BindingResolver,
-	DateRangeHelper
+	DateRangeHelper,
+	Duration
 ) {
 	"use strict";
 
@@ -32,7 +34,7 @@ sap.ui.define([
 	 * Utility class for handling forms in the cards.
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @private
 	 * @ui5-restricted
@@ -92,7 +94,7 @@ sap.ui.define([
 		}.bind(this));
 
 		if (bStateChanged && !bSkipFiringStateChangedEvent) {
-			this._oCard._fireStateChanged();
+			this._oCard.scheduleFireStateChanged();
 		}
 	};
 
@@ -153,6 +155,8 @@ sap.ui.define([
 		} else if (vValue) {
 			if (oControl.isA("sap.m.DatePicker") || oControl.isA("sap.m.DynamicDateRange")) {
 				DateRangeHelper.setValue(oControl, vValue, this._oCard);
+			} else if (oControl.isA("sap.m.TimePicker")) {
+				oControl.setValue(Duration.fromISO(vValue));
 			} else {
 				oControl.setValue(vValue);
 			}
@@ -227,7 +231,7 @@ sap.ui.define([
 		this._validateControl(oControl, true);
 		this._updateModel(oControl);
 
-		this._oCard._fireStateChanged();
+		this._oCard.scheduleFireStateChanged();
 	};
 
 	Form.prototype._isControlDataValid = function (oData) {
@@ -486,6 +490,8 @@ sap.ui.define([
 			};
 		} else if (oControl.isA("sap.m.DynamicDateRange") || oControl.isA("sap.m.DatePicker")) {
 			return DateRangeHelper.getValueForModel(oControl);
+		} else if (oControl.isA("sap.m.TimePicker")) {
+			return Duration.toISO(oControl.getValue());
 		} else {
 			return oControl.getValue();
 		}

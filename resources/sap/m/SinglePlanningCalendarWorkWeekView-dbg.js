@@ -29,7 +29,7 @@ function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils, Loca
 	 * @extends sap.m.SinglePlanningCalendarView
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @public

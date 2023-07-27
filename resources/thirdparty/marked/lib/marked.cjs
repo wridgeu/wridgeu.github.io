@@ -1,5 +1,5 @@
 /**
- * marked v5.1.0 - a markdown parser
+ * marked v5.1.2 - a markdown parser
  * Copyright (c) 2011-2023, Christopher Jeffrey. (MIT Licensed)
  * https://github.com/markedjs/marked
  */
@@ -2759,7 +2759,7 @@ function _parseMarkdown2(lexer, parser) {
 }
 function _onError2(silent, async, callback) {
   return function (e) {
-    e.message += '\nPlease report this to https://github.com/markedjs/this.';
+    e.message += '\nPlease report this to https://github.com/markedjs/marked.';
     if (silent) {
       var msg = '<p>An error occurred:</p><pre>' + escape(e.message + '', true) + '</pre>';
       if (async) {

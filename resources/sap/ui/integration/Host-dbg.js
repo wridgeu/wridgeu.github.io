@@ -31,7 +31,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.115.0
+		 * @version 1.116.0
 		 *
 		 * @constructor
 		 * @public
@@ -165,6 +165,20 @@ sap.ui.define([
 						parameters: {
 							/**
 							 * The card the changes are fired from.
+							 */
+							card: { type: "sap.ui.core.Control" }
+						}
+					},
+
+					/**
+					 * Fired when the card is initially ready for the first time.
+					 * Will not be fired for consecutive refreshes or data changes.
+					 * @experimental since 1.116
+					 */
+					cardInitialized: {
+						parameters: {
+							/**
+							 * The card.
 							 */
 							card: { type: "sap.ui.core.Control" }
 						}

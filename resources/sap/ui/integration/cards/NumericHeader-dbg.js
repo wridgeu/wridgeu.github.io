@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.f.cards.NumericHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @private
@@ -59,6 +59,7 @@ sap.ui.define([
 
 			if (mConfiguration.status && mConfiguration.status.text && !mConfiguration.status.text.format) {
 				mSettings.statusText = mConfiguration.status.text;
+				mSettings.statusVisible = mConfiguration.status.visible;
 			}
 
 			extend(mSettings, {

@@ -137,7 +137,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 * @constructor
 	 * @since 1.94
 	 * @private
@@ -892,7 +892,7 @@ sap.ui.define([
 		 * @experimental since 1.94
 		 * @public
 		 * @author SAP SE
-		 * @version 1.115.0
+		 * @version 1.116.0
 		 * @borrows sap.ui.integration.editor.Editor#getParameters as getParameters
 		 * @borrows sap.ui.integration.editor.Editor#resolveDestination as resolveDestination
 		 * @borrows sap.ui.integration.editor.Editor#request as request
@@ -1423,8 +1423,11 @@ sap.ui.define([
 			that.initDestinations();
 			that.initDataProviderFactory();
 			if (that.getMode() === "admin" || that.getMode() === "all") {
-				//always add destination settings
-				that._addDestinationSettings(oConfiguration, that._oDesigntimeInstance);
+				//always add destination settings for admin and all modes
+				that._addDestinationSettings(oConfiguration);
+			} else {
+				//delete destination settings in dt for other modes
+				that._deleleDestinationSettings();
 			}
 			//create a settings model
 			that._settingsModel = new JSONModel(that._oDesigntimeInstance.getSettings());
@@ -3041,6 +3044,7 @@ sap.ui.define([
 		if (this.getProperty("height") === "") {
 			this.setProperty("height", editorHeight);
 			document.body.style.setProperty("--sapUiIntegrationEditorFormHeight", editorHeight);
+			document.body.style.setProperty("--sapUiIntegrationEditorPreviewHeight", editorHeight);
 		}
 		if (this.getProperty("width") === "") {
 			this.setProperty("width", editorWidth);
@@ -3115,6 +3119,10 @@ sap.ui.define([
 		var mItems = oSettings.form.items || oSettings.form.items;
 		for (var n in mItems) {
 			var oItem = mItems[n];
+			// do not apply default values for destination
+			if (oItem.type === "destination") {
+				continue;
+			}
 			if (oItem.manifestpath) {
 				oItem.value = this._manifestModel.getProperty(oItem.manifestpath);
 			}
@@ -3259,8 +3267,9 @@ sap.ui.define([
 		}
 		return new Designtime(oSettings);
 	};
+
 	/**
-	 * Adds additional settings for destinations section in admin mode
+	 * Adds additional settings for destinations section in admin mode and all modeß
 	 * @param {object} oConfiguration
 	 */
 	Editor.prototype._addDestinationSettings = function (oConfiguration) {
@@ -3269,20 +3278,22 @@ sap.ui.define([
 		oSettings.form = oSettings.form || {};
 		oSettings.form.items = oSettings.form.items || {};
 		if (oSettings && oConfiguration && oConfiguration.destinations) {
-			if (!oSettings.form.items["destination.group"]) {
-				//destination section separated by a group header
-				oSettings.form.items["destination.group"] = {
-					label: this._oResourceBundle.getText("EDITOR_DESTINATIONS") || "Destinations",
-					type: "group",
-					expanded: true,
-					visible: true,
-					_settingspath: "/form/items/destination.group"
-				};
-			}
 			var oItems = oSettings.form.items,
 				oHost = this.getHostInstance();
+			var oDestinationGroup = {
+				label: this._oResourceBundle.getText("EDITOR_DESTINATIONS") || "Destinations",
+				type: "group",
+				expanded: true,
+				visible: true,
+				_settingspath: "/form/items/destination.group"
+			};
+			if (oItems["destination.group"]) {
+				oDestinationGroup = merge(oDestinationGroup, oItems["destination.group"]);
+				delete oItems["destination.group"];
+			}
+			oItems["destination.group"] = oDestinationGroup;
 			Object.keys(oConfiguration.destinations).forEach(function (n) {
-				oItems[n + ".destination"] = merge({
+				var oDestination = merge({
 					manifestpath: sBasePath + "/" + n + "/name", //destination points to name not value
 					visible: true,
 					type: "destination",
@@ -3295,9 +3306,14 @@ sap.ui.define([
 					_values: [],
 					_destinationName: n
 				}, oConfiguration.destinations[n]);
-				if (typeof oItems[n + ".destination"].label === "undefined") {
-					oItems[n + ".destination"].label = n;
+				if (typeof oDestination.label === "undefined") {
+					oDestination.label = n;
 				}
+				if (oItems[n + ".destination"]) {
+					oDestination = merge(oDestination, oItems[n + ".destination"]);
+					delete oItems[n + ".destination"];
+				}
+				oItems[n + ".destination"] = oDestination;
 			});
 			var getDestinationsDone = false;
 			if (oHost) {
@@ -3325,6 +3341,22 @@ sap.ui.define([
 					this._destinationsModel.checkUpdate(true);
 					Log.error("Can not get destinations list from '" + oHost.getId() + "'.");
 				}.bind(this));
+			}
+		}
+	};
+
+	/**
+	 * Delete destinations if mode is NOT admin or all
+	 */
+	Editor.prototype._deleleDestinationSettings = function () {
+		var oSettings = this._oDesigntimeInstance.getSettings();
+		oSettings.form = oSettings.form || {};
+		oSettings.form.items = oSettings.form.items || {};
+		delete oSettings.form.items["destination.group"];
+		for (var n in oSettings.form.items) {
+			var oItem = oSettings.form.items[n];
+			if (oItem.type === "destination") {
+				delete oSettings.form.items[n];
 			}
 		}
 	};

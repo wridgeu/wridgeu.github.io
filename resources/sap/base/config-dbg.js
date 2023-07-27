@@ -16,7 +16,7 @@ sap.ui.define([
 	 * The base Configuration.
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 * @private
 	 * @alias module:sap/base/config
 	 * @namespace

@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.multiSelectEditor.MultiSelectEditor
 	 * @author SAP SE
 	 * @since 1.97
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @private
 	 * @experimental 1.98

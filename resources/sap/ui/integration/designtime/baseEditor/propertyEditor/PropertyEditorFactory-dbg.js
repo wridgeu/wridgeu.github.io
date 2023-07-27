@@ -15,7 +15,7 @@ sap.ui.define([
 	 * @namespace sap.ui.integration.designtime.baseEditor.propertyEditor.PropertyEditorFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @static
 	 * @since 1.75

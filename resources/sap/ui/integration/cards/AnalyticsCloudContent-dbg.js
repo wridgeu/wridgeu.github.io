@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @private
@@ -110,6 +110,10 @@ sap.ui.define([
 	 * @private
 	 */
 	AnalyticsCloudContent.prototype.onAfterRendering = function () {
+		if (this.getAggregation("_blockingMessage")) {
+			return;
+		}
+
 		this._createHighchart();
 	};
 

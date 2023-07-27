@@ -35,6 +35,7 @@ sap.ui.define([
 	"sap/ui/integration/util/Utils",
 	"sap/ui/integration/util/Form",
 	"sap/ui/integration/util/DateRangeHelper",
+	"sap/ui/integration/util/Duration",
 	"sap/f/AvatarGroup",
 	"sap/f/AvatarGroupItem",
 	"sap/f/cards/NumericIndicators",
@@ -76,6 +77,7 @@ sap.ui.define([
 	Utils,
 	Form,
 	DateRangeHelper,
+	Duration,
 	AvatarGroup,
 	AvatarGroupItem,
 	NumericIndicators,
@@ -118,7 +120,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.integration.cards.BaseContent
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @since 1.64
@@ -280,6 +282,13 @@ sap.ui.define([
 
 			aData.forEach(function (oItemData, iIndex) {
 				var oResolvedItem = BindingResolver.resolveValue(oTemplate, this, sFullPath + "/" + iIndex + "/");
+
+				if (oResolvedItem.icon && oResolvedItem.icon.src) {
+					oResolvedItem.icon.src = this._oIconFormatter.formatSrc(oResolvedItem.icon.src);
+				} else if (oResolvedItem.icon && typeof oResolvedItem.icon === "string") {
+					oResolvedItem.icon = this._oIconFormatter.formatSrc(oResolvedItem.icon);
+				}
+
 				aResolvedItems.push(oResolvedItem);
 			}.bind(this));
 
@@ -287,6 +296,10 @@ sap.ui.define([
 
 			delete oResolvedGroupItem.path;
 			delete oResolvedGroupItem.template;
+		}
+
+		if (oItem.icon && oItem.icon.src) {
+			oResolvedGroupItem.icon.src = this._oIconFormatter.formatSrc(BindingResolver.resolveValue(oItem.icon.src, this));
 		}
 
 		return oResolvedGroupItem;
@@ -838,7 +851,7 @@ sap.ui.define([
 				displayFormat: "HH:mm",
 				support2400: true,
 				required: oForm.getRequiredValidationValue(oItem),
-				value: oItem.value,
+				value: BindingHelper.formattedProperty(oItem.value, Duration.fromISO),
 				visible: BindingHelper.reuse(vVisible),
 				placeholder: oItem.placeholder
 			});

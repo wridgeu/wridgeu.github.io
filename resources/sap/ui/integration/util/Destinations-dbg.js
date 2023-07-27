@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.115.0
+	 * @version 1.116.0
 	 *
 	 * @constructor
 	 * @param {sap.ui.integration.Host} oHost The Host which will be used for resolving destinations.
