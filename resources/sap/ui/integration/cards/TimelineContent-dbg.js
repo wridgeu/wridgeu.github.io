@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @experimental
@@ -152,6 +152,13 @@ sap.ui.define([
 		if (oConfiguration.item) {
 			this._setItem(oConfiguration.item);
 		}
+	};
+
+	/**
+	 * @override
+	 */
+	TimelineContent.prototype.getItemsLength = function () {
+		return this._getTimeline().getContent().length;
 	};
 
 	/**

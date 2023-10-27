@@ -40,7 +40,7 @@ sap.ui.define((function () { 'use strict';
       },
       CSS_VARIABLE: {
         className: "attr",
-        begin: /--[A-Za-z][A-Za-z0-9_-]*/
+        begin: /--[A-Za-z_][A-Za-z0-9_-]*/
       }
     };
   };
@@ -607,6 +607,7 @@ sap.ui.define((function () { 'use strict';
   Website: https://developer.mozilla.org/en-US/docs/Web/CSS
   */
 
+
   /** @type LanguageFn */
   function css(hljs) {
     const regex = hljs.regex;
@@ -738,7 +739,7 @@ sap.ui.define((function () { 'use strict';
 
   var css_1 = css;
 
-  Object.defineProperty(css_1, "__" + "esModule", { value: true });
+  try { Object.defineProperty(css_1, "__" + "esModule", { value: true }); } catch (ex) {}
 
   return css_1;
 

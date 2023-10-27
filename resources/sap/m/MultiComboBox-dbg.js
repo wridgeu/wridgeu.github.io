@@ -145,7 +145,7 @@ function(
 	 * </ul>
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @extends sap.m.ComboBoxBase
@@ -662,7 +662,7 @@ function(
 			this._bPreventValueRemove = false;
 
 			if (this.getValue() === "" || (typeof this.getValue() === "string" && oItem.getText().toLowerCase().startsWith(this.getValue().toLowerCase()))) {
-				if (ListHelpers.getListItem(oItem).isSelected()) {
+				if (ListHelpers.getListItem(oItem).getSelected()) {
 					this.setValue('');
 				} else {
 					this.setSelection(oParam);
@@ -1402,9 +1402,10 @@ function(
 		}
 
 		if (iInputWidth <= parseInt(sPopoverMaxWidth) && !Device.system.phone) {
-			this.getPicker().getDomRef().style.setProperty("max-width", "40rem");
+			this.getPicker().addStyleClass("sapMSuggestionPopoverDefaultWidth");
 		} else {
 			this.getPicker().getDomRef().style.setProperty("max-width", iInputWidth + "px");
+			this.getPicker().addStyleClass("sapMSuggestionPopoverInputWidth");
 		}
 
 	};
@@ -1852,7 +1853,7 @@ function(
 	 */
 	MultiComboBox.prototype._getSelectedItemsOf = function(aItems) {
 		for ( var i = 0, iLength = aItems.length, aSelectedItems = []; i < iLength; i++) {
-			if (ListHelpers.getListItem(aItems[i]).isSelected()) {
+			if (ListHelpers.getListItem(aItems[i]).getSelected()) {
 				aSelectedItems.push(aItems[i]);
 			}
 		}
@@ -2099,8 +2100,8 @@ function(
 		var bIsPickerDialog = this.isPickerDialog(),
 		oInput = bIsPickerDialog ? this.getPickerTextField() : this,
 		sUpdateValue = this._sOldInput || this._sOldValue || "",
-		bOkButtonPressed = bIsPickerDialog && oEvent.relatedTarget && oEvent.relatedTarget.id.indexOf("-popup-closeButton") > -1;
-
+		bOkButtonPressed = bIsPickerDialog && oEvent && oEvent.relatedTarget &&
+			oEvent.relatedTarget.id.includes("-popup-closeButton");
 		if (!bOkButtonPressed) {
 			oInput.updateDomValue(sUpdateValue);
 		}

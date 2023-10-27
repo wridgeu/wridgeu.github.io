@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @public
@@ -119,7 +119,7 @@ sap.ui.define([
 		this._oCard = null;
 	};
 
-	/**
+	/*
 	 * See generated JSDoc
 	 */
 	Extension.prototype.setActions = function (aActions) {

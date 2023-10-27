@@ -96,6 +96,9 @@ sap.ui.define([
 	// shortcut for sap.m.AvatarColor
 	var AvatarColor = mLibrary.AvatarColor;
 
+	// shortcut for sap.m.AvatarImageFitType
+	var AvatarImageFitType = mLibrary.AvatarImageFitType;
+
 	var ButtonType = mLibrary.ButtonType;
 
 	var FlexRendertype = mLibrary.FlexRendertype;
@@ -120,7 +123,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.integration.cards.BaseContent
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @since 1.64
@@ -462,6 +465,7 @@ sap.ui.define([
 			displayShape: oIconConfiguration.shape,
 			tooltip: oIconConfiguration.alt,
 			backgroundColor: oIconConfiguration.backgroundColor || (vInitials ? undefined : AvatarColor.Transparent),
+			imageFitType: AvatarImageFitType.Contain,
 			visible: oIconConfiguration.visible
 		}).addStyleClass("sapFCardObjectItemAvatar sapFCardIcon");
 

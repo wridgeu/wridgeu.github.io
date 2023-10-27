@@ -7,29 +7,6 @@ import "sap/ui/core/ComponentSupport";
 import "sap/ui/core/date/Gregorian";
 
 /**
- * Configures the UI5 Module Loader to handle marked
- * and map marked to the default namespace.
- *
- * https://openui5.hana.ondemand.com/#/api/sap.ui.loader/methods/sap.ui.loader.config
- */
-sap.ui.loader.config({
-	map: {
-		"*": {
-			marked:
-				"sapmarco/projectpages/resources/thirdparty/marked/lib/marked.umd",
-		},
-	},
-	async: true,
-	shim: {
-		"sapmarco/projectpages/resources/thirdparty/marked/lib/marked.umd": {
-			amd: true,
-			deps: [],
-			exports: "marked",
-		},
-	},
-});
-
-/**
  * @namespace sapmarco.projectpages
  */
 export default class Component extends UIComponent {

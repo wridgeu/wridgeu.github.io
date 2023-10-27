@@ -70,7 +70,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @private
@@ -221,6 +221,13 @@ sap.ui.define([
 	};
 
 	/**
+	 * @override
+	 */
+	ListContent.prototype.getItemsLength = function () {
+		return this._getList().getItems().filter((item) => !item.isA("sap.m.GroupHeaderListItem")).length;
+	};
+
+	/**
 	 * Handler for when data is changed.
 	 */
 	ListContent.prototype.onDataChanged = function () {
@@ -320,7 +327,7 @@ sap.ui.define([
 			mSettings.iconInitials = mItem.icon.initials || mItem.icon.text;
 			mSettings.iconVisible = mItem.icon.visible;
 
-			if (ListContentItem.getLinesCount(mItem) === 1) {
+			if (ListContentItem.getLinesCount(mItem, this) === 1) {
 				mSettings.iconSize = AvatarSize.XS;
 			} else {
 				mSettings.iconSize = AvatarSize.S;

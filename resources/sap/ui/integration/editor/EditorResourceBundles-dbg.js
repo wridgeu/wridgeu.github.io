@@ -6,9 +6,8 @@
 
 sap.ui.define([
 	"sap/ui/base/ManagedObject",
-	"sap/base/util/LoaderExtensions",
 	"sap/base/i18n/ResourceBundle"
-], function (ManagedObject, LoaderExtensions, ResourceBundle) {
+], function (ManagedObject, ResourceBundle) {
 	"use strict";
 
 	/**
@@ -18,7 +17,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.EditorResourceBundles
 	 * @author SAP SE
 	 * @since 1.94.0
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @private
 	 */
 	var EditorResourceBundles = ManagedObject.extend("sap.ui.integration.editor.EditorResourceBundles", {

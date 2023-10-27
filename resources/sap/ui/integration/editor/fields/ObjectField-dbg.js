@@ -18,8 +18,8 @@ sap.ui.define([
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/table/Table",
 	"sap/ui/table/Column",
+	"sap/ui/table/rowmodes/Fixed",
 	"sap/m/Label",
-	"sap/m/VBox",
 	"sap/ui/model/Filter",
 	"sap/ui/model/FilterOperator",
 	"sap/base/util/deepEqual",
@@ -32,11 +32,11 @@ sap.ui.define([
 	"sap/m/Link",
 	"sap/ui/layout/form/SimpleForm",
 	"sap/base/util/merge",
-	"sap/m/List",
-	"sap/m/CustomListItem",
 	"sap/ui/model/Sorter",
-	"sap/ui/core/CustomData",
-	"sap/ui/integration/util/Utils"
+	"sap/ui/integration/util/Utils",
+	"sap/m/table/columnmenu/Menu",
+	"sap/m/ComboBox",
+	"sap/ui/core/ListItem"
 ], function (
 	BaseField,
 	Text,
@@ -51,8 +51,8 @@ sap.ui.define([
 	JSONModel,
 	Table,
 	Column,
+	FixedRowMode,
 	Label,
-	VBox,
 	Filter,
 	FilterOperator,
 	deepEqual,
@@ -65,11 +65,11 @@ sap.ui.define([
 	Link,
 	SimpleForm,
 	merge,
-	List,
-	CustomListItem,
 	Sorter,
-	CustomData,
-	Utils
+	Utils,
+	Menu,
+	ComboBox,
+	ListItem
 ) {
 	"use strict";
 	var REGEXP_TRANSLATABLE = /\{\{(?!parameters.)(?!destinations.)([^\}\}]+)\}\}/g;
@@ -80,7 +80,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.ObjectField
 	 * @author SAP SE
 	 * @since 1.100.0
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @private
 	 * @experimental since 1.100.0
 	 * @ui5-restricted
@@ -139,6 +139,15 @@ sap.ui.define([
 			}));
 		} else if (oControl instanceof Table) {
 			oControl.addStyleClass("sapUiIntegrationEditorItemObjectFieldTable");
+			// create a column header menu
+			that._oMenu = new Menu();
+			var aColumns = oControl.getColumns();
+			for (var i = 0; i < aColumns.length; i++) {
+				// if column supports filter or sort, add menu as header menu for it
+				if (aColumns[i].getFilterProperty() || aColumns[i].getSortProperty()) {
+					aColumns[i].setHeaderMenu(that._oMenu.getId());
+				}
+			}
 		}
 	};
 
@@ -183,13 +192,15 @@ sap.ui.define([
 		var oVisualization = {
 			type: Table,
 			settings: {
-				visibleRowCount: 5,
+				rowMode: new FixedRowMode({
+					rowCount: 5
+				}),
 				busy: "{currentSettings>_loading}",
 				busyIndicatorDelay: 200,
 				columns: columns,
 				selectionBehavior: "RowOnly",
 				rowSelectionChange: that.onTableSelectionChange.bind(that),
-				toolbar: oTableToolbar,
+				extension: oTableToolbar,
 				filter: that.onFilter.bind(that)
 			}
 		};
@@ -209,7 +220,7 @@ sap.ui.define([
 		var fnChange = function() {
 			var oModel = this.getAggregation("_field").getModel();
 			oModel.checkUpdate(true);
-			var oValue = oModel.getProperty("/value");
+			var oValue = oModel.getProperty("/value") || {};
 			// generate uuid if not exists
 			if (!oValue._dt) {
 				oValue._dt = {
@@ -361,12 +372,16 @@ sap.ui.define([
 		var aKeys = Object.keys(oConfig.properties);
 		if (aKeys.length > 0) {
 			var oResourceBundle = that.getResourceBundle();
+			var bSelectionColumnVisible = typeof oConfig.values === "undefined" ? false : true;
+			if (bSelectionColumnVisible) {
+				bSelectionColumnVisible = typeof oConfig.showSelectionColumn === "undefined" ? true : oConfig.showSelectionColumn;
+			}
 			var oSelectionColumnLabels = that.buildSelectionColumnLabels();
 			var oSelectionColumn = new Column(sParameterId + "_control_table_column_selection", {
 				width: "3.2rem",
 				hAlign: "Center",
 				// hide selection column for object list field with properties defined only
-				visible: typeof oConfig.values === "undefined" ? false : true,
+				visible: bSelectionColumnVisible,
 				multiLabels: [
 					oSelectionColumnLabels
 				],
@@ -413,12 +428,19 @@ sap.ui.define([
 					oColumnSettings.label = "{i18n>" + oColumnSettings.label.substring(2, oColumnSettings.label.length - 1);
 				}
 				oColumnSettings.tooltip = oColumnSettings.label;
+				oColumnSettings.label = new Label({text: oColumnSettings.label});
 
 				var sCellType = oProperty.cell && oProperty.cell.type ? oProperty.cell.type : oProperty.type || "Text";
 				var oCellTemplate;
 				var oCellSettings;
 				var oCell = deepClone(oProperty.cell) || {};
 				delete oCell.type;
+				if (sCellType === "string" && oCell.values) {
+					sCellType = "ComboBox";
+				}
+				if (sCellType === "Text" && oCell.editable) {
+					sCellType = "Input";
+				}
 				switch (sCellType) {
 					case "int":
 					case "number":
@@ -506,6 +528,37 @@ sap.ui.define([
 						oCellSettings = merge(oCellSettings, oCell);
 						oCellTemplate = new Link(oCellSettings);
 						break;
+					case "ComboBox":
+						oCellSettings = {
+							width: "100%",
+							selectedKey: sDefaultValue,
+							items: {
+								path: "settings>" + oCell.values.data.path,
+								template: new ListItem(oCell.values.item)
+							}
+						};
+						if (oCell.values.sorter) {
+							oCellSettings.items.sorter = [new Sorter({
+								path: oCell.values.sorter
+							})];
+						}
+						if (oCell.change) {
+							oCellSettings.change = oCell.change;
+						}
+						var oComboBoxSettingsModel = new JSONModel(oCell.values.data.json);
+						oCellTemplate = new ComboBox(oCellSettings);
+						oCellTemplate.setModel(oComboBoxSettingsModel,"settings");
+						break;
+					case "Input":
+						oCellSettings = {
+							value: sDefaultValue
+						};
+						if (oCell.text) {
+							oCellSettings.value = oCell.text;
+						}
+						oCellSettings.tooltip = oCell.tooltip || oCellSettings.text;
+						oCellTemplate = new Input(oCellSettings);
+						break;
 					default:
 						oCellTemplate = new Text({
 							text: sDefaultValue,
@@ -555,6 +608,7 @@ sap.ui.define([
 				icon: "sap-icon://edit",
 				tooltip: oResourceBundle.getText("EDITOR_FIELD_OBJECT_TABLE_BUTTON_EDIT_TOOLTIP"),
 				enabled: "{= !!${/_hasTableSelected}}",
+				visible: that.getAllowPopover(),
 				press: that.onEditOrViewDetail.bind(that)
 			}),
 			new Button(sParameterId + "_control_table_delete_btn", {
@@ -625,7 +679,7 @@ sap.ui.define([
 		var that = this;
 		var oTable = that.getAggregation("_field");
 
-		var iSelectIndex = oTable.getSelectedIndex();
+		var iSelectIndex = oTable.getSelectedIndices()[0];
 		var oRowContexts = oTable.getBinding("rows").getContexts();
 		var oItem = oRowContexts[iSelectIndex].getObject();
 		var iFirstIndex = oTable.getFirstVisibleRow();
@@ -669,15 +723,9 @@ sap.ui.define([
 		var aColumns = oTable.getColumns();
 		var bHasFilter = false;
 		for (var i = 0; i < aColumns.length; i++) {
-			var oMenu = aColumns[i].getMenu();
-			var oMenuItems = oMenu.getItems();
-			if (oMenuItems.length > 0) {
-				var oFilter = oMenuItems[0];
-				var sValue = oFilter.getValue();
-				if (sValue && sValue !== "") {
-					bHasFilter = true;
-					break;
-				}
+			if (aColumns[i].getFiltered()) {
+				bHasFilter = true;
+				break;
 			}
 		}
 		oTable.getModel().setProperty("/_hasFilter", bHasFilter);
@@ -778,7 +826,7 @@ sap.ui.define([
 		var that = this;
 		var oTable = that.getAggregation("_field");
 		var oModel = oTable.getModel();
-		var iSelectedRowIndex = oTable.getSelectedIndex();
+		var iSelectedRowIndex = oTable.getSelectedIndices()[0];
 		var oSelectedRowContext = oTable.getContextByIndex(iSelectedRowIndex);
 
 		var iSiblingRowIndex = iSelectedRowIndex + (sDirection === "Up" ? -1 : 1);
@@ -829,7 +877,11 @@ sap.ui.define([
 		var that = this;
 		var oControl = oEvent.getSource();
 		that._newObjectTemplate._dt._uuid = Utils.generateUuidV4();
-		that.openObjectDetailsPopover(that._newObjectTemplate, oControl, "add");
+		if (that.getAllowPopover()) {
+			that.openObjectDetailsPopover(that._newObjectTemplate, oControl, "add");
+		} else {
+			that.onAddDirectly(that._newObjectTemplate);
+		}
 	};
 
 	ObjectField.prototype.mergeValueWithRequestResult = function (tResult) {
@@ -837,9 +889,9 @@ sap.ui.define([
 		var oConfig = that.getConfiguration();
 		var oTable = that.getAggregation("_field");
 		var oModel = oTable.getModel();
+		var sPath = oTable.getBinding("rows").getPath();
 		if (oConfig.value && (typeof oConfig.value === "object") && !deepEqual(oConfig.value, {})) {
-			var oValue = deepClone(oConfig.value, 500),
-				sPath = oTable.getBinding("rows").getPath();
+			var oValue = deepClone(oConfig.value, 500);
 			if (Array.isArray(tResult) && tResult.length > 0) {
 				if (oValue._dt && oValue._dt._editable === false) {
 					var sUUID = oValue._dt._uuid || Utils.generateUuidV4();
@@ -879,6 +931,8 @@ sap.ui.define([
 				tResult.forEach(function(oResult) {
 					oResult._dt._uuid = Utils.generateUuidV4();
 				});
+			} else {
+				oModel.setProperty(sPath, {});
 			}
 			oModel.setProperty("/_hasSelected", false);
 		}
@@ -1391,7 +1445,7 @@ sap.ui.define([
 				that._oNavContainer.back();
 				that._oObjectDetailsPage.focus();
 			};
-			var oList = that.buildTranslationsList(false);
+			var oList = that.buildTranslationsList(sParameterId + "_control_objectdetails_popover_translation_page_value_list");
 			var oTranslationsFooter = that.buildTranslationsFooter(oList, false);
 			that._oTranslationListPage = new Page({
 				title: oResourceBundle.getText("EDITOR_FIELD_OBJECT_TRANSLATION_LIST_TITLE", "{languages>/property}"),
@@ -1546,69 +1600,6 @@ sap.ui.define([
 		return sKey;
 	};
 
-	ObjectField.prototype.buildTranslationsModel = function (oTranslatedValues) {
-		var that = this;
-		var oResourceBundle = that.getResourceBundle();
-		var oTranslatonsModel = new JSONModel(oTranslatedValues);
-		oTranslatonsModel.attachPropertyChange(function(oEvent) {
-			//update the status of each translation for grouping
-			//update the isUpdated property
-			var oData = oTranslatonsModel.getData();
-			var sUpdatedStr = oResourceBundle.getText("EDITOR_FIELD_TRANSLATION_LIST_POPOVER_LISTITEM_GROUP_UPDATED");
-			var sNotUpdatedStr = oResourceBundle.getText("EDITOR_FIELD_TRANSLATION_LIST_POPOVER_LISTITEM_GROUP_NOTUPDATED");
-			var bIsUpdated = false;
-			oData.translatedLanguages.forEach(function(oLanguage) {
-				if (oLanguage.value !== oLanguage.originValue) {
-					oLanguage.status = sUpdatedStr;
-					bIsUpdated = true;
-				} else {
-					oLanguage.status = sNotUpdatedStr;
-				}
-			});
-			oData.isUpdated = bIsUpdated;
-			oTranslatonsModel.setData(oData);
-			oTranslatonsModel.checkUpdate(true);
-		});
-		return oTranslatonsModel;
-	};
-
-	ObjectField.prototype.buildTranslationsList = function (bIsInTranslationPopover) {
-		var that = this;
-		var sParameterId = that.getParameterId();
-		var sIdPrefix = bIsInTranslationPopover ? sParameterId + "_control_translation_popover" : sParameterId + "_control_objectdetails_popover_translation_page";
-		return new List(sIdPrefix + "_value_list", {
-			items: {
-				path: "languages>/translatedLanguages",
-				template: new CustomListItem({
-					content: [
-						new VBox({
-							items: [
-								new Text({
-									text: "{languages>description}"
-								}),
-								new Input({
-									value: "{languages>value}",
-									editable: "{languages>editable}"
-								})
-							]
-						})
-					],
-					customData: [
-						new CustomData({
-							key: "{languages>key}",
-							value: "{languages>description}"
-						})
-					]
-				}),
-				sorter: [new Sorter({
-					path: 'status',
-					descending: true,
-					group: true
-				})]
-			}
-		});
-	};
-
 	ObjectField.prototype.buildTranslationsFooter = function (oList, bIsInTranslationPopover) {
 		var that = this;
 		var sParameterId = that.getParameterId();
@@ -1654,6 +1645,9 @@ sap.ui.define([
 				// update preview and dependent fields
 				if (bUpdateDependentFieldsAndPreview && that._oValueBinding) {
 					that._oValueBinding.fireEvent("change");
+				}
+				if (bIsInTranslationPopover) {
+					that._oTranslationPopover.close();
 				}
 			}
 		});
@@ -1715,9 +1709,10 @@ sap.ui.define([
 		var oTranslatonsModel;
 		var sPlacement = this.getPopoverPlacement(oControl._oValueHelpIcon);
 		if (!that._oTranslationPopover) {
-			var oList = that.buildTranslationsList(true);
+			var sParameterId = that.getParameterId();
+			var oList = that.buildTranslationsList(sParameterId + "_control_translation_popover_value_list");
 			var oTranslationsFooter = that.buildTranslationsFooter(oList, true);
-			that._oTranslationPopover = new Popover(that.getParameterId() + "_control_translation_popover", {
+			that._oTranslationPopover = new Popover(sParameterId + "_control_translation_popover", {
 				placement: sPlacement,
 				contentWidth: "300px",
 				contentHeight: "345px",
@@ -1783,6 +1778,26 @@ sap.ui.define([
 		that._oObjectDetailsPopover.close();
 	};
 
+	ObjectField.prototype.onAddDirectly = function(oItem) {
+		var that = this;
+		var oNewObject = deepClone(oItem, 500);
+		var oControl = that.getAggregation("_field");
+		var oModel = oControl.getModel();
+		var sPath = oControl.getBinding("rows").getPath();
+		var oData = oModel.getProperty(sPath);
+		var iPositionCount = 1;
+		oData.unshift(oNewObject);
+		oData.forEach(function (oItem) {
+			oItem._dt = oItem._dt || {};
+			oItem._dt._selected = false;
+			oItem._dt._position = iPositionCount;
+			iPositionCount++;
+		});
+		oModel.checkUpdate();
+		that.refreshValue();
+		that.updateTable();
+	};
+
 	ObjectField.prototype.onUpdate = function (oEvent) {
 		var that = this;
 		var oTable = that.getAggregation("_field");
@@ -1826,30 +1841,48 @@ sap.ui.define([
 			MessageBox.error(oResourceBundle.getText("EDITOR_FIELD_OBJECT_DELETE_ERROR_MSG"));
 			return;
 		}
-		MessageBox.confirm(oResourceBundle.getText("EDITOR_FIELD_OBJECT_DELETE_CONFIRM_MSG"), {
-			title: oResourceBundle.getText("EDITOR_FIELD_OBJECT_DELETE_CONFIRM_TITLE"),
-			onClose: function(sAction) {
-				if (sAction === MessageBox.Action.OK) {
-					var sPath = oTable.getBindingContext().getPath();
-					var oModel = oTable.getModel();
-					var oData = oModel.getProperty(sPath);
-					var oNewData = [];
-					for (var i = 0; i < oData.length; i++) {
-						if (aSelectedIndexs.includes(i + "")) {
-							that.deleteTranslationValueInTexts(undefined, oData[i]._dt._uuid);
-						} else {
-							oNewData.push(oData[i]);
+		if (that.getAllowPopover()) {
+			MessageBox.confirm(oResourceBundle.getText("EDITOR_FIELD_OBJECT_DELETE_CONFIRM_MSG"), {
+				title: oResourceBundle.getText("EDITOR_FIELD_OBJECT_DELETE_CONFIRM_TITLE"),
+				onClose: function(sAction) {
+					if (sAction === MessageBox.Action.OK) {
+						var sPath = oTable.getBindingContext().getPath();
+						var oModel = oTable.getModel();
+						var oData = oModel.getProperty(sPath);
+						var oNewData = [];
+						for (var i = 0; i < oData.length; i++) {
+							if (aSelectedIndexs.includes(i + "")) {
+								that.deleteTranslationValueInTexts(undefined, oData[i]._dt._uuid);
+							} else {
+								oNewData.push(oData[i]);
+							}
 						}
+						oModel.setProperty(sPath, oNewData);
+						oModel.checkUpdate(true);
+						that.refreshValue();
+						that.updateTable();
+					} else {
+						MessageToast.show(oResourceBundle.getText("EDITOR_FIELD_OBJECT_DELETE_CONFIRM_CANCLE"));
 					}
-					oModel.setProperty(sPath, oNewData);
-					oModel.checkUpdate(true);
-					that.refreshValue();
-					that.updateTable();
+				}
+			});
+		} else {
+			var sPath = oTable.getBinding("rows").getPath();
+			var oModel = oTable.getModel();
+			var oData = oModel.getProperty(sPath);
+			var oNewData = [];
+			for (var i = 0; i < oData.length; i++) {
+				if (aSelectedIndexs.includes(i + "")) {
+					that.deleteTranslationValueInTexts(undefined, oData[i]._dt._uuid);
 				} else {
-					MessageToast.show(oResourceBundle.getText("EDITOR_FIELD_OBJECT_DELETE_CONFIRM_CANCLE"));
+					oNewData.push(oData[i]);
 				}
 			}
-		});
+			oModel.setProperty(sPath, oNewData);
+			oModel.checkUpdate(true);
+			that.refreshValue();
+			that.updateTable();
+		}
 	};
 
 	ObjectField.prototype.refreshValue = function () {
@@ -1867,6 +1900,34 @@ sap.ui.define([
 			}
 		}
 		that.setValue(oValue);
+	};
+
+	ObjectField.prototype.resetControl = function () {
+		var that = this;
+		var oControl = that.getAggregation("_field");
+		var oValue = that._getCurrentProperty("value");
+		var oModel = oControl.getModel();
+		if (oControl instanceof SimpleForm) {
+			// delete the translation texts when deleting the object
+			var oObject = oModel.getProperty("/value");
+			if (oObject && oObject._dt && oObject._dt._uuid) {
+				that.deleteTranslationValueInTexts(undefined, oObject._dt._uuid);
+			}
+			oValue = oValue || {};
+			oModel.setProperty("/value", oValue);
+			oModel.checkUpdate(true);
+		} else if (oControl instanceof Table) {
+			var oConfig = that.getConfiguration();
+			var oData;
+			if (oConfig.values) {
+				var sPath = oControl.getBinding("rows").getPath();
+				oData = oModel.getProperty(sPath);
+				oData.forEach(function(oItem) {
+					delete oItem._dt._selected;
+				});
+			}
+			that.mergeValueWithRequestResult(oData);
+		}
 	};
 
 	ObjectField.prototype.clearAllFilters = function(oEvent) {

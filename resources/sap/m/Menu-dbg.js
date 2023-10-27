@@ -70,7 +70,7 @@ sap.ui.define([
 		 * @implements sap.ui.core.IContextMenu
 		 *
 		 * @author SAP SE
-		 * @version 1.116.0
+		 * @version 1.119.0
 		 *
 		 * @constructor
 		 * @public
@@ -258,6 +258,19 @@ sap.ui.define([
 				this._getDialog() && this._getDialog().close();
 			} else {
 				this._getVisualParent() && this._getVisualParent().close();
+			}
+		};
+
+		/**
+		 * Returns whether the <code>Menu</code> is currently open.
+		 * @returns {boolean} true if menu is open
+		 * @public
+		 */
+		Menu.prototype.isOpen = function() {
+			if (Device.system.phone) {
+				return this._getDialog() && this._getDialog().isOpen();
+			} else {
+				return this._getVisualParent() && this._getVisualParent().isOpen();
 			}
 		};
 
@@ -459,19 +472,30 @@ sap.ui.define([
 		};
 
 		Menu.prototype._createMenuListItemFromItem = function(oItem) {
-			var sMenuListItemId = this._generateListItemId(oItem.getId());
-			return Element.registry.get(sMenuListItemId)
-				|| new MenuListItem({
-					id  : sMenuListItemId,
-					type: oItem.getEnabled() ? ListType.Active : ListType.Inactive,
-					icon: oItem.getIcon(),
-					title: oItem.getText(),
-					startsSection: oItem.getStartsSection(),
-					menuItem: oItem,
-					tooltip: oItem.getTooltip(),
-					visible: oItem.getVisible(),
-					enabled: oItem.getEnabled()
-				});
+			var sMenuListItemId = this._generateListItemId(oItem.getId()),
+				oListItem = Element.registry.get(sMenuListItemId);
+
+			if (oListItem) {
+				return oListItem;
+			}
+
+			oListItem = new MenuListItem({
+				id  : sMenuListItemId,
+				type: oItem.getEnabled() ? ListType.Active : ListType.Inactive,
+				icon: oItem.getIcon(),
+				title: oItem.getText(),
+				startsSection: oItem.getStartsSection(),
+				menuItem: oItem,
+				tooltip: oItem.getTooltip(),
+				visible: oItem.getVisible(),
+				enabled: oItem.getEnabled()
+			});
+
+			oItem.aDelegates.forEach(function(oDelegateObject) {
+				oListItem.addEventDelegate(oDelegateObject.oDelegate, oDelegateObject.vThis);
+			});
+
+			return oListItem;
 		};
 
 		Menu.prototype._createVisualMenuItemFromItem = function(oItem) {
@@ -496,6 +520,10 @@ sap.ui.define([
 			for (i = 0; i < aCustomData.length; i++) {
 				oItem._addCustomData(oUfMenuItem, aCustomData[i]);
 			}
+
+			oItem.aDelegates.forEach(function(oDelegateObject) {
+				oUfMenuItem.addEventDelegate(oDelegateObject.oDelegate, oDelegateObject.vThis);
+			});
 
 			return oUfMenuItem;
 		};
@@ -536,7 +564,7 @@ sap.ui.define([
 				oList.insertItem(oMenuListItem, iIndex);
 			}
 
-			oList.rerender();
+			oList.invalidate();
 		};
 
 		/**
@@ -733,7 +761,7 @@ sap.ui.define([
 					}
 
 					if (vMenuOrList) { //if it is not destroyed already in the statement above
-						vMenuOrList.rerender();
+						vMenuOrList.invalidate();
 					}
 				}
 			}
@@ -897,7 +925,7 @@ sap.ui.define([
 					this._initPageForParent(oParentItem);
 					oParentItem._setVisualChild(oParentItem.getItems()[0]._getVisualParent());
 					oLI = sap.ui.getCore().byId(oParentItem._getVisualControl());
-					oLI.rerender();
+					oLI.invalidate();
 				} else {
 					this._initMenuForItems(oParentItem.getItems(), sap.ui.getCore().byId(oParentItem._getVisualControl()));
 					oParentItem._setVisualChild(oParentItem.getItems()[0]._getVisualParent());
@@ -921,7 +949,7 @@ sap.ui.define([
 			oItem._setVisualChild(null);
 
 			if (oVisualItem && oVisualItem.setMenuItem) {
-				oVisualItem.rerender();
+				oVisualItem.invalidate();
 				oVisualItem.setMenuItem(oItem);
 			}
 		};

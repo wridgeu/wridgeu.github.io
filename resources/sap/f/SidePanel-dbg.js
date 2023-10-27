@@ -142,14 +142,14 @@ sap.ui.define([
 	 * <li>[End] - set the expanded side panel width to the maximum value defined in <code>sidePanelMaxWidth</code> property</li>
 	 * <li>[Enter] - set the expanded side panel width to the default value defined in <code>sidePanelWidth</code> property</li>
 	 * <li>[Shift]+[F10] or [Context menu] - show the resize context menu</li>
-	 * <li>[Arrow Left] / [Arrow Right] - increase/decrease the width of the expanded side panel with the regular step</li>
-	 * <li>[Shift] + [Arrow Left] / [Arrow Right] - increase/decrease the width of the expanded side panel with the larger step</li>
+	 * <li>[Arrow Left] or [Arrow Up] / [Arrow Right] or [Arrow Down] - increase/decrease the width of the expanded side panel with the regular step</li>
+	 * <li>[Shift] + [Arrow Left] or [Shift] + [Arrow Up] / [Shift] + [Arrow Right] or [Shift] + [Arrow Down] - increase/decrease the width of the expanded side panel with the larger step</li>
 	 * </ul>
 	 *
  	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @public
@@ -415,7 +415,7 @@ sap.ui.define([
 	SidePanel.prototype.onBeforeRendering = function() {
 		var oExpandCollapseButton = this.getAggregation("_arrowButton"),
 			bActionBarExpanded = this.getActionBarExpanded(),
-			sTooltip = bActionBarExpanded ? oResourceBundle.getText("SIDEPANEL_COLLAPSE_BUTTON_TEXT") : oResourceBundle.getText("SIDEPANEL_EXPAND_BUTTON_TEXT"),
+			sTooltip = oResourceBundle.getText("SIDEPANEL_EXPAND_BUTTON_TEXT") + "/" + oResourceBundle.getText("SIDEPANEL_COLLAPSE_BUTTON_TEXT"),
 			sNextArrow;
 
 		if (SidePanelPosition.Right === this.getSidePanelPosition()) {
@@ -452,6 +452,7 @@ sap.ui.define([
 		this._attachResizableHandlers();
 
 		if (!Device.system.phone) {
+			this._determineVisibleItems();
 			if (!this._isSingleItem() && this._iVisibleItems > 0) {
 				this._initItemNavigation();
 			}
@@ -530,9 +531,11 @@ sap.ui.define([
 					this._setSidePanelResizePosition(SIDE_PANEL_POSITION_MIN_WIDTH);
 					break;
 				case KeyCodes.ARROW_LEFT:
+				case KeyCodes.ARROW_UP:
 					this._moveSidePanelResizePositionWith(oEvent.shiftKey ? this.getSidePanelResizeLargerStep() : this.getSidePanelResizeStep());
 					break;
 				case KeyCodes.ARROW_RIGHT:
+				case KeyCodes.ARROW_DOWN:
 					this._moveSidePanelResizePositionWith(oEvent.shiftKey ? -this.getSidePanelResizeLargerStep() : -this.getSidePanelResizeStep());
 					break;
 				case KeyCodes.F10:
@@ -668,7 +671,17 @@ sap.ui.define([
 	};
 
 	SidePanel.prototype._focusMain = function() {
-		this._oPreviousFocusedMainElement && this._oPreviousFocusedMainElement.focus();
+		if (this._oPreviousFocusedMainElement) {
+			this._oPreviousFocusedMainElement.focus();
+		} else {
+			var oMainContent = this.getMainContent();
+			for (let i = 0; i < oMainContent.length; ++i) {
+				if (oMainContent[i].isFocusable()) {
+					oMainContent[i].focus();
+					break;
+				}
+			}
+		}
 	};
 
 	SidePanel.prototype._focusSideContent = function() {
@@ -833,15 +846,15 @@ sap.ui.define([
 		}
 	};
 
-	SidePanel.prototype._onResize = function(oEvent) {
-		if (!this.getItems().length) {
-			return;
-		}
+	SidePanel.prototype._determineVisibleItems = function() {
+		var oDomRef = this.getDomRef(),
+			oActionBarList = oDomRef && oDomRef.querySelector(".sapFSPActionBarList");
 
-		var iCurrentWidth = oEvent.size.width,
-			bSingleItem = this._isSingleItem(),
-			oDomRef = this.getDomRef(),
-			oStyle = window.getComputedStyle(oDomRef.querySelector(".sapFSPActionBarList")),
+			if (!oActionBarList) {
+				return;
+			}
+
+		var oStyle = window.getComputedStyle(oActionBarList),
 			iItemsGap = parseInt(oStyle.gap),
 			iMarginBottom = parseInt(oStyle.marginBottom),
 			iMarginTop = parseInt(oStyle.marginTop),
@@ -849,17 +862,22 @@ sap.ui.define([
 			iItemsHeight = oFirstItem && oFirstItem.clientHeight,
 			iActionBarHeight;
 
-		this._iPreviousWidth = iCurrentWidth;
+		if (!this._isSingleItem()) {
+			iActionBarHeight = oDomRef.querySelector(".sapFSPSideInner").clientHeight - iMarginBottom - iMarginTop;
+			this._iVisibleItems = parseInt((iActionBarHeight + iItemsGap) / (iItemsHeight + iItemsGap));
+		}
+	};
 
-		if (Device.system.phone) {
+	SidePanel.prototype._onResize = function(oEvent) {
+		if (!this.getItems().length || Device.system.phone) {
 			return;
 		}
 
-		if (!bSingleItem) {
-			iActionBarHeight = oDomRef.querySelector(".sapFSPSideInner").clientHeight - iMarginBottom - iMarginTop;
-			this._iVisibleItems = parseInt((iActionBarHeight + iItemsGap) / (iItemsHeight + iItemsGap));
+		this._determineVisibleItems();
+		if (!this._isSingleItem() && this._iVisibleItems > 0) {
 			this._initItemNavigation();
 		}
+
 		if (this._getSideContentExpanded()) {
 			this._fixSidePanelWidth();
 		}
@@ -886,7 +904,9 @@ sap.ui.define([
 		if (iSidePanelWidth > SIDE_PANEL_SPLIT_BREAKPOINT) {
 			oSide.classList.add("sapFSPSplitView");
 		} else {
-			oSide.classList.contains("sapFSPSplitView") && this.setActionBarExpanded(false);
+			// TODO: revise the upcoming interaction as re-rendering is happening while resizing.
+			// Currently the action toolbar would not collapse if shriked via mouse. That makes the resizing via mouse usable.
+			// oSide.classList.contains("sapFSPSplitView") && this.setActionBarExpanded(false);
 			oSide.classList.remove("sapFSPSplitView");
 		}
 	};
@@ -1276,20 +1296,18 @@ sap.ui.define([
 	SidePanel.prototype._onTouchStart = function(oEvent) {
 		oEvent.preventDefault();
 		if (oEvent.button === 0 || oEvent.type === "touchstart") {
-			this.getDomRef().querySelector(".sapFSPSplitterBar").classList.add("sapFSPSplitterActive");
+			if ((Device.system.desktop || Device.system.combi) &&
+				!(Device.system.tablet || Device.system.phone)){
+				this.getDomRef().querySelector(".sapFSPSplitterBar").focus();
+			}
 			this._bResizeStarted = true;
 			this._iStartPositionX = oEvent.touches ? oEvent.touches[0].pageX : oEvent.pageX;
 		}
 	};
 
 	SidePanel.prototype._onTouchEnd = function(oEvent) {
-		var oDomRef = this.getDomRef(),
-			oSplitter = oDomRef && oDomRef.querySelector(".sapFSPSplitterBar");
-
 		this._bResizeStarted && oEvent.preventDefault();
 		this._bResizeStarted = false;
-
-		oSplitter && oSplitter.classList.remove("sapFSPSplitterActive");
 	};
 
 	SidePanel.prototype._onTouchMove = function(oEvent) {

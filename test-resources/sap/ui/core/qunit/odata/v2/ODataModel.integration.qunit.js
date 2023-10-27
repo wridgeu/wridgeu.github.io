@@ -14,6 +14,7 @@ sap.ui.define([
 	"sap/ui/core/Configuration",
 	"sap/ui/core/Core",
 	"sap/ui/core/library",
+	"sap/ui/core/Messaging",
 	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/message/Message",
 	"sap/ui/core/mvc/Controller",
@@ -38,8 +39,8 @@ sap.ui.define([
 	// load Table resources upfront to avoid loading times > 1 second for the first test using Table
 	// "sap/ui/table/Table"
 ], function (Log, merge, uid, Input, Device, ManagedObjectObserver, SyncPromise, Configuration,
-		Core, coreLibrary, UI5Date, Message, Controller, View, Rendering, BindingMode, Filter, FilterOperator,
-		FilterType, Model, Sorter, JSONModel, MessageModel, CountMode, MessageScope, Context,
+		Core, coreLibrary, Messaging, UI5Date, Message, Controller, View, Rendering, BindingMode, Filter,
+		FilterOperator, FilterType, Model, Sorter, JSONModel, MessageModel, CountMode, MessageScope, Context,
 		ODataModel, XMLModel, TestUtils, datajs, XMLHelper) {
 	/*global QUnit, sinon*/
 	/*eslint max-nested-callbacks: 0, no-warning-comments: 0, quote-props: 0*/
@@ -348,7 +349,7 @@ sap.ui.define([
 
 		oDocument = XMLHelper.parse(
 			'<mvc:View xmlns="sap.m" xmlns:f="sap.f" xmlns:mvc="sap.ui.core.mvc" \
-				xmlns:t="sap.ui.table">'
+				xmlns:t="sap.ui.table" xmlns:trm="sap.ui.table.rowmodes">'
 			+ sViewXML
 			+ '</mvc:View>',
 			"application/xml"
@@ -368,16 +369,27 @@ sap.ui.define([
 	 */
 	function xmlConvertGridTables(oDocument) {
 		function convertElements(aElements) {
-			var oChildNode, aChildNodes, oColumn, oElement, i, j, oTemplate;
+			var oChildNode, aChildNodes, oColumn, oElement, i, j, oTemplate,
+				oRowMode, oFixedRowMode;
 
 			for (i = aElements.length - 1; i >= 0; i -= 1) {
 				oElement = aElements[i];
+
+				if (oElement.hasAttribute("visibleRowCount")) {
+					oRowMode = document.createElementNS("sap.ui.table", "rowMode");
+					oElement.appendChild(oRowMode);
+					oFixedRowMode = document.createElementNS("sap.ui.table.rowmodes", "Fixed");
+					oFixedRowMode.setAttribute("rowCount", oElement.getAttribute("visibleRowCount"));
+					oRowMode.appendChild(oFixedRowMode);
+					oElement.removeAttribute("visibleRowCount");
+				}
 
 				aChildNodes = oElement.childNodes;
 				for (j = aChildNodes.length - 1; j >= 0; j -= 1) {
 					oChildNode = aChildNodes[j];
 					if (oChildNode.nodeType === Node.ELEMENT_NODE
-							&& oChildNode.localName !== "Column") {
+							&& oChildNode.localName !== "Column"
+							&& oChildNode.localName !== "rowMode") {
 						oColumn = document.createElementNS("sap.ui.table", "Column");
 						oElement.insertBefore(oColumn, oChildNode);
 						oElement.removeChild(oChildNode);
@@ -528,7 +540,7 @@ sap.ui.define([
 			// {string} sText with the expected text
 			this.aValueStates = [];
 
-			// If the "VisibleRowCountMode" of the sap.ui.table.* is "Auto", the table uses the
+			// If the "rowMode" of the sap.ui.table.* is "Auto", the table uses the
 			// screen height (Device.resize.height) to compute the amount of contexts it requests
 			// initially. Make sure that this is stable across devices.
 			this._oSandbox.stub(Device.resize, "height").value(1000);
@@ -578,8 +590,9 @@ sap.ui.define([
 				}
 				delete this.mListChanges[sControlId];
 			}
-			if (Core.getUIDirty()
-					|| Core.getMessageManager().getMessageModel().getObject("/").length	< this.aMessages.length) {
+
+			if (Rendering.isPending()
+					|| Messaging.getMessageModel().getObject("/").length < this.aMessages.length) {
 				setTimeout(this.checkFinish.bind(this, assert), 10);
 
 				return;
@@ -597,7 +610,7 @@ sap.ui.define([
 		 * @param {object} assert The QUnit assert object
 		 */
 		checkMessages : function (assert) {
-			var aCurrentMessages = Core.getMessageManager().getMessageModel()
+			var aCurrentMessages = Messaging.getMessageModel()
 					.getObject("/").sort(compareMessages),
 				aExpectedMessages = this.aMessages.slice().sort(compareMessages);
 
@@ -1051,7 +1064,14 @@ sap.ui.define([
 				? vModel
 				: {undefined : vModel || createSalesOrdersModel()};
 			this.oModel = mNamedModels.undefined;
-			this.mock(datajs).expects("request").atLeast(0).callsFake(checkRequest);
+			const oDatajsMock = this.mock(datajs);
+			oDatajsMock.expects("request")
+				.withArgs(/*request*/sinon.match.any, /*success*/sinon.match.any, /*error*/sinon.match.any,
+					sinon.match((handler) => handler !== datajs.metadataHandler),
+					/*httpClient*/sinon.match.any, /*metadata*/sinon.match.any)
+				.atLeast(0).callsFake(checkRequest);
+			// always load $metadata resources via TestUtils fake server, they are not mocked
+			oDatajsMock.expects("request").atLeast(0).callThrough();
 			//assert.ok(true, sViewXML); // uncomment to see XML in output, in case of parse issues
 			this.assert = assert;
 
@@ -1090,7 +1110,7 @@ sap.ui.define([
 					that.oView.setModel(mNamedModels[sModelName], sModelName);
 				}
 				// enable parse error messages in the message manager
-				Core.getMessageManager().registerObject(that.oView, true);
+				Messaging.registerObject(that.oView, true);
 				// Place the view in the page so that it is actually rendered. In some situations,
 				// esp. for the table.Table this is essential.
 				that.oView.placeAt("qunit-fixture");
@@ -1667,12 +1687,11 @@ sap.ui.define([
 		 * Removes all persistent and technical message from the message model.
 		 */
 		removePersistentAndTechnicalMessages : function () {
-			var oMessageManager = Core.getMessageManager(),
-				aMessages = oMessageManager.getMessageModel().getObject("/").filter(function (oMessage) {
+			var aMessages = Messaging.getMessageModel().getObject("/").filter(function (oMessage) {
 					return oMessage.getPersistent() || oMessage.getTechnical();
 				});
 
-			oMessageManager.removeMessages(aMessages);
+			Messaging.removeMessages(aMessages);
 		},
 
 		/**
@@ -4716,7 +4735,7 @@ usePreliminaryContext : false}}">\
 		oModel.setMessageScope(MessageScope.BusinessObject);
 
 		return this.createView(assert, sView, oModel).then(function () {
-			oMessage = Core.getMessageManager().getMessageModel().getObject("/")[0];
+			oMessage = Messaging.getMessageModel().getObject("/")[0];
 			oObjectPage = that.oView.byId("objectPage");
 
 			assert.deepEqual(oMessage.getControlIds(), []);
@@ -7972,6 +7991,133 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 
 	//*********************************************************************************************
 	// Scenario: With the binding parameter <code>ignoreMessages</code> the application developer
+	// can control whether messages are displayed at the control. It works for
+	// <code>sap.ui.model.json.JSONPropertyBinding</code>s and composite bindings containing such
+	// bindings.
+	// JIRA: CPOUI5MODELS-1397
+	QUnit.test("JSONPropertyBinding and CompositeBindings: ignoreMessages", function (assert) {
+		var oJSONModel = new JSONModel({
+				data: {SalesOrderID: "1", Note: "Note"}
+			}),
+			oMessage = {
+				processor: oJSONModel,
+				target: ["/data/Note"],
+				message: "Foo",
+				type: MessageType.Warning
+			},
+			sView = '\
+<FlexBox id="objectPage" binding="{/data}">\
+	<Input id="Note0" value="{Note}" />\
+	<Input id="Note1" value="{path: \'Note\', parameters: {ignoreMessages: false}}" />\
+	<Input id="Note2" value="{path: \'Note\', parameters: {ignoreMessages: true}}" />\
+	<Input id="Composite0" value="{= ${SalesOrderID} + ${value: \' - \'} + ${Note}}" />\
+	<Input id="Composite1" value="{= ${SalesOrderID} + ${value: \' - \'} + ${\
+			path: \'Note\',\
+			parameters: {ignoreMessages: false}\
+		}}" />\
+	<Input id="Composite2" value="{= ${SalesOrderID} + ${value: \' - \'} + ${\
+			path: \'Note\',\
+			parameters: {ignoreMessages: true}\
+		}}" />\
+	<Input id="Composite3" value="{parts: [\'SalesOrderID\', {value: \'-\'}, {\
+			path: \'Note\',\
+			parameters: {ignoreMessages: false}\
+		}]}" />\
+	<Input id="Composite4" value="{parts: [\'SalesOrderID\', {value: \'-\'}, {\
+			path: \'Note\',\
+			parameters: {ignoreMessages: true}\
+		}]}" />\
+</FlexBox>';
+
+		this.expectValue("Note0", "Note")
+			.expectValue("Note1", "Note")
+			.expectValue("Note2", "Note")
+			.expectValue("Composite0", "1 - Note")
+			.expectValue("Composite1", "1 - Note")
+			.expectValue("Composite2", "1 - Note")
+			.expectValue("Composite3", "1 - Note")
+			.expectValue("Composite4", "1 - Note")
+			.expectValueState("Note0", "Warning", "Foo")
+			.expectValueState("Note1", "Warning", "Foo")
+			.expectValueState("Note2", "None", "")
+			.expectValueState("Composite0", "Warning", "Foo")
+			.expectValueState("Composite1", "Warning", "Foo")
+			.expectValueState("Composite2", "None", "")
+			.expectValueState("Composite3", "Warning", "Foo")
+			.expectValueState("Composite4", "None", "")
+			.expectMessages([oMessage]);
+
+		Messaging.addMessages([new Message(oMessage)]);
+
+		// code under test
+		return this.createView(assert, sView, oJSONModel);
+	});
+
+	//*********************************************************************************************
+	// Scenario: With the binding parameter <code>ignoreMessages</code> the application developer
+	// can control whether messages are displayed at the control. It works for
+	// <code>sap.ui.model.xml.XMLPropertyBinding</code>s and composite bindings containing such
+	// bindings.
+	// JIRA: CPOUI5MODELS-1397
+	QUnit.test("XMLPropertyBinding and CompositeBindings: ignoreMessages", function (assert) {
+		var oXMLModel = new XMLModel(),
+			oMessage = {
+				processor: oXMLModel,
+				target: ["/data/0/@Note"],
+				message: "Foo",
+				type: MessageType.Warning
+			},
+			sView = '\
+<FlexBox id="objectPage" binding="{/data/0}">\
+	<Input id="Note0" value="{@Note}" />\
+	<Input id="Note1" value="{path: \'@Note\', parameters: {ignoreMessages: false}}" />\
+	<Input id="Note2" value="{path: \'@Note\', parameters: {ignoreMessages: true}}" />\
+	<Input id="Composite0" value="{= ${@SalesOrderID} + ${value: \' - \'} + ${@Note}}" />\
+	<Input id="Composite1" value="{= ${@SalesOrderID} + ${value: \' - \'} + ${\
+			path: \'@Note\',\
+			parameters: {ignoreMessages: false}\
+		}}" />\
+	<Input id="Composite2" value="{= ${@SalesOrderID} + ${value: \' - \'} + ${\
+			path: \'@Note\',\
+			parameters: {ignoreMessages: true}\
+		}}" />\
+	<Input id="Composite3" value="{parts: [\'@SalesOrderID\', {value: \'-\'}, {\
+			path: \'@Note\',\
+			parameters: {ignoreMessages: false}\
+		}]}" />\
+	<Input id="Composite4" value="{parts: [\'@SalesOrderID\', {value: \'-\'}, {\
+			path: \'@Note\',\
+			parameters: {ignoreMessages: true}\
+		}]}" />\
+</FlexBox>';
+
+		this.expectValue("Note0", "Note")
+			.expectValue("Note1", "Note")
+			.expectValue("Note2", "Note")
+			.expectValue("Composite0", "1 - Note")
+			.expectValue("Composite1", "1 - Note")
+			.expectValue("Composite2", "1 - Note")
+			.expectValue("Composite3", "1 - Note")
+			.expectValue("Composite4", "1 - Note")
+			.expectValueState("Note0", "Warning", "Foo")
+			.expectValueState("Note1", "Warning", "Foo")
+			.expectValueState("Note2", "None", "")
+			.expectValueState("Composite0", "Warning", "Foo")
+			.expectValueState("Composite1", "Warning", "Foo")
+			.expectValueState("Composite2", "None", "")
+			.expectValueState("Composite3", "Warning", "Foo")
+			.expectValueState("Composite4", "None", "")
+			.expectMessages([oMessage]);
+
+		oXMLModel.setXML('<?xml version="1.0"?><root><data SalesOrderID="1" Note="Note"/></root>');
+		Messaging.addMessages([new Message(oMessage)]);
+
+		// code under test
+		return this.createView(assert, sView, oXMLModel);
+	});
+
+	//*********************************************************************************************
+	// Scenario: With the binding parameter <code>ignoreMessages</code> the application developer
 	// can control whether messages are displayed at the control. For
 	// <code>sap.ui.model.type.Currency</code> the parameter <code>ignoreMessages</code> is
 	// determined automatically based on the format option <code>showMeasure</code>. Manual setting
@@ -8350,10 +8496,14 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 <t:AnalyticalTable id="table" rows="{path : \'/Items\',\
 		parameters : {useBatchRequests : true}, sorter : {path : \'AccountingDocumentItem\', descending : true}}"\
 		threshold="10" visibleRowCount="2">\
-	<t:AnalyticalColumn grouped="true" leadingProperty="AccountingDocumentItem"\
-		template="AccountingDocumentItem"/>\
-	<t:AnalyticalColumn leadingProperty="AmountInCompanyCodeCurrency" summed="true"\
-		template="AmountInCompanyCodeCurrency"/>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="AccountingDocumentItem">\
+		<Label text="AccountingDocumentItem"/>\
+		<t:template><Text wrapping="false" text="{AccountingDocumentItem}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
 </t:AnalyticalTable>',
 			that = this;
 
@@ -8374,6 +8524,11 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 
 			return aItems;
 		}
+		this.oLogMock.expects("warning")
+			.withExactArgs("Applying sorters to groups is only possible with auto expand mode 'Sequential';"
+				+ " current mode is: Bundled",
+				"/Items", "sap.ui.model.analytics.AnalyticalBinding", undefined)
+			.atLeast(1);
 
 		this.expectRequest({
 				encodeRequestUri : false,
@@ -8478,14 +8633,26 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			oModel = createModel("/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS"),
 			sView = '\
 <t:AnalyticalTable id="table" threshold="6" visibleRowCount="4">\
-	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode" template="CompanyCode"/>\
-	<t:AnalyticalColumn grouped="true" leadingProperty="Customer" template="Customer"/>\
-	<t:AnalyticalColumn grouped="true" leadingProperty="AccountingDocument"\
-		template="AccountingDocument"/>\
-	<t:AnalyticalColumn grouped="false" leadingProperty="AccountingDocumentItem"\
-		template="AccountingDocumentItem"/>\
-	<t:AnalyticalColumn leadingProperty="AmountInCompanyCodeCurrency" summed="true"\
-		template="AmountInCompanyCodeCurrency"/>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode">\
+		<Label text="CompanyCode"/>\
+		<t:template><Text wrapping="false" text="{CompanyCode}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="Customer">\
+		<Label text="Customer"/>\
+		<t:template><Text wrapping="false" text="{Customer}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="AccountingDocument">\
+		<Label text="AccountingDocument"/>\
+		<t:template><Text wrapping="false" text="{AccountingDocument}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="false" leadingProperty="AccountingDocumentItem">\
+		<Label text="AccountingDocumentItem"/>\
+		<t:template><Text wrapping="false" text="{AccountingDocumentItem}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
 </t:AnalyticalTable>',
 			that = this;
 
@@ -8692,12 +8859,22 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			oModel = createModel("/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS"),
 			sView = '\
 <t:AnalyticalTable id="table" threshold="1" visibleRowCount="4">\
-	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode" template="CompanyCode"/>\
-	<t:AnalyticalColumn grouped="true" leadingProperty="Customer" template="Customer"/>\
-	<t:AnalyticalColumn grouped="true" leadingProperty="AccountingDocument"\
-		template="AccountingDocument"/>\
-	<t:AnalyticalColumn leadingProperty="AmountInCompanyCodeCurrency" summed="true"\
-		template="AmountInCompanyCodeCurrency"/>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode">\
+		<Label text="CompanyCode"/>\
+		<t:template><Text wrapping="false" text="{CompanyCode}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="Customer">\
+		<Label text="Customer"/>\
+		<t:template><Text wrapping="false" text="{Customer}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="AccountingDocument">\
+		<Label text="AccountingDocument"/>\
+		<t:template><Text wrapping="false" text="{AccountingDocument}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
 </t:AnalyticalTable>',
 			that = this;
 
@@ -8839,12 +9016,22 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			oModel = createModel("/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS"),
 			sView = '\
 <t:AnalyticalTable id="table" threshold="10" visibleRowCount="4">\
-	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode" template="CompanyCode"/>\
-	<t:AnalyticalColumn grouped="true" leadingProperty="Customer" template="Customer"/>\
-	<t:AnalyticalColumn grouped="true" leadingProperty="AccountingDocument"\
-		template="AccountingDocument"/>\
-	<t:AnalyticalColumn leadingProperty="AmountInCompanyCodeCurrency" summed="true"\
-		template="AmountInCompanyCodeCurrency"/>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode">\
+		<Label text="CompanyCode"/>\
+		<t:template><Text wrapping="false" text="{CompanyCode}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="Customer">\
+		<Label text="Customer"/>\
+		<t:template><Text wrapping="false" text="{Customer}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="AccountingDocument">\
+		<Label text="AccountingDocument"/>\
+		<t:template><Text wrapping="false" text="{AccountingDocument}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
 </t:AnalyticalTable>',
 			that = this;
 
@@ -8956,12 +9143,22 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			oModel = createModel("/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS"),
 			sView = '\
 <t:AnalyticalTable id="table" threshold="10" visibleRowCount="4">\
-	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode" template="CompanyCode"/>\
-	<t:AnalyticalColumn grouped="false" leadingProperty="Customer" template="Customer"/>\
-	<t:AnalyticalColumn grouped="false" leadingProperty="AccountingDocument"\
-		template="AccountingDocument"/>\
-	<t:AnalyticalColumn leadingProperty="AmountInCompanyCodeCurrency" summed="true"\
-		template="AmountInCompanyCodeCurrency"/>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode">\
+		<Label text="CompanyCode"/>\
+		<t:template><Text wrapping="false" text="{CompanyCode}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="false" leadingProperty="Customer">\
+		<Label text="Customer"/>\
+		<t:template><Text wrapping="false" text="{Customer}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="false" leadingProperty="AccountingDocument">\
+		<Label text="AccountingDocument"/>\
+		<t:template><Text wrapping="false" text="{AccountingDocument}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
 </t:AnalyticalTable>',
 			that = this;
 
@@ -9151,10 +9348,18 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			oModel = createModel("/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS"),
 			sView = '\
 <t:AnalyticalTable id="table" threshold="10" visibleRowCount="4">\
-	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode" template="CompanyCode"/>\
-	<t:AnalyticalColumn grouped="false" leadingProperty="Customer" template="Customer"/>\
-	<t:AnalyticalColumn leadingProperty="AmountInCompanyCodeCurrency" summed="true"\
-		template="AmountInCompanyCodeCurrency"/>\
+	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode">\
+		<Label text="CompanyCode"/>\
+		<t:template><Text wrapping="false" text="{CompanyCode}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="false" leadingProperty="Customer">\
+		<Label text="Customer"/>\
+		<t:template><Text wrapping="false" text="{Customer}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
 </t:AnalyticalTable>',
 		that = this;
 
@@ -9214,6 +9419,153 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 		});
 	});
 
+	//*****************************************************************************************************************
+	// Scenario: Sequential mode: Sorting by text properties that are only additionally selected is possible.
+	// JIRA:CPOUI5MODELS-1311
+	QUnit.test("AnalyticalBinding: sort additional selected text properties (Sequential)", function (assert) {
+		const oModel = createModel("/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS");
+		const sView = '\
+<t:AnalyticalTable id="table" threshold="10" visibleRowCount="4">\
+	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode">\
+		<Label text="CompanyCode"/>\
+		<t:template><Text wrapping="false" text="{CompanyCode}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="false" leadingProperty="Customer">\
+		<Label text="Customer"/>\
+		<t:template><Text wrapping="false" text="{Customer}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
+</t:AnalyticalTable>';
+
+		return this.createView(assert, sView, oModel).then(() => {
+			this.expectHeadRequest()
+				.expectRequest({ // count request
+					encodeRequestUri : false,
+					requestUri : "Items?$select=CompanyCode,Customer&$top=0&$inlinecount=allpages"
+				}, {__count : "20", results : []})
+				.expectRequest({ // first level request
+					encodeRequestUri : false,
+					requestUri : "Items?"
+					+ "$select=CompanyCode,CompanyName,AmountInCompanyCodeCurrency,Currency&"
+					+ "$orderby=CompanyName%20desc,CompanyCode%20asc&$top=14&$inlinecount=allpages"
+				}, {
+					results : [
+						Object.assign(getFarCustomerLineItem("A0"), {CompanyName: "A0Name"}),
+						Object.assign(getFarCustomerLineItem("A1"), {CompanyName: "A1Name"}),
+						Object.assign(getFarCustomerLineItem("A2"), {CompanyName: "A2Name"}),
+						Object.assign(getFarCustomerLineItem("A3"), {CompanyName: "A2Name"})
+					]
+				})
+				.expectRequest({ // grand total request
+					encodeRequestUri : false,
+					requestUri : "Items?$select=AmountInCompanyCodeCurrency,Currency&$top=100&$inlinecount=allpages"
+				}, {
+					__count : 1,
+					results : [{
+						__metadata : {uri : "/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS/Items(grandTotal)"},
+						AmountInCompanyCodeCurrency : "140",
+						Currency : "USD"
+					}]
+				});
+
+			// bind it lately, otherwise the binding is constructed without the analytical info and the select parameter
+			// is ignored
+			this.oView.byId("table").bindRows({
+				path : "/Items",
+				parameters : {
+					autoExpandMode : "Sequential",
+					numberOfExpandedLevels : 0,
+					provideGrandTotals : false,
+					select : "CompanyCode,AmountInCompanyCodeCurrency,Currency,Customer,CompanyName",
+					useBatchRequests : true
+				},
+				sorter : [new Sorter("CompanyName", true)]
+			});
+
+			return this.waitForChanges(assert);
+		});
+	});
+
+	//*****************************************************************************************************************
+	// Scenario: Bundled mode: Sorting by text properties that are only additionally selected is possible.
+	// JIRA:CPOUI5MODELS-1311
+	QUnit.test("AnalyticalBinding: sort additional selected text properties (Bundled)", function (assert) {
+		const oModel = createModel("/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS");
+		const sView = '\
+<t:AnalyticalTable id="table" threshold="10" visibleRowCount="4">\
+	<t:AnalyticalColumn grouped="true" leadingProperty="CompanyCode">\
+		<Label text="CompanyCode"/>\
+		<t:template><Text wrapping="false" text="{CompanyCode}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn grouped="false" leadingProperty="Customer">\
+		<Label text="Customer"/>\
+		<t:template><Text wrapping="false" text="{Customer}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
+</t:AnalyticalTable>';
+
+		return this.createView(assert, sView, oModel).then(() => {
+			this.expectHeadRequest()
+				.expectRequest({ // count request
+					encodeRequestUri : false,
+					requestUri : "Items?$select=CompanyCode,Customer&$top=0&$inlinecount=allpages"
+				}, {__count : "20", results : []})
+				.expectRequest({ // first level request
+					encodeRequestUri : false,
+					requestUri : "Items?"
+					+ "$select=CompanyCode,CompanyName,AmountInCompanyCodeCurrency,Currency&"
+					+ "$orderby=CompanyName%20desc,CompanyCode%20asc&$top=7"
+				}, {
+					results : [
+						Object.assign(getFarCustomerLineItem("A0"), {CompanyName: "A0Name"}),
+						Object.assign(getFarCustomerLineItem("A1"), {CompanyName: "A1Name"}),
+						Object.assign(getFarCustomerLineItem("A2"), {CompanyName: "A2Name"}),
+						Object.assign(getFarCustomerLineItem("A3"), {CompanyName: "A2Name"})
+					]
+				})
+				.expectRequest({ // leaf level request
+					encodeRequestUri : false,
+					requestUri : "Items?"
+					+ "$select=CompanyCode,CompanyName,Customer,AmountInCompanyCodeCurrency,Currency&"
+					+ "$orderby=CompanyName%20desc,CompanyCode%20asc&$top=12"
+				}, {
+					results : [
+						Object.assign(getFarCustomerLineItem("A0"), {CompanyName: "A0Name"}),
+						Object.assign(getFarCustomerLineItem("A1"), {CompanyName: "A1Name"}),
+						Object.assign(getFarCustomerLineItem("A2"), {CompanyName: "A2Name"}),
+						Object.assign(getFarCustomerLineItem("A3"), {CompanyName: "A2Name"})
+					]
+				});
+
+			this.oLogMock.expects("warning")
+				.withExactArgs("Applying sorters to groups is only possible with auto expand mode 'Sequential';"
+					+ " current mode is: Bundled",
+					"/Items", "sap.ui.model.analytics.AnalyticalBinding", undefined)
+				.atLeast(1);
+
+			// bind it lately, otherwise the binding is constructed without the analytical info and the select parameter
+			// is ignored
+			this.oView.byId("table").bindRows({
+				path : "/Items",
+				parameters : {
+					numberOfExpandedLevels : 1,
+					provideGrandTotals : false,
+					select : "CompanyCode,AmountInCompanyCodeCurrency,Currency,Customer,CompanyName",
+					useBatchRequests : true
+				},
+				sorter : [new Sorter("CompanyName", true)]
+			});
+
+			return this.waitForChanges(assert);
+		});
+	});
+
 	//*********************************************************************************************
 	// Scenario: If a request for an AnalyticalBinding is cancelled because the analytical info has
 	// been updated before the request was processed, a "dataReceived" event has to be fired. Table
@@ -9228,9 +9580,14 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			oModel = createModel("/sap/opu/odata/sap/FAR_CUSTOMER_LINE_ITEMS"),
 			sView = '\
 <t:AnalyticalTable id="table" threshold="10" visibleRowCount="4">\
-	<t:AnalyticalColumn grouped="false" leadingProperty="CompanyCode" template="CompanyCode"/>\
-	<t:AnalyticalColumn leadingProperty="AmountInCompanyCodeCurrency" summed="true"\
-		template="AmountInCompanyCodeCurrency"/>\
+	<t:AnalyticalColumn grouped="false" leadingProperty="CompanyCode">\
+		<Label text="CompanyCode"/>\
+		<t:template><Text wrapping="false" text="{CompanyCode}"/></t:template>\
+	</t:AnalyticalColumn>\
+	<t:AnalyticalColumn summed="true" leadingProperty="AmountInCompanyCodeCurrency">\
+		<Label text="AmountInCompanyCodeCurrency"/>\
+		<t:template><Text wrapping="false" text="{AmountInCompanyCodeCurrency}"/></t:template>\
+	</t:AnalyticalColumn>\
 </t:AnalyticalTable>',
 			that = this;
 
@@ -9906,8 +10263,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 	<t:TreeTable id="table"\
 			rows="{path : \'to_AllwncReqToFe\', parameters : \
 				{countMode : \'Inline\', groupId : \'myGroup\', usePreliminaryContext : true}}"\
-			visibleRowCount="1"\
-			visibleRowCountMode="Fixed">\
+			visibleRowCount="1">\
 		<Text id="orgID" text="{ForceElementOrgID}" />\
 	</t:TreeTable>\
 </FlexBox>';
@@ -9976,8 +10332,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			path : \'/C_RSHMaintSchedSmltdOrdAndOp\'\
 		}"\
 		threshold="0"\
-		visibleRowCount="1"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="1">\
 	<Text id="maintenanceOrder" text="{MaintenanceOrder}" />\
 </t:TreeTable>',
 			that = this;
@@ -10080,8 +10435,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 				},\
 				path : \'to_C_RSHMaintSchedSmltdOrdAndOp\'\
 			}"\
-			visibleRowCount="1"\
-			visibleRowCountMode="Fixed">\
+			visibleRowCount="1">\
 		<Text id="maintenanceOrder" text="{MaintenanceOrder}" />\
 	</t:TreeTable>\
 </FlexBox>',
@@ -10287,7 +10641,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 				}])
 				.expectValueState("note", "Error", "Some message");
 
-			Core.getMessageManager().addMessages(new Message({
+			Messaging.addMessages(new Message({
 				message : "Some message",
 				processor : oModel,
 				target : "/Note",
@@ -10325,7 +10679,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 				}])
 				.expectValueState("note", "Error", "Some message");
 
-			Core.getMessageManager().addMessages(new Message({
+			Messaging.addMessages(new Message({
 				message : "Some message",
 				processor : oModel,
 				target : "/Note",
@@ -10473,8 +10827,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			path : \'/C_RSHMaintSchedSmltdOrdAndOp\'\
 		}"\
 		threshold="0"\
-		visibleRowCount="2"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="2">\
 	<Text id="maintenanceOrder" text="{MaintenanceOrder}" />\
 </t:TreeTable>',
 			that = this;
@@ -10563,6 +10916,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 		});
 	});
 
+	/** @deprecated As of version 1.102.0, reason OperationMode.Auto */
 	//*********************************************************************************************
 	// Scenario: If operation mode auto and a threshold is set as binding parameter and a count
 	// request returns a count smaller than the threshold then this count is used as the $top
@@ -10588,8 +10942,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			},\
 			path : \'/C_RSHMaintSchedSmltdOrdAndOp\'\
 		}"\
-		visibleRowCount="2"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="2">\
 	<Text text="{MaintenanceOrder}" />\
 </t:TreeTable>';
 
@@ -11373,7 +11726,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 				}])
 				.expectValueState("quantity", "Error", "Some message");
 
-			Core.getMessageManager().addMessages(new Message({
+			Messaging.addMessages(new Message({
 				message : "Some message",
 				processor : oModel,
 				target : "/RequestedQuantity",
@@ -14062,6 +14415,57 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 	});
 
 	//*********************************************************************************************
+	// Scenario: If a list binding contains created entries at the start of the list and the
+	// binding's length is final, ensure that all data is requested if the user scrolls to the end
+	// of the list.
+	// BCP: 002075129400006921272023
+	QUnit.test("Created entries at start: scrolling to the end reads all data", function (assert) {
+		var oTable,
+			oModel = createSalesOrdersModel({defaultCountMode : CountMode.Inline}),
+			sView = '\
+<Table growing="true" growingThreshold="3" id="table" items="{/SalesOrderSet}">\
+	<Input id="note" value="{Note}"/>\
+</Table>',
+		that = this;
+
+		this.expectHeadRequest()
+			.expectRequest("SalesOrderSet?$skip=0&$top=3&$inlinecount=allpages", {
+				__count : "5",
+				results : [
+					{__metadata : {uri : "SalesOrderSet('1')"}, Note : "SO1", SalesOrderID : "1"},
+					{__metadata : {uri : "SalesOrderSet('2')"}, Note : "SO2", SalesOrderID : "2"},
+					{__metadata : {uri : "SalesOrderSet('3')"}, Note : "SO3", SalesOrderID : "3"}
+				]
+			})
+			.expectValue("note", ["SO1", "SO2", "SO3"]);
+
+		return this.createView(assert, sView, oModel).then(function () {
+			oTable = that.oView.byId("table");
+
+			that.expectValue("note", ["SONew", "SO1", "SO2", "SO3"]);
+
+			// code under test - create an item at the start of the list
+			oTable.getBinding("items").create({Note : "SONew"});
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			that.expectRequest("SalesOrderSet?$skip=3&$top=2", {
+				results : [
+					{__metadata : {uri : "SalesOrderSet('4')"}, Note : "SO4", SalesOrderID : "4"},
+					{__metadata : {uri : "SalesOrderSet('5')"}, Note : "SO5", SalesOrderID : "5"}
+				]
+			});
+
+			that.expectValue("note", ["SO3", "SO4", "SO5"], 3);
+
+			// code under test - scroll down to get all data from server
+			oTable.requestItems();
+
+			return that.waitForChanges(assert);
+		});
+	});
+
+	//*********************************************************************************************
 	// Scenario: If the table displays only transient entities (no threshold is set) and a new
 	// control filter is set on the table the number of available entities is properly displayed.
 	// CPOUI5MODELS-692
@@ -14136,14 +14540,28 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 	// Scenario: Simple test for creation at the end of the list; more complex cases are tested in
 	// all pairs tests for multi create.
 	// JIRA: CPOUI5MODELS-617
+	// Scenario 2: Contexts can be retrieved using getContextByIndex
+	// BCP: 002075129400004574672023
 	QUnit.test("Creation at the end of a list", function (assert) {
-		var oModel = createSalesOrdersModel(),
+		var oRowsBinding,
+			oModel = createSalesOrdersModel(),
 			sView = '\
 <t:Table id="table" rows="{/SalesOrderSet}" visibleRowCount="2">\
 	<Text id="id" text="{SalesOrderID}"/>\
 	<Text id="note" text="{Note}"/>\
 </t:Table>',
 			that = this;
+
+		function checkContextByIndex(bCreated) {
+			assert.strictEqual(oRowsBinding.getContextByIndex(-1), undefined);
+			assert.strictEqual(oRowsBinding.getContextByIndex(0).getPath(), "/SalesOrderSet('42')");
+			if (bCreated) {
+				assert.strictEqual(oRowsBinding.getContextByIndex(1).isTransient(), true);
+			} else {
+				assert.strictEqual(oRowsBinding.getContextByIndex(1), undefined);
+			}
+			assert.strictEqual(oRowsBinding.getContextByIndex(2), undefined);
+		}
 
 		this.expectHeadRequest()
 			.expectRequest("SalesOrderSet?$skip=0&$top=102", {
@@ -14157,11 +14575,15 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			.expectValue("note", ["First SalesOrder", ""]);
 
 		return this.createView(assert, sView, oModel).then(function () {
+			oRowsBinding = that.oView.byId("table").getBinding("rows");
+
 			that.expectValue("note", "New 1", 1);
+			checkContextByIndex(false);
 
 			// code under test
-			that.oView.byId("table").getBinding("rows").create({Note : "New 1"}, /*bAtEnd*/true);
+			oRowsBinding.create({Note : "New 1"}, /*bAtEnd*/true);
 
+			checkContextByIndex(true);
 			return that.waitForChanges(assert);
 		});
 	});
@@ -17505,9 +17927,8 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 	// restores the tree state for property and hierarchy changes, regardless of whether
 	// refreshAfterChange is true or false.
 	// JIRA: CPOUI5MODELS-958
-	// Scenario: To perform hierarchy changes both ODataModel#submitChanges and
-	// ODataTreeBinding#submitChanges can be used and both behave the same. For simple property
-	// changes via ODataModel#submitChanges a refresh/restoreTreeState is not needed.
+	// Scenario: To perform hierarchy changes ODataModel#submitChanges can be used. For simple property
+	// changes a refresh/restoreTreeState is not needed.
 	// JIRA: CPOUI5MODELS-745
 [false, true].forEach(function (bRefreshAfterChange) {
 	var sTitle = "ODataTreeBindingFlat: ODataModel#submitChanges for refreshAfterChange="
@@ -17565,8 +17986,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			},\
 			path : \'/ErhaOrder(\\\'1\\\')/to_Item\'\
 		}"\
-		visibleRowCount="3"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="3">\
 	<Text id="itemName" text="{ErhaOrderItemName}" />\
 </t:TreeTable>',
 			that = this;
@@ -17650,15 +18070,15 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 		});
 	});
 });
+
 	/** @deprecated As of version 1.104.0 */
 	//*********************************************************************************************
 	// Scenario: A table using ODataTreeBindingFlat with restoreTreeStateAfterChange=true correctly
 	// restores the tree state for property and hierarchy changes, regardless of whether
 	// refreshAfterChange is true or false.
 	// JIRA: CPOUI5MODELS-958
-	// Scenario: To perform hierarchy changes both ODataModel#submitChanges and
-	// ODataTreeBinding#submitChanges can be used and both behave the same. For simple property
-	// changes via ODataModel#submitChanges a refresh/restoreTreeState is not needed.
+	// Scenario: To perform hierarchy changes ODataTreeBinding#submitChanges can be used. For simple property
+	// changes a refresh/restoreTreeState is needed.
 	// JIRA: CPOUI5MODELS-745
 [false, true].forEach(function (bRefreshAfterChange) {
 	var sTitle = "ODataTreeBindingFlat: ODataTreeBindingFlat#submitChanges for refreshAfterChange="
@@ -17716,8 +18136,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			},\
 			path : \'/ErhaOrder(\\\'1\\\')/to_Item\'\
 		}"\
-		visibleRowCount="3"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="3">\
 	<Text id="itemName" text="{ErhaOrderItemName}" />\
 </t:TreeTable>',
 			that = this;
@@ -17824,15 +18243,11 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 	// restoreTreeStateAfterChange=false. After property / hierarchy changes have been submitted the
 	// binding gets refreshed.
 	// JIRA: CPOUI5MODELS-959
-	// Scenario: To perform hierarchy changes both ODataModel#submitChanges and
-	// ODataTreeBinding#submitChanges can be used and both behave the same. For simple property
-	// changes via ODataModel#submitChanges a refresh/restoreTreeState is not needed.
+	// Scenario: To perform hierarchy changes ODataModel#submitChanges can be used. For simple property
+	// changes a refresh/restoreTreeState is not needed.
 	// JIRA: CPOUI5MODELS-745
-[false, true].forEach(function (bSubmitOnModel) {
-	var sTitle = "ODataTreeBindingFlat: " + (bSubmitOnModel ? "ODataModel" : "ODataTreeBindingFlat")
-			+ "#submitChanges for refreshAfterChange=false and restoreTreeStateAfterChange=false";
-
-	QUnit.test(sTitle, function (assert) {
+	QUnit.test("ODataTreeBindingFlat: ODataModel#submitChanges for refreshAfterChange=false and "
+			+ "restoreTreeStateAfterChange=false", function (assert) {
 		var oBinding, oTable,
 			oModel = createHierarchyMaintenanceModel({refreshAfterChange : false}),
 			oNode100 = {
@@ -17883,15 +18298,10 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			},\
 			path : \'/ErhaOrder(\\\'1\\\')/to_Item\'\
 		}"\
-		visibleRowCount="3"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="3">\
 	<Text id="itemName" text="{ErhaOrderItemName}" />\
 </t:TreeTable>',
 			that = this;
-
-		function fnSubmitChanges() {
-			(bSubmitOnModel ? oModel : oBinding).submitChanges();
-		}
 
 		this.expectHeadRequest()
 			.expectRequest({
@@ -17941,7 +18351,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 
 			// code under test: hierarchy change
 			oBinding.removeContext(oTable.getContextByIndex(2));
-			fnSubmitChanges();
+			oModel.submitChanges();
 
 			return that.waitForChanges(assert);
 		}).then(function () {
@@ -17974,7 +18384,161 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 					requestUri : "ErhaOrderItem(ErhaOrder='1',ErhaOrderItem='200')"
 				}, NO_CONTENT);
 
-			if (!bSubmitOnModel) {
+			// code under test: property change
+			oModel.setProperty("ErhaOrderItemName", "bar: renamed", oTable.getContextByIndex(1));
+			oModel.submitChanges();
+
+			return that.waitForChanges(assert);
+		});
+	});
+
+	/** @deprecated As of version 1.104.0 */
+	//*********************************************************************************************
+	// Scenario: A table using ODataTreeBindingFlat with refreshAfterChange=false and
+	// restoreTreeStateAfterChange=false. After property / hierarchy changes have been submitted the
+	// binding gets refreshed.
+	// JIRA: CPOUI5MODELS-959
+	// Scenario: To perform hierarchy changes ODataTreeBinding#submitChanges can be used. For simple property
+	// changes a refresh/restoreTreeState is needed.
+	// JIRA: CPOUI5MODELS-745
+	QUnit.test("ODataTreeBindingFlat: ODataTreeBindingFlat#submitChanges for refreshAfterChange=false and "
+			+ "restoreTreeStateAfterChange=false", function (assert) {
+		var oBinding, oTable,
+			oModel = createHierarchyMaintenanceModel({refreshAfterChange : false}),
+			oNode100 = {
+				__metadata : {uri : "ErhaOrderItem(ErhaOrder='1',ErhaOrderItem='100')"},
+				ErhaOrder : "1",
+				ErhaOrderItem : "100",
+				ErhaOrderItemName : "foo",
+				HierarchyNode : "100",
+				HierarchyParentNode : "",
+				HierarchyDescendantCount : 0,
+				HierarchyDistanceFromRoot : 0,
+				HierarchyDrillState : "collapsed",
+				HierarchyPreorderRank : 0,
+				HierarchySiblingRank : 0
+			},
+			oNode200 = {
+				__metadata : {uri : "ErhaOrderItem(ErhaOrder='1',ErhaOrderItem='200')"},
+				ErhaOrder : "1",
+				ErhaOrderItem : "200",
+				ErhaOrderItemName : "bar",
+				HierarchyNode : "200",
+				HierarchyParentNode : "100",
+				HierarchyDescendantCount : 0,
+				HierarchyDistanceFromRoot : 1,
+				HierarchyDrillState : "leaf",
+				HierarchyPreorderRank : 0,
+				HierarchySiblingRank : 0
+			},
+			oNode300 = {
+				__metadata : {uri : "ErhaOrderItem(ErhaOrder='1',ErhaOrderItem='300')"},
+				ErhaOrder : "1",
+				ErhaOrderItem : "300",
+				ErhaOrderItemName : "baz",
+				HierarchyNode : "300",
+				HierarchyParentNode : "100",
+				HierarchyDescendantCount : 0,
+				HierarchyDistanceFromRoot : 1,
+				HierarchyDrillState : "leaf",
+				HierarchyPreorderRank : 1,
+				HierarchySiblingRank : 1
+			},
+			sView = '\
+<t:TreeTable id="table"\
+		rows="{\
+			parameters : {\
+				countMode : \'Inline\',\
+				numberOfExpandedLevels : 0\
+			},\
+			path : \'/ErhaOrder(\\\'1\\\')/to_Item\'\
+		}"\
+		visibleRowCount="3">\
+	<Text id="itemName" text="{ErhaOrderItemName}" />\
+</t:TreeTable>',
+			that = this;
+
+		this.expectHeadRequest()
+			.expectRequest({
+				batchNo : 1,
+				requestUri : "ErhaOrder('1')/to_Item?$skip=0&$top=103&$inlinecount=allpages"
+					+ "&$filter=HierarchyDistanceFromRoot le 0"
+			}, {
+				__count : "1",
+				results : [oNode100]
+			})
+			.expectValue("itemName", ["foo", "", ""]);
+
+		return this.createView(assert, sView, oModel).then(function () {
+			oTable = that.oView.byId("table");
+
+			that.expectRequest({
+					batchNo : 2,
+					requestUri : "ErhaOrder('1')/to_Item?$skip=0&$top=103&$inlinecount=allpages"
+						+ "&$filter=HierarchyParentNode eq '100'"
+				}, {
+					__count : "2",
+					results : [oNode200, oNode300]
+				})
+				.expectValue("itemName", ["bar", "baz"], 1);
+
+			oTable.expand(0);
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			oBinding = oTable.getBinding("rows");
+
+			that.expectRequest({
+					batchNo : 3,
+					method : "DELETE",
+					requestUri : "ErhaOrderItem(ErhaOrder='1',ErhaOrderItem='300')"
+				}, NO_CONTENT)
+				.expectValue("itemName", "", 2)
+				.expectRequest({
+					batchNo : 4,
+					requestUri : "ErhaOrder('1')/to_Item?$skip=0&$top=103&$inlinecount=allpages"
+						+ "&$filter=HierarchyDistanceFromRoot le 0"
+				}, {
+					__count : "1",
+					results : [oNode100]
+				})
+				.expectValue("itemName", "", 1); // binding gets refreshed, no restore tree state
+
+			// code under test: hierarchy change
+			oBinding.removeContext(oTable.getContextByIndex(2));
+			oBinding.submitChanges();
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			oTable = that.oView.byId("table");
+
+			that.expectRequest({
+					batchNo : 5,
+					requestUri : "ErhaOrder('1')/to_Item?$skip=0&$top=103&$inlinecount=allpages"
+						+ "&$filter=HierarchyParentNode eq '100'"
+				}, {
+					__count : "1",
+					results : [oNode200]
+				})
+				.expectValue("itemName", "bar", 1);
+
+			// manually expand the node again
+			oTable.expand(0);
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			that.expectValue("itemName", "bar: renamed", 1)
+				.expectRequest({
+					batchNo : 6,
+					data : {
+						__metadata : {uri : "ErhaOrderItem(ErhaOrder='1',ErhaOrderItem='200')"},
+						ErhaOrderItemName : "bar: renamed"
+					},
+					key : "ErhaOrderItem(ErhaOrder='1',ErhaOrderItem='200')",
+					method : "MERGE",
+					requestUri : "ErhaOrderItem(ErhaOrder='1',ErhaOrderItem='200')"
+				}, NO_CONTENT);
+
 				that.expectRequest({
 						batchNo : 7,
 						requestUri : "ErhaOrder('1')/to_Item?$skip=0&$top=103&$inlinecount=allpages"
@@ -17985,28 +18549,22 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 					})
 					// binding gets refreshed, no restore tree state
 					.expectValue("itemName", "", 1);
-			}
 
 			// code under test: property change
 			oModel.setProperty("ErhaOrderItemName", "bar: renamed", oTable.getContextByIndex(1));
-			fnSubmitChanges();
+			oBinding.submitChanges();
 
 			return that.waitForChanges(assert);
 		});
 	});
-});
 
 	//*********************************************************************************************
 	// Scenario: A table using ODataTreeBindingFlat with refreshAfterChange=true and
 	// restoreTreeStateAfterChange=false. After property / hierarchy changes have been submitted
-	// either via ODataModel#submitChanges or via ODataTreeBindingFlat#submitChanges the binding
-	// gets refreshed only once via <code>refreshAfterChange</code>.
+	// via ODataModel#submitChanges the binding gets refreshed only once via <code>refreshAfterChange</code>.
 	// JIRA: CPOUI5MODELS-970
-[false, true].forEach(function (bSubmitOnModel) {
-	var sTitle = "ODataTreeBindingFlat: " + (bSubmitOnModel ? "ODataModel" : "ODataTreeBindingFlat")
-			+ "#submitChanges for refreshAfterChange=true and restoreTreeStateAfterChange=false";
-
-	QUnit.test(sTitle, function (assert) {
+	QUnit.test("ODataTreeBindingFlat: ODataModel#submitChanges for refreshAfterChange=true and "
+			+ "restoreTreeStateAfterChange=false", function (assert) {
 		var oBinding, oTable,
 			oModel = createHierarchyMaintenanceModel({refreshAfterChange : true}),
 			oNode100 = {
@@ -18057,15 +18615,10 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			},\
 			path : \'/ErhaOrder(\\\'1\\\')/to_Item\'\
 		}"\
-		visibleRowCount="3"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="3">\
 	<Text id="itemName" text="{ErhaOrderItemName}" />\
 </t:TreeTable>',
 			that = this;
-
-		function fnSubmitChanges() {
-			(bSubmitOnModel ? oModel : oBinding).submitChanges();
-		}
 
 		this.expectHeadRequest()
 			.expectRequest({
@@ -18140,7 +18693,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			// code under test: hierarchy change
 			oBinding.removeContext(oMoveContext);
 			oBinding.addContexts(oParentContext, [oMoveContext]);
-			fnSubmitChanges();
+			oModel.submitChanges();
 
 			return that.waitForChanges(assert);
 		}).then(function () {
@@ -18185,12 +18738,11 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 
 			// code under test: property change
 			oModel.setProperty("ErhaOrderItemName", "bar: renamed", oTable.getContextByIndex(1));
-			fnSubmitChanges();
+			oModel.submitChanges();
 
 			return that.waitForChanges(assert);
 		});
 	});
-});
 
 	//*********************************************************************************************
 	// Scenario: It has to be possible to change a property with Edm.Time type to a different value
@@ -18327,8 +18879,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			},\
 			path : \'/ErhaOrder(\\\'1\\\')/to_Item\'\
 		}"\
-		visibleRowCount="4"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="4">\
 	<Text id="itemName" text="{ErhaOrderItemName}" />\
 </t:TreeTable>',
 			that = this;
@@ -18492,8 +19043,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			},\
 			path : \'/ErhaOrder(\\\'1\\\')/to_Item\'\
 		}"\
-		visibleRowCount="3"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="3">\
 	<Text id="itemName" text="{ErhaOrderItemName}" />\
 </t:TreeTable>',
 			that = this;
@@ -18627,8 +19177,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			},\
 			path : \'/ErhaOrder(\\\'1\\\')/to_Item\'\
 		}"\
-		visibleRowCount="2"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="2">\
 	<Text id="itemName" text="{ErhaOrderItemName}" />\
 </t:TreeTable>',
 			that = this;
@@ -18830,6 +19379,97 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			return that.waitForChanges(assert);
 		}).then(function () {
 			assert.deepEqual(aCreateActivateCalledBy, ["table after rebind"]);
+		});
+	});
+
+	//*********************************************************************************************
+	// Scenario: A table has an inactive created entity and a 'createActivate' event handler
+	// suppresses the activation until all conditions are fulfilled. After re-binding the table the
+	// activation is still only done if all conditions are fulfilled. Destroyed bindings don't
+	// influence the activation.
+	// BCP: 2380123522
+	QUnit.test("ODataListBinding: createActivate-event works with destroyed bindings", function (assert) {
+		var oBinding, oCreatedContext, oTable,
+			oModel = createSalesOrdersModel({defaultBindingMode: BindingMode.TwoWay, refreshAfterChange: false}),
+			sView = '\
+<t:Table id="table" rows="{/BusinessPartnerSet}" visibleRowCount="2">\
+	<Input id="company" value="{CompanyName}"/>\
+</t:Table>',
+			that = this;
+
+		function onCreateActivate(oEvent) {
+			assert.strictEqual(oEvent.getParameter("context"), oCreatedContext);
+			assert.strictEqual(oCreatedContext.isInactive(), true);
+			if (oCreatedContext.getObject("").CompanyName !== "SAP") {
+				oEvent.preventDefault();
+			}
+		}
+
+		this.expectHeadRequest()
+			.expectRequest("BusinessPartnerSet?$skip=0&$top=102", {results: []})
+			.expectValue("company", ["", ""]);
+
+		return this.createView(assert, sView, oModel).then(function () {
+			oTable = that.oView.byId("table");
+			oBinding = oTable.getBinding("rows");
+
+			that.expectValue("company", "Initial", 0);
+
+			// code under test: attach createActivate on initial binding; create inactive entity
+			oBinding.attachCreateActivate(onCreateActivate);
+			oCreatedContext = oBinding.create({CompanyName: "Initial"}, false, {inactive: true});
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			that.expectValue("company", "Foo", 0);
+
+			// code under test: change the value that prevents activation
+			oTable.getRows()[0].getCells()[0].setValue("Foo");
+			oModel.submitChanges();
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			that.expectRequest("BusinessPartnerSet?$skip=0&$top=102", {results: []});
+
+			// code under test: rebind table and attach event on new binding
+			oTable.bindRows(oTable.getBindingInfo("rows"));
+			oBinding = oTable.getBinding("rows");
+			oBinding.attachCreateActivate(onCreateActivate);
+			oModel.submitChanges();
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			that.expectValue("company", "Bar", 0);
+
+			// code under test: on new binding change value that still not activate the entry
+			oTable.getRows()[0].getCells()[0].setValue("Bar");
+			oModel.submitChanges();
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			that.expectRequest({
+					created: true,
+					data: {
+						__metadata: {type: "GWSAMPLE_BASIC.BusinessPartner"},
+						CompanyName: "SAP"
+					},
+					method: "POST",
+					requestUri: "BusinessPartnerSet"
+				}, {
+					data: {
+						__metadata: {uri: "BusinessPartnerSet('42')"},
+						BusinessPartnerID: "42",
+						CompanyName: "SAP"
+					},
+					statusCode: 201
+				})
+				.expectValue("company", "SAP", 0);
+
+			// code under test: change the value that activation is done
+			oTable.getRows()[0].getCells()[0].setValue("SAP");
+			oModel.submitChanges();
+
+			return that.waitForChanges(assert);
 		});
 	});
 
@@ -19813,8 +20453,7 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 				{path : \'CreatedByUser\', operator : \'EQ\', value1 : \'user1\'}\
 			]\
 		}"\
-		visibleRowCount="4"\
-		visibleRowCountMode="Fixed">\
+		visibleRowCount="4">\
 	<Text id="itemName" text="{ErhaOrderItemName}" />\
 </t:TreeTable>',
 			that = this;
@@ -20014,6 +20653,234 @@ ToProduct/ToSupplier/BusinessPartnerID\'}}">\
 			});
 
 			return that.waitForChanges(assert);
+		});
+	});
+
+	//*********************************************************************************************
+	// Scenario: If the server uses server side paging and the OData model uses "Client" mode all
+	// data is requested up to the model size limit.
+	// BCP: 2380127053
+[false, true].forEach(function (bShortRead) {
+	QUnit.test("OperationMode.Client: with server side paging, short read:" + bShortRead, function (assert) {
+		var oTable,
+			iDataReceived = 0,
+			iDataRequested = 0,
+			iExpectedSize = bShortRead ? 15 : 30,
+			oModel = createSalesOrdersModel({defaultOperationMode: "Client"}),
+			sView = '\
+<t:Table id="table">\
+	<Text id="note" text="{Note}"/>\
+</t:Table>',
+			that = this;
+
+		function dataRequested() {
+			iDataRequested += 1;
+		}
+		function dataReceived(oEvent) {
+			var oEventData = oEvent.getParameter("data");
+
+			iDataReceived += 1;
+			// responses are merged
+			assert.strictEqual(oEventData.results.length, iExpectedSize);
+			oEventData.results.forEach((oData, i) => {
+				assert.strictEqual(oData.Note, "SO" + (i + 1));
+			});
+			assert.strictEqual(oEventData.__count, "" + iExpectedSize);
+		}
+
+		oModel.setSizeLimit(30);
+
+		return this.createView(assert, sView, oModel).then(function () {
+			function createItems(iFrom, iLength) {
+				var i,
+					aItems = [];
+
+				for (i = 0; i < iLength; i += 1) {
+					aItems.push({
+						__metadata: {uri : "SalesOrderSet('" + iFrom + "')"},
+						Note: "SO" + iFrom,
+						SalesOrderID: "" + iFrom
+					});
+					iFrom += 1;
+				}
+
+				return aItems;
+			}
+
+			that.expectHeadRequest()
+				.expectRequest("SalesOrderSet", {
+					__next: "/sap/opu/odata/sap/ZUI5_GWSAMPLE_BASIC/SalesOrderSet?$skiptoken=3",
+					results: createItems(1, 3) // whitout $top server returns 3; in real maybe 100
+				})
+				.expectRequest("SalesOrderSet?$skip=3&$top=27", {
+					// if $top is given server limit is used; here 10, in real maybe 5000
+					__next: "/sap/opu/odata/sap/ZUI5_GWSAMPLE_BASIC/SalesOrderSet?$top=24$skiptoken=13",
+					results: createItems(4, 10)
+				})
+				.expectRequest("SalesOrderSet?$skip=13&$top=17", {
+					// no _next link, that means server returned all requestd entries; there may be
+					// more on the server but the amount of data exceeds the model size limit
+					results: createItems(14, bShortRead ? 2 : 17)
+				});
+
+			oTable = that.oView.byId("table");
+			// code under test - client mode reads all data
+			oTable.bindRows({
+					events: {
+						dataRequested: dataRequested,
+						dataReceived: dataReceived
+					},
+					filter: [new Filter("GrossAmount", FilterOperator.GT, 500)],
+					path: "/SalesOrderSet",
+					sorter: [new Sorter("CompanyCode", true)]
+				});
+
+			return that.waitForChanges(assert);
+		}).then(function () {
+			var oBinding = oTable.getBinding("rows");
+
+			assert.strictEqual(oBinding.getLength(), iExpectedSize);
+			assert.strictEqual(oBinding.getCount(), iExpectedSize);
+			assert.strictEqual(iDataRequested, 1);
+			assert.strictEqual(iDataReceived, 1);
+		});
+	});
+});
+
+	//*********************************************************************************************
+	// Scenario: Skip server cache for security tokens, so that two services running on different backends behind
+	// a reverse proxy can be consumed without a failing $batch due to a token for a different system taken from server
+	// cache.
+	// JIRA:CPOUI5MODELS-1381
+	QUnit.test("Skip server cache for security tokens", function (assert) {
+		const sView = '\
+<FlexBox binding="{/SalesOrderSet(\'1\')}">\
+	<Text id="id0" text="{SalesOrderID}" />\
+</FlexBox>\
+<FlexBox id="box1">\
+	<Text id="id1" text="{model1>ContactCardID}" />\
+</FlexBox>';
+
+		function checkServiceCache(aTokens) {
+			const oServiceCache = ODataModel.mSharedData.service;
+			assert.deepEqual(
+				Object.values(oServiceCache).map((oCacheEntry) => oCacheEntry.securityToken).sort(),
+				aTokens.sort());
+		}
+
+		function clearCaches() {
+			ODataModel.mSharedData.server = {};
+			ODataModel.mSharedData.service = {};
+		}
+
+		clearCaches(); // clear static caches on ODataModel to prevent effects from previous tests
+		// create model *after* clearing the caches as the token is lost otherwise
+		const oModel0 = createSalesOrdersModel({tokenHandling : "skipServerCache"});
+		this.expectRequest({
+				deepPath : "",
+				headers : {"x-csrf-token" : "Fetch"},
+				method : "HEAD",
+				requestUri : ""
+			}, {}, {"x-csrf-token" : "token0"})
+			.expectRequest("SalesOrderSet('1')", {
+				SalesOrderID : "1"
+			})
+			.expectValue("id0", "1");
+
+		// code under test
+		return this.createView(assert, sView, oModel0).then(() => {
+			checkServiceCache(["token0"]);
+
+			this.expectRequest({
+					deepPath : "",
+					headers : {"x-csrf-token" : "Fetch"},
+					method : "HEAD",
+					requestUri : "/special/cases/"
+				}, {}, {"x-csrf-token" : "token1"})
+				.expectRequest({
+					requestUri : "I_UserContactCard('ID')"
+				}, {
+					ContactCardID : "ID"
+				})
+				.expectValue("id1", "ID");
+
+			// code under test: request data for second service *after* security token for first has been retrieved
+			const oModel1 = createSpecialCasesModel({tokenHandling : "skipServerCache"});
+			this.oView.setModel(oModel1, "model1");
+			this.oView.byId("box1").bindElement("model1>/I_UserContactCard('ID')");
+
+			assert.deepEqual(ODataModel.mSharedData.server, {}, "server cache for tokens is empty");
+
+			return this.waitForChanges(assert);
+		}).then(() => {
+			checkServiceCache(["token0", "token1"]);
+		}).finally(clearCaches);
+	});
+	//*********************************************************************************************
+	// Scenario: For a table where transient entries have messages, the filter returned by requestFilterForMessages does
+	// not refer to these entries. For the BCP incident, check the case no item loaded from the backend has a message:
+	// the filter is null then.
+	// BCP: 2370088390
+	QUnit.test("Filter table where only transient items have messages", function (assert) {
+		let oCreatedContext, oRowsBinding;
+		const oModel = createSalesOrdersModel({preliminaryContext : true});
+		const sView = '\
+<t:Table id="table" rows="{/SalesOrderSet(\'1\')/ToLineItems}" visibleRowCount="2">\
+	<Input id="itemPosition" value="{ItemPosition}" />\
+	<Input id="note" value="{Note}" />\
+</t:Table>';
+
+		this.expectHeadRequest()
+			.expectRequest({
+				requestUri : "SalesOrderSet('1')/ToLineItems?$skip=0&$top=102"
+			}, {
+				results : [{
+					__metadata : {
+						uri : "SalesOrderLineItemSet(SalesOrderID='1',ItemPosition='10')"
+					},
+					Note : "Bar",
+					ItemPosition : "10",
+					SalesOrderID : "1"
+				}, {
+					__metadata : {
+						uri : "SalesOrderLineItemSet(SalesOrderID='1',ItemPosition='20')"
+					},
+					Note : "Baz",
+					ItemPosition : "20",
+					SalesOrderID : "1"
+				}]
+			})
+			.expectValue("itemPosition", ["10", "20"])
+			.expectValue("note", ["Bar", "Baz"]);
+
+		return this.createView(assert, sView, oModel).then(() => {
+			this.expectValue("itemPosition", ["", "10"])
+				.expectValue("note", ["Foo", "Bar"]);
+
+			// code under test
+			oRowsBinding = this.oView.byId("table").getBinding("rows");
+			oCreatedContext = oRowsBinding.create({Note : "Foo"}, /*bAtEnd*/ false, {inactive: true});
+
+			return this.waitForChanges(assert);
+		}).then(() => {
+			const oMessage = { // usually, this message occurs on activation
+				message: "Item position is required",
+				type: "Error",
+				target: oCreatedContext.getPath() + "/ItemPosition",
+				fullTarget: oCreatedContext.getDeepPath() + "/ItemPosition",
+				processor: oModel
+			};
+			this.expectMessages(oMessage);
+
+			// code under test
+			Messaging.addMessages(new Message(oMessage));
+
+			return Promise.all([
+				oRowsBinding.requestFilterForMessages(),
+				this.waitForChanges(assert)
+			]);
+		}).then((aResults) => {
+			assert.strictEqual(aResults[0], null, "no message filter, only transient item has message");
 		});
 	});
 });

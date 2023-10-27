@@ -36,6 +36,8 @@ sap.ui.define([
 	'sap/ui/core/date/CalendarUtils',
 	'sap/ui/core/Locale',
 	"sap/ui/core/date/UI5Date",
+	"sap/ui/events/KeyCodes",
+	'sap/m/Avatar',
 	'sap/m/Toolbar',
 	'sap/m/Table',
 	'sap/m/Column',
@@ -50,6 +52,7 @@ sap.ui.define([
 	'sap/m/library',
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
+	"sap/m/List",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/dom/jquery/control" // jQuery Plugin "control"
 ], function(
@@ -83,6 +86,8 @@ sap.ui.define([
 	CalendarDateUtils,
 	Locale,
 	UI5Date,
+	KeyCodes,
+	Avatar,
 	Toolbar,
 	Table,
 	Column,
@@ -97,6 +102,7 @@ sap.ui.define([
 	library,
 	deepEqual,
 	Log,
+	List,
 	jQuery
 ) {
 	"use strict";
@@ -133,6 +139,8 @@ sap.ui.define([
 
 	// shortcut for sap.ui.unified.CalendarAppointmentRoundWidth
 	var CalendarAppointmentRoundWidth = unifiedLibrary.CalendarAppointmentRoundWidth;
+
+	var AvatarShape = library.AvatarShape;
 
 	var DRAG_DROP_CONFIG_NAME = "DragDropConfig";
 	var RESIZE_CONFIG_NAME = "ResizeConfig";
@@ -195,7 +203,7 @@ sap.ui.define([
 	 * {@link sap.m.PlanningCalendarView PlanningCalendarView}'s properties.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @public
@@ -283,9 +291,10 @@ sap.ui.define([
 				 *
 				 * <b>Note:</b> On phone devices this property is ignored, appointments are always rendered in full height
 				 * to facilitate touching.
+				 * @deprecated Since version 1.119. Please use the <code>appointmentHeight</code> with value "Automatic" property instead.
 				 * @since 1.38.0
 				 */
-				appointmentsReducedHeight : {type : "boolean", group : "Appearance", defaultValue : false},
+				appointmentsReducedHeight : {type : "boolean", group : "Appearance", defaultValue : false, deprecated: true},
 
 				/**
 				 * Determines the different possible sizes for appointments.
@@ -416,7 +425,13 @@ sap.ui.define([
 				 *
 				 * @since 1.97
 				 */
-				multipleAppointmentsSelection : {type : "boolean", group : "Data", defaultValue : false}
+				multipleAppointmentsSelection : {type : "boolean", group : "Data", defaultValue : false},
+
+				/**
+				 * Defines the shape of the <code>Avatar</code>.
+				 */
+				iconShape: {type: "sap.m.AvatarShape", group: "Appearance", defaultValue: AvatarShape.Circle}
+
 			},
 			aggregations : {
 
@@ -570,6 +585,7 @@ sap.ui.define([
 				/**
 				 * Fires when a row header is clicked.
 				 * @since 1.46.0
+				 * @deprecated Since version 1.119
 				 */
 				rowHeaderClick: {
 					parameters : {
@@ -585,6 +601,27 @@ sap.ui.define([
 
 						/**
 						 * The row user clicked on.
+						 */
+						row : {type : "sap.m.PlanningCalendarRow"}
+					}
+				},
+				/**
+				 * Fires when a row header press is triggered with mouse click, SPACE or ENTER press.
+				 * @since 1.119.0
+				 */
+				rowHeaderPress: {
+					parameters : {
+
+						/**
+						 * The ID of the <code>PlanningCalendarRowHeader</code> of the selected appointment.
+						 *
+						 * <b>Note:</b> Intended to be used as an easy way to get an ID of a <code>PlanningCalendarRowHeader</code>. Do NOT use for modification.
+						 *
+						 */
+						headerId : {type : "string"},
+
+						/**
+						 * The row user pressed.
 						 */
 						row : {type : "sap.m.PlanningCalendarRow"}
 					}
@@ -777,17 +814,30 @@ sap.ui.define([
 
 		oTable.addDelegate({
 			onBeforeRendering: function () {
-				if (this._rowHeaderClickEvent) {
-					this._rowHeaderClickEvent.off();
+				if (this._rowHeaderPressEventMouse) {
+					this._rowHeaderPressEventMouse.off();
+				}
+				if (this._rowHeaderPressEventKeyboard) {
+					this._rowHeaderPressEventKeyboard.off();
 				}
 			},
 			onAfterRendering: function () {
-				this._rowHeaderClickEvent = oTable.$().find(".sapMPlanCalRowHead > div.sapMLIB").on("click", function (oEvent) {
+				this._rowHeaderPressEventMouse = oTable.$().find(".sapMPlanCalRowHead > div.sapMLIB").on("click", function (oEvent) {
 					var oRowHeader = Element.closestTo(oEvent.currentTarget),
 						oRow = getRow(oRowHeader.getParent()),
 						sRowHeaderId = oRowHeader.getId();
 
 					this.fireRowHeaderClick({headerId: sRowHeaderId, row: oRow});
+					this.fireRowHeaderPress({headerId: sRowHeaderId, row: oRow});
+				}.bind(this));
+				this._rowHeaderPressEventKeyboard = oTable.$().find(".sapMPlanCalRowHead").on("keydown", function (oEvent) {
+					if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
+						var oRowListItem = Element.closestTo(oEvent.currentTarget),
+							oRow = getRow(oRowListItem),
+							sRowHeaderId = oRowListItem.getAggregation("cells")[0].getId();
+
+						this.fireRowHeaderPress({headerId: sRowHeaderId, row: oRow});
+					}
 				}.bind(this));
 				this._adjustColumnHeadersTopOffset();
 			}
@@ -839,10 +889,16 @@ sap.ui.define([
 			this._oSelectAllCheckBox.destroy();
 		}
 
-		// Remove event listener for rowHeaderClick event
-		if (this._rowHeaderClickEvent) {
-			this._rowHeaderClickEvent.off();
-			this._rowHeaderClickEvent = null;
+		// Remove event listener for rowHeaderPress event
+		if (this._rowHeaderPressEventMouse) {
+			this._rowHeaderPressEventMouse.off();
+			this._rowHeaderPressEventMouse = null;
+		}
+
+		// Remove event listener for rowHeaderPress event
+		if (this._rowHeaderPressEventKeyboard) {
+			this._rowHeaderPressEventKeyboard.off();
+			this._rowHeaderPressEventKeyboard = null;
 		}
 	};
 
@@ -891,6 +947,19 @@ sap.ui.define([
 				}
 			}, this);
 		}
+
+		return this;
+	};
+
+	PlanningCalendar.prototype.setIconShape = function (sIconShape) {
+		this.setProperty("iconShape", sIconShape);
+
+		this.getRows().forEach(function (oRow) {
+			var oCurrentRowHeader = getRowHeader(oRow);
+			if (oCurrentRowHeader.getAvatar) {
+				oCurrentRowHeader.getAvatar().setDisplayShape(sIconShape);
+			}
+		});
 
 		return this;
 	};
@@ -961,20 +1030,11 @@ sap.ui.define([
 	 * @private
 	 */
 	PlanningCalendar.prototype._applyArrowsLogic = function(bBackwards) {
+
 		if (bBackwards) {
 			this._dateNav.previous(this._getPrimaryCalendarType());
 		} else {
 			this._dateNav.next(this._getPrimaryCalendarType());
-		}
-
-		if (this.getMinDate() && this._dateNav.getStart().getTime() <= this.getMinDate().getTime()) {
-			this._dateNav.setStart(this.getMinDate());
-			this._dateNav.setCurrent(this.getMinDate());
-		}
-
-		if (this.getMaxDate() && this._dateNav.getEnd().getTime() >= this.getMaxDate().getTime()) {
-			this._dateNav.setStart(this.getMaxDate());
-			this._dateNav.setCurrent(this.getMaxDate());
 		}
 
 		var oRow = this._getRowInstanceByViewKey(this.getViewKey());
@@ -1114,7 +1174,7 @@ sap.ui.define([
 		return { primaryType: sResult, secondaryType: sResultInSecType };
 	};
 
-    PlanningCalendar.prototype._getPrimaryCalendarType = function(){
+	PlanningCalendar.prototype._getPrimaryCalendarType = function(){
 		return this.getProperty("primaryCalendarType") || Configuration.getCalendarType();
 	};
 
@@ -1202,8 +1262,8 @@ sap.ui.define([
 	PlanningCalendar.prototype.getVisibleIntervalsCount = function () {
 		var sViewKey = this.getViewKey();
 		if ((sViewKey === CalendarIntervalType.OneMonth || sViewKey === "OneMonth") && this._iSize < 2) {
-			var oFirstVisibleDate = CalendarUtils.getFirstDateOfWeek(this.getStartDate()),
-				oFirstDateInLastWeek = CalendarUtils.getFirstDateOfWeek(this._dateNav.getEnd()),
+			var oFirstVisibleDate = CalendarUtils.getFirstDateOfWeek(CalendarUtils._createUniversalUTCDate(this.getStartDate(), this._getPrimaryCalendarType(), false)),
+				oFirstDateInLastWeek = CalendarUtils.getFirstDateOfWeek(CalendarUtils._createUniversalUTCDate(this._dateNav.getEnd(), this._getPrimaryCalendarType(), false)),
 				oLastVisibleDate = UI5Date.getInstance(oFirstDateInLastWeek.getTime());
 
 			oLastVisibleDate.setDate(oLastVisibleDate.getDate() + 6);
@@ -1307,6 +1367,7 @@ sap.ui.define([
 		}
 
 		this._adjustColumnHeadersTopOffset();
+		this._updateHeaderButtons();
 	};
 
 	PlanningCalendar.prototype.onThemeChanged = function() {
@@ -3632,6 +3693,9 @@ sap.ui.define([
 		oRowTimeline.setShowIntervalHeaders(this.getShowIntervalHeaders());
 		oRowTimeline.setShowEmptyIntervalHeaders(this.getShowEmptyIntervalHeaders());
 		oRowTimeline.setGroupAppointmentsMode(this.getGroupAppointmentsMode());
+		/**
+		 * @deprecated As of version 1.119
+		 */
 		oRowTimeline.setAppointmentsReducedHeight(this.getAppointmentsReducedHeight());
 		oRowTimeline.setAppointmentRoundWidth(this.getAppointmentRoundWidth());
 		oRowTimeline.setLegend(this.getLegend());
@@ -3691,6 +3755,7 @@ sap.ui.define([
 					} else {
 						oRowHeader.setProperty(oChanges.name, oChanges.current);
 					}
+					oRowHeader.getAvatar() && oRowHeader.getAvatar().setSrc(oChanges.current);
 				},
 				text: function (oChanges) {
 					// Large row style class
@@ -3779,13 +3844,18 @@ sap.ui.define([
 			oRowHeader = oRow._getPlanningCalendarCustomRowHeader();
 		} else {
 			oRowHeader = new PlanningCalendarRowHeader(oRow.getId() + "-Head", {
+				avatar: new Avatar({
+					src: oRow.getIcon(),
+					displayShape: this.getIconShape()
+				}),
 				icon : oRow.getIcon(),
 				description : oRow.getText(),
 				title : oRow.getTitle(),
 				tooltip : oRow.getTooltip(),
 				// set iconDensityAware to false (the default is true for the StandardListItem)
 				// in order to avoid multiple 404 requests for the applications that do not have these images
-				iconDensityAware: false
+				iconDensityAware: false,
+				iconInset: false
 			});
 		}
 
@@ -3810,9 +3880,13 @@ sap.ui.define([
 
 		oRowTimeline.setAssociation("row",  oRow.getId());
 
-		oListItem = new PlanningCalendarRowListItem(oRow.getId() + LISTITEM_SUFFIX, {
-			cells: [oRowHeader, oRowTimeline]
-		});
+		oListItem = oRowHeader.isA("sap.m.CustomListItem")
+			? new PlanningCalendarRowListItem(oRow.getId() + LISTITEM_SUFFIX, {
+				cells: [new List({items: [oRowHeader]}), oRowTimeline]
+			})
+			: new PlanningCalendarRowListItem(oRow.getId() + LISTITEM_SUFFIX, {
+				cells: [oRowHeader, oRowTimeline]
+			});
 
 		this._updateRowTimeline(oRow);
 

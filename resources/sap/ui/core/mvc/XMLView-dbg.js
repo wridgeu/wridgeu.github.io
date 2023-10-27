@@ -9,6 +9,7 @@ sap.ui.define([
 	"./View",
 	"./ViewType",
 	"./XMLViewRenderer",
+	"sap/base/config",
 	"sap/base/Log",
 	"sap/base/strings/hash",
 	"sap/base/util/LoaderExtensions",
@@ -30,6 +31,7 @@ sap.ui.define([
 		View,
 		ViewType,
 		XMLViewRenderer,
+		BaseConfig,
 		Log,
 		hash,
 		LoaderExtensions,
@@ -108,7 +110,7 @@ sap.ui.define([
 	 * bound content aggregation. An error will be thrown when the above combination is detected.
 	 *
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.XMLView
@@ -141,7 +143,19 @@ sap.ui.define([
 				/**
 				 * The processing mode of the XMLView.
 				 */
-				processingMode: { type: "sap.ui.core.mvc.XMLProcessingMode", visibility: "hidden" }
+				processingMode: { type: "sap.ui.core.mvc.XMLProcessingMode", visibility: "hidden" },
+
+				/**
+				 * legacy-relevant:
+				 *
+				 * A map containing references to modules loaded via a 'core:require' statement
+				 * in an XMLView.
+				 *
+				 * Only used for HTML embedded in an XMLView. This kind of HTML is processed synchronously only
+				 * and needs access to 'core:require' modules from outside.
+				 * Normally 'core:require' modules are NOT passed into nested Views and Fragments.
+				 */
+				requireContext : 'Object'
 			},
 
 			designtime: "sap/ui/core/designtime/mvc/XMLView.designtime"
@@ -283,7 +297,12 @@ sap.ui.define([
 	 * @private
 	 * @since 1.44
 	 */
-	XMLView._bUseCache = Configuration.getViewCache() && Cache._isSupportedEnvironment();
+	XMLView._bUseCache = BaseConfig.get({
+		name: "sapUiXxViewCache",
+		type: BaseConfig.Type.Boolean,
+		defaultValue: true,
+		external: true
+	}) && Cache._isSupportedEnvironment();
 
 	function validatexContent(xContent) {
 		if (xContent.parseError.errorCode !== 0) {

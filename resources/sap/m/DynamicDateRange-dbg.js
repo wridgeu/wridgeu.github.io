@@ -205,6 +205,21 @@ sap.ui.define([
 				"DATETIME"
 			];
 
+			var oDynamicDateRangeGroups = {
+
+				SingleDates: 1,
+
+				DateRanges: 2,
+
+				Weeks: 3,
+
+				Month: 4,
+
+				Quarters: 5,
+
+				Years: 6
+			};
+
 		/**
 		 * Constructor for a new DynamicDateRange.
 		 *
@@ -242,7 +257,7 @@ sap.ui.define([
 		 * is opened. The dialog is closed via a date time period value selection or by pressing the "Cancel" button.
 		 *
 		 * @author SAP SE
-		 * @version 1.116.0
+		 * @version 1.119.0
 		 *
 		 * @constructor
 		 * @public
@@ -428,8 +443,14 @@ sap.ui.define([
 					 * @since 1.111.0
 					 */
 
-					calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
+					calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
 
+					/**
+					 * Specifies whether clear icon is shown.
+					 * Pressing the icon will clear input's value and fire the liveChange event.
+					 * @since 1.117
+					 */
+					showClearIcon: { type: "boolean", defaultValue: false }
 				},
 				aggregations: {
 					/**
@@ -490,6 +511,7 @@ sap.ui.define([
 		var aNextOptions = ["NEXTMINUTES", "NEXTHOURS", "NEXTDAYS", "NEXTWEEKS", "NEXTMONTHS", "NEXTQUARTERS", "NEXTYEARS"];
 
 		DynamicDateRange.prototype.init = function() {
+			var bValueHelpDecorative = !Device.support.touch || Device.system.desktop ? true : false;
 			this._oInput = new DynamicDateRangeInput(this.getId() + "-input", {
 				showValueHelp: true,
 				valueHelpIconSrc: IconPool.getIconURI("sap-icon://check-availability"),
@@ -506,7 +528,7 @@ sap.ui.define([
 				}
 			};
 
-			this._oInput._getValueHelpIcon().setDecorative(false);
+			this._oInput._getValueHelpIcon().setDecorative(bValueHelpDecorative);
 
 			this._oInput.addDelegate(this._onBeforeInputRenderingDelegate, this);
 
@@ -567,6 +589,31 @@ sap.ui.define([
 		 DynamicDateRange.prototype.setFormatter = function(oFormatter) {
 			this.setProperty("formatter", oFormatter);
 
+			return this;
+		};
+
+		/**
+		 * Sets the tooltip for the <code>DynamicDateRange</code>.
+		 * @param {sap.ui.core.TooltipBase|string} vTooltip The tooltip that should be shown.
+		 * @returns {this} Reference to <code>this</code> for method chaining
+		 * @public
+		 * @override
+		 */
+		DynamicDateRange.prototype.setTooltip = function(vTooltip) {
+			this._oInput.setTooltip(vTooltip);
+			return Control.prototype.setTooltip.apply(this, arguments);
+		};
+
+		/**
+		 * Sets the showClearIcon for the <code>DynamicDateRange</code>.
+		 * @param {boolean} bShowClearIcon Whether to show clear icon.
+		 * @returns {this} Reference to <code>this</code> for method chaining
+		 * @public
+		 * @override
+		 */
+		DynamicDateRange.prototype.setShowClearIcon = function(bShowClearIcon) {
+			this.setProperty("showClearIcon", bShowClearIcon);
+			this._oInput.setShowClearIcon(bShowClearIcon);
 			return this;
 		};
 
@@ -801,6 +848,81 @@ sap.ui.define([
 		DynamicDateRange.prototype.toDates = function(oValue) {
 			var sKey = oValue.operator;
 			return this.getOption(sKey).toDates(oValue);
+		};
+
+		/**
+		 * Returns enumeration containing the current groups in <code>sap.m.DynamicDateRange</code>
+		 *
+		 * @private
+		 */
+		DynamicDateRange.prototype._getGroups = function() {
+			if (!this.oDynamicDateRangeGroups) {
+				this.oDynamicDateRangeGroups = JSON.parse(JSON.stringify(oDynamicDateRangeGroups)); // making a copy of the object to break the reference
+			}
+
+			return this.oDynamicDateRangeGroups;
+		};
+
+		/**
+		 * Returns the header of a custom group.
+		 *
+		 * @private
+		 */
+		DynamicDateRange.prototype._getCustomGroupHeader = function(sGroupName) {
+			var oGroup = this._customGroupHeaders.find( (x) => {
+				return x.name === sGroupName;
+			});
+
+			return oGroup.header;
+		};
+
+		/**
+		 * Adds a group to the enumeration containing the current groups in <code>sap.m.DynamicDateRange</code>
+		 * @param {string} sGroupName the name that the group will be selected by.
+		 * @param {string} sGroupHeader the group header that will be presented in the list.
+		 * @returns {void}
+		 * @public
+		 * @since 1.118
+		 */
+		DynamicDateRange.prototype.addGroup = function(sGroupName, sGroupHeader) {
+			this._getGroups()[sGroupName] = Object.keys(this._getGroups()).length + 1;
+
+			if (!this._customGroupHeaders) {
+				this._customGroupHeaders = [];
+			}
+
+			this._customGroupHeaders.push({
+				name: sGroupName,
+				header: sGroupHeader
+			});
+		};
+
+		/**
+		 * Sets a new header to an existing custom group.
+		 * @param {string} sGroupName the name that the group will be selected by.
+		 * @param {string} sGroupHeader the group header that will be presented in the list.
+		 * @returns {void}
+		 * @public
+		 */
+		 DynamicDateRange.prototype.setGroupHeader = function(sGroupName, sGroupHeader) {
+			this._customGroupHeaders.find((group) => group.name === sGroupName).header = sGroupHeader;
+		};
+
+		/**
+		 * Removes all additionally added groups
+		 * @returns {void}
+		 * @public
+		 */
+		DynamicDateRange.prototype.removeCustomGroups = function() {
+			const iCountOfStandardGroups = Object.keys(oDynamicDateRangeGroups).length;
+
+			for (const group in this._getGroups()) {
+				if (this._getGroups()[group] > iCountOfStandardGroups) {
+				  delete this._getGroups()[group];
+				}
+			}
+
+			delete this._customGroupHeaders;
 		};
 
 		/**
@@ -1148,17 +1270,18 @@ sap.ui.define([
 
 			// get the control options' metadata
 			var aOptions = aArray;
-
 			// sort by group
 			aOptions.sort(function(a, b) {
-				var iGroupDiff = a.getGroup() - b.getGroup();
+				var iGroupA = Number(a.getGroup()) ? a.getGroup() : this._getGroups()[a.getGroup()];
+				var iGroupB = Number(b.getGroup()) ? b.getGroup() : this._getGroups()[b.getGroup()];
+				var iGroupDiff = iGroupA - iGroupB;
 
 				if (iGroupDiff) {
 					return iGroupDiff;
 				}
 
 				return aStandardOptionsKeys.indexOf(a.getKey()) - aStandardOptionsKeys.indexOf(b.getKey());
-			});
+			}.bind(this));
 
 			if (bReduce) {
 				// for last x/next x options leave only the first of each, remove the rest
@@ -1186,9 +1309,14 @@ sap.ui.define([
 			}
 
 			if (this.getEnableGroupHeaders()) {
+
 				// insert a group header string before the options from each group
 				aOptions = aOptions.reduce(function(aResult, oCurrent) {
-					var sGroupHeader = oCurrent.getGroupHeader();
+					var iGroup = Number(oCurrent.getGroup()) ? oCurrent.getGroup() : this._getGroups()[oCurrent.getGroup()];
+					var sGroupName = Object.keys(this._getGroups()).find((key) => this._getGroups()[key] === iGroup);
+					var bGroupHasHeader = this._customGroupHeaders && this._customGroupHeaders.find((group) => group.name === sGroupName);
+					var sGroupHeader = bGroupHasHeader ? this.getGroupHeader(sGroupName) : oCurrent.getGroupHeader();
+
 					if (aGroupHeaders.indexOf(sGroupHeader) === -1) {
 						aGroupHeaders.push(sGroupHeader);
 						aResult.push(sGroupHeader);
@@ -1197,10 +1325,27 @@ sap.ui.define([
 					aResult.push(oCurrent);
 
 					return aResult;
-				}, []);
+				}.bind(this), []);
 			}
 
 			return aOptions;
+		};
+
+		/**
+		 * Provides the option's group header text.
+		 *
+		 * @returns {string} A group header
+		 * @public
+		 * @since 1.118
+		 */
+		 DynamicDateRange.prototype.getGroupHeader = function(sGroupName) {
+			var iGroupId = this._getGroups()[sGroupName];
+
+			if (iGroupId >= this._getGroups()["SingleDates"] && iGroupId <= this._getGroups()["Years"]) {
+				return oResourceBundle.getText("DDR_OPTIONS_GROUP_" + iGroupId);
+			}
+
+			return this._getCustomGroupHeader(sGroupName) ;
 		};
 
 		DynamicDateRange.prototype._createListItem = function(oOption) {
@@ -1785,6 +1930,10 @@ sap.ui.define([
 		DynamicDateRangeInputRenderer.apiVersion = 2;
 
 		DynamicDateRangeInputRenderer.writeInnerAttributes = function(oRm, oControl) {
+			if (oControl.getShowSuggestion() || oControl.getShowValueStateMessage()) {
+				oRm.attr("autocomplete", "off");
+			}
+
 			var oDynamicDateRange = oControl._getControlOrigin ? oControl._getControlOrigin() : null,
 				mAccAttributes = this.getAccessibilityState(oControl);
 
@@ -1824,8 +1973,9 @@ sap.ui.define([
 
 			mAccessibilityState.roledescription = oResourceBundle.getText("ACC_CTR_TYPE_DYNAMIC_DATE_RANGE");
 			mAccessibilityState.role = this.getAriaRole();
-			mAccessibilityState.haspopup = coreLibrary.aria.HasPopup.ListBox.toLowerCase();
-			mAccessibilityState.autocomplete = "list";
+			if (oControl.getEditable() && oControl.getEnabled()) {
+				mAccessibilityState.haspopup = coreLibrary.aria.HasPopup.ListBox.toLowerCase();
+			}
 			mAccessibilityState.controls = oDynamicDateRange._oPopup && oDynamicDateRange._oPopup.getDomRef() ?
 				oDynamicDateRange._oPopup.getDomRef().id : undefined;
 

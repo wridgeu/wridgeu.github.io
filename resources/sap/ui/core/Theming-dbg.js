@@ -10,7 +10,8 @@ sap.ui.define([
 	"sap/base/Eventing",
 	"sap/base/Log",
 	"sap/base/i18n/Localization",
-	"sap/base/util/deepEqual"
+	"sap/base/util/deepEqual",
+	"sap/ui/core/theming/ThemeHelper"
 ], function(
 	assert,
 	BaseConfig,
@@ -18,7 +19,8 @@ sap.ui.define([
 	Eventing,
 	Log,
 	Localization,
-	deepEqual
+	deepEqual,
+	ThemeHelper
 ) {
 	"use strict";
 
@@ -31,8 +33,8 @@ sap.ui.define([
 	 *
 	 * @alias module:sap/ui/core/Theming
 	 * @namespace
-	 * @private
-	 * @ui5-restricted sap.ui.core
+	 * @public
+	 * @since 1.118
 	 */
 	var Theming = {
 		/**
@@ -48,11 +50,19 @@ sap.ui.define([
 				defaultValue: oWritableConfig.get({
 					name: "sapUiTheme",
 					type: oWritableConfig.Type.String,
-					defaultValue: "base",
 					external: true
 				}),
 				external: true
 			});
+
+			// Empty string is a valid value wrt. the <String> type.
+			// An empty string is equivalent to "no theme given" here.
+			// We apply the default, but also automatically detect the dark mode.
+			if (sTheme === "") {
+				const mDefaultThemeInfo = ThemeHelper.getDefaultThemeInfo();
+				sTheme = `${mDefaultThemeInfo.DEFAULT_THEME}${mDefaultThemeInfo.DARK_MODE ? "_dark" : ""}`;
+			}
+
 			// It's only possible to provide a themeroot via theme parameter using
 			// the initial config provider such as Global-, Bootstrap-, Meta- and
 			// URLConfigurationProvider. The themeroot is also only validated against
@@ -65,7 +75,11 @@ sap.ui.define([
 					Theming.setThemeRoot(sTheme, sThemeRoot);
 				}
 			}
-			return normalizeTheme(sTheme, Theming.getThemeRoot(sTheme));
+
+			// validate theme and fallback to the fixed default, in case the configured theme is not valid
+			sTheme = ThemeHelper.validateAndFallbackTheme(sTheme, Theming.getThemeRoot(sTheme));
+
+			return sTheme;
 		},
 
 		/**
@@ -79,6 +93,7 @@ sap.ui.define([
 				if (sTheme.indexOf("@") !== -1) {
 					throw new TypeError("Providing a theme root as part of the theme parameter is not allowed.");
 				}
+
 				var bFireChange = !mChanges;
 				mChanges = mChanges || {};
 				var sOldTheme = Theming.getTheme();
@@ -101,19 +116,6 @@ sap.ui.define([
 				}
 			}
 			return this;
-		},
-
-		/**
-		 * Returns true, if the styles of the current theme are already applied, false otherwise.
-		 *
-		 * If the styles are not yet applied a theme changed event will follow when the styles will be applied.
-		 *
-		 * @return {boolean} whether the styles of the current theme are already applied
-		 * @private
-		 * @ui5-restricted sap.ui.core.Core
-		 */
-		isApplied: function() {
-			return !oThemeManager || oThemeManager.themeLoaded;
 		},
 
 		/**
@@ -148,8 +150,8 @@ sap.ui.define([
 		 *
 		 * Example:
 		 * <pre>
-		 *   sap.ui.getCore().setThemeRoot("my_theme", "https://mythemeserver.com/allThemes");
-		 *   sap.ui.getCore().applyTheme("my_theme");
+		 *   Theming.setThemeRoot("my_theme", "https://mythemeserver.com/allThemes");
+		 *   Theming.setTheme("my_theme");
 		 * </pre>
 		 *
 		 * will cause the following file to be loaded (assuming that the bootstrap is configured to load
@@ -165,7 +167,7 @@ sap.ui.define([
 		 * different location than the UI5 resources), you can also specify for which control libraries the setting
 		 * should be used, by giving an array with the names of the respective control libraries as second parameter:
 		 * <pre>
-		 *   sap.ui.getCore().setThemeRoot("sap_belize", ["my.own.library"], "https://mythemeserver.com/allThemes");
+		 *   Theming.setThemeRoot("sap_belize", ["my.own.library"], "https://mythemeserver.com/allThemes");
 		 * </pre>
 		 *
 		 * This will cause the Belize theme to be loaded from the UI5 location for all standard libraries.
@@ -180,7 +182,7 @@ sap.ui.define([
 		 *
 		 * If the custom theme should be loaded initially (via bootstrap attribute), the <code>themeRoots</code>
 		 * property of the <code>window["sap-ui-config"]</code> object must be used instead of calling
-		 * <code>sap.ui.getCore().setThemeRoot(...)</code> in order to configure the theme location early enough.
+		 * <code>Theming.setThemeRoot(...)</code> in order to configure the theme location early enough.
 		 *
 		 * @param {string} sThemeName Name of the theme for which to configure the location
 		 * @param {string} sThemeBaseUrl Base URL below which the CSS file(s) will be loaded from
@@ -198,12 +200,13 @@ sap.ui.define([
 
 			var oThemeRootConfigParam = {
 				name: "sapUiThemeRoots",
-				type: oWritableConfig.Type.Object,
-				defaultValue: {}
+				type: oWritableConfig.Type.Object
 			};
+
 			// Use get twice, for a deep copy of themeRoots object
-			var mOldThemeRoots = oWritableConfig.get(oThemeRootConfigParam);
-			var mNewThemeRoots = oWritableConfig.get(oThemeRootConfigParam);
+			// we add a new default "empty object" with each call, so we don't accidentally share it
+			var mOldThemeRoots = oWritableConfig.get(Object.assign(oThemeRootConfigParam, {defaultValue: {}}));
+			var mNewThemeRoots = oWritableConfig.get(Object.assign(oThemeRootConfigParam, {defaultValue: {}}));
 
 			// normalize parameters
 			if (typeof aLibraryNames === "boolean") {
@@ -265,9 +268,9 @@ sap.ui.define([
 		 *       has been applied for it</li>
 		 * </ul>
 		 *
-		 * @name sap.ui.core.Theming#applied
+		 * @name module:sap/ui/core/Theming.applied
 		 * @event
-		 * @param {sap.base.Event} oEvent
+		 * @param {module:sap/base/Event} oEvent
 		 * @param {sap.ui.base.EventProvider} oEvent.target
 		 * @param {string} oEvent.theme Theme name
 		 * @public
@@ -276,6 +279,9 @@ sap.ui.define([
 		/**
 		 * Attaches event handler <code>fnFunction</code> to the {@link #event:applied applied} event
 		 *
+		 * The given handler is called when the the applied event is fired. If the theme is already applied
+		 * the handler will be called immediately.
+		 *
 		 * @param {function} fnFunction The function to be called, when the event occurs
 		 * @private
 		 * @ui5-restricted sap.ui.core.Core
@@ -283,14 +289,22 @@ sap.ui.define([
 		attachAppliedOnce: function(fnFunction) {
 			var sId = "applied";
 			if (oThemeManager) {
-				Theming.attachEventOnce(sId, fnFunction);
+				if (oThemeManager.themeLoaded) {
+					fnFunction.call(Theming, new BaseEvent(sId, Theming, {theme: Theming.getTheme()}));
+				} else {
+					Theming.attachEventOnce(sId, fnFunction);
+				}
 			} else {
 				fnFunction.call(Theming, new BaseEvent(sId, Theming, {theme: Theming.getTheme()}));
 			}
 		},
 
 		/**
-		 * Attaches event handler <code>fnFunction</code> to the {@link #event:applied applied} event
+		 * Attaches event handler <code>fnFunction</code> to the {@link #event:applied applied} event.
+		 *
+		 * The given handler is called when the the applied event is fired. If the theme is already applied
+		 * the handler will be called immediately. The handler stays attached to the applied event for future
+		 * theme changes.
 		 *
 		 * @param {function} fnFunction The function to be called, when the event occurs
 		 * @public
@@ -298,10 +312,15 @@ sap.ui.define([
 		attachApplied: function(fnFunction) {
 			var sId = "applied";
 			Theming.attachEvent(sId, fnFunction);
-			if (!oThemeManager) {
+			if (oThemeManager) {
+				if (oThemeManager.themeLoaded) {
+					fnFunction.call(Theming, new BaseEvent(sId, Theming, {theme: Theming.getTheme()}));
+				}
+			} else {
 				fnFunction.call(Theming, new BaseEvent(sId, Theming, {theme: Theming.getTheme()}));
 			}
 		},
+
 		/**
 		 * Detaches event handler <code>fnFunction</code> from the {@link #event:applied applied} event
 		 *
@@ -319,11 +338,11 @@ sap.ui.define([
 		 *
 		 * @name module:sap/ui/core/Theming.change
 		 * @event
-		 * @param {sap.base.Event} oEvent
+		 * @param {module:sap/base/Event} oEvent
 		 * @param {sap.ui.base.EventProvider} oEvent.target
 		 * @param {object} oEvent.theme theme object
-		 * @param {object} oEvent.theme.new new theme name
-		 * @param {object} oEvent.theme.old old theme name
+		 * @param {string} oEvent.theme.new new theme name
+		 * @param {string} oEvent.theme.old old theme name
 		 * @param {object} oEvent.themeroots themeroots object
 		 * @param {object} oEvent.themeroots.new new themeroots
 		 * @param {object} oEvent.themeroots.old old themeroots
@@ -354,12 +373,67 @@ sap.ui.define([
 			Theming.detachEvent("change", fnFunction);
 		},
 
+		/**
+		 * Fired when a scope class has been added or removed on a control/element
+		 * by using the custom style class API <code>addStyleClass</code>,
+		 * <code>removeStyleClass</code> or <code>toggleStyleClass</code>.
+		 *
+		 * Scope classes are defined by the library theme parameters coming from the
+		 * current theme.
+		 *
+		 * <b>Note:</b> The event will only be fired after the
+		 * <code>sap.ui.core.theming.Parameters</code> module has been loaded.
+		 * By default this is not the case.
+		 *
+		 * @name module:sap/ui/core/Theming.themeScopingChanged
+		 * @event
+		 * @param {module:sap/base/Event} oEvent
+		 * @param {string[]} oEvent.scopes Array of the CSS scope classes
+		 * @param {boolean} oEvent.added Whether the class has been added or removed
+		 * @param {sap.ui.core.Element} oEvent.element Element instance on which the scope change happened
+		 * @private
+		 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+		 */
+
+		/**
+		 * Attaches the <code>fnFunction</code> event handler to the {@link #event:themeScopingChanged change} event
+		 * of <code>sap.ui.core.Theming</code>.
+		 *
+		 * @param {function} fnFunction The function to be called when the event occurs
+		 * @private
+		 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+		 */
+		attachThemeScopingChanged: function(fnFunction) {
+			Theming.attachEvent("themeScopingChanged", fnFunction);
+		},
+
+		/**
+		 * Detaches event handler <code>fnFunction</code> from the {@link #event:themeScopingChanged change} event of
+		 * this <code>sap.ui.core.Theming</code>.
+		 *
+		 * @param {function} fnFunction Function to be called when the event occurs
+		 * @private
+		 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+		 */
+		detachThemeScopingChanged: function(fnFunction) {
+			Theming.detachEvent("themeScopingChanged", fnFunction);
+		},
+
+		/**
+		 * Fire themeScopingChanged event.
+		 *
+		 * @param {function} fnFunction Function to be called when the event occurs
+		 * @private
+		 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+		 */
+		fireThemeScopingChanged: function(mParameters) {
+			Theming.fireEvent("themeScopingChanged", mParameters);
+		},
 
 		/**
 		 * Notify content density changes
 		 *
-		 * @private
-		 * @ui5-restricted sap.ui.core.Core
+		 * @public
 		 */
 		notifyContentDensityChanged: function() {
 			fireApplied({theme: Theming.getTheme()});
@@ -372,7 +446,7 @@ sap.ui.define([
 		*/
 		registerThemeManager: function(oManager) {
 			oThemeManager = oManager;
-			oThemeManager.attachEvent("ThemeChanged", function(oEvent) {
+			oThemeManager.attachEvent("applied", function(oEvent) {
 				fireApplied(BaseEvent.getParameters(oEvent));
 			});
 			// handle RTL changes
@@ -437,13 +511,6 @@ sap.ui.define([
 		} catch (e) {
 			// malformed URL are also not accepted
 		}
-	}
-
-	function normalizeTheme(sTheme, sThemeBaseUrl) {
-		if ( sTheme && sThemeBaseUrl == null && sTheme.match(/^sap_corbu$/i) ) {
-			return "sap_fiori_3";
-		}
-		return sTheme;
 	}
 
 	Eventing.apply(Theming);

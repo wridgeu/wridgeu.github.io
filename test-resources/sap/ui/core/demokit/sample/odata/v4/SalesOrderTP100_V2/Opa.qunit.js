@@ -5,16 +5,18 @@
  */
 QUnit.config.autostart = false;
 
-sap.ui.getCore().attachInit(function () {
+sap.ui.require([
+	"sap/ui/core/Core",
+	"sap/ui/core/sample/common/Helper",
+	"sap/ui/core/sample/common/pages/Any",
+	"sap/ui/core/sample/odata/v4/SalesOrderTP100_V2/pages/Main",
+	"sap/base/Log",
+	"sap/ui/test/opaQunit",
+	"sap/ui/core/sample/odata/v4/SalesOrderTP100_V2/SandboxModel" // preload only
+], function (Core, Helper, Any, Main, Log, opaTest) {
 	"use strict";
 
-	sap.ui.require([
-		"sap/ui/core/sample/common/Helper",
-		"sap/ui/core/sample/common/pages/Any",
-		"sap/ui/core/sample/odata/v4/SalesOrderTP100_V2/pages/Main",
-		"sap/base/Log",
-		"sap/ui/test/opaQunit"
-	], function (Helper, Any, Main, Log, opaTest) {
+	Core.ready().then(function () {
 		Helper.qUnitModule("sap.ui.core.sample.odata.v4.SalesOrderTP100_V2");
 
 		//*****************************************************************************
@@ -45,6 +47,7 @@ sap.ui.getCore().attachInit(function () {
 					name : "sap.ui.core.sample.odata.v4.SalesOrderTP100_V2"
 				}
 			});
+			Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 			When.onTheMainPage.pressMoreButton("SalesOrders");
 			When.onTheMainPage.selectSalesOrder(1);
@@ -52,7 +55,6 @@ sap.ui.getCore().attachInit(function () {
 
 			Then.onAnyPage.checkLog(aExpectedLogs);
 			Then.onAnyPage.analyzeSupportAssistant();
-			Then.iTeardownMyUIComponent();
 		});
 
 		QUnit.start();

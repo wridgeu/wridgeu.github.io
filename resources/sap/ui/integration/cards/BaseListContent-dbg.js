@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @private
@@ -115,12 +115,7 @@ sap.ui.define([
 			return;
 		}
 
-		if (this.getInnerList().getItems) {
-			iNumberOfItems = this.getInnerList().getItems().length; // for the List and Table cards
-		} else {
-			iNumberOfItems = this.getInnerList().getContent().length; // for the Timeline card
-		}
-
+		iNumberOfItems = this.getItemsLength();
 		iNewMinItems = Math.max(oLoadingPlaceholder.getMinItems(), iNumberOfItems);
 		oLoadingPlaceholder.setMinItems(iNewMinItems);
 	};
@@ -163,6 +158,14 @@ sap.ui.define([
 	 */
 	BaseListContent.prototype.getInnerList = function () {
 		return null;
+	};
+
+	/**
+	 * @protected
+	 * @returns {int} Number of items
+	 */
+	BaseListContent.prototype.getItemsLength = function () {
+		return 0;
 	};
 
 	/**

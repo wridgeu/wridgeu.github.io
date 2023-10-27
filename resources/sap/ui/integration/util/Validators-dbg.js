@@ -11,7 +11,7 @@ sap.ui.define([], function () {
 	 * Utility class helping with input validations.
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.Validators

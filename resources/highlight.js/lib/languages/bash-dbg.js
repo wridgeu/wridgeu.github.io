@@ -62,14 +62,15 @@ sap.ui.define((function () { 'use strict';
     };
     SUBST.contains.push(QUOTE_STRING);
     const ESCAPED_QUOTE = {
-      className: '',
-      begin: /\\"/
-
+      match: /\\"/
     };
     const APOS_STRING = {
       className: 'string',
       begin: /'/,
       end: /'/
+    };
+    const ESCAPED_APOS = {
+      match: /\\'/
     };
     const ARITHMETIC = {
       begin: /\$?\(\(/,
@@ -383,6 +384,7 @@ sap.ui.define((function () { 'use strict';
         QUOTE_STRING,
         ESCAPED_QUOTE,
         APOS_STRING,
+        ESCAPED_APOS,
         VAR
       ]
     };
@@ -390,7 +392,7 @@ sap.ui.define((function () { 'use strict';
 
   var bash_1 = bash;
 
-  Object.defineProperty(bash_1, "__" + "esModule", { value: true });
+  try { Object.defineProperty(bash_1, "__" + "esModule", { value: true }); } catch (ex) {}
 
   return bash_1;
 

@@ -4,17 +4,20 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 QUnit.config.autostart = false;
-sap.ui.getCore().attachInit(function () {
+
+sap.ui.require([
+	"sap/ui/core/Core",
+	"sap/ui/core/sample/common/Helper",
+	"sap/ui/core/sample/common/pages/Any",
+	"sap/ui/core/sample/odata/v4/DeepCreate/pages/Main",
+	"sap/ui/test/Opa",
+	"sap/ui/test/opaQunit",
+	"sap/ui/test/TestUtils",
+	"sap/ui/core/sample/odata/v4/DeepCreate/SandboxModel" // preload only
+], function (Core, Helper, Any, Main, Opa, opaTest, TestUtils) {
 	"use strict";
 
-	sap.ui.require([
-		"sap/ui/core/sample/common/Helper",
-		"sap/ui/core/sample/common/pages/Any",
-		"sap/ui/core/sample/odata/v4/DeepCreate/pages/Main",
-		"sap/ui/test/Opa",
-		"sap/ui/test/opaQunit",
-		"sap/ui/test/TestUtils"
-	], function (Helper, Any, Main, Opa, opaTest, TestUtils) {
+	Core.ready().then(function () {
 		Helper.qUnitModule("sap.ui.core.sample.odata.v4.DeepCreate");
 
 		//*****************************************************************************
@@ -28,6 +31,7 @@ sap.ui.getCore().attachInit(function () {
 					name : "sap.ui.core.sample.odata.v4.DeepCreate"
 				}
 			});
+			Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 			Opa.getContext().sViewName = "sap.ui.core.sample.odata.v4.DeepCreate.ObjectPage";
 
@@ -63,7 +67,6 @@ sap.ui.getCore().attachInit(function () {
 			When.onAnyPage.cleanUp("SO_2_SOITEM");
 			Then.onAnyPage.checkLog();
 			Then.onAnyPage.analyzeSupportAssistant();
-			Then.iTeardownMyUIComponent();
 		});
 
 		QUnit.start();

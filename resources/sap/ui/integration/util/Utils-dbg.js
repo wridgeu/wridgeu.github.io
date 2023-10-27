@@ -5,14 +5,14 @@
  */
 
 sap.ui.define([
-	"sap/ui/core/Core",
+	"sap/ui/core/getCompatibilityVersion",
 	"sap/ui/core/Locale",
 	"sap/base/strings/formatMessage",
 	'sap/base/util/isPlainObject',
 	"sap/base/Log",
 	"sap/ui/core/date/UI5Date"
 ], function (
-	Core,
+	getCompatibilityVersion,
 	Locale,
 	formatMessage,
 	isPlainObject,
@@ -25,7 +25,7 @@ sap.ui.define([
 	 * Utility class helping with JSON strings and formatters.
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.Utils
@@ -213,7 +213,7 @@ sap.ui.define([
 
 	Utils.isBindingSyntaxComplex = function () {
 		if (Utils._isBindingSyntaxComplex === undefined) {
-			Utils._isBindingSyntaxComplex = Core.getConfiguration().getCompatibilityVersion("sapCoreBindingSyntax").compareTo("1.26") >= 0;
+			Utils._isBindingSyntaxComplex = getCompatibilityVersion("sapCoreBindingSyntax").compareTo("1.26") >= 0;
 		}
 
 		return Utils._isBindingSyntaxComplex;

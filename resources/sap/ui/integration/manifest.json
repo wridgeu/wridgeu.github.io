@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.116.0"
+      "version": "1.119.0"
     },
     "title": "SAPUI5 library with integration-related controls.",
     "description": "SAPUI5 library with integration-related controls.",
@@ -36,7 +36,7 @@
       {
         "name": "markdown-it",
         "packagedWithMySelf": true,
-        "version": "12.2.0"
+        "version": "12.3.2"
       },
       {
         "name": "@cfworker/json-schema",
@@ -54,22 +54,22 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.116",
+      "minUI5Version": "1.119",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.116.0"
+          "minVersion": "1.119.0"
         },
         "sap.f": {
-          "minVersion": "1.116.0"
+          "minVersion": "1.119.0"
         },
         "sap.m": {
-          "minVersion": "1.116.0"
+          "minVersion": "1.119.0"
         },
         "sap.ui.unified": {
-          "minVersion": "1.116.0"
+          "minVersion": "1.119.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.116.0"
+          "minVersion": "1.119.0"
         }
       }
     },
@@ -147,6 +147,7 @@
           "sap.ui.integration.CardDataMode",
           "sap.ui.integration.CardMenuAction",
           "sap.ui.integration.CardDesign",
+          "sap.ui.integration.CardDisplayVariant",
           "sap.ui.integration.CardBlockingMessageType"
         ],
         "interfaces": []

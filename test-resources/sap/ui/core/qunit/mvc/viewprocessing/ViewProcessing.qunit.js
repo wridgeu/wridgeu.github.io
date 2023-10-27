@@ -1,21 +1,17 @@
 /*global QUnit, sinon */
 sap.ui.define([
-	"sap/ui/model/json/JSONModel",
-	"sap/ui/core/mvc/View",
 	"sap/ui/core/mvc/Controller",
-	"sap/ui/core/UIArea",
 	"sap/ui/core/UIComponent",
 	'sap/ui/core/Component',
-	'sap/ui/core/ComponentContainer',
-	"sap/m/Label",
+	"sap/ui/core/Element",
 	"sap/m/Panel",
 	"sap/m/HBox",
 	'sap/ui/core/qunit/mvc/viewprocessing/MyGlobal',
 	'sap/ui/base/SyncPromise',
 	"sap/ui/core/mvc/XMLView",
-	"sap/ui/core/mvc/XMLProcessingMode",
-	"sap/ui/core/StashedControlSupport"
-], function(JSONModel, View, Controller, UIArea, UIComponent, Component, ComponentContainer, Label, Panel, HBox, MyGlobal, SyncPromise, XMLView, XMLProcessingMode, StashedControlSupport) {
+	"sap/ui/core/StashedControlSupport",
+	"sap/ui/qunit/utils/nextUIUpdate"
+], function(Controller, UIComponent, Component, Element, Panel, HBox, MyGlobal, SyncPromise, XMLView, StashedControlSupport, nextUIUpdate) {
 
 	"use strict";
 
@@ -96,10 +92,10 @@ sap.ui.define([
 				});
 				this.viewFactory = testViewFactoryFn();
 				this._cleanup = [];
-				this.renderSync = function(ctrl) {
+				this.render = async function(ctrl) {
 					this._cleanup.push(ctrl);
 					ctrl.placeAt("content");
-					sap.ui.getCore().applyChanges();
+					await nextUIUpdate();
 				};
 
 				// create fake server for extension point manifests
@@ -133,8 +129,8 @@ sap.ui.define([
 			// view
 			var pView = this.viewFactory("myViewSimpleAggrs", "sap.ui.core.qunit.mvc.viewprocessing.ViewProcessingSimpleAggregations");
 
-			return pView.then(function(oView) {
-				this.renderSync(
+			return pView.then(async function(oView) {
+				await this.render(
 					new HBox({
 						renderType: "Bare",
 						items: pView
@@ -170,8 +166,8 @@ sap.ui.define([
 			// view
 			var pView = this.viewFactory("myViewAggrs", "sap.ui.core.qunit.mvc.viewprocessing.ViewProcessingManyAggregations");
 
-			return pView.then(function(oView) {
-				this.renderSync(
+			return pView.then(async function(oView) {
+				await this.render(
 					new HBox({
 						renderType: "Bare",
 						items: oView
@@ -232,8 +228,8 @@ sap.ui.define([
 				return oCtrl.getText();
 			};
 
-			return pView.then(function(oView) {
-				this.renderSync(
+			return pView.then(async function(oView) {
+				await this.render(
 					new HBox({
 						renderType: "Bare",
 						items: oView
@@ -286,8 +282,8 @@ sap.ui.define([
 				// view
 				var pView = this.viewFactory("myViewWithController", "sap.ui.core.qunit.mvc.viewprocessing.ViewProcessing", oController);
 
-				pView.then(function (oView) {
-					this.renderSync(
+				pView.then(async function (oView) {
+					await this.render(
 						new HBox({
 							renderType: "Bare",
 							items: oView
@@ -312,8 +308,8 @@ sap.ui.define([
 			// view
 			var pView = this.viewFactory("myViewBadControl", "sap.ui.core.qunit.mvc.viewprocessing.ViewProcessingBadControl");
 
-			return pView.then(function(oView) {
-				this.renderSync(oView);
+			return pView.then(async function(oView) {
+				await this.render(oView);
 
 				var myBadControl = oView.byId("myBadControl");
 				assert.ok(myBadControl, "BadControl is present within view");
@@ -501,7 +497,7 @@ sap.ui.define([
 					assert.strictEqual(oOwnerComponent.getId(), oComponent.getId(), "Stashed Panel should have owner component");
 				}
 
-				var oStashedPanel = sap.ui.getCore().byId(oView.createId("panel"));
+				var oStashedPanel = Element.getElementById(oView.createId("panel"));
 				oOwnerComponent = Component.getOwnerComponentFor(oStashedPanel);
 				assert.ok(oOwnerComponent, "Owner Component for StashedControl of panel can be found");
 				if (oOwnerComponent) {
@@ -538,7 +534,7 @@ sap.ui.define([
 				assert.ok(oRealPanel.isA("sap.m.Panel"), "The real panel instance is created after unstash");
 
 				// check for additional stashed control inside the now unstashed panel
-				oStashedControlForButtonInPanel = sap.ui.getCore().byId(oView.createId("stashedButton"));
+				oStashedControlForButtonInPanel = Element.getElementById(oView.createId("stashedButton"));
 				oNormalButtonInStashedParent = oView.byId("normalButtonInStashedParent");
 
 				assert.ok(oStashedControlForButtonInPanel, "Stashed button in stashed area is created");

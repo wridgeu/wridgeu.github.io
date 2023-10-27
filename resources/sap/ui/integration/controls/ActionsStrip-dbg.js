@@ -34,6 +34,7 @@ sap.ui.define([
 	"use strict";
 
 	var ToolbarStyle = mLibrary.ToolbarStyle;
+	var ToolbarDesign = mLibrary.ToolbarDesign;
 
 	var ActionArea = library.CardActionArea;
 
@@ -48,7 +49,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @private
@@ -102,7 +103,8 @@ sap.ui.define([
 		var oToolbar = this.getAggregation("_toolbar");
 		if (!oToolbar) {
 			oToolbar = new OverflowToolbar({
-				style: ToolbarStyle.Clear
+				style: ToolbarStyle.Clear,
+				design: ToolbarDesign.Transparent
 			});
 			this.setAggregation("_toolbar", oToolbar);
 		}

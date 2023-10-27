@@ -40,7 +40,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.116.0
+		 * @version 1.119.0
 		 *
 		 * @public
 		 * @since 1.92
@@ -259,7 +259,7 @@ sap.ui.define([
 		 * 5 - Quarters
 		 * 6 - Years
 		 *
-		 * @returns {int} A group index
+		 * @returns { int | string} A group key from {@link sap.m.DynamicDateRangeGroups}
 		 * @public
 		 */
 		DynamicDateOption.prototype.getGroup = function() {
@@ -521,7 +521,7 @@ sap.ui.define([
 
 			oDate.setDate(1);
 			oDate.setMonth(iMonth);
-			oDate.setYear(iYear);
+			oDate.setFullYear(iYear);
 			oControl.addSelectedDate(new DateRange({
 				startDate: oDate
 			}));

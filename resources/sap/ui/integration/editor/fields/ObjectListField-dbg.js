@@ -11,7 +11,8 @@ sap.ui.define([
 	"sap/m/CheckBox",
 	"sap/base/util/deepEqual",
 	"sap/base/util/deepClone",
-	"sap/ui/integration/util/Utils"
+	"sap/ui/integration/util/Utils",
+	"sap/m/table/columnmenu/Menu"
 ], function (
 	ObjectField,
 	JSONModel,
@@ -19,7 +20,8 @@ sap.ui.define([
 	CheckBox,
 	deepEqual,
 	deepClone,
-	Utils
+	Utils,
+	Menu
 ) {
 	"use strict";
 
@@ -29,7 +31,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.ObjectListField
 	 * @author SAP SE
 	 * @since 1.100.0
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @private
 	 * @experimental since 1.100.0
 	 * @ui5-restricted
@@ -71,6 +73,15 @@ sap.ui.define([
 		var oControl = that.getAggregation("_field");
 		if (oControl instanceof Table) {
 			oControl.addStyleClass("sapUiIntegrationEditorItemObjectListFieldTable");
+			// create a column header menu
+			that._oMenu = new Menu();
+			var aColumns = oControl.getColumns();
+			for (var i = 0; i < aColumns.length; i++) {
+				// if column supports filter or sort, add menu as header menu for it
+				if (aColumns[i].getFilterProperty() || aColumns[i].getSortProperty()) {
+					aColumns[i].setHeaderMenu(that._oMenu.getId());
+				}
+			}
 			var oConfig = that.getConfiguration();
 			// select all the results come from config.value
 			if (!oConfig.values){
@@ -138,13 +149,6 @@ sap.ui.define([
 			},
 			select: that.onSelectionColumnClick.bind(that)
 		});
-	};
-
-	ObjectListField.prototype.addNewObject = function (oEvent) {
-		var that = this;
-		var oControl = oEvent.getSource();
-		that._newObjectTemplate._dt._uuid = Utils.generateUuidV4();
-		that.openObjectDetailsPopover(that._newObjectTemplate, oControl, "add");
 	};
 
 	ObjectListField.prototype.onSelectionColumnClick = function(oEvent) {
@@ -245,9 +249,9 @@ sap.ui.define([
 		var oConfig = that.getConfiguration();
 		var oTable = that.getAggregation("_field");
 		var oModel = oTable.getModel();
+		var sPath = oTable.getBinding("rows").getPath();
 		if (Array.isArray(oConfig.value) && oConfig.value.length > 0) {
-			var aValues = deepClone(oConfig.value, 500),
-				sPath = oTable.getBinding("rows").getPath();
+			var aValues = deepClone(oConfig.value, 500);
 			if (Array.isArray(tResult) && tResult.length > 0) {
 				that._positionCount = oConfig.value.length + 1;
 				var aUUIDs = [];
@@ -315,6 +319,8 @@ sap.ui.define([
 					oResult._dt._position = that._positionCount;
 					that._positionCount++;
 				});
+			} else {
+				oModel.setProperty(sPath, []);
 			}
 			oModel.setProperty("/_allSelected", false);
 		}

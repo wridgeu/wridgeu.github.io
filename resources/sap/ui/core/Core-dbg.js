@@ -22,7 +22,7 @@ sap.ui.define([
 	'./RenderManager',
 	'./ControlBehavior',
 	'./UIArea',
-	'./message/MessageManager',
+	'./Messaging',
 	'./StaticArea',
 	"sap/ui/core/Theming",
 	"sap/base/Log",
@@ -56,7 +56,7 @@ sap.ui.define([
 		RenderManager,
 		ControlBehavior,
 		UIArea,
-		MessageManager,
+		Messaging,
 		StaticArea,
 		Theming,
 		Log,
@@ -76,15 +76,15 @@ sap.ui.define([
 
 	"use strict";
 
-	// when the Core module has been executed before, don't execute it again
+	var oCore;
+
+	/**
+	 * when the Core module has been executed before, don't execute it again
+	 * @deprecated as of version 1.119
+	 */
 	if (sap.ui.getCore && sap.ui.getCore()) {
 		return sap.ui.getCore();
 	}
-
-	/**
-	 * FocusHandler module reference, lazily probed via public "getCurrentFocusedControlId" API.
-	 */
-	var FocusHandler;
 
 	// Initialize SAP Passport or FESR
 	initTraces();
@@ -180,43 +180,62 @@ sap.ui.define([
 	};
 
 	/**
+	 * Creates a new subclass of class <code>sap.ui.core.Core</code> with name
+	 * <code>sClassName</code> and enriches it with the information contained in <code>oClassInfo</code>.
+	 *
+	 * <code>oClassInfo</code> might contain the same kind of information as described in
+	 * {@link sap.ui.base.ManagedObject.extend}.
+	 *
+	 * @param {string} sClassName
+	 *            Qualified name of the newly created class
+	 * @param {object} [oClassInfo]
+	 *            Object literal with information about the class
+	 * @param {sap.ui.core.Component.MetadataOptions} [oClassInfo.metadata]
+	 *            The metadata object describing the class.
+	 *            See {@link sap.ui.core.Component.MetadataOptions MetadataOptions} for the values allowed in every extend.
+	 * @returns {function} The created class / constructor function
+	 * @name sap.ui.core.Core.extend
+	 * @function
+	 * @static
+	 * @public
+	 * @deprecated since 1.119.0.
+	 */
+
+	/**
+	 * Returns the metadata for class <code>sap.ui.core.Core</code>.
+	 *
+	 * @returns {sap.ui.base.Metadata} Metadata object describing this class
+	 * @public
+	 * @static
+	 * @name sap.ui.core.Core.getMetadata
+	 * @function
+	 * @deprecated since 1.119.0.
+	 */
+
+	/**
 	 * @class Core Class of the SAP UI Library.
 	 *
 	 * This class boots the Core framework and makes it available for the application
-	 * via method <code>sap.ui.getCore()</code>.
+	 * by requiring <code>sap.ui.core.Core</code>.
+	 *
+	 * The Core provides a {@link #ready ready function} to execute code after the core was booted.
 	 *
 	 * Example:
 	 * <pre>
 	 *
-	 *   var oCore = sap.ui.getCore();
-	 *
-	 * </pre>
-	 *
-	 * With methods of the Core framework you can {@link #attachInit execute code} after the framework has been initialized.
-	 * It provides access to the {@link #getConfiguration configuration} and exposes events that
-	 * an application or a control can register to (e.g. {@link #event:localizationChanged localizationChanged},
-	 * {@link #event:parseError parseError}, {@link #event:validationError validationError},
-	 * {@link #event:formatError formatError}, {@link #event:validationSuccess validationSuccess}).
-	 *
-	 * Example:
-	 * <pre>
-	 *
-	 *   oCore.attachInit(function() {
-	 *     if ( oCore.getConfiguration().getRTL() ) {
+	 *   oCore.ready(function() {
 	 *       ...
-	 *     }
 	 *   });
 	 *
-	 *   oCore.attachLocalizationChanged(function(oEvent) {
-	 *     ...
-	 *   });
+	 *   await oCore.ready();
+	 *   ...
 	 *
 	 * </pre>
 	 *
 	 * @extends sap.ui.base.Object
 	 * @final
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @alias sap.ui.core.Core
 	 * @public
 	 * @hideconstructor
@@ -228,26 +247,24 @@ sap.ui.define([
 				METHOD = "sap.ui.core.Core";
 
 			// when a Core instance has been created before, don't create another one
-			if (sap.ui.getCore && sap.ui.getCore()) {
+			if (oCore) {
 				Log.error("Only the framework must create an instance of sap/ui/core/Core." +
-						  " To get access to its functionality, use sap.ui.getCore().");
-				return sap.ui.getCore();
+						  " To get access to its functionality, require sap/ui/core/Core," +
+						  " and use the module export directly without using 'new'.");
+				return oCore;
 			}
 
 			BaseObject.call(this);
 
 			_oEventProvider = new EventProvider();
 
-			// Generate all functions from EventProvider for backward compatibility
+			/**
+			 * Generate all functions from EventProvider for backward compatibility
+			 * @deprecated as of version 1.119
+			 */
 			["attachEvent", "detachEvent", "getEventingParent"].forEach(function (sFuncName) {
 				Core.prototype[sFuncName] = _oEventProvider[sFuncName].bind(_oEventProvider);
 			});
-
-			this.oMessageManager = MessageManager;
-			var bHandleValidation = Configuration.getHandleValidation();
-			if (bHandleValidation) {
-				MessageManager.registerObject(this, true);
-			}
 
 			/**
 			 * Whether the core has been booted
@@ -335,6 +352,21 @@ sap.ui.define([
 			var GlobalConfigurationProvider = sap.ui.require("sap/base/config/GlobalConfigurationProvider");
 			GlobalConfigurationProvider.freeze();
 			Configuration.setCore(this);
+
+			/**
+			 * @deprecated as of version 1.118
+			 */
+			(function() {
+				var bHandleValidation = BaseConfig.get({
+					name: "sapUiXxHandleValidation",
+					type: BaseConfig.Type.Boolean,
+					external: true
+				});
+				if (bHandleValidation) {
+					Messaging.registerObject(this, true);
+				}
+			}.bind(this))();
+
 			// initialize frameOptions script (anti-clickjacking, etc.)
 			var oFrameOptionsConfig = Configuration.getValue("frameOptionsConfig") || {};
 			oFrameOptionsConfig.mode = Configuration.getFrameOptions();
@@ -394,6 +426,8 @@ sap.ui.define([
 			 * @returns {sap.ui.core.Core} the API of the current SAPUI5 Core instance.
 			 * @public
 			 * @function
+			 * @deprecated since 1.118. Please require 'sap/ui/core/Core' instead and use the
+			 * 				module export directly without using 'new'."
 			 * @ui5-global-only
 			 */
 			sap.ui.getCore = function() {
@@ -473,7 +507,10 @@ sap.ui.define([
 
 			function postConstructorTasks() {
 				// when a boot task is configured, add it to syncpoint2
-				var fnCustomBootTask = Configuration.getValue("xx-bootTask");
+				var fnCustomBootTask = BaseConfig.get({
+					name: "sapUiXxBootTask",
+					type: BaseConfig.Type.Function
+				});
 				if ( fnCustomBootTask ) {
 					var iCustomBootTask = oSyncPoint2.startTask("custom boot task");
 					fnCustomBootTask( function(bSuccess) {
@@ -590,24 +627,38 @@ sap.ui.define([
 			publicMethods: [
 				// @public
 				//  - Init
-				"isInitialized","attachInit",
 				"getConfiguration",
-				"lock", "unlock","isLocked",
-				//  - UIArea & Rendering
-				"createUIArea", "getUIArea", "getUIDirty", "applyChanges", "getStaticAreaRef",
-				"createRenderManager",
-				//  - Theming
-				"applyTheme","setThemeRoot","attachThemeChanged","detachThemeChanged",
-				"isThemeApplied",
-				"notifyContentDensityChanged",
-				//  - Control & App dev.
-				"getCurrentFocusedControlId",
+
+				// @private, @ui5-restricted sap.ui.core
+				//  - Init
+				"boot",
+				//  - Ready Promise
+				"ready",
+
+				// @deprecated
 				"isMobile",
+				//  - Init & Plugins
+				"isInitialized","attachInit",
+				"lock", "unlock","isLocked",
+				"attachInitEvent",
+				"registerPlugin","unregisterPlugin",
+				//  - Application/Root-Component
+				"setRoot",
+				"getRootComponent", "getApplication",
+				//  - legacy registries & factories
+				"getControl", "getComponent", "getTemplate",
+				"createComponent",
+				//  - Control dev.
+				"getCurrentFocusedControlId",
 				"getEventBus",
-				"byId", "byFieldGroupId",
+				"byId",
+				"attachIntervalTimer", "detachIntervalTimer",
+				"getElementById", "byFieldGroupId",
 				//  - Libraries
 				"getLoadedLibraries", "loadLibrary", "initLibrary",
 				"getLibraryResourceBundle",
+				"attachLibraryChanged", "detachLibraryChanged",
+				"loadLibraries",
 				//  - Models & Messaging
 				"setModel", "getModel", "hasModel",
 				"getMessageManager",
@@ -619,42 +670,21 @@ sap.ui.define([
 				"attachFormatError", "detachFormatError",
 				"attachValidationSuccess", "detachValidationSuccess",
 				"attachLocalizationChanged", "detachLocalizationChanged",
-
-				// @protected
-				"isStaticAreaRef",
 				"fireFormatError", "fireValidationSuccess", "fireValidationError", "fireParseError",
-
-				// @private, @ui5-restricted sap.ui.core
-				//  - Init
-				"boot",
-				//  - Ready Promise
-				"ready",
 				//  - UIArea & Rendering
+				"getStaticAreaRef",
+				"isStaticAreaRef",
+				"createRenderManager",
+				"createUIArea", "getUIArea", "getUIDirty", "applyChanges",
+				"getRenderManager",
 				"addPrerenderingTask",
-				//  - Messaging
-				"setMessageManager",
-				//  - Libraries
-				"attachLibraryChanged", "detachLibraryChanged",
-				"loadLibraries",
 				//  - Theming
+				"applyTheme","setThemeRoot","attachThemeChanged","detachThemeChanged",
+				"isThemeApplied",
+				"notifyContentDensityChanged",
 				"attachThemeScopingChanged","detachThemeScopingChanged","fireThemeScopingChanged",
-				"includeLibraryTheme",
-
-				// @deprecated
-				//  - Init & Plugins
-				"attachInitEvent",
-				"registerPlugin","unregisterPlugin",
-				//  - Application/Root-Component
-				"setRoot",
-				"getRootComponent", "getApplication",
-				//  - legacy registries & factories
-				"getControl", "getComponent", "getTemplate",
-				"createComponent",
-				//  - Control dev.
-				"attachIntervalTimer", "detachIntervalTimer",
-				"getElementById",
-				//  - UIArea & Rendering
-				"getRenderManager"]
+				"includeLibraryTheme"
+			]
 		}
 
 	});
@@ -885,6 +915,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sThemeName the name of the theme to be loaded
 	 * @param {string} [sThemeBaseUrl] the (optional) base location of the theme
+	 * @deprecated since 1.119. Please use {@link module:sap/ui/core/Theming.setTheme Theming.setTheme} instead.
 	 * @public
 	 */
 	Core.prototype.applyTheme = function(sThemeName, sThemeBaseUrl) {
@@ -943,6 +974,7 @@ sap.ui.define([
 	 * @param {boolean} [bForceUpdate=false] Force updating URLs of currently loaded theme
 	 * @return {this} the Core, to allow method chaining
 	 * @since 1.10
+	 * @deprecated since 1.119
 	 * @public
 	 */
 	Core.prototype.setThemeRoot = function(sThemeName, aLibraryNames, sThemeBaseUrl, bForceUpdate) {
@@ -1005,7 +1037,14 @@ sap.ui.define([
 	};
 
 	Core.prototype._executeOnInit = function() {
-		var vOnInit = Configuration.getValue("onInit");
+		var vOnInit = BaseConfig.get({
+			name: "sapUiOnInit",
+			type: BaseConfig.Type.Code,
+			defaultValue: BaseConfig.get({
+				name: "sapUiEvtOninit",
+				type: BaseConfig.Type.Code
+			})
+		});
 
 		// execute a configured init hook
 		if ( vOnInit ) {
@@ -1059,7 +1098,10 @@ sap.ui.define([
 			});
 			this.oRootComponent = oComponent;
 
-			var sRootNode = Configuration.getValue("xx-rootComponentNode");
+			var sRootNode = BaseConfig.get({
+				name: "sapUiXxRootComponentNode",
+				type: BaseConfig.Type.String
+			});
 			if (sRootNode && oComponent.isA('sap.ui.core.UIComponent')) {
 				var oRootNode = document.getElementById(sRootNode);
 				if (oRootNode) {
@@ -1135,6 +1177,7 @@ sap.ui.define([
 	 *
 	 * @return {boolean} whether the Core has already been initialized
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.core.Core.ready Core.ready} instead.
 	 */
 	Core.prototype.isInitialized = function () {
 		return this.bInitialized;
@@ -1147,9 +1190,18 @@ sap.ui.define([
 	 * If the styles are not yet applied a theme changed event will follow when the styles will be applied.
 	 *
 	 * @return {boolean} whether the styles of the current theme are already applied
+	 * @deprecated since 1.119: Please use {@link module:sap/ui/core/Theming.attachApplied Theming.attachApplied} instead.
 	 * @public
 	 */
-	Core.prototype.isThemeApplied = Theming.isApplied;
+	Core.prototype.isThemeApplied = function() {
+		var bApplied = false;
+		function fnCheckApplied() {
+			bApplied = true;
+		}
+		// if theme is applied fnCheckApplied is called sync
+		Theming.attachAppliedOnce(fnCheckApplied);
+		return bApplied;
+	};
 
 	/**
 	 * Attach to 'applied' event of theming in order to keep existing core event 'ThemeChanged' stable
@@ -1190,6 +1242,7 @@ sap.ui.define([
 	 * @param {function} fnFunction Function to be after initialization of the framework
 	 * @public
 	 * @since 1.13.2
+	 * @deprecated since 1.118. Please use {@link sap.ui.core.Core.ready Core.ready} instead.
 	 */
 	Core.prototype.attachInit = function (fnFunction) {
 		assert(typeof fnFunction === "function", "fnFunction must be a function");
@@ -1202,10 +1255,13 @@ sap.ui.define([
 	 * Lock should be called before and after the DOM is modified for rendering, roundtrips...
 	 * Exceptions might be the case for asynchronous UI behavior
 	 * @public
+	 * @deprecated since 1.118
 	 */
 	Core.prototype.lock = function () {
-		// TODO clarify it the documentation is really (still?) true
 		this.bLocked = true;
+		UIArea.registry.forEach((oUiArea) => {
+			oUiArea.lock();
+		});
 	};
 
 	/**
@@ -1213,15 +1269,20 @@ sap.ui.define([
 	 *
 	 * Browser events are dispatched to the controls again after this method is called.
 	 * @public
+	 * @deprecated since 1.118
 	 */
 	Core.prototype.unlock = function () {
 		this.bLocked = false;
+		UIArea.registry.forEach((oUiArea) => {
+			oUiArea.unlock();
+		});
 	};
 
 	/**
 	 * Returns the locked state of the <code>sap.ui.core.Core</code>
 	 * @return {boolean} locked state
 	 * @public
+	 * @deprecated since 1.118
 	 */
 	Core.prototype.isLocked = function () {
 		return this.bLocked;
@@ -1256,6 +1317,7 @@ sap.ui.define([
 	 * is not recommended.
 	 *
 	 * @return {sap.ui.core.RenderManager} New instance of the RenderManager
+	 * @deprecated Since 1.119
 	 * @public
 	 */
 	Core.prototype.createRenderManager = function() {
@@ -1268,13 +1330,17 @@ sap.ui.define([
 	 * Returns the Id of the control/element currently in focus.
 	 * @return {string} the Id of the control/element currently in focus.
 	 * @public
+	 * @deprecated since 1.119.
+	 * Please use {@link sap.ui.core.Element.getActiveElement Element.getActiveElement} to get
+	 * the currently focused element. You can then retrieve the ID of that element with
+	 * {@link sap.ui.core.Element#getId Element#getId}. Please be aware,
+	 * {@link sap.ui.core.Element.getActiveElement Element.getActiveElement} can return 'undefined'.
 	 */
 	Core.prototype.getCurrentFocusedControlId = function() {
 		if (!this.isInitialized()) {
 			throw new Error("Core must be initialized");
 		}
-		FocusHandler = FocusHandler || sap.ui.require("sap/ui/core/FocusHandler");
-		return FocusHandler ? FocusHandler.getCurrentFocusedControlId() : null;
+		return Element.getActiveElement()?.getId() || null;
 	};
 
 	/**
@@ -1349,6 +1415,7 @@ sap.ui.define([
 	 * @returns {sap.ui.core.LibraryInfo|Promise<sap.ui.core.LibraryInfo>} An info object for the library
 	 *  (sync) or a Promise on it (async).
 	 * @public
+	 * @deprecated Since 1.119. Please use {@link sap.ui.core.Lib.load Lib.load} instead.
 	 */
 	Core.prototype.loadLibrary = function(sLibrary, vUrl) {
 		var mLibConfig = {
@@ -1402,6 +1469,7 @@ sap.ui.define([
 	 * Productive code should not use it, except code that is delivered as part of UI5.
 	 * @private
 	 * @ui5-restricted sap.ui.core,sap.ushell
+	 * @deprecated Since 1.119. Please use {@link sap.ui.core.Lib.load Lib.load} instead.
 	 */
 	Core.prototype.loadLibraries = function(aLibraries, mOptions) {
 		mOptions = Object.assign({
@@ -1579,6 +1647,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.LibraryInfo} oLibInfo Info object for the library
 	 * @return {object|undefined} As of version 1.101; returns the library namespace, based on the given library name. Returns 'undefined' if no library name is provided.
 	 * @public
+	 * @deprecated Since 1.119. Please use {@link sap.ui.core.Lib.init Lib.init} instead.
 	 */
 	Core.prototype.initLibrary = function(oLibInfo) {
 		assert(typeof oLibInfo === 'string' || typeof oLibInfo === 'object', "oLibInfo must be a string or object");
@@ -1600,7 +1669,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oLib = Library.get(sLibName);
+		var oLib = Library._get(sLibName);
 
 		if (oLib && oLib.isSettingsEnhanced()) {
 			return ObjectPath.get(sLibName);
@@ -1616,6 +1685,7 @@ sap.ui.define([
 	 * @param {string} [sVariant] the variant to include (optional)
 	 * @param {string} [sQuery] to be used only by the Core
 	 * @public
+	 * @deprecated since 1.119
 	 */
 	Core.prototype.includeLibraryTheme = function(sLibName, sVariant, sQuery) {
 		var oLib = Library._get(sLibName, true /* bCreate */);
@@ -1638,6 +1708,7 @@ sap.ui.define([
 	 *
 	 * @return {Object<string,Object>} Map of library info objects keyed by the library names.
 	 * @public
+	 * @deprecated since 1.119
 	 */
 	Core.prototype.getLoadedLibraries = function() {
 		return Library.all();
@@ -1686,6 +1757,7 @@ sap.ui.define([
 	 * @returns {module:sap/base/i18n/ResourceBundle|undefined|Promise<module:sap/base/i18n/ResourceBundle|undefined>} The best matching resource bundle for the given
 	 *   parameters or <code>undefined</code>; in asynchronous case a Promise on that bundle is returned
 	 * @public
+	 * @deprecated Since 1.119. Please use {@link sap.ui.core.Lib.getResourceBundleFor Lib.getResourceBundleFor} instead.
 	 */
 	Core.prototype.getLibraryResourceBundle = function(sLibraryName, sLocale, bAsync) {
 		if (typeof sLibraryName === "boolean") {
@@ -1752,7 +1824,7 @@ sap.ui.define([
 	 * @public
 	 * @param {string|Element} o DOM element or ID of the UIArea
 	 * @return {sap.ui.core.UIArea|null|undefined} UIArea with the given ID or DOM element or <code>null</code> or <code>undefined</code>.
-	 * @deprecated As of version 1.107, use {@link sap.ui.core.UIArea.registry#get UIArea.registry#get} instead, but note that <code>UIArea.registry.get</code> only accepts the ID of the UIArea as argument.
+	 * @deprecated As of version 1.107. For access to the static UIArea, please use the {@link module:sap/ui/core/StaticArea StaticArea} instead.
 	 */
 	Core.prototype.getUIArea = function(o) {
 		assert(typeof o === "string" || typeof o === "object", "o must be a string or object");
@@ -1777,29 +1849,11 @@ sap.ui.define([
 	 *
 	 * @return {boolean} true if there are pending (or executing) rendering tasks.
 	 * @public
+	 * @deprecated since 1.118
 	 */
 	Core.prototype.getUIDirty = function() {
-		return Rendering.getUIDirty();
+		return Rendering.isPending();
 	};
-
-	/**
-	 * @name sap.ui.core.Core#UIUpdated
-	 * @event
-	 * @private
-	 * @function
-	 */
-
-	Core.prototype.attachUIUpdated = function(fnFunction, oListener) {
-		_oEventProvider.attachEvent(Core.M_EVENTS.UIUpdated, fnFunction, oListener);
-	};
-
-	Core.prototype.detachUIUpdated = function(fnFunction, oListener) {
-		_oEventProvider.detachEvent(Core.M_EVENTS.UIUpdated, fnFunction, oListener);
-	};
-
-	Rendering.attachUIUpdated(function(oEvent) {
-		_oEventProvider.fireEvent(Core.M_EVENTS.UIUpdated, oEvent.getParameters());
-	});
 
 	/**
 	 * Triggers a realignment of controls
@@ -1812,6 +1866,8 @@ sap.ui.define([
 	 *  it might not be necessary to trigger the realigment of all controls placed in the DOM,
 	 *  for example changing the cozy/compact CSS class at a single control
 	 * @public
+	 * @function
+	 * @deprecated since 1.119. Please use {@link module:sap/ui/core/Theming.notifyContentDensityChanged Theming.notifyContentDensityChanged} instead.
 	 */
 	Core.prototype.notifyContentDensityChanged = Theming.notifyContentDensityChanged;
 
@@ -1834,6 +1890,7 @@ sap.ui.define([
 	 * @param {object} oControlEvent.getParameters
 	 * @param {string} oControlEvent.getParameters.theme Theme name
 	 * @public
+	 * @deprecated since 1.118. See {@link sap.ui.core.Theming#applied Theming#applied} instead.
 	 */
 
 	 /**
@@ -1849,6 +1906,7 @@ sap.ui.define([
 	 *            [oListener] Context object to call the event handler with. Defaults to a dummy event
 	 *            provider object
 	 * @public
+	 * @deprecated since 1.118. See {@link sap.ui.core.Theming#attachApplied Theming#attachApplied} instead.
 	 */
 	Core.prototype.attachThemeChanged = function(fnFunction, oListener) {
 		// preparation for letting the "themeChanged" event be forwarded from the ThemeManager to the Core
@@ -1866,6 +1924,7 @@ sap.ui.define([
 	 * @param {object}
 	 *            [oListener] Object on which the given function had to be called.
 	 * @public
+	 * @deprecated since 1.118. See {@link sap.ui.core.Theming#detachApplied Theming#detachApplied} instead.
 	 */
 	Core.prototype.detachThemeChanged = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent(Core.M_EVENTS.ThemeChanged, fnFunction, oListener);
@@ -1891,6 +1950,7 @@ sap.ui.define([
 	 * @param {string[]} oEvent.getParameters.scopes Array of the CSS scope classes
 	 * @param {boolean} oEvent.getParameters.added Whether the class has been added or removed
 	 * @param {sap.ui.core.Element} oEvent.getParameters.element Element instance on which the scope change happened
+	 * @deprecated since 1.119. Moved to {@link module:/sap/ui/core/Theming.event:themeScopingChanged themeScopingChanged}.
 	 */
 
 	Core.prototype.attachThemeScopingChanged = function(fnFunction, oListener) {
@@ -1901,9 +1961,9 @@ sap.ui.define([
 		_oEventProvider.detachEvent(Core.M_EVENTS.ThemeScopingChanged, fnFunction, oListener);
 	};
 
-	Core.prototype.fireThemeScopingChanged = function(mParameters) {
-		_oEventProvider.fireEvent(Core.M_EVENTS.ThemeScopingChanged, mParameters);
-	};
+	Theming.attachThemeScopingChanged(function(oEvent) {
+		_oEventProvider.fireEvent(Core.M_EVENTS.ThemeScopingChanged, BaseEvent.getParameters(oEvent));
+	});
 
 	/**
 	 * Fired when any of the localization relevant configuration settings has changed
@@ -1926,6 +1986,7 @@ sap.ui.define([
 	 * @param {sap.ui.base.EventProvider} oEvent.getSource
 	 * @param {object} oEvent.getParameters
 	 * @param {object} oEvent.getParameters.changes a map of the changed localization properties
+	 * @deprecated since 1.118. See {@link sap.base.i18n.Localization#change Localization#change} instead.
 	 * @public
 	 */
 
@@ -1938,6 +1999,7 @@ sap.ui.define([
 	 * @param {function} fnFunction Callback to be called when the event occurs
 	 * @param {object} [oListener] Context object to call the function on
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.base.i18n.Localization#attachChange Localization#attachChange} instead.
 	 */
 	Core.prototype.attachLocalizationChanged = function(fnFunction, oListener) {
 		_oEventProvider.attachEvent(Core.M_EVENTS.LocalizationChanged, fnFunction, oListener);
@@ -1952,6 +2014,7 @@ sap.ui.define([
 	 * @param {function} fnFunction Callback to be deregistered
 	 * @param {object} [oListener] Context object on which the given function had to be called
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.base.i18n.Localization#detachChange Localization#detachChange} instead.
 	 */
 	Core.prototype.detachLocalizationChanged = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent(Core.M_EVENTS.LocalizationChanged, fnFunction, oListener);
@@ -2040,6 +2103,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.support
+	 * @deprecated since 1.119.0. Please use {@link sap.ui.core.Lib.attachLibraryChanged Lib.attachLibraryChanged} instead.
 	 */
 
 	/**
@@ -2050,6 +2114,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.support
+	 * @deprecated Since 1.119. Please use {@link sap.ui.core.Lib.attachLibraryChanged Lib.attachLibraryChanged} instead.
 	 */
 	Core.prototype.attachLibraryChanged = function(fnFunction, oListener) {
 		_oEventProvider.attachEvent(Core.M_EVENTS.LibraryChanged, fnFunction, oListener);
@@ -2063,6 +2128,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.support
+	 * @deprecated Since 1.119. Please use {@link sap.ui.core.Lib.detachLibraryChanged Lib.detachLibraryChanged} instead.
 	 */
 	Core.prototype.detachLibraryChanged = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent(Core.M_EVENTS.LibraryChanged, fnFunction, oListener);
@@ -2076,9 +2142,10 @@ sap.ui.define([
 	/**
 	 * Enforces an immediate update of the visible UI (aka "rendering").
 	 *
-	 * In general, applications should avoid calling this method and
+	 * In general, applications and Controls should avoid calling this method and
 	 * instead let the framework manage any necessary rendering.
 	 * @public
+	 * @deprecated since 1.118
 	 */
 	Core.prototype.applyChanges = function() {
 		Rendering.renderPendingUIUpdates("forced by applyChanges");
@@ -2128,8 +2195,9 @@ sap.ui.define([
 	 * @returns {sap.ui.core.Element|undefined} Element with the given ID or <code>undefined</code>
 	 * @public
 	 * @function
+	 * @deprecated Since 1.119. Please use {@link sap.ui.core.Element.getElementById Element.getElementById} instead.
 	 */
-	Core.prototype.byId = Element.registry.get;
+	Core.prototype.byId = Element.getElementById;
 
 	/**
 	 * Returns the registered element for the given ID, if any.
@@ -2140,7 +2208,7 @@ sap.ui.define([
 	 * @function
 	 * @public
 	 */
-	Core.prototype.getControl = Element.registry.get;
+	Core.prototype.getControl = Element.getElementById;
 
 	/**
 	 * Returns the registered element for the given ID, if any.
@@ -2151,7 +2219,7 @@ sap.ui.define([
 	 * @function
 	 * @public
 	 */
-	Core.prototype.getElementById = Element.registry.get;
+	Core.prototype.getElementById = Element.getElementById;
 
 	/**
 	 * Returns the registered object for the given ID, if any.
@@ -2206,6 +2274,7 @@ sap.ui.define([
 	 * @return {Element} the static, hidden area DOM element belonging to this core instance.
 	 * @throws {Error} an Error if the document is not yet ready
 	 * @public
+	 * @deprecated since 1.119.0. Please use {@link module:sap/ui/core/StaticArea.getDomRef StaticArea.getDomRef} instead.
 	 */
 	Core.prototype.getStaticAreaRef = function() {
 		return StaticArea.getDomRef();
@@ -2217,6 +2286,7 @@ sap.ui.define([
 	 * @param {Element} oDomRef DOM element to check
 	 * @returns {boolean} Whether the given DOM element is the root of the static area
 	 * @protected
+	 * @deprecated since 1.119.0. Please use {@link module:sap/ui/core/StaticArea.contains StaticArea.contains} instead.
 	 */
 	Core.prototype.isStaticAreaRef = function(oDomRef) {
 		return StaticArea.getDomRef() === oDomRef;
@@ -2288,6 +2358,7 @@ sap.ui.define([
 	 * @param {function} fnFunction Callback to be called for each control event
 	 * @param {object} [oListener] Optional context object to call the callback on
 	 * @public
+	 * @deprecated Since 1.119
 	 */
 	Core.prototype.attachControlEvent = function(fnFunction, oListener) {
 		_oEventProvider.attachEvent(Core.M_EVENTS.ControlEvent, fnFunction, oListener);
@@ -2301,6 +2372,7 @@ sap.ui.define([
 	 * @param {function} fnFunction Function to unregister
 	 * @param {object} [oListener] Context object on which the given function had to be called
 	 * @public
+	 * @deprecated Since 1.119
 	 */
 	Core.prototype.detachControlEvent = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent(Core.M_EVENTS.ControlEvent, fnFunction, oListener);
@@ -2311,6 +2383,7 @@ sap.ui.define([
 	 *
 	 * @param {object} oParameters Parameters to pass along with the event, e.g. <code>{ browserEvent: jQuery.Event }</code>
 	 * @private
+	 * @deprecated Since 1.119
 	 */
 	Core.prototype.fireControlEvent = function(oParameters) {
 		_oEventProvider.fireEvent(Core.M_EVENTS.ControlEvent, oParameters);
@@ -2322,6 +2395,7 @@ sap.ui.define([
 	 * @param {jQuery.Event} oEvent control event
 	 * @param {string} sUIAreaId id of the UIArea that received the event
 	 * @private
+	 * @deprecated Since 1.119
 	 */
 	Core.prototype._handleControlEvent = function(/**event*/oEvent, sUIAreaId) {
 		// Create a copy of the event
@@ -2482,6 +2556,7 @@ sap.ui.define([
 	 * @param {string} [sName] the name of the model or <code>undefined</code>
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#setModel ManagedObject#setModel} instead.
 	 */
 	Core.prototype.setModel = function(oModel, sName) {
 		assert(oModel == null || BaseObject.isA(oModel, 'sap.ui.model.Model'), "oModel must be an instance of sap.ui.model.Model, null or undefined");
@@ -2524,19 +2599,16 @@ sap.ui.define([
 		return this;
 	};
 
-	Core.prototype.setMessageManager = function(oMessageManager) {
-		this.oMessageManager = oMessageManager;
-	};
-
 	/**
-	 * Returns the active <code>MessageManager</code> instance.
+	 * Returns the <code>Messaging</code> module.
 	 *
-	 * @return {sap.ui.core.message.MessageManager}
+	 * @return {module:sap/ui/core/Messaging}
 	 * @public
 	 * @since 1.33.0
+	 * @deprecated since 1.118. Please use {@link module:sap/ui/core/Messaging Messaging} instead.
 	 */
 	Core.prototype.getMessageManager = function() {
-		return this.oMessageManager;
+		return Messaging;
 	};
 
 	/**
@@ -2547,6 +2619,8 @@ sap.ui.define([
 	 * @param {string|string[]} [vFieldGroupIds] ID of the field group or an array of field group IDs to match
 	 * @return {sap.ui.core.Control[]} The list of controls with matching field group IDs
 	 * @public
+	 * @deprecated As of version 1.118, use {@link sap.ui.core.Control#getControlsByFieldGroup Control.prototype.getControlsByFieldGroup} instead.
+
 	 */
 	Core.prototype.byFieldGroupId = function(vFieldGroupIds) {
 		return Element.registry.filter(function(oElement) {
@@ -2565,6 +2639,7 @@ sap.ui.define([
 	 * @param {string} [sName] name of the model to be retrieved
 	 * @return {sap.ui.model.Model} oModel
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#getModel ManagedObject#getModel} instead.
 	 */
 	Core.prototype.getModel = function(sName) {
 		assert(sName === undefined || (typeof sName === "string" && !/^(undefined|null)?$/.test(sName)), "sName must be a string or omitted");
@@ -2575,6 +2650,7 @@ sap.ui.define([
 	 * Check if a Model is set to the core
 	 * @return {boolean} true or false
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#hasModel ManagedObject#hasModel} instead.
 	 */
 	Core.prototype.hasModel = function() {
 		return !isEmptyObject(this.oModels);
@@ -2585,6 +2661,8 @@ sap.ui.define([
 	 * @return {sap.ui.core.EventBus} the event bus
 	 * @since 1.8.0
 	 * @public
+	 * @deprecated since 1.119.0. Please use {@link sap.ui.core.EventBus.getInstance EventBus.getInstance} for global usage instead.
+	 * Creating an own local instance is the preferred usage.
 	 */
 	Core.prototype.getEventBus = function() {
 		if (!this.oEventBus) {
@@ -2599,7 +2677,7 @@ sap.ui.define([
 				});
 				EventBus = sap.ui.requireSync('sap/ui/core/EventBus'); // legacy-relevant: fallback for missing dependency
 			}
-			var oEventBus = this.oEventBus = new EventBus();
+			var oEventBus = this.oEventBus = EventBus.getInstance();
 			this._preserveHandler = function(event) {
 				// for compatibility reasons
 				oEventBus.publish("sap.ui", "__preserveContent", {domNode: event.domNode});
@@ -2628,6 +2706,7 @@ sap.ui.define([
 	 *            provider object
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#attachValidationError ManagedObject#attachValidationError} instead.
 	 */
 	Core.prototype.attachValidationError = function(oData, fnFunction, oListener) {
 		if (typeof (oData) === "function") {
@@ -2651,6 +2730,7 @@ sap.ui.define([
 	 *            [oListener] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#detachValidationError ManagedObject#detachValidationError} instead.
 	 */
 	Core.prototype.detachValidationError = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent(Core.M_EVENTS.ValidationError, fnFunction, oListener);
@@ -2677,6 +2757,7 @@ sap.ui.define([
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#attachParseError ManagedObject#attachParseError} instead.
 	 */
 	Core.prototype.attachParseError = function(oData, fnFunction, oListener) {
 		if (typeof (oData) === "function") {
@@ -2700,6 +2781,7 @@ sap.ui.define([
 	 *            [oListener] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#detachParseError ManagedObject#detachParseError} instead.
 	 */
 	Core.prototype.detachParseError = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent(Core.M_EVENTS.ParseError, fnFunction, oListener);
@@ -2725,6 +2807,7 @@ sap.ui.define([
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#attachFormatError ManagedObject#attachFormatError} instead.
 	 */
 	Core.prototype.attachFormatError = function(oData, fnFunction, oListener) {
 		if (typeof (oData) === "function") {
@@ -2748,6 +2831,7 @@ sap.ui.define([
 	 *            [oListener] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#detachFormatError ManagedObject#detachFormatError} instead.
 	 */
 	Core.prototype.detachFormatError = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent(Core.M_EVENTS.FormatError, fnFunction, oListener);
@@ -2773,6 +2857,7 @@ sap.ui.define([
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#attachValidationSuccess ManagedObject#attachValidationSuccess} instead.
 	 */
 	Core.prototype.attachValidationSuccess = function(oData, fnFunction, oListener) {
 		if (typeof (oData) === "function") {
@@ -2796,6 +2881,7 @@ sap.ui.define([
 	 *            [oListener] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#detachValidationSuccess ManagedObject#detachValidationSuccess} instead.
 	 */
 	Core.prototype.detachValidationSuccess = function(fnFunction, oListener) {
 		_oEventProvider.detachEvent(Core.M_EVENTS.ValidationSuccess, fnFunction, oListener);
@@ -2815,6 +2901,7 @@ sap.ui.define([
 	 * @param {object} oParameters.exception Exception object which occurred and has more information about the parse error
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#fireParseError ManagedObject#fireParseError} instead.
 	 */
 	Core.prototype.fireParseError = function(oParameters) {
 		_oEventProvider.fireEvent(Core.M_EVENTS.ParseError, oParameters);
@@ -2836,6 +2923,7 @@ sap.ui.define([
 	 * @param {object} oControlEvent.getParameters.oldValue Value of the property which was present before a new value was entered (before the parse error)
 	 * @param {object} oControlEvent.getParameters.exception Exception object which occurred and has more information about the parse error
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#event:parseError parseError} instead.
 	 */
 
 	/**
@@ -2850,6 +2938,7 @@ sap.ui.define([
 	 * @param {object} oParameters.exception Exception object which occurred and has more information about the validation error
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#fireValidationError ManagedObject.fireValidationError} instead.
 	 */
 	Core.prototype.fireValidationError = function(oParameters) {
 		_oEventProvider.fireEvent(Core.M_EVENTS.ValidationError, oParameters);
@@ -2871,6 +2960,7 @@ sap.ui.define([
 	 * @param {object} oControlEvent.getParameters.oldValue Value of the property which was present before a new value was entered (before the validation error)
 	 * @param {object} oControlEvent.getParameters.exception Exception object which occurred and has more information about the validation error
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#event:validationError validationError} instead.
 	 */
 
 	/**
@@ -2885,6 +2975,7 @@ sap.ui.define([
 	 * @param {object} oParameters.exception Exception object which occurred and has more information about the format error
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#fireFormatError ManagedObject#fireFormatError} instead.
 	 */
 	Core.prototype.fireFormatError = function(oParameters) {
 		_oEventProvider.fireEvent(Core.M_EVENTS.FormatError, oParameters);
@@ -2908,6 +2999,7 @@ sap.ui.define([
 	 * @param {object} oControlEvent.getParameters.oldValue Value of the property which was present before a new value was entered (before the format error)
 	 * @param {object} oControlEvent.getParameters.exception Exception object which occurred and has more information about the format error
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#event:formatError formatError} instead.
 	 */
 
 	/**
@@ -2925,6 +3017,7 @@ sap.ui.define([
 	 * @param {object} [oParameters] Parameters to pass along with the event
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#fireValidationSuccess ManagedObject#fireValidationSuccess} instead.
 	 */
 	Core.prototype.fireValidationSuccess = function(oParameters) {
 		_oEventProvider.fireEvent(Core.M_EVENTS.ValidationSuccess, oParameters);
@@ -2945,11 +3038,13 @@ sap.ui.define([
 	 * @param {object} oControlEvent.getParameters.newValue Value of the property which was entered when the validation occurred
 	 * @param {object} oControlEvent.getParameters.oldValue Value of the property which was present before a new value was entered (before the validation)
 	 * @public
+	 * @deprecated since 1.118. Please use {@link sap.ui.base.ManagedObject#event:validationSuccess validationSuccess} instead.
 	 */
 
 	/**
 	 * Check if the script is running on mobile
 	 * @return {boolean} true or false
+	 * @deprecated As of version 1.118, use {@link sap.ui.Device.browser.mobile Device.browser.mobile} instead.
 	 * @public
 	 */
 	Core.prototype.isMobile = function() {
@@ -2977,18 +3072,19 @@ sap.ui.define([
 	 * @param {boolean} [bFirst=false]
 	 *   Whether the task should become the first one, not the last one
 	 * @private
+	 * @deprecated since 1.118: Please use {@link sap.ui.core.Rendering.addPrerenderingTask Rendering.addPrerenderingTask} instead.
 	 * @ui5-restricted sap.ui.model.odata.v4
 	 */
 	Core.prototype.addPrerenderingTask = function (fnPrerenderingTask, bFirst) {
 		Rendering.addPrerenderingTask(fnPrerenderingTask, bFirst);
 	};
 
-	/** returns a Promise that resolves if the Core is initialized
+	/** Returns a Promise that resolves if the Core is initialized.
 	 *
 	 * @param {function():void} [fnReady] If the Core is ready the function will be called immediately, otherwise when the ready Promise resolves.
 	 * @returns {Promise<undefined>} The ready promise
-	 * @private
-	 * @ui5-restricted sap.ui.core
+	 * @since 1.118.0
+	 * @public
 	 */
 	Core.prototype.ready = function(fnReady) {
 		if (fnReady) {
@@ -3079,6 +3175,7 @@ sap.ui.define([
 	 * the core prototype. Once global names are switched off, such extension scenarios are
 	 * no longer supported.
 	 */
-	return new Core().getInterface();
+	oCore = new Core().getInterface();
+	return oCore;
 
 });

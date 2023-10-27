@@ -93,7 +93,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @public
@@ -635,7 +635,8 @@ sap.ui.define([
 		oRM.close("div");
 
 		if (this.getItems().length && !bIsUnselectable) {
-			oRM.openStart("span")
+
+			oRM.openStart("span").class("sapMITBFilterExpandBtnSeparator")
 				.accessibilityState({ role: "separator" })
 				.openEnd()
 			.close("span");
@@ -1359,7 +1360,7 @@ sap.ui.define([
 				oRbArgs = [sText, oRootTab.getText()];
 			} else {
 				sRbKey = "ICONTABFILTER_BADGE_MSG";
-				oRbArgs = sText;
+				oRbArgs = [sText];
 			}
 		}
 

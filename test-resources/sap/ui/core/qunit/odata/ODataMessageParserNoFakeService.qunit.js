@@ -6,13 +6,13 @@
 sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/library",
+	"sap/ui/core/Messaging",
 	"sap/ui/core/message/Message",
-	"sap/ui/core/message/MessageManager",
 	"sap/ui/model/odata/MessageScope",
 	"sap/ui/model/odata/ODataMessageParser",
 	"sap/ui/model/odata/ODataMetadata",
 	"sap/ui/model/odata/ODataUtils"
-], function (Log, coreLibrary, Message, MessageManager, MessageScope, ODataMessageParser, ODataMetadata, ODataUtils) {
+], function (Log, coreLibrary, Messaging, Message, MessageScope, ODataMessageParser, ODataMetadata, ODataUtils) {
 	/*global QUnit,sinon*/
 	/*eslint camelcase: 0, max-nested-callbacks: 0, no-warning-comments: 0*/
 	"use strict";
@@ -226,7 +226,7 @@ sap.ui.define([
 			.withExactArgs(sinon.match.same(aMessages), sinon.match.same(mRequestInfo),
 				mGetEntities, mChangeEntities)
 			.returns(oFixture.mAffectedTargets);
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(sinon.match(aExpectedMessagesToBeRemoved), sinon.match.same(aMessages));
 
 		// code under test
@@ -481,7 +481,7 @@ sap.ui.define([
 			.withExactArgs(sinon.match.same(aMessages), sinon.match.same(mRequestInfo),
 				mGetEntities, mChangeEntities)
 			.returns(oFixture.mAffectedTargets);
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(sinon.match(aExpectedMessagesToBeRemoved), sinon.match.same(aMessages));
 
 		// code under test
@@ -1149,7 +1149,7 @@ sap.ui.define([
 				+ "response, but requested only transition messages", undefined, sClassName);
 		}
 		this.mock(oODataMessageParser).expects("_getAffectedTargets").never();
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(sinon.match([]), sinon.match.same(aMessages));
 
 		// code under test
@@ -1193,7 +1193,7 @@ sap.ui.define([
 			.withExactArgs(mRequestInfo.request.functionMetadata).returns(true);
 		this.mock(oODataMessageParser).expects("_getAffectedTargets")
 			.withExactArgs(aMessages, mRequestInfo, mGetEntities, "~mChangeEntities");
-			this.mock(MessageManager).expects("updateMessages")
+			this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(sinon.match([oLastMessage1]), sinon.match.same(aMessages));
 
 		// code under test
@@ -1231,7 +1231,7 @@ sap.ui.define([
 		this.mock(oODataMessageParser).expects("_getAffectedTargets")
 			.withExactArgs(sinon.match.same(aMessages), sinon.match.same(mRequestInfo),
 				{}, "~mChangeEntities");
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(sinon.match([]), sinon.match.same(aMessages));
 
 		// code under test
@@ -1275,7 +1275,7 @@ sap.ui.define([
 		this.mock(oODataMessageParser).expects("_getAffectedTargets")
 			.withExactArgs(sinon.match.same(aMessage), sinon.match.same(mRequestInfo),
 				sinon.match.same(mGetEntities), "~mChangeEntities");
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(sinon.match([oLastMessage1]), sinon.match.same(aMessage));
 
 		// code under test
@@ -1753,20 +1753,21 @@ sap.ui.define([
 
 	//*********************************************************************************************
 	QUnit.test("_parseBodyJSON: plain text", function (assert) {
-		var oError = new Error("~error"),
+		var oJSONSpy = sinon.spy(JSON, "parse"),
 			oMessageParser = new ODataMessageParser("/foo"),
 			oResponse = {body : "~foo"},
 			mRequestInfo = {
 				response : oResponse
 			};
 
-		this.mock(JSON).expects("parse").withExactArgs("~foo").throws(oError);
 		this.mock(oMessageParser).expects("_createGenericError").never();
 
 		// code under test
 		assert.throws(function () {
 			oMessageParser._parseBodyJSON(oResponse, mRequestInfo);
-		}, oError);
+		}, SyntaxError);
+
+		assert.ok(oJSONSpy.calledWith("~foo"));
 	});
 
 	//*********************************************************************************************
@@ -2301,6 +2302,7 @@ sap.ui.define([
 				targets : "~targets1",
 				type : "~type1"
 			}],
+			oJSONSpy = sinon.spy(JSON, "stringify"),
 			oMessageParser = new ODataMessageParser("/foo"),
 			oMessage0 = {
 				getCode : function () {},
@@ -2328,14 +2330,16 @@ sap.ui.define([
 		this.mock(oMessage1).expects("getPersistent").withExactArgs().returns("~persistent1");
 		this.mock(oMessage1).expects("getTargets").withExactArgs().returns("~targets1");
 		this.mock(oMessage1).expects("getType").withExactArgs().returns("~type1");
-		this.mock(JSON).expects("stringify")
-			.withExactArgs(aExpectedMessageLogDetails)
-			.returns("~details");
 		this.oLogMock.expects("error")
-			.withExactArgs("Request failed with status code ~statusCode: ~method ~uri", "~details",
+			.withExactArgs("Request failed with status code ~statusCode: ~method ~uri",
+				'[{"code":"~code0","message":"~message0","persistent":"~persistent0",'
+				+ '"targets":"~targets0","type":"~type0"},{"code":"~code1","message":"~message1",'
+				+ '"persistent":"~persistent1","targets":"~targets1","type":"~type1"}]',
 				sClassName);
 
 		// code under test
 		oMessageParser._logErrorMessages([oMessage0, oMessage1], oRequest, "~statusCode");
+
+		assert.ok(oJSONSpy.calledWith(aExpectedMessageLogDetails));
 	});
 });

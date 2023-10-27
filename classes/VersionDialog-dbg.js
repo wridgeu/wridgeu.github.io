@@ -1,6 +1,8 @@
 "use strict";
 
 sap.ui.define(["sap/ui/core/Fragment", "sap/ui/core/syncStyleClass", "sap/ui/model/json/JSONModel", "sap/ui/base/Object"], function (Fragment, syncStyleClass, JSONModel, Object) {
+  "use strict";
+
   /**
    * @namespace sapmarco.projectpages.classes
    */
@@ -54,3 +56,4 @@ sap.ui.define(["sap/ui/core/Fragment", "sap/ui/core/syncStyleClass", "sap/ui/mod
   });
   return VersionDialog;
 });
+//# sourceMappingURL=VersionDialog-dbg.js.map

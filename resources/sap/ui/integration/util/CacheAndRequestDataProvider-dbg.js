@@ -7,11 +7,10 @@ sap.ui.define([
 	"sap/ui/integration/util/RequestDataProvider",
 	"sap/base/Log",
 	"sap/ui/core/Core",
-	"sap/base/util/merge",
+	"sap/base/util/deepExtend",
 	"sap/ui/core/date/UI5Date"
-], function (RequestDataProvider, Log, Core, merge, UI5Date) {
+], function (RequestDataProvider, Log, Core, deepExtend, UI5Date) {
 	"use strict";
-	/*global URL*/
 
 	/**
 	 * @const The amount of seconds in a common calendar year.
@@ -169,13 +168,24 @@ sap.ui.define([
 	 * @inheritdoc
 	 */
 	CacheAndRequestDataProvider.prototype._modifyRequestBeforeSent = function (oRequest, oSettings) {
+		oSettings.request = this._addCacheSettings(oSettings.request);
+
+		return RequestDataProvider.prototype._modifyRequestBeforeSent.call(this, oRequest, oSettings);
+	};
+
+	/**
+	 * @inheritdoc
+	 */
+	CacheAndRequestDataProvider.prototype._addCacheSettings = function (oSettings) {
 		var oDefault = {
-				enabled: true,
-				maxAge: 0,
-				staleWhileRevalidate: true
+				cache: {
+					enabled: true,
+					maxAge: 0,
+					staleWhileRevalidate: true
+				}
 			},
-			oNewSettings = merge({request: { cache: oDefault }}, oSettings),
-			oCache = oNewSettings.request.cache;
+			oNewSettings = deepExtend(oDefault, oSettings),
+			oCache = oNewSettings.cache;
 
 		if (oCache.noStore) {
 			// temporary needed for backward compatibility
@@ -192,9 +202,14 @@ sap.ui.define([
 			}
 		}
 
-		oNewSettings.request.cache = oCache;
+		return oNewSettings;
+	};
 
-		return RequestDataProvider.prototype._modifyRequestBeforeSent.call(this, oRequest, oNewSettings);
+	/**
+	 * @override
+	 */
+	CacheAndRequestDataProvider.prototype._getRequestSettings = function () {
+		return this._addCacheSettings(this.getSettings().request);
 	};
 
 	/**

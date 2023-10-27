@@ -1,3 +1,5 @@
+import { Marked } from "marked";
+import { markedHighlight } from "marked-highlight";
 import hljs from "highlight.js/lib/core";
 import js from "highlight.js/lib/languages/javascript";
 import xml from "highlight.js/lib/languages/xml";
@@ -5,7 +7,6 @@ import css from "highlight.js/lib/languages/css";
 import shell from "highlight.js/lib/languages/shell";
 import bash from "highlight.js/lib/languages/bash";
 import json from "highlight.js/lib/languages/json";
-import { marked } from "marked";
 
 // Prevent Rollup "Unexpected token Error", some tokens within certain language definitions (i.e. arduino) throw rollup off
 // Err: "rollup-plugin-inject: failed to parse '<path-to-file.js>' Consider restricting the plugin to particular files via options.include"
@@ -16,17 +17,15 @@ hljs.registerLanguage("shell", shell);
 hljs.registerLanguage("bash", bash);
 hljs.registerLanguage("json", json);
 
-/**
- * Syntax Highlighting
- * @returns {string} highlighted code block
- */
-marked.setOptions({
-	highlight: function(string: string, lang?: string): string | void {
-		if (lang && hljs.getLanguage(lang)) {
-			return hljs.highlight(string, { language: lang }).value;
-		}
-	}
-});
+const marked = new Marked(
+	markedHighlight({
+		highlight(code, lang) {
+			if (lang && hljs.getLanguage(lang)) {
+				return hljs.highlight(code, { language: lang }).value;
+			}
+		},
+	})
+);
 
 /**
  * Image Rendering
@@ -44,7 +43,7 @@ const renderer = {
 		const imagePath = `https://raw.githubusercontent.com/wiki/wridgeu/wridgeu.github.io/${image}`;
 
 		return `<img class="wikiImage" src="${imagePath}"></img>`;
-	}
+	},
 };
 
 marked.use({ renderer });

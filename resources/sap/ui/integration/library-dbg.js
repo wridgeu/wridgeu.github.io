@@ -25,13 +25,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.integration
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @since 1.62
 	 * @public
 	 */
 	var thisLib = oCore.initLibrary({
 		name: "sap.ui.integration",
-		version: "1.116.0",
+		version: "1.119.0",
 		dependencies: [
 			"sap.ui.core",
 			"sap.f",
@@ -44,6 +44,7 @@ sap.ui.define([
 			"sap.ui.integration.CardDataMode",
 			"sap.ui.integration.CardMenuAction",
 			"sap.ui.integration.CardDesign",
+			"sap.ui.integration.CardDisplayVariant",
 			"sap.ui.integration.CardBlockingMessageType"
 		],
 		controls: [
@@ -59,9 +60,13 @@ sap.ui.define([
 			"sap.ui.integration.Host",
 			"sap.ui.integration.Extension"
 		],
-		// define the custom elements that can be used in this library
-		customElements: {
-			"card": "sap/ui/integration/customElements/CustomElementCard"
+		extensions: {
+			"sap.ui.integration": {
+				// define the custom elements that can be used in this library
+				customElements: {
+					"card": "sap/ui/integration/customElements/CustomElementCard"
+				}
+			}
 		}
 	});
 
@@ -167,6 +172,42 @@ sap.ui.define([
 		 * @public
 		 */
 		Transparent: "Transparent"
+	};
+
+	/**
+	 * Possible variants for <code>{@link sap.ui.integration.widgets.Card}</code> rendering and behavior.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @experimental Since 1.118. For usage only by Work Zone.
+	 * @since 1.118
+	 */
+	thisLib.CardDisplayVariant = {
+		/**
+		 * The standard card variant.
+		 * @public
+		 */
+		Standard: "Standard",
+		/**
+		 * Card renders and behaves like a tile of size 2x2.
+		 * @public
+		 */
+		TileStandard: "TileStandard",
+		/**
+		 * Card renders and behaves like a tile of size 4x2.
+		 * @public
+		 */
+		TileStandardWide: "TileStandardWide",
+		/**
+		 * Card renders and behaves like a tile of size 2x1.
+		 * @public
+		 */
+		TileFlat: "TileFlat",
+		/**
+		 * Card renders and behaves like a tile of size 4x1.
+		 * @public
+		 */
+		TileFlatWide: "TileFlatWide"
 	};
 
 	/**

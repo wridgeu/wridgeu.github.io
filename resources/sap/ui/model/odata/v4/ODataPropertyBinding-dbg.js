@@ -6,6 +6,7 @@
 
 //Provides class sap.ui.model.odata.v4.ODataPropertyBinding
 sap.ui.define([
+	"./Context",
 	"./ODataBinding",
 	"./lib/_Cache",
 	"./lib/_Helper",
@@ -13,9 +14,8 @@ sap.ui.define([
 	"sap/ui/base/SyncPromise",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/ChangeReason",
-	"sap/ui/model/odata/v4/Context",
 	"sap/ui/model/PropertyBinding"
-], function (asODataBinding, _Cache, _Helper, Log, SyncPromise, BindingMode, ChangeReason, Context,
+], function (Context, asODataBinding, _Cache, _Helper, Log, SyncPromise, BindingMode, ChangeReason,
 		PropertyBinding) {
 	"use strict";
 	/*eslint max-nested-callbacks: 0 */
@@ -42,7 +42,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.116.0
+		 * @version 1.119.0
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getUpdateGroupId as #getUpdateGroupId
@@ -117,8 +117,10 @@ sap.ui.define([
 	 * change reason as parameter.
 	 *
 	 * @param {sap.ui.base.Event} oEvent
-	 * @param {object} oEvent.getParameters()
-	 * @param {sap.ui.model.ChangeReason} oEvent.getParameters().reason
+	 *    The event object
+	 * @param {function():Object<any>} oEvent.getParameters
+	 *   Function which returns an object containing all event parameters
+	 * @param {sap.ui.model.ChangeReason} oEvent.getParameters.reason
 	 *   The reason for the 'change' event could be
 	 *   <ul>
 	 *     <li> {@link sap.ui.model.ChangeReason.Change Change} when the binding is initialized,
@@ -154,10 +156,12 @@ sap.ui.define([
 	 * 'error' event parameter.
 	 *
 	 * @param {sap.ui.base.Event} oEvent
-	 * @param {object} oEvent.getParameters()
-	 * @param {object} [oEvent.getParameters().data]
+	 *    The event object
+	 * @param {function():Object<any>} oEvent.getParameters
+	 *   Function which returns an object containing all event parameters
+	 * @param {object} [oEvent.getParameters.data]
 	 *   An empty data object if a back-end request succeeds
-	 * @param {Error} [oEvent.getParameters().error] The error object if a back-end request failed.
+	 * @param {Error} [oEvent.getParameters.error] The error object if a back-end request failed.
 	 *   If there are multiple failed back-end requests, the error of the first one is provided.
 	 *
 	 * @event sap.ui.model.odata.v4.ODataPropertyBinding#dataReceived
@@ -234,10 +238,10 @@ sap.ui.define([
 	 * @param {any} [vValue]
 	 *   The new value obtained from the cache, see {@link #onChange}
 	 * @returns {sap.ui.base.SyncPromise}
-	 *   A promise resolving without a defined result when the check is finished, or rejecting in
-	 *   case of an error. If the cache is no longer the active cache when the response arrives,
-	 *   that response is ignored almost silently (that is, with a canceled error) and the value
-	 *   remains unchanged.
+	 *   A promise which is resolved without a defined result when the check is finished, or
+	 *   rejected in case of an error. If the cache is no longer the active cache when the response
+	 *   arrives, that response is ignored almost silently (that is, with a canceled error) and the
+	 *   value remains unchanged.
 	 *
 	 * @private
 	 * @see sap.ui.model.PropertyBinding#checkDataState
@@ -364,12 +368,9 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataPropertyBinding.prototype.deregisterChangeListener = function () {
-		var that = this;
-
-		this.withCache(function (_oCache, sPath, oBinding) {
-				oBinding.doDeregisterChangeListener(sPath, that);
-			}, /*sPath*/"", /*bSync*/false, /*bWithOrWithoutCache*/true)
-			.catch(this.oModel.getReporter());
+		if (this.sReducedPath) {
+			this.doDeregisterChangeListener(this.sReducedPath, this);
+		}
 	};
 
 	/**
@@ -539,8 +540,8 @@ sap.ui.define([
 	 * Requests the value of the property binding.
 	 *
 	 * @returns {Promise<any|undefined>}
-	 *   A promise resolving with the resulting value or <code>undefined</code> if it could not be
-	 *   determined, or rejecting in case of an error
+	 *   A promise resolved with the resulting value or <code>undefined</code> if it could not be
+	 *   determined, or rejected in case of an error
 	 *
 	 * @public
 	 * @since 1.69
@@ -560,7 +561,7 @@ sap.ui.define([
 	 *   The value of the parameter <code>autoExpandSelect</code> for value list models created by
 	 *   this method. If the value list model is this binding's model, this flag has no effect.
 	 *   Supported since 1.68.0
-	 * @returns {Promise}
+	 * @returns {Promise<Object<object>>}
 	 *   See {@link sap.ui.model.odata.v4.ODataMetaModel#requestValueListInfo}
 	 * @throws {Error}
 	 *   If the binding is unresolved (see {@link sap.ui.model.Binding#isResolved})
@@ -581,7 +582,7 @@ sap.ui.define([
 	/**
 	 * Determines which type of value list exists for this property.
 	 *
-	 * @returns {Promise}
+	 * @returns {Promise<sap.ui.model.odata.v4.ValueListType>}
 	 *   A promise that is resolved with the type of the value list. It is rejected if the property
 	 *   cannot be found in the metadata.
 	 * @throws {Error}

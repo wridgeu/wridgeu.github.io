@@ -104,7 +104,7 @@ sap.ui.define([
 
 		SidePanelRenderer.renderSide = function(oRm, oControl) {
 			var bPhone = Device.system.phone,
-				bRenderSplitter = oControl.getSidePanelResizable() && oControl._getSideContentExpanded() && !bPhone;
+				bRenderSplitter = oControl._isResizable();
 
 			oRm.openStart("aside");
 			oRm.class("sapFSPSide");
@@ -225,7 +225,7 @@ sap.ui.define([
 			oRm.attr("tabindex", 0);
 			oRm.attr("role", "separator");
 			oRm.attr("aria-orientation", "vertical");
-			oRm.attr("aria-roledescription", "splitter separator");
+			oRm.attr("aria-roledescription", "splitter");
 			oRm.attr("title", oControl._getSplitterTitle());
 			oRm.openEnd();
 

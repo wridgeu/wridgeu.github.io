@@ -17,7 +17,7 @@ sap.ui.define([
 	 * @namespace sap.ui.integration.designtime.baseEditor.validator.ValidatorRegistry
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @static
 	 * @since 1.81

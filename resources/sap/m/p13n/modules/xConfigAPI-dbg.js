@@ -27,6 +27,7 @@ sap.ui.define([
 	 * @param {object} oModificationPayload.property The affected property name (such as <code>width</code> or <code>lable</code>)
 	 * @param {object} oModificationPayload.value The value that should be written in nthe xConfig
 	 * @param {object} [oModificationPayload.propertyBag] Optional propertybag for different modification handler derivations
+	 * @param {boolean} [oModificationPayload.markAsModified] Optional flag that triggers a state change event for the engine registration process
 	 *
 	 * @returns {Promise<object>} Promise resolving to the adapted xConfig object
 	 */
@@ -69,6 +70,10 @@ sap.ui.define([
 					oConfig = xConfigAPI.createAggregationConfig(oControl, oModificationPayload, oExistingConfig);
 				} else {
 					oConfig = xConfigAPI.createPropertyConfig(oControl, oModificationPayload, oExistingConfig);
+				}
+
+				if (oModificationPayload.markAsModified) {
+					oConfig.modified = true;
 				}
 
 				var oAppComponent = mPropertyBag ? mPropertyBag.appComponent : undefined;
@@ -211,6 +216,32 @@ sap.ui.define([
 
 			switch (oModificationPayload.operation) {
 				case "move":
+					Object.entries(oConfig.aggregations[sAggregationName]).forEach((aEntry) => {
+						if (
+							aEntry[0] !== sPropertyInfoKey &&
+							aEntry[1].position !== undefined
+						){
+							var newIndex = vValue.index;
+							var currentState = oModificationPayload.currentState;
+							var currentItemState = currentState?.find((item) => item.key == sPropertyInfoKey);
+							var currentItemIndex = currentState?.indexOf(currentItemState);
+
+							//In case of move changes, we also need to ensure that existing xConfig position changes
+							//are adapted accordingly to avoid index mismatches
+
+							if (newIndex < aEntry[1].position) {
+								aEntry[1].position++;
+							}
+
+							if (newIndex > aEntry[1].position && currentItemIndex < aEntry[1].position) {
+								aEntry[1].position--;
+							}
+
+							if (aEntry[1].position == newIndex) {
+								currentItemIndex > aEntry[1].position ? aEntry[1].position++ : aEntry[1].position--;
+							}
+						}
+					});
 					oConfig.aggregations[sAggregationName][sPropertyInfoKey][sAffectedProperty] = vValue.index;
 					break;
 				case "remove":

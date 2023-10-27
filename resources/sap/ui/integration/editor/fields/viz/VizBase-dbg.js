@@ -19,7 +19,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.viz.VizBase
 	 * @author SAP SE
 	 * @since 1.105.0
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @private
 	 * @experimental since 1.105.0
 	 * @ui5-restricted
@@ -84,14 +84,6 @@ sap.ui.define([
 
 	// bind propety to this._oControl
 	VizBase.prototype.bindPropertyToControl = function (sProperty, oBindingInfo) {
-		if (sProperty === "value") {
-			var oControlBindingInfo = merge({}, oBindingInfo);
-			this._oControl.bindProperty("value", oControlBindingInfo);
-		}
-		if (sProperty === "editable") {
-			var oControlBindingInfo = merge({}, oBindingInfo);
-			this._oControl.bindProperty("editable", oControlBindingInfo);
-		}
 	};
 
 	return VizBase;

@@ -1,15 +1,17 @@
 /* global QUnit, sinon */
 
 sap.ui.define([
+	"sap/base/config",
 	"jquery.sap.global", // provides jQuery.sap.Version
 	"sap/base/config/GlobalConfigurationProvider",
 	"sap/ui/core/Core",
-	"sap/ui/core/Configuration"
+	"sap/ui/core/getCompatibilityVersion"
 ], function(
+	BaseConfig,
 	jQuery,
 	GlobalConfigurationProvider,
 	Core,
-	Configuration
+	getCompatibilityVersion
 ) {
 	"use strict";
 
@@ -64,11 +66,12 @@ sap.ui.define([
 		});
 
 		function checkCompat(oConf, sText, sExp1, sExp2){
+			BaseConfig._.invalidate();
 			mConfigStubValues = oConf;
 			var dflt = jQuery.sap.Version(sExp1).toString();
-			assert.equal(Configuration.getCompatibilityVersion("").toString(), dflt, sText + ": Default (feature='')");
-			assert.equal(Configuration.getCompatibilityVersion("xx-test2").toString(), dflt, sText + ": Default (undef. feature)");
-			assert.equal(Configuration.getCompatibilityVersion("xx-test").toString(), jQuery.sap.Version(sExp2).toString(), sText + ": Result (avail. feature)");
+			assert.equal(getCompatibilityVersion("").toString(), dflt, sText + ": Default (feature='')");
+			assert.equal(getCompatibilityVersion("xx-test2").toString(), dflt, sText + ": Default (undef. feature)");
+			assert.equal(getCompatibilityVersion("xx-test").toString(), jQuery.sap.Version(sExp2).toString(), sText + ": Result (avail. feature)");
 		}
 
 		var currentVersion = jQuery.sap.Version(config.getVersion().getMajor(), config.getVersion().getMinor()).toString();

@@ -5,16 +5,18 @@
  */
 QUnit.config.autostart = false;
 
-sap.ui.getCore().attachInit(function () {
+sap.ui.require([
+	"sap/ui/core/Core",
+	"sap/ui/core/sample/common/Helper",
+	"sap/ui/core/sample/common/pages/Any",
+	"sap/ui/core/sample/odata/v4/ListBinding/pages/Main",
+	"sap/ui/test/opaQunit",
+	"sap/ui/test/TestUtils",
+	"sap/ui/core/sample/odata/v4/ListBinding/SandboxModel" // preload only
+], function (Core, Helper, Any, Main, opaTest, TestUtils) {
 	"use strict";
 
-	sap.ui.require([
-		"sap/ui/core/sample/common/Helper",
-		"sap/ui/core/sample/common/pages/Any",
-		"sap/ui/core/sample/odata/v4/ListBinding/pages/Main",
-		"sap/ui/test/opaQunit",
-		"sap/ui/test/TestUtils"
-	], function (Helper, Any, Main, opaTest, TestUtils) {
+	Core.ready().then(function () {
 		Helper.qUnitModule("sap.ui.core.sample.odata.v4.ListBinding");
 
 		//*****************************************************************************
@@ -26,6 +28,7 @@ sap.ui.getCore().attachInit(function () {
 					name : "sap.ui.core.sample.odata.v4.ListBinding"
 				}
 			});
+			Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 			Then.onTheMainPage.checkTeamIDInForm("TEAM_01");
 			Then.onTheMainPage.checkEmployeeNameInRow(0, "Walter\"s Win's");
@@ -60,7 +63,6 @@ sap.ui.getCore().attachInit(function () {
 
 			Then.onAnyPage.checkLog();
 			Then.onAnyPage.analyzeSupportAssistant();
-			Then.iTeardownMyUIComponent();
 		});
 
 		QUnit.start();

@@ -7,9 +7,10 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/base/SyncPromise",
 	"sap/ui/core/Configuration",
+	"sap/ui/core/Rendering",
 	"sap/ui/core/cache/CacheManager",
 	"sap/ui/core/message/Message",
-	"sap/ui/core/message/MessageManager",
+	"sap/ui/core/Messaging",
 	"sap/ui/model/Binding",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/Context",
@@ -25,7 +26,7 @@ sap.ui.define([
 	"sap/ui/model/odata/v4/lib/_Requestor",
 	"sap/ui/core/library",
 	"sap/ui/test/TestUtils"
-], function (Log, SyncPromise, Configuration, CacheManager, Message, MessageManager, Binding,
+], function (Log, SyncPromise, Configuration, Rendering, CacheManager, Message, Messaging, Binding,
 		BindingMode, BaseContext, Model, OperationMode, Context, ODataMetaModel, ODataModel,
 		SubmitMode, _Helper, _MetadataRequestor, _Parser, _Requestor, library, TestUtils) {
 	"use strict";
@@ -86,8 +87,8 @@ sap.ui.define([
 			return new ODataModel({useBatch : true});
 		}, new Error("Unsupported parameter: useBatch"));
 		assert.throws(function () {
-			return new ODataModel({operationMode : OperationMode.Auto, serviceUrl : "/foo/"});
-		}, new Error("Unsupported operation mode: Auto"), "Unsupported OperationMode");
+			return new ODataModel({operationMode : OperationMode.Client, serviceUrl : "/foo/"});
+		}, new Error("Unsupported operation mode: Client"), "Unsupported OperationMode");
 
 		this.mock(ODataModel.prototype).expects("initializeSecurityToken").never();
 		this.mock(_Requestor.prototype).expects("sendOptimisticBatch").never();
@@ -117,7 +118,7 @@ sap.ui.define([
 		this.mock(_MetadataRequestor).expects("create")
 			.withExactArgs({"Accept-Language" : "ab-CD"}, "4.0", undefined, bStatistics
 				? {"sap-client" : "279", "sap-statistics" : true}
-				: {"sap-client" : "279"})
+				: {"sap-client" : "279"}, undefined)
 			.returns(oMetadataRequestor);
 		this.mock(ODataMetaModel.prototype).expects("fetchEntityContainer").withExactArgs(true);
 		this.mock(ODataModel.prototype).expects("initializeSecurityToken").withExactArgs();
@@ -164,10 +165,10 @@ sap.ui.define([
 				"sap-client" : "279",
 				"sap-context-token" : "20200716120000",
 				"sap-language" : "EN"
-			});
+			}, undefined);
 		this.mock(_Requestor).expects("create")
 			.withExactArgs(sServiceUrl, sinon.match.object, {"Accept-Language" : "ab-CD"},
-				{"sap-client" : "279", "sap-context-token" : "n/a"}, "4.0")
+				{"sap-client" : "279", "sap-context-token" : "n/a"}, "4.0", undefined)
 			.callThrough();
 
 		// code under test
@@ -231,14 +232,14 @@ sap.ui.define([
 
 			oRequestorCreateExpectation = this.mock(_Requestor).expects("create")
 				.withExactArgs(sServiceUrl, sinon.match.object, {"Accept-Language" : "ab-CD"},
-					sinon.match.object, sODataVersion)
+					sinon.match.object, sODataVersion, undefined)
 				.returns({
 					checkForOpenRequests : function () {},
 					checkHeaderNames : function () {}
 				});
 			oMetadataRequestorCreateExpectation = this.mock(_MetadataRequestor).expects("create")
 				.withExactArgs({"Accept-Language" : "ab-CD"}, sODataVersion, undefined,
-					sinon.match.object)
+					sinon.match.object, undefined)
 				.returns({});
 
 			// code under test
@@ -427,6 +428,43 @@ sap.ui.define([
 	});
 
 	//*********************************************************************************************
+[false, true].forEach(function (bWithCredentials) {
+	QUnit.test("Model creates _Requestor, withCredentials=" + bWithCredentials, function () {
+		this.mock(_MetadataRequestor).expects("create")
+			.withExactArgs({"Accept-Language" : "ab-CD"}, "4.0",
+				/*bIngnoreAnnotationsFromMetadata*/undefined, /*mQueryParams*/{},
+				/*bWithCredentials*/bWithCredentials);
+		this.mock(_Requestor).expects("create")
+			.withExactArgs(sServiceUrl, {
+					fetchEntityContainer : sinon.match.func,
+					fetchMetadata : sinon.match.func,
+					fireDataReceived : sinon.match.func,
+					fireDataRequested : sinon.match.func,
+					fireSessionTimeout : sinon.match.func,
+					getGroupProperty : sinon.match.func,
+					getMessagesByPath : sinon.match.func,
+					getOptimisticBatchEnabler : sinon.match.func,
+					getReporter : sinon.match.func,
+					isIgnoreETag : sinon.match.func,
+					onCreateGroup : sinon.match.func,
+					reportStateMessages : sinon.match.func,
+					reportTransitionMessages : sinon.match.func,
+					updateMessages : sinon.match.func
+				},
+				{"Accept-Language" : "ab-CD"},
+				{},
+				"4.0",
+				bWithCredentials)
+			.returns({
+				checkForOpenRequests : function () {},
+				checkHeaderNames : function () {}
+			});
+
+		this.createModel(undefined, {withCredentials : bWithCredentials});
+	});
+});
+
+	//*********************************************************************************************
 [false, true].forEach(function (bStatistics) {
 	QUnit.test("Model creates _Requestor, sap-statistics=" + bStatistics, function (assert) {
 		var oExpectedBind0,
@@ -471,7 +509,7 @@ sap.ui.define([
 				bStatistics
 					? {"sap-client" : "123", "sap-statistics" : true}
 					: {"sap-client" : "123"},
-				"4.0")
+				"4.0", undefined)
 			.returns(oRequestor);
 		oExpectedBind0 = this.mock(ODataMetaModel.prototype.fetchEntityContainer).expects("bind")
 			.returns("~fnFetchEntityContainer~");
@@ -532,7 +570,7 @@ sap.ui.define([
 		// code under test
 		oModel.setIgnoreETag("~bIgnoreETag~");
 
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs("~oldMessages~", "~newMessages~");
 
 		// code under test
@@ -1084,7 +1122,7 @@ sap.ui.define([
 				.twice();
 			oModelMock.expects("reportStateMessages").never();
 			oModelMock.expects("reportTransitionMessages")
-				.once()// add each error only once to the MessageManager
+				.once()// add each error only once to the Messaging
 				.withExactArgs("~extractedMessages~", "resource/path");
 
 			// code under test
@@ -1760,7 +1798,7 @@ sap.ui.define([
 				return oMessage === aMessages[1] && oMessage.transition === true;
 			}), sResourcePath)
 			.returns("~UI5msg1~");
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(undefined, sinon.match(["~UI5msg0~", "~UI5msg1~"]));
 
 		// code under test
@@ -1777,7 +1815,7 @@ sap.ui.define([
 	QUnit.test("reportStateMessages", function () {
 		var aBarMessages = ["~rawMessage0~", "~rawMessage1~"],
 			aBazMessages = ["~rawMessage2~"],
-			oMessageManagerMock = this.mock(MessageManager),
+			oMessagingMock = this.mock(Messaging),
 			oModel = this.createModel(),
 			oModelMock = this.mock(oModel);
 
@@ -1787,14 +1825,14 @@ sap.ui.define([
 			.withExactArgs(aBarMessages[1], "Team('42')", "foo/bar").returns("~UI5msg1~");
 		oModelMock.expects("createUI5Message")
 			.withExactArgs(aBazMessages[0], "Team('42')", "foo/baz").returns("~UI5msg2~");
-		oMessageManagerMock.expects("updateMessages")
+		oMessagingMock.expects("updateMessages")
 			.withExactArgs([], ["~UI5msg0~", "~UI5msg1~", "~UI5msg2~"]);
 
 		// code under test
 		oModel.reportStateMessages("Team('42')",
 			{"foo/bar" : aBarMessages, "foo/baz" : aBazMessages});
 
-		oMessageManagerMock.expects("updateMessages").never();
+		oMessagingMock.expects("updateMessages").never();
 
 		// code under test
 		oModel.reportStateMessages("Team('42')", {});
@@ -1811,12 +1849,12 @@ sap.ui.define([
 				"/FOO('3')/NavSingle/Name" : [{}, {}],
 				"/FOO('3')/NavSingleBar/Name" : [{}]
 			},
-			oMessageManagerMock = this.mock(MessageManager),
+			oMessagingMock = this.mock(Messaging),
 			oModel = this.createModel();
 
 		oModel.mMessages = mMessages;
 
-		oMessageManagerMock.expects("updateMessages")
+		oMessagingMock.expects("updateMessages")
 			.withExactArgs(sinon.match.array, sinon.match.array)
 			.callsFake(function (aOldMessages, aNewMessages) {
 				assert.ok(aOldMessages.indexOf(mMessages["/FOO('1')"][0]) >= 0);
@@ -1832,7 +1870,7 @@ sap.ui.define([
 		// code under test
 		oModel.reportStateMessages("FOO('1')", {});
 
-		oMessageManagerMock.expects("updateMessages")
+		oMessagingMock.expects("updateMessages")
 			.withExactArgs(sinon.match.array, sinon.match.array)
 			.callsFake(function (aOldMessages, aNewMessages) {
 				assert.ok(aOldMessages.indexOf(mMessages["/FOO('3')/NavSingle"][0]) >= 0);
@@ -1863,7 +1901,7 @@ sap.ui.define([
 		oModel.mMessages = mMessages;
 		oHelperMock.expects("buildPath").withExactArgs("/FOO", "('1')").returns("/FOO('1')");
 		oHelperMock.expects("buildPath").withExactArgs("/FOO", "('2')").returns("/FOO('2')");
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(sinon.match.array, sinon.match.array)
 			.callsFake(function (aOldMessages, aNewMessages) {
 				assert.ok(aOldMessages.indexOf(mMessages["/FOO('1')"][0]) >= 0);
@@ -1895,7 +1933,7 @@ sap.ui.define([
 			oModel = this.createModel();
 
 		oModel.mMessages = mMessages;
-		this.mock(MessageManager).expects("updateMessages")
+		this.mock(Messaging).expects("updateMessages")
 			.withExactArgs(sinon.match.array, sinon.match.array)
 			.callsFake(function (aOldMessages, aNewMessages) {
 				assert.ok(aOldMessages.indexOf(mMessages["/FOO('1')"][0]) >= 0);
@@ -2246,7 +2284,7 @@ sap.ui.define([
 
 	//*********************************************************************************************
 	QUnit.test("addPrerenderingTask: queue", function (assert) {
-		var oExpectation = this.mock(sap.ui.getCore()).expects("addPrerenderingTask")
+		var oExpectation = this.mock(Rendering).expects("addPrerenderingTask")
 				.withExactArgs(sinon.match.func),
 			fnFirstPrerenderingTask = "first",
 			fnPrerenderingTask0 = "0",
@@ -2288,7 +2326,7 @@ sap.ui.define([
 				oModel.addPrerenderingTask(fnLastTask);
 			});
 
-		oAddTaskMock = this.mock(sap.ui.getCore()).expects("addPrerenderingTask")
+		oAddTaskMock = this.mock(Rendering).expects("addPrerenderingTask")
 			.withExactArgs(sinon.match.func);
 		this.mock(window).expects("setTimeout").withExactArgs(sinon.match.func, 0).returns(42);
 		oModel.addPrerenderingTask(fnPrerenderingTask0);
@@ -2328,7 +2366,7 @@ sap.ui.define([
 			fnTask = this.spy(),
 			oWindowMock = this.mock(window);
 
-		oAddTaskExpectation = this.mock(sap.ui.getCore()).expects("addPrerenderingTask")
+		oAddTaskExpectation = this.mock(Rendering).expects("addPrerenderingTask")
 			.withExactArgs(sinon.match.func);
 		oSetTimeoutExpectation = oWindowMock.expects("setTimeout")
 			.withExactArgs(sinon.match.func, 0);
@@ -2360,7 +2398,7 @@ sap.ui.define([
 			fnTask1 = this.spy(),
 			fnTask2 = "~task~2~";
 
-		oAddTaskExpectation = this.mock(sap.ui.getCore()).expects("addPrerenderingTask").twice()
+		oAddTaskExpectation = this.mock(Rendering).expects("addPrerenderingTask").twice()
 			.withExactArgs(sinon.match.func);
 		oSetTimeoutExpectation = this.mock(window).expects("setTimeout").thrice()
 			.withExactArgs(sinon.match.func, 0);
@@ -3253,6 +3291,9 @@ sap.ui.define([
 			.returns(oFixture.iStatus === 204
 				? Promise.resolve()
 				: Promise.reject(oError));
+		this.mock(oModel).expects("reportError").exactly(bSuccess ? 0 : 1)
+			.withExactArgs("Failed to delete " + sCanonicalPath, sClassName,
+				sinon.match.same(oError));
 		this.mock(aAllBindings[0]).expects("onDelete").exactly(bInAllBindings ? 1 : 0)
 			.withExactArgs(sCanonicalPath);
 		this.mock(aAllBindings[1]).expects("onDelete").exactly(bInAllBindings ? 1 : 0)

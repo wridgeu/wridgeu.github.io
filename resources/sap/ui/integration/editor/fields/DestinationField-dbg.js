@@ -19,7 +19,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.DestinationField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted

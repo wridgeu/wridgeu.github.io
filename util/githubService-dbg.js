@@ -1,6 +1,8 @@
 "use strict";
 
 sap.ui.define([], function () {
+  "use strict";
+
   /**
    * Fetch the markdown content
    * @returns {Promise<string>} content of markdown file
@@ -34,3 +36,4 @@ sap.ui.define([], function () {
   __exports.getContentEditLink = getContentEditLink;
   return __exports;
 });
+//# sourceMappingURL=githubService-dbg.js.map

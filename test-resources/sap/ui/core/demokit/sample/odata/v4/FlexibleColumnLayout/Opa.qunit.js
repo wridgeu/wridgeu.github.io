@@ -12,16 +12,18 @@ QUnit.config.autostart = false;
  * controls in the OPA will fail.
  */
 
-sap.ui.getCore().attachInit(function () {
+sap.ui.require([
+	"sap/ui/core/Core",
+	"sap/ui/core/sample/common/Helper",
+	"sap/ui/core/sample/common/pages/Any",
+	"sap/ui/core/sample/odata/v4/FlexibleColumnLayout/pages/Main",
+	"sap/ui/test/opaQunit",
+	"sap/ui/test/TestUtils",
+	"sap/ui/core/sample/odata/v4/FlexibleColumnLayout/SandboxModel" // preload only
+], function (Core, Helper, Any, Main, opaTest, TestUtils) {
 	"use strict";
 
-	sap.ui.require([
-		"sap/ui/core/sample/common/Helper",
-		"sap/ui/core/sample/common/pages/Any",
-		"sap/ui/core/sample/odata/v4/FlexibleColumnLayout/pages/Main",
-		"sap/ui/test/opaQunit",
-		"sap/ui/test/TestUtils"
-	], function (Helper, Any, Main, opaTest, TestUtils) {
+	Core.ready().then(function () {
 		Helper.qUnitModule("sap.ui.core.sample.odata.v4.FlexibleColumnLayout");
 
 		if (TestUtils.isRealOData()) {
@@ -36,6 +38,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				When.onTheListReport.selectSalesOrder(0);
 				Then.onTheObjectPage.checkSalesOrderID("0500000000");
@@ -63,7 +66,6 @@ sap.ui.getCore().attachInit(function () {
 
 				Then.onAnyPage.checkLog();
 				Then.onAnyPage.analyzeSupportAssistant();
-				Then.iTeardownMyUIComponent();
 			});
 
 			//*****************************************************************************
@@ -74,6 +76,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				When.onTheListReport.selectSalesOrder(0);
 				Then.onTheObjectPage.checkSalesOrderID("0500000000");
@@ -108,8 +111,6 @@ sap.ui.getCore().attachInit(function () {
 				When.onTheApplication.pressCancel();
 				Then.onTheSubObjectPage.checkQuantity("4.000");
 				Then.onTheObjectPage.checkSalesOrderItem(9, "0000000010", "4.000");
-
-				Then.iTeardownMyUIComponent();
 			});
 
 			//*****************************************************************************
@@ -122,6 +123,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				Then.onTheListReport.checkSalesOrdersCount(10);
 				When.onTheListReport.selectSalesOrder(4);
@@ -141,8 +143,6 @@ sap.ui.getCore().attachInit(function () {
 				Then.onTheApplication.checkMessagesButtonCount(0);
 				Then.onTheApplication.checkObjectPageNotVisible();
 				Then.onTheListReport.checkSalesOrdersCount(7);
-
-				Then.iTeardownMyUIComponent();
 			});
 
 			//*****************************************************************************
@@ -155,6 +155,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				When.onTheListReport.selectSalesOrder(0);
 				Then.onTheObjectPage.checkSalesOrderID("0500000000");
@@ -178,8 +179,6 @@ sap.ui.getCore().attachInit(function () {
 
 				When.onTheApplication.pressCancel();
 				Then.onTheObjectPage.checkSalesOrderItemsCount(26);
-
-				Then.iTeardownMyUIComponent();
 			});
 
 			//*****************************************************************************
@@ -191,6 +190,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				When.onTheListReport.sortBySalesOrderID();
 				When.onTheListReport.selectSalesOrder(0);
@@ -203,8 +203,6 @@ sap.ui.getCore().attachInit(function () {
 				When.onTheObjectPage.refresh();
 				// context vanishes
 				Then.onTheApplication.checkObjectPageNotVisible();
-
-				Then.iTeardownMyUIComponent();
 			});
 
 			//*****************************************************************************
@@ -217,6 +215,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				When.onTheListReport.selectSalesOrder(0);
 				Then.onTheObjectPage.checkSalesOrderID("0500000000");
@@ -233,8 +232,6 @@ sap.ui.getCore().attachInit(function () {
 				Then.onTheObjectPage.checkNote("Test (refreshed)");
 				// and the context is no longer visible in the sales order table
 				Then.onTheListReport.checkSalesOrderNotInTheList("0500000000");
-
-				Then.iTeardownMyUIComponent();
 			});
 
 			//*****************************************************************************
@@ -247,6 +244,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				When.onTheListReport.selectSalesOrder(4);
 				Then.onTheObjectPage.checkSalesOrderID("0500000004");
@@ -262,8 +260,6 @@ sap.ui.getCore().attachInit(function () {
 				// the object page is refreshed
 				Then.onTheObjectPage.checkSalesOrderID("0500000004");
 				Then.onTheListReport.checkSalesOrder(4, "0500000004", "Test (refreshed)");
-
-				Then.iTeardownMyUIComponent();
 			});
 
 			//*****************************************************************************
@@ -275,6 +271,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				When.onTheListReport.selectSalesOrder(0);
 				Then.onTheObjectPage.checkSalesOrderID("0500000000");
@@ -307,8 +304,6 @@ sap.ui.getCore().attachInit(function () {
 				Then.onTheObjectPage.checkSalesOrderItem(4, "0000000100", "4.000");
 				// Do not check the group ID in the list report. This may fail because the list
 				// report is hidden if the window is too small.
-
-				Then.iTeardownMyUIComponent();
 			});
 
 			//*****************************************************************************
@@ -319,6 +314,7 @@ sap.ui.getCore().attachInit(function () {
 						name : "sap.ui.core.sample.odata.v4.FlexibleColumnLayout"
 					}
 				});
+				Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 				When.onTheApplication.pressCreate();
 				When.onTheObjectPage.changeNote("Deep Create");
@@ -365,7 +361,6 @@ sap.ui.getCore().attachInit(function () {
 				Then.onTheObjectPage.checkGrossAmount("12,404.77");
 
 				Then.onAnyPage.checkLog();
-				Then.iTeardownMyUIComponent();
 			});
 		}
 

@@ -34,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @public
 	 * @since 1.27.0
@@ -180,17 +180,14 @@ sap.ui.define([
 	 * @public
 	 */
 	InvisibleText.getStaticId = function(sLibrary, sTextKey) {
-		var sTextId = "", sKey, oBundle, oText, oLibrary;
+		var sTextId = "", sKey, oBundle, oText;
 
 		if ( ControlBehavior.isAccessibilityEnabled() && sTextKey ) {
 			// Note: identify by lib and text key, not by text to avoid conflicts after a language change
 			sKey = sLibrary + "|" + sTextKey;
 			sTextId = mTextIds[sKey];
 			if ( sTextId == null ) {
-				oLibrary = Library.get(sLibrary);
-				if (oLibrary) {
-					oBundle = oLibrary.getResourceBundle();
-				}
+				oBundle = Library.getResourceBundleFor(sLibrary);
 				oText = new InvisibleText().setText(oBundle ? oBundle.getText(sTextKey) : sTextKey);
 				oText.toStatic();
 				sTextId = mTextIds[sKey] = oText.getId();
@@ -209,7 +206,7 @@ sap.ui.define([
 		for ( sKey in mTextIds ) {
 			p = sKey.indexOf('|');
 			oBundle = Library.getResourceBundleFor(sKey.slice(0, p));
-			oText = Element.registry.get(mTextIds[sKey]);
+			oText = Element.getElementById(mTextIds[sKey]);
 			oText && oText.setText(oBundle.getText(sKey.slice(p + 1)));
 		}
 	});

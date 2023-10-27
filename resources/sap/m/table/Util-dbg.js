@@ -7,11 +7,13 @@
 sap.ui.define([
 	"sap/m/library",
 	"sap/ui/core/Core",
+	"sap/ui/core/LocaleData",
+	"sap/ui/core/Theming",
 	"sap/ui/core/theming/Parameters",
 	"sap/m/IllustratedMessage",
 	"sap/m/Button",
 	"sap/ui/core/InvisibleMessage"
-], function(MLibrary, Core, ThemeParameters, IllustratedMessage, Button, InvisibleMessage) {
+], function(MLibrary, Core, LocaleData, Theming, ThemeParameters, IllustratedMessage, Button, InvisibleMessage) {
 	"use strict";
 	/*global Intl*/
 
@@ -21,7 +23,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias module:sap/m/table/Util
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @since 1.96.0
 	 * @private
 	 * @ui5-restricted sap.fe, sap.ui.mdc, sap.ui.comp
@@ -33,6 +35,7 @@ sap.ui.define([
 	var fBaseFontSize = parseFloat(MLibrary.BaseFontSize);
 	var oSelectAllNotificationPopover = null;
 	var pGetSelectAllPopover = null;
+
 	/**
 	 * Measures the given text width in a canvas and returns the value in rem.
 	 *
@@ -52,7 +55,7 @@ sap.ui.define([
 			return sDefaultFont;
 		};
 
-		Core.attachThemeChanged(fnSetDefaultFont);
+		Theming.attachApplied(fnSetDefaultFont);
 
 		return function(sText, sFont) {
 			oCanvasContext.font = sFont || sDefaultFont || fnSetDefaultFont();
@@ -73,12 +76,23 @@ sap.ui.define([
 	 * @private
 	 */
 	Util.calcTypeWidth = (function() {
+		const oTimezones = LocaleData.getInstance(Core.getConfiguration().getLocale()).getTimezoneTranslations();
+		let sLongestTimezone;
 		var fBooleanWidth = 0;
 		var aDateParameters = [2023, 9, 26, 22, 47, 58, 999];
 		var oUTCDate = new Date(Date.UTC.apply(0, aDateParameters));
 		var oLocalDate = new (Function.prototype.bind.apply(Date, [null].concat(aDateParameters)))();
 		var mNumericLimits = { Byte: 3, SByte: 3, Int16: 5, Int32: 9, Int64: 12, Single: 6, Float: 12, Double: 13, Decimal: 15, Integer: 9 };
-		Core.attachThemeChanged(function() { fBooleanWidth = 0; });
+		Theming.attachApplied(function() { fBooleanWidth = 0; });
+
+		const getLongestTimezone = function() {
+			if (!sLongestTimezone) {
+				[sLongestTimezone] = Object.entries(oTimezones).reduce(([sTimezone, iLength], [sKey, sValue]) => {
+					return typeof sValue === "string" && sValue.length > iLength ? [sKey, sValue.length] : [sTimezone, iLength];
+				}, ["", 0]);
+			}
+			return sLongestTimezone;
+		};
 
 		return function(oType, mSettings) {
 
@@ -124,6 +138,10 @@ sap.ui.define([
 					sSample = oType.formatValue(sSample, "string");
 				} else if (oType.isA("sap.ui.model.odata.type.Time")) {
 					sSample = oType.formatValue({ __edmType: "Edm.Time", ms: oUTCDate.valueOf() }, "string");
+				} else if (oType.isA("sap.ui.model.odata.type.DateTimeWithTimezone")) {
+
+					// Use IANA timezone with highest translated length
+					sSample = oType.formatValue([oDate, getLongestTimezone()], "string");
 				} else {
 					sSample = oType.formatValue(mFormatOptions.interval ? [oDate, new Date(oDate * 1.009)] : oDate, "string");
 					((oType.oFormat && oType.oFormat.oFormatOptions && oType.oFormat.oFormatOptions.pattern) || "").replace(/[MELVec]{3,4}/, function(sWideFormat) {
@@ -175,7 +193,7 @@ sap.ui.define([
 			return sRequiredFont;
 		};
 
-		Core.attachThemeChanged(function() {
+		Theming.attachApplied(function() {
 			sHeaderFont = "";
 			sRequiredFont = "";
 		});
@@ -328,26 +346,28 @@ sap.ui.define([
 		}
 
 		pGetSelectAllPopover = Promise.all(
-            [new Promise(function(fnResolve) {
+			[new Promise(function(fnResolve) {
 				sap.ui.require([
 					"sap/m/Popover",
 					"sap/m/Bar",
 					"sap/m/HBox",
 					"sap/m/Title",
+					"sap/ui/core/Icon",
 					"sap/ui/core/library",
 					"sap/m/Text"
-				], function(Popover, Bar, HBox, Title, coreLib, Text) {
+				], function(Popover, Bar, HBox, Title, Icon, coreLib, Text) {
 					fnResolve({
 						Popover: Popover,
 						Bar: Bar,
 						HBox: HBox,
 						Title: Title,
+						Icon: Icon,
 						coreLib: coreLib,
 						Text: Text
 					});
 				});
 			}),
-            Core.getLibraryResourceBundle('sap.m', true)
+			Core.getLibraryResourceBundle('sap.m', true)
 		]).then(function(aResult) {
 			var oModules = aResult[0];
 			var oResourceBundle = aResult[1];
@@ -359,7 +379,7 @@ sap.ui.define([
 					contentMiddle: [
 						new oModules.HBox({
 							items: [
-								new oModules.coreLib.Icon({src: "sap-icon://message-warning", color: sIconColor})
+								new oModules.Icon({src: "sap-icon://message-warning", color: sIconColor})
 									.addStyleClass("sapUiTinyMarginEnd"),
 								new oModules.Title({text: oResourceBundle.getText("TABLE_SELECT_LIMIT_TITLE"), level: sTitleLevel})
 							],

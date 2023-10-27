@@ -1,17 +1,20 @@
 "use strict";
 
-sap.ui.define(["highlight.js/lib/core", "highlight.js/lib/languages/javascript", "highlight.js/lib/languages/xml", "highlight.js/lib/languages/css", "highlight.js/lib/languages/shell", "highlight.js/lib/languages/bash", "highlight.js/lib/languages/json", "marked"], function (__hljs, __js, __xml, __css, __shell, __bash, __json, __marked) {
+sap.ui.define(["marked", "marked-highlight", "highlight.js/lib/core", "highlight.js/lib/languages/javascript", "highlight.js/lib/languages/xml", "highlight.js/lib/languages/css", "highlight.js/lib/languages/shell", "highlight.js/lib/languages/bash", "highlight.js/lib/languages/json"], function (__marked, __marked_highlight, __hljs, __js, __xml, __css, __shell, __bash, __json) {
+  "use strict";
+
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
   }
+  const Marked = __marked["Marked"];
+  const markedHighlight = __marked_highlight["markedHighlight"];
   const hljs = _interopRequireDefault(__hljs);
   const js = _interopRequireDefault(__js);
   const xml = _interopRequireDefault(__xml);
   const css = _interopRequireDefault(__css);
   const shell = _interopRequireDefault(__shell);
   const bash = _interopRequireDefault(__bash);
-  const json = _interopRequireDefault(__json);
-  const marked = __marked["marked"]; // Prevent Rollup "Unexpected token Error", some tokens within certain language definitions (i.e. arduino) throw rollup off
+  const json = _interopRequireDefault(__json); // Prevent Rollup "Unexpected token Error", some tokens within certain language definitions (i.e. arduino) throw rollup off
   // Err: "rollup-plugin-inject: failed to parse '<path-to-file.js>' Consider restricting the plugin to particular files via options.include"
   hljs.registerLanguage("javascript", js);
   hljs.registerLanguage("xml", xml);
@@ -19,20 +22,15 @@ sap.ui.define(["highlight.js/lib/core", "highlight.js/lib/languages/javascript",
   hljs.registerLanguage("shell", shell);
   hljs.registerLanguage("bash", bash);
   hljs.registerLanguage("json", json);
-
-  /**
-   * Syntax Highlighting
-   * @returns {string} highlighted code block
-   */
-  marked.setOptions({
-    highlight: function (string, lang) {
+  const marked = new Marked(markedHighlight({
+    highlight(code, lang) {
       if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(string, {
+        return hljs.highlight(code, {
           language: lang
         }).value;
       }
     }
-  });
+  }));
 
   /**
    * Image Rendering
@@ -64,3 +62,4 @@ sap.ui.define(["highlight.js/lib/core", "highlight.js/lib/languages/javascript",
   __exports.markdownService = marked;
   return __exports;
 });
+//# sourceMappingURL=markdownService-dbg.js.map

@@ -8,6 +8,7 @@
  * Initialization Code and shared classes of library sap.m.
  */
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/Device",
 	"sap/ui/base/DataType",
 	"sap/ui/base/EventProvider",
@@ -36,6 +37,7 @@ sap.ui.define([
 	"./Support" // referenced here to enable the Support feature
 ],
 	function(
+	Library,
 	Device,
 	DataType,
 	EventProvider,
@@ -70,13 +72,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @since 1.4
 	 * @public
 	 */
-	var thisLib = sap.ui.getCore().initLibrary({
+	var thisLib = Library.init({
 		name : "sap.m",
-		version: "1.116.0",
+		version: "1.119.0",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		types: [
@@ -99,6 +101,7 @@ sap.ui.define([
 			"sap.m.DialogRoleType",
 			"sap.m.DialogType",
 			"sap.m.DraftIndicatorState",
+			"sap.m.DynamicDateRangeGroups",
 			"sap.m.FacetFilterListDataType",
 			"sap.m.FacetFilterType",
 			"sap.m.FlexAlignContent",
@@ -176,11 +179,13 @@ sap.ui.define([
 			"sap.m.ToolbarDesign",
 			"sap.m.ToolbarStyle",
 			"sap.m.UploadState",
+			"sap.m.UploadType",
 			"sap.m.ValueColor",
 			"sap.m.ValueCSSColor",
 			"sap.m.VerticalPlacementType",
 			"sap.m.WrappingType",
 			"sap.m.WizardRenderMode",
+			"sap.m.plugins.CopyPreference",
 			"sap.m.semantic.SemanticRuleSetType",
 			"sap.m.table.columnmenu.Category",
 			"sap.m.upload.UploaderHttpRequestMethod"
@@ -189,6 +194,7 @@ sap.ui.define([
 			"sap.m.IBar",
 			"sap.m.IBadge",
 			"sap.m.IBreadcrumbs",
+			"sap.m.ITableItem",
 			"sap.m.p13n.IContent",
 			"sap.m.IconTab",
 			"sap.m.IScale",
@@ -376,8 +382,8 @@ sap.ui.define([
 			"sap.m.UploadCollectionToolbarPlaceholder",
 			"sap.m.upload.UploadSet",
 			"sap.m.upload.UploadSetToolbarPlaceholder",
-			"sap.m.upload.UploadSetTable",
-			"sap.m.upload.UploadSetTableItem",
+			"sap.m.upload.UploadSetwithTable",
+			"sap.m.upload.UploadSetwithTableItem",
 			"sap.m.VariantManagement",
 			"sap.m.VBox",
 			"sap.m.ViewSettingsDialog",
@@ -452,6 +458,7 @@ sap.ui.define([
 			"sap.m.upload.Uploader",
 			"sap.m.upload.UploaderTableItem",
 			"sap.m.upload.UploadSetItem",
+			"sap.m.upload.FilePreviewDialog",
 			"sap.m.VariantItem",
 			"sap.m.ViewSettingsCustomItem",
 			"sap.m.ViewSettingsCustomTab",
@@ -2095,6 +2102,16 @@ sap.ui.define([
 
 	/**
 	 *
+	 * Common interface for sap.m.ColumnListItem and sap.m.GroupHeaderListItem
+	 *
+	 * @since 1.119
+	 * @name sap.m.ITableItem
+	 * @interface
+	 * @public
+	 */
+
+	/**
+	 *
 	 * Interface for controls which are suitable as a Scale for the Slider/RangeSlider.
 	 * Implementation of this interface should implement the following methods:
 	 * <ul>
@@ -2555,6 +2572,28 @@ sap.ui.define([
 	}, DataType.getType("string"));
 
 	/**
+	 * Defines the control that will receive the initial focus in the
+	 * <code>sap.m.SelectDialog</code> or <code>sap.m.TableSelectDialog</code>.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.117.0
+	 */
+	thisLib.SelectDialogInitialFocus = {
+		/**
+		 * Content list.
+		 * @public
+		 */
+		List: "List",
+
+		/**
+		 * SearchField control
+		 * @public
+		 */
+		SearchField: "SearchField"
+	};
+
+	/**
 	 * A subset of input types that fits to a simple API returning one string.
 	 *
 	 * Not available on purpose: button, checkbox, hidden, image, password, radio, range, reset, search, submit.
@@ -2755,21 +2794,22 @@ sap.ui.define([
 	thisLib.ListKeyboardMode = {
 
 		/**
-		 * This default mode is suitable if the number of items is unlimited or if there is no editable field
-		 * within the item.
+		 * This default mode is suitable if the List or Table contains editable and/or non-editable fields.
 		 *
-		 * While the last/first interactive element within an item has the focus, pressing tab/shift+tab moves
-		 * the focus to the next/previous element in the tab chain after/before the <code>sap.m.List</code>
-		 * or <code>sap.m.Table</code>.
+		 * In this mode, the first focus goes to the first item.
+		 * If the focus is on the item, or cell, pressing tab/shift+tab moves the focus to the next/previous element in the tab chain after/before
+		 * the <code>sap.m.List</code> or <code>sap.m.Table</code> control.
+		 * If the focus is on the interactive element, pressing tab/shift+tab moves the focus to the next/previous element in the tab chain after/before
+		 * the focused interactive element.
 		 * @public
 		 */
 		Navigation : "Navigation",
 
 		/**
-		 * This mode is suitable if the number of items is limited and if there are editable fields within the item.
+		 * This mode is suitable if there are only editable fields within the item.
 		 *
-		 * While the last/first interactive element within an item has the focus, pressing tab/shift+tab moves
-		 * the focus to the next/previous element in the tab chain after/before the item </code>.
+		 * In this mode, the first focus goes to the first interactive element within the first item and this is the only difference between the <code>Edit</code>
+		 * and <code>Navigation</code> mode.
 		 * @public
 		 */
 		Edit : "Edit"
@@ -2894,6 +2934,52 @@ sap.ui.define([
 		 * @public
 		 */
 		Delimited: "Delimited"
+	};
+
+	/**
+	 * Defines the groups in {@link sap.m.DynamicDateRange}.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.118
+	 */
+	 thisLib.DynamicDateRangeGroups = {
+
+		/**
+		 * Group of options that provide selection of single dates.
+		 * @public
+		 */
+		SingleDates: "SingleDates",
+
+		/**
+		 * Group of options that provide selection of date ranges.
+		 * @public
+		 */
+		DateRanges: "DateRanges",
+
+		/**
+		 * Group of options that provide selection of week related ranges.
+		 * @public
+		 */
+		Weeks: "Weeks",
+
+		/**
+		 * Group of options that provide selection of month related ranges.
+		 * @public
+		 */
+		Month: "Month",
+
+		/**
+		 * Group of options that provide selection of quarter related ranges.
+		 * @public
+		 */
+		Quarters: "Quarters",
+
+		/**
+		 * Group of options that provide selection of year related ranges.
+		 * @public
+		 */
+		Years: "Years"
 	};
 
 	/**
@@ -3151,13 +3237,13 @@ sap.ui.define([
 	 * Implementation of this interface should include the following methods:
 	 * <ul>
 	 * <li><code>getTitle</code></li>
+	 * <li><code>getVerticalScrolling</code></li>
 	 * </ul>
 	 *
 	 * @since 1.97
 	 * @name sap.m.p13n.IContent
 	 * @interface
 	 * @public
-	 * @experimental
 	 */
 
 	/**
@@ -3168,7 +3254,17 @@ sap.ui.define([
 	 * @function
 	 * @name sap.m.p13n.IContent.getTitle
 	 * @public
-	 * @experimental
+	 */
+
+	/**
+	 * Optionally returns the enablement of the contents vertical scrolling in case only one panel is used to determine if the content provides its own
+	 * scrolling capabilites.
+	 *
+	 * @returns {boolean} The enablement of the vertical scrolling enablement for the <code>sap.m.p13n.Popup</code>.
+	 *
+	 * @function
+	 * @name sap.m.p13n.IContent.getVerticalScrolling?
+	 * @public
 	 */
 
 	/**
@@ -4711,6 +4807,25 @@ sap.ui.define([
 	};
 
 	/**
+	 * Type of the upload {@link sap.m.UploadSetItem}.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.UploadType = {
+		/**
+		 * The file has been uploaded from cloud.
+		 * @public
+		 */
+		Cloud: "Cloud",
+		/**
+		 * The file has been uploaded from your system.
+		 * @public
+		 */
+		Native: "Native"
+	};
+
+	/**
 	 * Available wrapping types for text controls that can be wrapped that enable you
 	 * to display the text as hyphenated.
 	 *
@@ -4905,24 +5020,52 @@ sap.ui.define([
 	thisLib.MultiSelectMode = {
 
 		/**
-		 * Renders the <code>selectAll</code> checkbox (default behavior).
+		 * The Select All functionality is available (default behavior).
+		 * For a <code>sap.m.Table</code>, a Select All checkbox is rendered.
 		 * @public
 		 */
 		Default: "Default",
 
 		/**
-		 * Renders the <code>clearAll</code> icon.
+		 * The Select All functionality is not available. Instead, it is only possible to remove the selection of all items.
+		 * For a <code>sap.m.Table</code>, a Deselect All icon is rendered.
 		 * @public
 		 */
 		ClearAll: "ClearAll",
 
 		/**
-		 * Renders the <code>selectAll</code> checkbox with warning popover.
-		 * Available only for sap.m.Table control
+		 * The Select All functionality is available.
+		 * For a <code>sap.m.Table</code>, a Select All checkbox
+		 * with a warning popover is rendered if not all items could be selected (for example, because of growing).
+		 *
 		 * @public
 		 * @since 1.109
 		 */
 		SelectAll: "SelectAll"
+	};
+
+	thisLib.plugins = thisLib.plugins || {};
+
+	/**
+	 * Enumeration of the <code>copyPreference</code> in <code>CopyProvider</code>. Determines what is copied during a copy operation.
+	 * @enum {string}
+	 * @public
+	 * @since 1.119
+	 */
+	thisLib.plugins.CopyPreference = {
+		/**
+		 * The entire selected scope is copied, including both row and cell selection.
+		 * @public
+		 */
+		Full: "Full",
+
+		/**
+		 * If cells are selected, only the content of the selected cells is copied,
+		 * regardless of any other rows or elements that might also be selected. If no cells are selected,
+		 * the copy operation will default to copying the selected rows.
+		 * @public
+		 */
+		Cells: "Cells"
 	};
 
 	/**
@@ -5804,13 +5947,39 @@ sap.ui.define([
 	// implement Form helper factory with m controls
 	// possible is set before layout lib is loaded.
 	ObjectPath.set("sap.ui.layout.form.FormHelper", {
-		createLabel: function(sText, sId){
-			return new sap.m.Label(sId, {text: sText});
+		Label: undefined,
+		Button: undefined,
+		Text: undefined,
+		init: function() {
+			// normally this basic controls should be always loaded
+			this.Label = sap.ui.require("sap/m/Label");
+			this.Text = sap.ui.require("sap/m/Text");
+			this.Button = sap.ui.require("sap/m/Button");
+
+			if (!this.Label || !this.Text || !this.Button) {
+				if (!this.oInitPromise) {
+					this.oInitPromise = new Promise(function(fResolve, fReject) {
+						sap.ui.require(["sap/m/Label", "sap/m/Text", "sap/m/Button"], function(Label, Text, Button) {
+							this.Label = Label;
+							this.Text = Text;
+							this.Button = Button;
+							fResolve(true);
+						}.bind(this));
+					}.bind(this));
+				}
+				return this.oInitPromise;
+			} else if (this.oInitPromise) {
+				delete this.oInitPromise; // not longer needed
+			}
+			return null;
 		},
-		createButton: function(sId, fnPressFunction, fnCallback){
-			var oButton = new sap.m.Button(sId, {type: thisLib.ButtonType.Transparent});
-			oButton.attachEvent("press", fnPressFunction, this); // attach event this way to have the right this-reference in handler
-			fnCallback.call(this, oButton);
+		createLabel: function(sText, sId){
+			return new this.Label(sId, {text: sText});
+		},
+		createButton: function(sId, fnPressFunction, oListener){
+			var oButton = new this.Button(sId, {type: thisLib.ButtonType.Transparent});
+			oButton.attachEvent("press", fnPressFunction, oListener); // attach event this way to have the right this-reference in handler
+			return oButton;
 		},
 		setButtonContent: function(oButton, sText, sTooltip, sIcon, sIconHovered){
 			oButton.setText(sText);
@@ -5826,7 +5995,7 @@ sap.ui.define([
 				oOldToolbar.setDesign(oOldToolbar.getDesign(), true);
 			}
 			if (oToolbar && oToolbar.setDesign) {
-				oToolbar.setDesign(sap.m.ToolbarDesign.Transparent, true);
+				oToolbar.setDesign(thisLib.ToolbarDesign.Transparent, true);
 			}
 			return oToolbar;
 		},
@@ -5844,10 +6013,10 @@ sap.ui.define([
 			}
 		},
 		createDelimiter: function(sDelimiter, sId){
-			return new sap.m.Text(sId, {text: sDelimiter, textAlign: CoreLibrary.TextAlign.Center});
+			return new this.Text(sId, {text: sDelimiter, textAlign: CoreLibrary.TextAlign.Center});
 		},
 		createSemanticDisplayControl: function(sText, sId){
-			return new sap.m.Text(sId, {text: sText});
+			return new this.Text(sId, {text: sText});
 		},
 		updateDelimiter: function(oText, sDelimiter){
 			oText.setText(sDelimiter);
@@ -5906,6 +6075,9 @@ sap.ui.define([
 
 	//implement table helper factory with m controls
 	//possible is set before layout lib is loaded.
+	/**
+	 * @deprecated As of version 1.118
+	 */
 	ObjectPath.set("sap.ui.table.TableHelper", {
 		createLabel: function(mConfig){
 			return new sap.m.Label(mConfig);

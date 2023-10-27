@@ -6,6 +6,8 @@
 
 // Provides control sap.m.ListBase.
 sap.ui.define([
+	"sap/base/i18n/Localization",
+	"sap/ui/core/ControlBehavior",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/Device",
 	"sap/ui/core/Core",
@@ -15,6 +17,7 @@ sap.ui.define([
 	"sap/ui/core/LabelEnablement",
 	"sap/ui/core/delegate/ItemNavigation",
 	"./library",
+	"sap/ui/core/library",
 	"./InstanceManager",
 	"./GrowingEnablement",
 	"./GroupHeaderListItem",
@@ -25,10 +28,13 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/InvisibleMessage",
 	"sap/m/table/Util",
+	"sap/ui/core/Lib",
 	"sap/ui/dom/jquery/Selectors", // jQuery custom selectors ":sapTabbable"
 	"sap/ui/dom/jquery/Aria" // jQuery Plugin "addAriaLabelledBy", "removeAriaLabelledBy"
 ],
 function(
+	Localization,
+	ControlBehavior,
 	KeyCodes,
 	Device,
 	Core,
@@ -38,6 +44,7 @@ function(
 	LabelEnablement,
 	ItemNavigation,
 	library,
+	coreLibrary,
 	InstanceManager,
 	GrowingEnablement,
 	GroupHeaderListItem,
@@ -47,16 +54,14 @@ function(
 	jQuery,
 	Log,
 	InvisibleMessage,
-	Util
+	Util,
+	Library
 ) {
 	"use strict";
 
 
 	// shortcut for sap.m.ListType
 	var ListItemType = library.ListType;
-
-	// shortcut for sap.m.ListKeyboardMode
-	var ListKeyboardMode = library.ListKeyboardMode;
 
 	// shortcut for sap.m.ListGrowingDirection
 	var ListGrowingDirection = library.ListGrowingDirection;
@@ -79,6 +84,9 @@ function(
 	// shortcut for sap.m.MultiSelectMode
 	var MultiSelectMode = library.MultiSelectMode;
 
+	// shortcut for sap.ui.core.TitleLevel
+	var TitleLevel = coreLibrary.TitleLevel;
+
 	/**
 	 * Constructor for a new ListBase.
 	 *
@@ -97,7 +105,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @public
@@ -118,9 +126,26 @@ function(
 
 				/**
 				 * Defines the header text that appears in the control.
-				 * <b>Note:</b> If <code>headerToolbar</code> aggregation is set, then this property is ignored.
+				 * <b>Note:</b>
+				 * If the <code>headerToolbar</code> aggregation is set, then this property is ignored.
+				 * If this is the case, use, for example, a <code>sap.m.Title</code> control in the toolbar to define a header.
 				 */
 				headerText : {type : "string", group : "Misc", defaultValue : null},
+
+				/**
+				 * Defines the semantic header level of the header text (see {@link #getHeaderText headerText} property}).
+				 * This information is, for example, used by assistive technologies, such as screenreaders, to create a hierarchical site
+				 * map for faster navigation.
+				 * Depending on this setting, either the ARIA equivalent of an HTML h1-h6 element is used or, when using the
+				 * <code>Auto</code> level, no explicit level information is used.
+				 *
+				 * <b>Note:</b>
+				 * If the <code>headerToolbar</code> aggregation is set, then this property is ignored.
+				 * If this is the case, use, for example, a <code>sap.m.Title</code> control in the toolbar to define a header.
+				 *
+				 * @since 1.117.0
+				 */
+				headerLevel : {type : "sap.ui.core.TitleLevel", group : "Misc", defaultValue : TitleLevel.Auto},
 
 				/**
 				 * Defines the header style of the control. Possible values are <code>Standard</code> and <code>Plain</code>.
@@ -236,7 +261,7 @@ function(
 				 * Defines keyboard handling behavior of the control.
 				 * @since 1.38.0
 				 */
-				keyboardMode : {type : "sap.m.ListKeyboardMode", group : "Behavior", defaultValue : ListKeyboardMode.Navigation},
+				keyboardMode : {type : "sap.m.ListKeyboardMode", group : "Behavior", defaultValue : "Navigation" },
 
 				/**
 				 * Defines the section of the control that remains fixed at the top of the page during vertical scrolling as long as the control is in the viewport.
@@ -258,17 +283,20 @@ function(
 
 				/**
 				 * Defines the multi-selection mode for the control.
-				 * If this property is set to the <code>Default</code> value, the <code>sap.m.Table</code> control renders
-				 * the Select All checkbox in the column header, otherwise the Deselect All icon is rendered.
-				 * The Select All checkbox allows the user to select all the items in the control, and
-				 * the Deselect All icon deselects the items.
-				 * If the property is set to <code>ClearAll</code>, then selecting items via the <code>selectAll</code> method is not possible. See {@link #selectAll selectAll} for more details.
+				 *
+				 * If the property is set to <code>ClearAll</code>, then selecting items via the
+				 * keyboard shortcut <i>CTRL + A</i> and via the <code>selectAll</code> method is not possible.
+				 * See {@link #selectAll selectAll} for more details.
+				 * A selection of multiple items is still possible using the range selection feature.
+				 * For more information about the range selection, see {@link topic:8a0d4efa29d44ef39219c18d832012da Keyboard Handling for Item Selection}.
+				 *
+				 * <b>Only relevant for <code>sap.m.Table</code>:</b>
+				 * If <code>ClearAll</code> is set, the table renders a Deselect All icon in the column header,
+				 * otherwise a Select All checkbox is shown. The Select All checkbox allows the user to select all the
+				 * items in the control, and the Deselect All icon deselects the items.
 				 *
 				 * <b>Note:</b> This property must be used with the <code>MultiSelect</code> mode.
-				 * If this property is set to <code>ClearAll</code>, then a selection of multiple items is still possible
-				 * via the range selection feature except <i>CTRL + A</i>.
-				 * Additionally, the <i>CTRL + SHIFT + A</i> key combination can be used for deselecting all the items.
-				 * For details on the range selection, please see {@link topic:8a0d4efa29d44ef39219c18d832012da Keyboard Handling for Item Selection}.
+				 *
 				 * @since 1.93
 				 */
 				multiSelectMode : {type: "sap.m.MultiSelectMode", group: "Behavior", defaultValue: MultiSelectMode.Default}
@@ -605,6 +633,7 @@ function(
 
 	// this gets called only with oData Model when first load or filter/sort
 	ListBase.prototype.refreshItems = function(sReason) {
+		this._bRefreshItems = true;
 		if (this._oGrowingDelegate) {
 			// inform growing delegate to handle
 			this._oGrowingDelegate.refreshItems(sReason);
@@ -850,7 +879,7 @@ function(
 
 		// return no data text from resource bundle when there is no custom
 		var sNoDataText = this.getProperty("noDataText");
-		sNoDataText = sNoDataText || Core.getLibraryResourceBundle("sap.m").getText("LIST_NO_DATA");
+		sNoDataText = sNoDataText || Library.getResourceBundleFor("sap.m").getText("LIST_NO_DATA");
 		return sNoDataText;
 	};
 
@@ -1350,7 +1379,6 @@ function(
 
 	// fire updateFinished event delayed to make sure rendering phase is done
 	ListBase.prototype._fireUpdateFinished = function(oInfo) {
-		this._hideBusyIndicator();
 		setTimeout(function() {
 			this._bItemNavigationInvalidated = true;
 			this.fireUpdateFinished({
@@ -1539,7 +1567,7 @@ function(
 			// announce the selection state changes
 			// but only announce if the document.activeElement is the listItem control, else selection control should announce the selection change
 			if (this.getAriaRole() === "list" && document.activeElement === oListItem.getDomRef()) {
-				var oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+				var oResourceBundle = Library.getResourceBundleFor("sap.m");
 				InvisibleMessage.getInstance().announce(bSelected ? oResourceBundle.getText("LIST_ITEM_SELECTED") : oResourceBundle.getText("LIST_ITEM_NOT_SELECTED"), "Assertive");
 			}
 		}
@@ -1601,6 +1629,7 @@ function(
 			oEvent.ctrlKey ||
 			oEvent.altKey ||
 			oEvent.metaKey ||
+			oEvent.code == "Tab" ||
 			this.getMode() !== ListMode.MultiSelect ||
 			!oItem.isSelectable() ||
 			oEvent.which === KeyCodes.F6) {
@@ -1867,7 +1896,7 @@ function(
 	// Swipe from the end to the begin - right to left in LTR and left to right in RTL languages.
 	ListBase.prototype.onswipeleft = function(oEvent) {
 
-		var bRtl = Core.getConfiguration().getRTL();
+		var bRtl = Localization.getRTL();
 		var exceptDirection = bRtl ? SwipeDirection.EndToBegin : SwipeDirection.BeginToEnd;
 		var swipeDirection = this.getSwipeDirection();
 
@@ -1887,7 +1916,7 @@ function(
 
 	// Swipe from the begin to the end - left to right in LTR and right to left in RTL languages.
 	ListBase.prototype.onswiperight = function(oEvent) {
-		var bRtl = Core.getConfiguration().getRTL();
+		var bRtl = Localization.getRTL();
 		var exceptDirection = bRtl ? SwipeDirection.BeginToEnd : SwipeDirection.EndToBegin;
 		var swipeDirection = this.getSwipeDirection();
 
@@ -1975,7 +2004,7 @@ function(
 	};
 
 	ListBase.prototype.getAccessibilityType = function() {
-		return Core.getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_LIST");
+		return Library.getResourceBundleFor("sap.m").getText("ACC_CTR_TYPE_LIST");
 	};
 
 	ListBase.prototype.getAccessibilityStates = function() {
@@ -1986,18 +2015,20 @@ function(
 		var sStates = "",
 			mMode = ListMode,
 			sMode = this.getMode(),
-			oBundle = Core.getLibraryResourceBundle("sap.m");
+			oBundle = Library.getResourceBundleFor("sap.m");
 
 		if (LabelEnablement.isRequired(this)) {
 			sStates += oBundle.getText("LIST_REQUIRED") + " ";
 		}
 
-		if (sMode == mMode.MultiSelect) {
-			sStates += oBundle.getText("LIST_MULTISELECTABLE") + " . ";
-		} else if (sMode == mMode.Delete) {
+		if (sMode == mMode.Delete) {
 			sStates += oBundle.getText("LIST_DELETABLE") + " . ";
-		} else if (sMode != mMode.None) {
-			sStates += oBundle.getText("LIST_SELECTABLE") + " . ";
+		} else if (this.getAriaRole() == "list") {
+			if (sMode == mMode.MultiSelect) {
+				sStates += oBundle.getText("LIST_MULTISELECTABLE") + " . ";
+			} else if (sMode != mMode.None) {
+				sStates += oBundle.getText("LIST_SELECTABLE") + " . ";
+			}
 		}
 
 		if (this.isGrouped()) {
@@ -2015,11 +2046,10 @@ function(
 	};
 
 	ListBase.prototype.getAccessbilityPosition = function(oItem) {
-		var iSetSize = 0,
+		var iSetSize, iPosInSet,
 			aItems = this.getVisibleItems(),
 			sAriaRole = this.getAriaRole(),
-			// exclude group headers from item count for role="list" || role="listbox" only
-			bExcludeGroupHeaderFromCount = sAriaRole === "list" || sAriaRole === "listbox";
+			bExcludeGroupHeaderFromCount = (sAriaRole === "list" || sAriaRole === "listbox");
 
 		if (bExcludeGroupHeaderFromCount) {
 			aItems = aItems.filter(function(oItem) {
@@ -2027,13 +2057,14 @@ function(
 			});
 		}
 
-		var iPosInset = aItems.indexOf(oItem) + 1,
-			oBinding = this.getBinding("items");
+		if (oItem) {
+			iPosInSet = aItems.indexOf(oItem) + 1;
+		}
 
-		// use binding length if list is in scroll to load growing mode
-		if (this.getGrowing() && this.getGrowingScrollToLoad() && oBinding && oBinding.isLengthFinal()) {
+		var oBinding = this.getBinding("items");
+		if (oBinding && this.getGrowing() && this.getGrowingScrollToLoad()) {
 			iSetSize = oBinding.getLength();
-			if (oBinding.isGrouped() && !bExcludeGroupHeaderFromCount) {
+			if (!bExcludeGroupHeaderFromCount && oBinding.isGrouped()) {
 				iSetSize += aItems.filter(function(oItem) {
 					return oItem.isGroupHeader();
 				}).length;
@@ -2043,8 +2074,8 @@ function(
 		}
 
 		return {
-			setSize: iSetSize,
-			posInset: iPosInset
+			setsize: iSetSize,
+			posinset: iPosInSet
 		};
 	};
 
@@ -2054,7 +2085,7 @@ function(
 		this._handleStickyItemFocus(oItem.getDomRef());
 
 		if (oItem !== oFocusedControl ||
-			!Core.getConfiguration().getAccessibility()) {
+			!ControlBehavior.isAccessibilityEnabled()) {
 			return;
 		}
 
@@ -2066,18 +2097,24 @@ function(
 		} else {
 			// prepare the announcement for the screen reader
 			var oAccInfo = oItem.getAccessibilityInfo(),
-				oBundle = Core.getLibraryResourceBundle("sap.m"),
-				sDescription = oItem.isGroupHeader() ? "" : oAccInfo.type + " . ";
+				oBundle = Library.getResourceBundleFor("sap.m"),
+				sDescription = oAccInfo.type ? oAccInfo.type + " . " : "";
 
 			if (this.isA("sap.m.Table")) {
 				var mPosition = this.getAccessbilityPosition(oItem);
-				sDescription += oBundle.getText("LIST_ITEM_POSITION", [mPosition.posInset, mPosition.setSize]) + " . ";
+				sDescription += oBundle.getText("LIST_ITEM_POSITION", [mPosition.posinset, mPosition.setsize]) + " . ";
 			}
 
 			sDescription += oAccInfo.description;
 			this.updateInvisibleText(sDescription, oItemDomRef);
 			return sDescription;
 		}
+	};
+
+	ListBase.prototype.onItemFocusOut = function(oItem) {
+		var oInvisibleText = ListBase.getInvisibleText(),
+			$ItemDomRef = jQuery(oItem.getDomRef());
+		$ItemDomRef.removeAriaLabelledBy(oInvisibleText.getId());
 	};
 
 	ListBase.prototype.updateInvisibleText = function(sText, oItemDomRef, bPrepend) {
@@ -2106,13 +2143,12 @@ function(
 	ListBase.prototype._startItemNavigation = function(bIfNeeded) {
 
 		// item navigation only for desktop
-		if (!Device.system.desktop) {
+		var oDomRef = this.getDomRef();
+		if (!Device.system.desktop || !oDomRef) {
 			return;
 		}
 
 		// focus on root element should be prevented by showNoData=false and there a no items & destroy ItemNavigation
-		var oDomRef = this.getDomRef();
-
 		if (!this.getShowNoData() && !this.getVisibleItems().length && oDomRef) {
 			oDomRef.classList.add("sapMListPreventFocus");
 			this._destroyItemNavigation();
@@ -2123,22 +2159,11 @@ function(
 			oDomRef.classList.remove("sapMListPreventFocus");
 		}
 
-		var sKeyboardMode = this.getKeyboardMode(),
-			mKeyboardMode = ListKeyboardMode;
-
-		// ItemNavigation is not necessary if there is no item in edit mode
-		if (sKeyboardMode == mKeyboardMode.Edit && !this.getItems(true).length) {
-			return;
-		}
-
 		// if focus is not on the navigation items then only invalidate the item navigation
 		var oNavigationRoot = this.getNavigationRoot();
-		var iTabIndex = (sKeyboardMode == mKeyboardMode.Edit) ? -1 : 0;
 		if (bIfNeeded && oNavigationRoot && !oNavigationRoot.contains(document.activeElement)) {
 			this._bItemNavigationInvalidated = true;
-			if (!oNavigationRoot.getAttribute("tabindex")) {
-				oNavigationRoot.tabIndex = iTabIndex;
-			}
+			oNavigationRoot.tabIndex = "0";
 			return;
 		}
 
@@ -2148,8 +2173,9 @@ function(
 			this._oItemNavigation.setCycling(false);
 			this.addDelegate(this._oItemNavigation);
 
-			// set the tab index of active items
-			this._setItemNavigationTabIndex(iTabIndex);
+			// set the tab index of navigation root
+			this._oItemNavigation.setTabIndex0(0);
+			this._oItemNavigation.iActiveTabIndex = -1;
 
 			// explicitly setting table mode with one column
 			// to disable up/down reaction on events of the cell
@@ -2211,46 +2237,6 @@ function(
 		return this._oItemNavigation;
 	};
 
-	// sets the active elements tabindex of ItemNavigation
-	ListBase.prototype._setItemNavigationTabIndex = function(iTabIndex) {
-		if (this._oItemNavigation) {
-			this._oItemNavigation.iActiveTabIndex = iTabIndex;
-			this._oItemNavigation.iTabIndex = iTabIndex;
-		}
-	};
-
-	ListBase.prototype.setKeyboardMode = function(sKeyboardMode) {
-		this.setProperty("keyboardMode", sKeyboardMode, true);
-
-		if (this.isActive()) {
-			var iTabIndex = (sKeyboardMode == ListKeyboardMode.Edit) ? -1 : 0;
-			this.$("nodata").prop("tabIndex", ~iTabIndex);
-			this.$("listUl").prop("tabIndex", iTabIndex);
-			this.$("after").prop("tabIndex", iTabIndex);
-			this._setItemNavigationTabIndex(iTabIndex);
-		}
-
-		return this;
-	};
-
-	/*
-	 * Makes the given ListItem(row) focusable via ItemNavigation
-	 *
-	 * @since 1.26
-	 * @protected
-	 */
-	ListBase.prototype.setItemFocusable = function(oListItem) {
-		if (!this._oItemNavigation) {
-			return;
-		}
-
-		var aItemDomRefs = this._oItemNavigation.getItemDomRefs();
-		var iIndex = aItemDomRefs.indexOf(oListItem.getDomRef());
-		if (iIndex >= 0) {
-			this._oItemNavigation.setFocusedIndex(iIndex);
-		}
-	};
-
 	/*
 	 * Forward tab before or after List
 	 * This function should be called before tab key is pressed
@@ -2265,30 +2251,16 @@ function(
 		this.$(bForward ? "after" : "before").trigger("focus");
 	};
 
-	// move focus out of the table for nodata row
-	ListBase.prototype.onsaptabnext = function(oEvent) {
-		if (oEvent.isMarked() || this.getKeyboardMode() == ListKeyboardMode.Edit) {
+	// move focus out of the list
+	ListBase.prototype.onsaptabnext = ListBase.prototype.onsaptabprevious = function(oEvent) {
+		if (oEvent.isMarked() || oEvent.target.id == this.getId("trigger")) {
 			return;
 		}
 
-		if (jQuery(this.getDomRef("nodata")).find(":sapTabbable").addBack().get(-1) == oEvent.target) {
-			this.forwardTab(true);
+		if (oEvent.target.matches(".sapMLIBFocusable,.sapMTblCellFocusable") ||
+			oEvent.target === jQuery(this.getNavigationRoot()).find(":sapTabbable").get(oEvent.type == "saptabnext" ? -1 : 0)) {
+			this.forwardTab(oEvent.type == "saptabnext");
 			oEvent.setMarked();
-		}
-	};
-
-	// move focus out of the table for nodata row
-	ListBase.prototype.onsaptabprevious = function(oEvent) {
-		if (oEvent.isMarked() || this.getKeyboardMode() == ListKeyboardMode.Edit) {
-			return;
-		}
-
-		var sTargetId = oEvent.target.id;
-		if (sTargetId == this.getId("nodata")) {
-			this.forwardTab(false);
-		} else if (sTargetId == this.getId("trigger")) {
-			this.focusPrevious();
-			oEvent.preventDefault();
 		}
 	};
 
@@ -2372,35 +2344,71 @@ function(
 		}
 	};
 
-	// Ctrl + A to switch select all/none
 	ListBase.prototype.onkeydown = function(oEvent) {
-		var bCtrlA = (oEvent.which == KeyCodes.A) && (oEvent.metaKey || oEvent.ctrlKey);
-
-		if (oEvent.isMarked() || !bCtrlA || !jQuery(oEvent.target).hasClass(this.sNavItemClass) ) {
+		if (oEvent.isMarked()) {
 			return;
 		}
-		var sMultiSelectMode = this.getMultiSelectMode();
-		var bCtrlShiftA = bCtrlA && oEvent.shiftKey && sMultiSelectMode == MultiSelectMode.ClearAll;
-		if (bCtrlShiftA) {
+
+		var $Target = jQuery(oEvent.target);
+		var $FocusableItem = $Target.closest(".sapMLIBFocusable").next(".sapMListTblSubRow").addBack();
+		if (!$FocusableItem[0]) {
+			$FocusableItem = $Target.closest(".sapMListTblSubRow").prev(".sapMLIBFocusable").addBack();
+		}
+		if (!$FocusableItem[0]) {
+			return;
+		}
+
+		var bItemEvent = $Target.hasClass("sapMLIBFocusable");
+		var preventDefault = function() {
 			oEvent.preventDefault();
 			oEvent.setMarked();
-			this.removeSelections(false, true);
-			return;
+		};
+
+		// Ctrl + (Shift) + A: select/deselect all
+		if (oEvent.code == "KeyA" && (oEvent.metaKey || oEvent.ctrlKey) && bItemEvent && this.getMode() == ListMode.MultiSelect) {
+			var bClearAll = (this.getMultiSelectMode() == MultiSelectMode.ClearAll);
+			if (oEvent.shiftKey) {
+				if (bClearAll) {
+					this.removeSelections(false, true);
+				}
+			} else if (!bClearAll) {
+				if (this.isAllSelectableSelected()) {
+					this.removeSelections(false, true);
+				} else {
+					this.selectAll(true);
+				}
+			}
+			return preventDefault();
 		}
 
-		oEvent.preventDefault();
-
-		if (this.getMode() !== ListMode.MultiSelect || sMultiSelectMode ===  MultiSelectMode.ClearAll) {
-			return;
+		// Enter / F2: focus from container to the content
+		if ((oEvent.code == "Enter" || oEvent.code == "F2") && $Target.hasClass("sapMTblCellFocusable")) {
+			$Target.find(":sapTabbable").first().trigger("focus");
+			return preventDefault();
 		}
 
-		if (this.isAllSelectableSelected()) {
-			this.removeSelections(false, true);
-		} else {
-			this.selectAll(true);
+		// F2 / F7: focus from item to the first interactive element
+		if ((oEvent.code == "F2" && bItemEvent) || (oEvent.code == "F7" && bItemEvent && this._iFocusIndexOfItem == undefined)) {
+			$FocusableItem.find(":sapTabbable").first().trigger("focus");
+			return preventDefault();
 		}
 
-		oEvent.setMarked();
+		// F2: focus from editable content to the container
+		if (oEvent.code == "F2" && !bItemEvent) {
+			jQuery($Target.closest(".sapMTblCellFocusable")[0] || $FocusableItem[0]).trigger("focus");
+			return preventDefault();
+		}
+
+		// F7: switch focus between content and item
+		if (oEvent.code == "F7") {
+			if (bItemEvent) {
+				$FocusableItem.find(":sapFocusable").eq(this._iFocusIndexOfItem).trigger("focus");
+			} else {
+				this._iFocusIndexOfItem = $FocusableItem.find(":sapFocusable").index($Target);
+				$FocusableItem.eq(0).trigger("focus");
+			}
+			return preventDefault();
+		}
 	};
 
 	ListBase.prototype.onmousedown = function(oEvent) {
@@ -2421,19 +2429,18 @@ function(
 			return;
 		}
 
-		// get the last focused element from the ItemNavigation
+		// get the last focused element from the ItemNavigation and focus
 		var aNavigationDomRefs = this._oItemNavigation.getItemDomRefs();
 		var iLastFocusedIndex = this._oItemNavigation.getFocusedIndex();
 		var $LastFocused = jQuery(aNavigationDomRefs[iLastFocusedIndex]);
 
-		// find related item control to get tabbables
-		var oRelatedControl = Element.closestTo($LastFocused[0]) || {};
-		var $Tabbables = oRelatedControl.getTabbables ? oRelatedControl.getTabbables() : $LastFocused.find(":sapTabbable");
-
-		// get the last tabbable item or itself and focus
-		var $FocusElement = $Tabbables.eq(-1).add($LastFocused).eq(-1);
 		this.bAnnounceDetails = true;
-		$FocusElement.trigger("focus");
+		if (this.getKeyboardMode() == "Edit") {
+			var $Tabbable = $LastFocused.find(":sapTabbable").first();
+			$Tabbable[0] ? $Tabbable.trigger("focus") : $LastFocused.trigger("focus");
+		} else {
+			$LastFocused.trigger("focus");
+		}
 	};
 
 	// Handles focus to reposition the focus to correct place
@@ -2459,12 +2466,25 @@ function(
 				sDescription = ListItemBase.getAccessibilityText(vNoData);
 			}
 			this.updateInvisibleText(sDescription, oTarget);
+		} else if (oTarget.id == this.getId("listUl") && this.getKeyboardMode() == "Edit") {
+			this.focusPrevious();
+			oEvent.stopImmediatePropagation(true);
+			return;
+		}
+
+		// update the focused index of item navigation when inner elements are focused
+		if (this._oItemNavigation && !oTarget.matches(".sapMLIBFocusable,.sapMTblCellFocusable")) {
+			var oFocusableItem = oTarget.closest(".sapMLIBFocusable,.sapMTblCellFocusable");
+			if (oFocusableItem) {
+				var iFocusableIndex = this._oItemNavigation.getItemDomRefs().indexOf(oFocusableItem);
+				if (iFocusableIndex >= 0) {
+					this._oItemNavigation.iFocusedIndex = (this.getKeyboardMode() == "Edit") ? iFocusableIndex : iFocusableIndex - iFocusableIndex % this._oItemNavigation.iColumns;
+				}
+			}
 		}
 
 		// handle only for backward navigation
-		if (oEvent.isMarked() || !this._oItemNavigation ||
-			this.getKeyboardMode() == ListKeyboardMode.Edit ||
-			oTarget.id != this.getId("after")) {
+		if (oEvent.isMarked() || !this._oItemNavigation || oTarget.id != this.getId("after")) {
 			return;
 		}
 
@@ -2482,7 +2502,7 @@ function(
 
 	// this gets called when items up arrow key is pressed for the edit keyboard mode
 	ListBase.prototype.onItemArrowUpDown = function(oListItem, oEvent) {
-		if (this.getKeyboardMode() !== ListKeyboardMode.Edit || oEvent.target instanceof HTMLTextAreaElement) {
+		if (oEvent.target instanceof HTMLTextAreaElement) {
 			return;
 		}
 
@@ -2907,27 +2927,6 @@ function(
 	 */
 	ListBase.prototype.getAriaRole = function() {
 		return "list";
-	};
-
-	/**
-	 * This method is a hook for the RenderManager that gets called
-	 * during the rendering of child Controls. It allows to add,
-	 * remove and update existing accessibility attributes (ARIA) of
-	 * those controls.
-	 *
-	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
-	 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
-	 * @protected
-	 */
-	ListBase.prototype.enhanceAccessibilityState = function(oElement, mAriaProps) {
-		if (!oElement.isA("sap.m.ListItemBase") || oElement.isGroupHeader()) {
-			return;
-		}
-
-		// add aria-posinset & aria-setsize attributes to listitem DOM (not for group headers)
-		var mPosition = this.getAccessbilityPosition(oElement);
-		mAriaProps.posinset = mPosition.posInset;
-		mAriaProps.setsize = mPosition.setSize;
 	};
 
 	return ListBase;

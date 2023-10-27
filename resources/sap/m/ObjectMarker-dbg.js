@@ -62,7 +62,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @public
@@ -646,7 +646,7 @@ sap.ui.define([
 		var oIcon = this.getAggregation("_iconControl");
 
 		if (!oIcon) {
-			oIcon = new Icon();
+			oIcon = new Icon(this.getId() + "-icon", {});
 			this.setAggregation("_iconControl", oIcon, true);
 		}
 

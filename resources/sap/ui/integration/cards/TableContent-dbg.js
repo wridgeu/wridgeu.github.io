@@ -51,6 +51,9 @@ sap.ui.define([
 	// shortcut for sap.m.AvatarColor
 	var AvatarColor = mobileLibrary.AvatarColor;
 
+	// shortcut for sap.m.AvatarImageFitType
+	var AvatarImageFitType = mobileLibrary.AvatarImageFitType;
+
 	// shortcut for sap.ui.core.VerticalAlign
 	var VerticalAlign = coreLibrary.VerticalAlign;
 
@@ -79,7 +82,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @private
@@ -125,7 +128,6 @@ sap.ui.define([
 			columns: oConfiguration.row ? oConfiguration.row.columns.length || 2 : 2
 		});
 	};
-
 
 	TableContent.prototype._getTable = function () {
 		if (this._bIsBeingDestroyed) {
@@ -260,6 +262,10 @@ sap.ui.define([
 		}
 
 		return oStaticConfiguration;
+	};
+
+	TableContent.prototype.getItemsLength = function () {
+		return this._getTable().getItems().filter((item) => !item.isA("sap.m.GroupHeaderListItem")).length;
 	};
 
 	/**
@@ -469,6 +475,7 @@ sap.ui.define([
 				tooltip: oColumn.icon.alt,
 				initials: vInitials,
 				backgroundColor: oColumn.icon.backgroundColor || (vInitials ? undefined : AvatarColor.Transparent),
+				imageFitType: AvatarImageFitType.Contain,
 				visible: oColumn.icon.visible
 			}).addStyleClass("sapFCardIcon");
 		}

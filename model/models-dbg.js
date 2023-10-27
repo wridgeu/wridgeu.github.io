@@ -1,6 +1,8 @@
 "use strict";
 
 sap.ui.define(["sap/ui/Device", "sap/ui/model/json/JSONModel"], function (Device, JSONModel) {
+  "use strict";
+
   /**
    * @namespace sapmarco.projectpages.model
    * @returns {JSONModel}
@@ -10,3 +12,4 @@ sap.ui.define(["sap/ui/Device", "sap/ui/model/json/JSONModel"], function (Device
   };
   return __exports;
 });
+//# sourceMappingURL=models-dbg.js.map

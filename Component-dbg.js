@@ -1,32 +1,12 @@
 "use strict";
 
 sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sap/ui/core/ComponentSupport", "sap/ui/core/date/Gregorian"], function (UIComponent, Device, __deviceModelCreator, sap_ui_core_ComponentSupport, sap_ui_core_date_Gregorian) {
+  "use strict";
+
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
   }
   const deviceModelCreator = _interopRequireDefault(__deviceModelCreator); // import additional dependencies to bundle them properly
-  /**
-   * Configures the UI5 Module Loader to handle marked
-   * and map marked to the default namespace.
-   *
-   * https://openui5.hana.ondemand.com/#/api/sap.ui.loader/methods/sap.ui.loader.config
-   */
-  sap.ui.loader.config({
-    map: {
-      "*": {
-        marked: "sapmarco/projectpages/resources/thirdparty/marked/lib/marked.umd"
-      }
-    },
-    async: true,
-    shim: {
-      "sapmarco/projectpages/resources/thirdparty/marked/lib/marked.umd": {
-        amd: true,
-        deps: [],
-        exports: "marked"
-      }
-    }
-  });
-
   /**
    * @namespace sapmarco.projectpages
    */
@@ -65,3 +45,4 @@ sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sa
   });
   return Component;
 });
+//# sourceMappingURL=Component-dbg.js.map

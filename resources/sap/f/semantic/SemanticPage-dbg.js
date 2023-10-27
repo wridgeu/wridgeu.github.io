@@ -34,7 +34,9 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	// shortcut for sap.f.DynamicPageTitleArea
+	/**
+	 * @deprecated As of version 1.54
+	 */
 	var DynamicPageTitleArea = library.DynamicPageTitleArea;
 
 	/**
@@ -97,7 +99,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	*
 	* @author SAP SE
-	* @version 1.116.0
+	* @version 1.119.0
 	*
 	* @constructor
 	* @public

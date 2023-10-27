@@ -107,7 +107,7 @@ function(
 	* @implements sap.ui.core.ISemanticFormContent
 	*
 	* @author SAP SE
-	* @version 1.116.0
+	* @version 1.119.0
 	*
 	* @constructor
 	* @public
@@ -1072,6 +1072,7 @@ function(
 			bNewFocusIsInSuggestionPopup = false,
 			bNewFocusIsInTokenizer = false,
 			bNewFocusIsInMultiInput = this.getDomRef() && containsOrEquals(this.getDomRef(), document.activeElement),
+			bFocusedOut = !bNewFocusIsInSuggestionPopup && oEvent.relatedControlId !== this.getId() && !bNewFocusIsInTokenizer,
 			oRelatedControlDomRef,
 			bFocusIsInSelectedItemPopup;
 
@@ -1096,11 +1097,7 @@ function(
 			return;
 		}
 
-		if (!this.isMobileDevice()							// Validation occurs if we are not on phone
-			&& !bNewFocusIsInSuggestionPopup				// AND the focus is not in the suggestion popup
-			&& oEvent.relatedControlId !== this.getId()			// AND the focus is not in the input field
-			&& !bNewFocusIsInTokenizer) {					// AND the focus is not in the tokenizer
-
+		if (bFocusedOut && ((this.isMobileDevice() && !this.getShowSuggestion()) || !this.isMobileDevice())) {
 			this._validateCurrentText(true);
 		}
 
@@ -1381,6 +1378,17 @@ function(
 		RemovedAll: "removedAll",
 		TokensChanged: "tokensChanged"
 	};
+
+	/**
+	 *
+	 * @return {string} Indicates should token validator wait for asynchronous validation
+	 * @public
+	 * @function
+	 */
+	MultiInput.prototype.getWaitForAsyncValidation = function() {
+		return MultiInput.WaitForAsyncValidation;
+	};
+
 
 	MultiInput.WaitForAsyncValidation = "sap.m.MultiInput.WaitForAsyncValidation";
 
@@ -1728,6 +1736,7 @@ function(
 	 *
 	 * @protected
 	 * @param {HTMLElement} oTarget The target of the event.
+	 * @deprecated As of version 1.119 the property valueHelpOnly should not be used anymore
 	 * @returns {boolean} Boolean indicating if the target is a valid opener.
 	 */
 	MultiInput.prototype.isValueHelpOnlyOpener = function (oTarget) {
@@ -1862,7 +1871,7 @@ function(
 				return null;
 			}
 
-			if (oToken === MultiInput.WaitForAsyncValidation) {
+			if (oToken === this.getWaitForAsyncValidation()) {
 				return null;
 			}
 		}

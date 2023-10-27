@@ -4,13 +4,14 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides default renderer for control sap.f.cards.NumericHeader
-sap.ui.define([], function () {
+sap.ui.define([
+	"sap/f/cards/BaseHeaderRenderer",
+	"sap/ui/core/Renderer"
+], function (BaseHeaderRenderer, Renderer) {
 	"use strict";
 
-	var NumericHeaderRenderer = {
-		apiVersion: 2
-	};
+	var NumericHeaderRenderer = Renderer.extend(BaseHeaderRenderer);
+	NumericHeaderRenderer.apiVersion = 2;
 
 	/**
 	 * Render a numeric header.
@@ -32,6 +33,14 @@ sap.ui.define([], function () {
 
 		if (oNumericHeader.isInteractive()) {
 			oRm.class("sapFCardSectionClickable");
+		}
+
+		if (oNumericHeader.getIconSrc() && oNumericHeader.getIconVisible()) {
+			oRm.class("sapFCardHeaderHasIcon");
+		}
+
+		if (oNumericHeader.getNumber() && oNumericHeader.getNumberVisible()) {
+			oRm.class("sapFCardHeaderHasNumber");
 		}
 
 		oRm.openEnd();
@@ -58,8 +67,9 @@ sap.ui.define([], function () {
 			oRm.renderControl(oError);
 		} else {
 			NumericHeaderRenderer.renderHeaderText(oRm, oNumericHeader);
-			NumericHeaderRenderer.renderIndicators(oRm, oNumericHeader);
+			NumericHeaderRenderer.renderAvatarAndIndicatorsLine(oRm, oNumericHeader);
 			NumericHeaderRenderer.renderDetails(oRm, oNumericHeader);
+			BaseHeaderRenderer.renderBanner(oRm, oNumericHeader);
 		}
 
 		oRm.close("div");
@@ -178,6 +188,23 @@ sap.ui.define([], function () {
 			}
 			oRm.close("div");
 		}
+	};
+
+	/**
+	 * Render avatar, main indicator and side indicators if any.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
+	 * @param {sap.f.cards.NumericHeader} oNH An object representation of the control that should be rendered
+	 */
+	NumericHeaderRenderer.renderAvatarAndIndicatorsLine = function(oRm, oNH) {
+		oRm.openStart("div")
+			.class("sapFCardAvatarAndIndicatorsLine")
+			.openEnd();
+
+		BaseHeaderRenderer.renderAvatar(oRm, oNH);
+		NumericHeaderRenderer.renderIndicators(oRm, oNH);
+
+		oRm.close("div");
 	};
 
 	/**

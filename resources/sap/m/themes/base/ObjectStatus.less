@@ -32,6 +32,12 @@
 	}
 
 	&.sapMObjectStatusLongText{
+		&.sapMObjectStatusLarge {
+				.sapMObjStatusTitle,
+				.sapMObjStatusText {
+					height: inherit;
+				}
+		}
 		.sapMObjStatusText {
 			word-break: break-all;
 		}
@@ -185,6 +191,7 @@
 
 .sapMObjStatusInverted .sapMObjStatusText,
 .sapMObjStatusInverted .sapMObjStatusIcon {
+	text-shadow: @sapUiContentContrastTextShadow;
 	font-family: @sapUiFontFamily;
 	font-size: @sapMFontSmallSize;
 	font-weight: bold;
@@ -616,7 +623,6 @@ html.sap-desktop .sapMObjStatusActive:focus {
 	background-color: @sapUiButtonNeutralActiveBackground;
 	color: @sapUiButtonActiveTextColor;
 }
-
 
 html.sap-desktop .sapMObjStatusActive:focus .sapMObjStatusLink {
 	position: relative;

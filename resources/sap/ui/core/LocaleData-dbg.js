@@ -47,7 +47,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @public
 	 * @alias sap.ui.core.LocaleData
 	 */
@@ -529,11 +529,16 @@ sap.ui.define([
 		 * @private
 		 */
 		getTimezoneTranslations: function() {
-			this.mTimezoneTranslations = this.mTimezoneTranslations ||
-				_resolveTimezoneTranslationStructure(this._get("timezoneNames"));
+			var sLocale = this.oLocale.toString();
+			var mTranslations = LocaleData._mTimezoneTranslations[sLocale];
+
+			if (!mTranslations) {
+				LocaleData._mTimezoneTranslations[sLocale] = mTranslations =
+					_resolveTimezoneTranslationStructure(this._get("timezoneNames"));
+			}
 
 			// retrieve a copy such that the original object won't be modified.
-			return Object.assign({}, this.mTimezoneTranslations);
+			return Object.assign({}, mTranslations);
 		},
 
 		/**
@@ -1827,7 +1832,7 @@ sap.ui.define([
 			var oMessageBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core", this.oLocale.toString()),
 				sKey = "date.week.calendarweek." + sStyle;
 
-			return oMessageBundle.getText(sKey, iWeekNumber);
+			return oMessageBundle.getText(sKey, iWeekNumber ? [iWeekNumber] : undefined);
 		},
 
 		/**
@@ -2597,6 +2602,9 @@ sap.ui.define([
 	};
 
 	LocaleData._cldrLocales = _cldrLocales;
+	// maps a locale to a map of time zone translations, which maps an IANA time zone ID to the translated time zone
+	// name
+	LocaleData._mTimezoneTranslations = {};
 
 	return LocaleData;
 

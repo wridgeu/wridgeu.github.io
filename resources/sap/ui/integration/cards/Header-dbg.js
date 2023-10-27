@@ -10,10 +10,12 @@ sap.ui.define([
 	"sap/f/cards/Header",
 	"sap/f/cards/HeaderRenderer",
 	"sap/m/library",
+	"sap/m/Text",
 	"sap/ui/integration/util/BindingHelper",
 	"sap/ui/integration/util/BindingResolver",
 	"sap/ui/integration/util/LoadingProvider",
-	"sap/ui/integration/util/Utils"
+	"sap/ui/integration/util/Utils",
+	"sap/ui/integration/formatters/IconFormatter"
 ], function (
 	Core,
 	JSONModel,
@@ -21,10 +23,12 @@ sap.ui.define([
 	FHeader,
 	FHeaderRenderer,
 	mLibrary,
+	Text,
 	BindingHelper,
 	BindingResolver,
 	LoadingProvider,
-	Utils
+	Utils,
+	IconFormatter
 ) {
 	"use strict";
 
@@ -42,7 +46,7 @@ sap.ui.define([
 	 * @extends sap.f.cards.Header
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @private
@@ -84,6 +88,21 @@ sap.ui.define([
 			if (mSettings.iconSrc) {
 				mSettings.iconSrc = BindingHelper.formattedProperty(mSettings.iconSrc, function (sValue) {
 					return oIconFormatter.formatSrc(sValue);
+				});
+			}
+
+			if (mConfiguration.banner) {
+				mSettings.bannerLines = mConfiguration.banner.map(function (mBannerLine) { // TODO validate that it is an array and with no more than 2 elements
+					var oBannerLine = new Text({
+						text: mBannerLine.text,
+						visible: mBannerLine.visible
+					});
+
+					if (mBannerLine.diminished) {
+						oBannerLine.addStyleClass("sapFCardHeaderBannerLineDiminished");
+					}
+
+					return oBannerLine;
 				});
 			}
 
@@ -150,6 +169,13 @@ sap.ui.define([
 			this._oActions.destroy();
 			this._oActions = null;
 		}
+	};
+
+	/**
+	 * @override
+	 */
+	Header.prototype.shouldShowIcon = function () {
+		return this.getIconVisible() && this.getIconSrc() !== IconFormatter.SRC_FOR_HIDDEN_ICON;
 	};
 
 	/**

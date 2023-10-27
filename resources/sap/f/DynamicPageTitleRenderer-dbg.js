@@ -25,7 +25,7 @@ sap.ui.define([
 		var oDynamicPageTitleState = oDynamicPageTitle._getState(),
 			sSapFDynamicPageTitle = "sapFDynamicPageTitle",
 			sBackgroundDesign = oDynamicPageTitle.getBackgroundDesign(),
-			sLabelledBy = oDynamicPageTitle._getARIALabelReferences(oDynamicPageTitle._bExpandedState) || oDynamicPageTitle.DEFAULT_HEADER_TEXT_ID,
+			sLabelledBy = oDynamicPageTitle._getARIALabelReferences(oDynamicPageTitle._bExpandedState),
 			sDescribedBy = oDynamicPageTitle._getAriaDescribedByReferences();
 
 		// DynamicPageTitle Root DOM Element.
@@ -236,6 +236,7 @@ sap.ui.define([
 
 	DynamicPageTitleRenderer._renderExpandContent = function (oRm, oDynamicPageTitleState) {
 		oRm.openStart("div", oDynamicPageTitleState.id + "-expand-wrapper");
+		oRm.class("sapFDynamicPageTitleExpanded");
 		oRm.openEnd();
 		oDynamicPageTitleState.expandedContent.forEach(oRm.renderControl, oRm);
 		oRm.close("div");

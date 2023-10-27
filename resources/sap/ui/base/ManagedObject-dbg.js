@@ -45,8 +45,6 @@ sap.ui.define([
 	// Binding info factory symbol
 	var BINDING_INFO_FACTORY_SYMBOL = Symbol("bindingInfoFactory");
 
-	var Object_hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
-
 	/**
 	 * Constructs and initializes a managed object with the given <code>sId</code> and settings.
 	 *
@@ -253,7 +251,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -1369,7 +1367,7 @@ sap.ui.define([
 	 * But there might be a component with the same ID as an element or another <code>ManagedObject</code>.
 	 *
 	 * For the same reason, there is no general lookup for <code>ManagedObject</code>s via their ID. Only for subclasses
-	 * that enforce unique IDs, there might be lookup mechanisms (e.g. {@link sap.ui.core.Core#byId sap.ui.getCore().byId()}
+	 * that enforce unique IDs, there might be lookup mechanisms (e.g. {@link sap.ui.core.Element#getElementById sap.ui.core.Element.getElementById}
 	 * for elements).
 	 *
 	 * @return {string} The objects's ID.
@@ -1589,7 +1587,7 @@ sap.ui.define([
 	 * @protected
 	 */
 	ManagedObject.prototype.isPropertyInitial = function(sPropertyName) {
-		return !Object_hasOwn(this.mProperties, sPropertyName) && !this.isBound(sPropertyName);
+		return !Object.hasOwn(this.mProperties, sPropertyName) && !this.isBound(sPropertyName);
 	};
 
 	/**
@@ -3111,7 +3109,9 @@ sap.ui.define([
 	 *   <code>bindContext</code> method of the corresponding model class or with the model-specific
 	 *   subclass of <code>sap.ui.model.ContextBinding</code>
 	 * @property {Object<string,function>} [events]
-	 *   Map of event handler functions keyed by the name of the binding events that they are attached to
+	 *   Map of event handler functions keyed by the name of the binding events that they are attached to.
+	 *   The names and value ranges of the supported events depend on the model implementation and should be
+	 *   documented with the model-specific subclass of <code>sap.ui.model.ContextBinding</code>.
 	 *
 	 * @public
 	 */
@@ -3592,7 +3592,9 @@ sap.ui.define([
 	 *   control suitable to visualize a group header (e.g. a <code>sap.m.GroupHeaderListItem</code>
 	 *   for a <code>sap.m.List</code>).
 	 * @property {Object<string,function>} [events=null]
-	 *   Map of event handler functions keyed by the name of the binding events that they should be attached to
+	 *   Map of event handler functions keyed by the name of the binding events that they should be attached to.
+	 *   The names and value ranges of the supported events depend on the model implementation and should be
+	 *   documented with the model-specific subclass of <code>sap.ui.model.ListBinding</code>.
 	 *
 	 * @public
 	 */

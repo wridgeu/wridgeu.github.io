@@ -6,6 +6,7 @@
 
 // Provides control sap.m.SegmentedButton.
 sap.ui.define([
+	'sap/ui/core/Lib',
 	'./library',
 	'./Button',
 	'./SegmentedButtonItem',
@@ -19,6 +20,7 @@ sap.ui.define([
 	'./SegmentedButtonRenderer'
 ],
 function(
+	Library,
 	library,
 	Button,
 	SegmentedButtonItem,
@@ -55,7 +57,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @public
@@ -465,8 +467,8 @@ function(
 	SegmentedButton.prototype.getOverflowToolbarConfig = function() {
 		return {
 			canOverflow: true,
-			listenForEvents: ["select"],
-			autoCloseEvents: ["select"],
+			listenForEvents: ["selectionChange"],
+			autoCloseEvents: ["selectionChange"],
 			propsUnrelatedToSize: ["enabled", "selectedKey"],
 			invalidationEvents: ["_containerWidthChanged"],
 			onBeforeEnterOverflow: this._onBeforeEnterOverflow,
@@ -773,7 +775,9 @@ function(
 				item: oItemPressed
 			});
 
-			// support old API
+			/**
+			 * @deprecated as of version 1.52, replaced by <code>selectionChange</code> event
+			 */
 			this.fireSelect({
 				button: oButtonPressed,
 				id: oButtonPressed.getId(),
@@ -948,7 +952,7 @@ function(
 	 * @protected
 	 */
 	 SegmentedButton.prototype.getAccessibilityInfo = function() {
-		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+		var oResourceBundle = Library.getResourceBundleFor("sap.m"),
 			oSelectedItem = this.getItems().find(function(oItem) {
 				return oItem.getId() === this.getSelectedItem();
 			}.bind(this));

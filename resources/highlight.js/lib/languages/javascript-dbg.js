@@ -165,6 +165,7 @@ sap.ui.define((function () { 'use strict';
   Website: https://developer.mozilla.org/en-US/docs/Web/JavaScript
   */
 
+
   /** @type LanguageFn */
   function javascript(hljs) {
     const regex = hljs.regex;
@@ -766,7 +767,7 @@ sap.ui.define((function () { 'use strict';
 
   var javascript_1 = javascript;
 
-  Object.defineProperty(javascript_1, "__" + "esModule", { value: true });
+  try { Object.defineProperty(javascript_1, "__" + "esModule", { value: true }); } catch (ex) {}
 
   return javascript_1;
 

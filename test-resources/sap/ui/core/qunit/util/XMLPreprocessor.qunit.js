@@ -323,7 +323,7 @@ sap.ui.define([
 			this.oSapUiMock = this.mock(sap.ui);
 			// @see sap.ui.base.Event#init
 			this.oSapUiMock.expects("require").on(sap.ui).atLeast(0)
-				.withExactArgs("sap/ui/core/message/MessageManager").callThrough();
+				.withExactArgs("sap/ui/core/Messaging").callThrough();
 		},
 
 		/**
@@ -483,6 +483,8 @@ sap.ui.define([
 			}
 
 			this.oDebugExpectation.never();
+			this.oLogMock.expects("debug").atLeast(0)
+					.withArgs(sinon.match.string, sinon.match.func, "sap.ui.Rendering");
 			if (!bDebug) {
 				Log.setLevel(Log.Level.WARNING, sComponent);
 			} else {
@@ -705,9 +707,12 @@ sap.ui.define([
 	//*********************************************************************************************
 	// Note: "X" is really nothing special
 	["true", true, 1, "X"].forEach(function (oFlag) {
-		QUnit.test("XML with template:if test='{/flag}', truthy, flag = " + oFlag,
+		QUnit.test("XML with template:if test='{/flag}', truthy, async = true, flag = " + oFlag,
 			function (assert) {
-				this.check(assert, [
+				this.oSapUiMock.expects("require").on(sap.ui)
+					.atLeast(0) // only for the 1st run
+					.withArgs(["sap/ui/model/type/Boolean"]).callThrough();
+				return this.check(assert, [
 					mvcView("t"),
 					'<t:if test="{path: \'/flag\', type: \'sap.ui.model.type.Boolean\'}">',
 					'<In id="flag"/>',
@@ -715,7 +720,31 @@ sap.ui.define([
 					'</mvc:View>'
 				], {
 					models: new JSONModel({flag: oFlag})
-				});
+				}, undefined, true);
+			}
+		);
+	});
+
+	//*********************************************************************************************
+	// Note: "X" is really nothing special
+	["true", true, 1, "X"].forEach(function (oFlag) {
+		/**
+		 * @deprecated since 1.119.0
+		 */
+		QUnit.test("XML with template:if test='{/flag}', truthy, async = false, flag = " + oFlag,
+			function (assert) {
+				this.oSapUiMock.expects("require").on(sap.ui)
+					.atLeast(0) // only for the 1st run
+					.withArgs(["sap/ui/model/type/Boolean"]).callThrough();
+				return this.check(assert, [
+					mvcView("t"),
+					'<t:if test="{path: \'/flag\', type: \'sap.ui.model.type.Boolean\'}">',
+					'<In id="flag"/>',
+					'</t:if>',
+					'</mvc:View>'
+				], {
+					models: new JSONModel({flag: oFlag})
+				}, undefined, false);
 			}
 		);
 	});
@@ -3142,6 +3171,32 @@ sap.ui.define([
 				oElement.setAttribute("test", vValue);
 				return oInterface.visitAttributes(oElement);
 			});
+		});
+	});
+
+	//*********************************************************************************************
+	QUnit.test("plugIn, async getResult uncaught promise", function (assert) {
+		return this.checkTracing(assert, true, [
+			{m : "[ 0] Start processing qux"},
+			{m : "[ 1] Calling visitor", d : 1},
+			{m : "[ 1] Finished", d : "</f:Bar>"},
+			{m : "[ 0] Finished processing qux"}
+		], [
+			mvcView(),
+			'<f:Bar xmlns:f="foo" test="{/hello}" tooltip="{/sync}"/>',
+			'</mvc:View>'
+		], {
+			models : asyncModel({hello : "world", sync : "sync"})
+		}, [
+			'<f:Bar xmlns:f="foo" test="{/hello}" tooltip="{/sync}"/>'
+		], true, function (oElement, oInterface) { // visitor for f:Bar
+
+			// code under test
+			const oPromise = oInterface.getResult(); // will fail, first param is not optional
+			assert.strictEqual(oPromise.isRejected(), true);
+			oPromise.caught();
+
+			return SyncPromise.resolve();
 		});
 	});
 

@@ -33,6 +33,7 @@ sap.ui.define([
 
 	/**
 	 *
+	 * @class
 	 * The <code>Engine</code> entity offers personalization capabilities by registering a control instance for modification, such as:
 	 *
 	 * <ul>
@@ -52,12 +53,11 @@ sap.ui.define([
 	 *
 	 * Can be used in combination with <code>sap.ui.fl.variants.VariantManagement</code> to persist a state in variants using <code>sap.ui.fl</code> capabilities.</li>
 	 *
-	 * @class
 	 * @see {@link topic:75c08fdebf784575947927e052712bab Personalization}
 	 * @alias sap.m.p13n.Engine
 	 * @extends sap.m.p13n.modules.AdaptationProvider
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @public
 	 * @since 1.104
 	 */
@@ -82,6 +82,20 @@ sap.ui.define([
 			this.stateHandlerRegistry = StateHandlerRegistry.getInstance();
 		}
 	});
+
+	/**
+	 * The <code>sap.m.p13n</code> namespace offers generic personalization capabilites.
+	 * Personalization currently supports, for example, defining the order of columns in a table and their visibility, sorting, and grouping. To enable this, the personalization engine can be used.
+	 * @namespace
+	 * @name sap.m.p13n
+	 * @public
+	 */
+
+	/**
+	 * @namespace
+	 * @name sap.m.p13n.MetadataHelper
+	 * @public
+	 */
 
 	/**
 	 *
@@ -150,6 +164,13 @@ sap.ui.define([
 			}
 
 		}.bind(this));
+
+		//In case the control is marked as modified, the state change event is triggered once initially to apply the default state
+		var oXConfig = oControl.getCustomData().find((oCustomData) => oCustomData.getKey() == "xConfig");
+		if (oXConfig && JSON.parse((oXConfig.getValue()).replace(/\\/g, ''))?.modified) {
+			this.fireStateChange(oControl);
+		}
+
 	};
 
 
@@ -199,7 +220,13 @@ sap.ui.define([
 	 * @returns {Promise<sap.m.p13n.Popup>} Promise resolving in the <code>sap.m.p13n.Popup</code> instance
 	 */
 	Engine.prototype.show = function (oControl, vPanelKeys, mSettings) {
-		return this.uimanager.show(oControl, vPanelKeys, mSettings);
+		return this.hasChanges(oControl)
+		.catch((oError) => {
+			return false;
+		})
+		.then(function(enableReset){
+			return this.uimanager.show(oControl, vPanelKeys, {...mSettings, enableReset});
+		}.bind(this));
 	};
 
 	/**
@@ -226,6 +253,28 @@ sap.ui.define([
 	 */
 	Engine.prototype.detachStateChange = function (fnStateEventHandler) {
 		return this.stateHandlerRegistry.detachChange(fnStateEventHandler);
+	};
+
+	/**
+	 * Check if there are changes for a given control instance
+	 *
+	 * @private
+         * @ui5-restricted sap.m, sap.ui.mdc
+         *
+	 * @param {sap.ui.core.Control} control The control instance
+	 * @param {string} key The affected controller key
+	 * @returns {Promise<boolean>} A Promise that resolves if the given control instance has applied changes
+	 */
+	Engine.prototype.hasChanges = function(control, key) {
+		const changeOperations = this.getController(control, key)?.getChangeOperations();
+		let changeTypes;
+		if (changeOperations) {
+			changeTypes = Object.values(changeOperations);
+		}
+		var oModificationSetting = this._determineModification(control);
+		return this.getModificationHandler(control).hasChanges({selector: control, changeTypes}, oModificationSetting?.payload).then((enableReset) => {
+			return enableReset;
+		});
 	};
 
 	/**
@@ -686,6 +735,7 @@ sap.ui.define([
 
 		var oControl = Engine.getControlInstance(vControl);
 		var oRegistryEntry = this._getRegistryEntry(vControl);
+		mEnhanceConfig.currentState = Engine.getInstance().getController(oControl, mEnhanceConfig.changeType)?.getCurrentState();
 
 		return xConfigAPI.enhanceConfig(oControl, mEnhanceConfig)
 			.then(function (oConfig) {
@@ -693,6 +743,7 @@ sap.ui.define([
 					//to simplify debugging
 					oRegistryEntry.xConfig = oConfig;
 				}
+				return oConfig;
 			});
 	};
 
@@ -789,7 +840,8 @@ sap.ui.define([
 
 	Engine.prototype.checkControlInitialized = function (vControl) {
 		var oControl = Engine.getControlInstance(vControl);
-		return oControl.initialized instanceof Function ? oControl.initialized() : Promise.resolve();
+		var pInitialize = oControl.initialized instanceof Function ? oControl.initialized() : Promise.resolve();
+		return pInitialize || Promise.resolve();
 	};
 
 	Engine.prototype.checkPropertyHelperInitialized = function (vControl) {
@@ -1045,13 +1097,18 @@ sap.ui.define([
 	};
 
 	Engine.prototype.getTrace = function (vControl, oChange) {
-		var oRegistryEntry = this._getRegistryEntry(vControl);
-		return Object.keys(oRegistryEntry.pendingAppliance);
+		var oRegistryEntry = this._getRegistryEntry(vControl), oTrace;
+		if (oRegistryEntry) {
+			oTrace = Object.keys(oRegistryEntry.pendingAppliance);
+		}
+		return oTrace;
 	};
 
 	Engine.prototype.clearTrace = function (vControl, oChange) {
 		var oRegistryEntry = this._getRegistryEntry(vControl);
-		oRegistryEntry.pendingAppliance = {};
+		if (oRegistryEntry) {
+			oRegistryEntry.pendingAppliance = {};
+		}
 	};
 
 	/**
@@ -1178,9 +1235,13 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.core.Control} vControl The registered control instance.
 	 * @param {string} sKey The registered key to get the corresponding controller.
+	 * @param {boolean} bModified Determines whether changes have been triggered while the dialog has been opened
 	 */
-	Engine.prototype.setActiveP13n = function (vControl, sKey) {
-		this._getRegistryEntry(vControl).activeP13n = sKey;
+	Engine.prototype.setActiveP13n = function (vControl, sKey, bModified) {
+		this._getRegistryEntry(vControl).activeP13n = sKey ? {
+			usedControllers: sKey,
+			modified: bModified
+		} : null;
 	};
 
 	/**

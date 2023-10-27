@@ -1,17 +1,16 @@
 /*global QUnit, sinon */
 sap.ui.define([
 	'sap/ui/core/Component',
-	'sap/ui/core/UIComponent',
-	"sap/ui/core/XMLTemplateProcessor",
 	"sap/ui/core/mvc/View",
 	"sap/m/InstanceManager",
 	"sap/base/Log",
 	"sap/base/util/merge",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/core/mvc/XMLView",
-	"sap/ui/core/routing/HashChanger"
-], function(Component, UIComponent, XMLTemplateProcessor, View,
-	InstanceManager, Log, merge, JSONModel, XMLView, HashChanger) {
+	"sap/ui/core/routing/HashChanger",
+	"sap/ui/qunit/utils/nextUIUpdate"
+], function(Component, View,
+	InstanceManager, Log, merge, JSONModel, XMLView, HashChanger, nextUIUpdate) {
 	"use strict";
 
 	var TESTDATA_PREFIX = "testdata.xml-require";
@@ -183,9 +182,9 @@ sap.ui.define([
 				create: createView
 			}
 		},
-		runAssertions: function (oView, mSpies, assert, bAsync) {
+		runAssertions: async function (oView, mSpies, assert, bAsync) {
 			oView.placeAt("qunit-fixture");
-			sap.ui.getCore().applyChanges();
+			await nextUIUpdate();
 
 			var aContent = oView.getContent();
 			var aDependents = oView.getDependents();
@@ -205,7 +204,7 @@ sap.ui.define([
 			});
 
 			oView.setModel(oModel);
-			sap.ui.getCore().applyChanges();
+			await nextUIUpdate();
 
 			aContent = oView.getContent();
 			assert.equal(aContent.length, 2, "content under binding is created");
@@ -232,7 +231,7 @@ sap.ui.define([
 			aContent = oView.getContent();
 			assert.equal(aContent.length, 3, "content under binding is created");
 			assert.equal(aContent[2].getText(), "NAME3", "The bound value is formatted by the given formatter");
-			sap.ui.getCore().applyChanges();
+			await nextUIUpdate();
 
 			assert.ok(aContent[0].getDomRef(), "The control created from binding template should be rendered");
 			assert.ok(aContent[1].getDomRef(), "The control created from binding template should be rendered");
@@ -260,6 +259,55 @@ sap.ui.define([
 			assert.equal(oError.message,
 				"Error found in View (id: 'viewWithBoundContentHTML').\nXML node: '<html:div xmlns:html=\"http://www.w3.org/1999/xhtml\"></html:div>':\nNo XHTML or SVG node is allowed because the 'content' aggregation is bound.",
 				"Error message is correct");
+		}
+	}, {
+		testDescription: "Parsing core:require and forward it to XHTML",
+		viewName: ".view.XMLTemplateProcessorAsync_require_in_html",
+		settings: {
+			async: {
+				create: createView
+			}
+		},
+		runAssertions: function (oView, mSpies, assert, bAsync) {
+			var BusyIndicator = sap.ui.require("sap/ui/core/BusyIndicator");
+			var MessageBox = sap.ui.require("sap/m/MessageBox");
+
+			assert.ok(BusyIndicator, "Class is loaded");
+			assert.ok(MessageBox, "Class is loaded");
+
+			var oButton = oView.byId("button");
+			var oNestedButton = oView.byId("nestedButton");
+
+			var oBusyIndicatorShowSpy = this.spy(BusyIndicator, "show");
+
+			oButton.fireEvent("press");
+			assert.ok(oBusyIndicatorShowSpy.calledOnce, "show method is called once");
+			BusyIndicator.hide();
+			oBusyIndicatorShowSpy.resetHistory();
+
+			var sText = oNestedButton.getText();
+			assert.equal(sText, "NESTED BUTTON", "The button text is formatted to upper case");
+			oNestedButton.fireEvent("press");
+			assert.ok(oBusyIndicatorShowSpy.calledOnce, "show method is called once again");
+			BusyIndicator.hide();
+			oBusyIndicatorShowSpy.resetHistory();
+
+			var oButtonInPanel = oView.byId("buttonInPanel");
+			var oNestedButtonInPanel = oView.byId("nestedButtonInPanel");
+
+			sText = oButtonInPanel.getText();
+			assert.equal(sText, "Click Me", "The button text is formatted by the updated formatter");
+			oButtonInPanel.fireEvent("press");
+			assert.ok(oBusyIndicatorShowSpy.calledOnce, "show method is called once again");
+			BusyIndicator.hide();
+			oBusyIndicatorShowSpy.resetHistory();
+
+			sText = oNestedButtonInPanel.getText();
+			assert.equal(sText, "OK", "The button text is formatted by the updated formatter");
+			oNestedButtonInPanel.fireEvent("press");
+			assert.ok(oBusyIndicatorShowSpy.calledOnce, "show method is called once again");
+			BusyIndicator.hide();
+			oBusyIndicatorShowSpy.resetHistory();
 		}
 	}, {
 		testDescription: "Parsing core:require in fragment",
@@ -561,6 +609,8 @@ sap.ui.define([
 				}, function(oError) {
 					if (oConfig.onRejection) {
 						oConfig.onRejection(assert, oError);
+					} else {
+						throw oError;
 					}
 				});
 		});

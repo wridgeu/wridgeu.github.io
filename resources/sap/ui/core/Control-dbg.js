@@ -81,7 +81,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @alias sap.ui.core.Control
 	 */
 	var Control = Element.extend("sap.ui.core.Control", /** @lends sap.ui.core.Control.prototype */ {
@@ -657,7 +657,7 @@ sap.ui.define([
 			// 1st try to resolve the oRef as a container control
 			var oContainer = oRef;
 			if (typeof oRef === "string") {
-				oContainer = Element.registry.get(oRef);
+				oContainer = Element.getElementById(oRef);
 			}
 
 			if (oContainer instanceof Element) {
@@ -978,6 +978,9 @@ sap.ui.define([
 	 * @returns {this} <code>this</code> to allow method chaining
 	 * @private
 	 * @ui5-restricted sap.ui.core, sap.m, sap.viz
+	 * @deprecated since version 1.69, the blocked property is deprecated.
+	 * There is no accessibility support for this property.
+	 * Blocked controls should not be used inside Controls, which rely on keyboard navigation, e.g. List controls.
 	 */
 	Control.prototype.setBlocked = function(bBlocked, sBlockedSection /* this is an internal parameter to apply partial blocking for a specific section of the control */) {
 		//If the new state is already set, we don't need to do anything
@@ -1250,6 +1253,26 @@ sap.ui.define([
 	 * @protected
 	 */
 	//Control.prototype.getAccessibilityInfo = function() { return null; };
+
+	/**
+	 * Returns a list of all controls with a field group ID.
+	 * See {@link sap.ui.core.Control#checkFieldGroupIds Control.prototype.checkFieldGroupIds} for a description of the
+	 * <code>vFieldGroupIds</code> parameter.
+	 *
+	 * If possible please use the respective method on a Control instance (see {@link sap.ui.core.Control#getControlsByFieldGroupId}).
+	 * The control method only respects aggregated child controls, which is more effective and should be sufficient for most use-cases.
+	 *
+	 * @param {string|string[]} [vFieldGroupIds] ID of the field group or an array of field group IDs to match
+	 * @return {sap.ui.core.Control[]} The list of controls with matching field group IDs
+	 * @static
+	 * @since 1.118
+	 * @public
+	 */
+	Control.getControlsByFieldGroupId = function(vFieldGroupIds) {
+		return Element.registry.filter((oElement) => {
+			return oElement.isA("sap.ui.core.Control") && oElement.checkFieldGroupIds(vFieldGroupIds);
+		});
+	};
 
 	return Control;
 

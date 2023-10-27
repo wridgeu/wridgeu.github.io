@@ -10,6 +10,7 @@ sap.ui.define([
 	'./ComponentMetadata',
 	'./Element',
 	'sap/base/config',
+	'sap/base/i18n/Localization',
 	'sap/base/util/extend',
 	'sap/base/util/deepExtend',
 	'sap/base/util/merge',
@@ -35,6 +36,7 @@ sap.ui.define([
 	ComponentMetadata,
 	Element,
 	BaseConfig,
+	Localization,
 	extend,
 	deepExtend,
 	merge,
@@ -232,7 +234,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @alias sap.ui.core.Component
 	 * @since 1.9.2
 	 */
@@ -321,7 +323,7 @@ sap.ui.define([
 				componentData: 'any'
 			},
 			version : "0.0",
-			/*enable/disable type validation by MessageManager
+			/*enable/disable type validation by Messaging
 			handleValidation: 'boolean'*/
 			includes : [],    // css, javascript files that should be used in the component
 			dependencies : {  // external dependencies
@@ -416,9 +418,16 @@ sap.ui.define([
 	 * @typedef {sap.ui.base.ManagedObject.MetadataOptions} sap.ui.core.Component.MetadataOptions
 	 *
 	 * The structure of the "metadata" object which is passed when inheriting from sap.ui.core.Component using its static "extend" method.
-	 * See {@link sap.ui.core.Component.extend} for details on its usage.
+	 * See {@link sap.ui.core.Component.extend} and {@link sap.ui.core.Component.create} for additional details on its usage.
 	 *
-	 * @property {"json"} [manifest]  When set to the string literal "json", this property indicates that the component configuration
+	 * @property {undefined|false|object|"json"} [manifest=undefined] The manifest option determines how a component manifest should be evaluated.
+	 *            Default is <code>undefined</code>.
+	 *
+	 *            When set to <code>false</code> or <code>undefined</code>, no manifest.json is present for this Component, however the Component can
+         *            still be started with a manifest given as an argument of the factory function, see {@link sap.ui.core.Component.create}.
+	 *            When set to an object, this object will be interpreted as a manifest and must adhere to the
+	 *            {@link topic:be0cf40f61184b358b5faedaec98b2da descriptor schema for components}.
+	 *            When set to the string literal <code>"json"</code>, this property indicates that the component configuration
 	 *            should be read from a manifest.json file which is assumed to exist next to the Component.js file.
 	 *
 	 * @public
@@ -778,36 +787,41 @@ sap.ui.define([
 		// init the component models
 		this.initComponentModels();
 
-		// error handler (if exists)
-		if (this.onWindowError) {
-			this._fnWindowErrorHandler = function(oEvent) {
-				var oError = oEvent.originalEvent;
-				this.onWindowError(oError.message, oError.filename, oError.lineno);
+		/**
+		 * @deprecated Since 1.119
+		 */
+		(() => {
+			// error handler (if exists)
+			if (this.onWindowError) {
+				this._fnWindowErrorHandler = function(oEvent) {
+					var oError = oEvent.originalEvent;
+					this.onWindowError(oError.message, oError.filename, oError.lineno);
 
-			}.bind(this);
-			window.addEventListener("error", this._fnWindowErrorHandler);
-		}
+				}.bind(this);
+				window.addEventListener("error", this._fnWindowErrorHandler);
+			}
 
-		// before unload handler (if exists)
-		if (this.onWindowBeforeUnload) {
-			this._fnWindowBeforeUnloadHandler = function(oEvent) {
-				var vReturnValue = this.onWindowBeforeUnload.apply(this, arguments);
-				// set returnValue for Chrome
-				if (typeof (vReturnValue) === 'string') {
-					oEvent.returnValue = vReturnValue;
-					oEvent.preventDefault();
-					return vReturnValue;
-				}
-			}.bind(this);
-			window.addEventListener("beforeunload", this._fnWindowBeforeUnloadHandler);
-		}
+			// before unload handler (if exists)
+			if (this.onWindowBeforeUnload) {
+				this._fnWindowBeforeUnloadHandler = function(oEvent) {
+					var vReturnValue = this.onWindowBeforeUnload.apply(this, arguments);
+					// set returnValue for Chrome
+					if (typeof (vReturnValue) === 'string') {
+						oEvent.returnValue = vReturnValue;
+						oEvent.preventDefault();
+						return vReturnValue;
+					}
+				}.bind(this);
+				window.addEventListener("beforeunload", this._fnWindowBeforeUnloadHandler);
+			}
 
-		// unload handler (if exists)
-		if (this.onWindowUnload) {
+			// unload handler (if exists)
+			if (this.onWindowUnload) {
 
-			this._fnWindowUnloadHandler = this.onWindowUnload.bind(this);
-			window.addEventListener("unload", this._fnWindowUnloadHandler);
-		}
+				this._fnWindowUnloadHandler = this.onWindowUnload.bind(this);
+				window.addEventListener("unload", this._fnWindowUnloadHandler);
+			}
+		})();
 
 	};
 
@@ -851,19 +865,24 @@ sap.ui.define([
 		}
 		delete this._mManifestModels;
 
-		// remove the event handlers
-		if (this._fnWindowErrorHandler) {
-			window.removeEventListener("error", this._fnWindowErrorHandler);
-			delete this._fnWindowErrorHandler;
-		}
-		if (this._fnWindowBeforeUnloadHandler) {
-			window.removeEventListener("beforeunload", this._fnWindowBeforeUnloadHandler);
-			delete this._fnWindowBeforeUnloadHandler;
-		}
-		if (this._fnWindowUnloadHandler) {
-			window.removeEventListener("unload", this._fnWindowUnloadHandler);
-			delete this._fnWindowUnloadHandler;
-		}
+		/**
+		 * @deprecated Since 1.119
+		 */
+		(() => {
+			// remove the event handlers
+			if (this._fnWindowErrorHandler) {
+				window.removeEventListener("error", this._fnWindowErrorHandler);
+				delete this._fnWindowErrorHandler;
+			}
+			if (this._fnWindowBeforeUnloadHandler) {
+				window.removeEventListener("beforeunload", this._fnWindowBeforeUnloadHandler);
+				delete this._fnWindowBeforeUnloadHandler;
+			}
+			if (this._fnWindowUnloadHandler) {
+				window.removeEventListener("unload", this._fnWindowUnloadHandler);
+				delete this._fnWindowUnloadHandler;
+			}
+		})();
 
 		// destroy event bus
 		if (this._oEventBus) {
@@ -904,11 +923,9 @@ sap.ui.define([
 		// destroy the object
 		ManagedObject.prototype.destroy.apply(this, arguments);
 
-		// unregister for messaging (on MessageManager)
-		var MessageManager = sap.ui.require("sap/ui/core/message/MessageManager");
-		if (MessageManager) {
-			MessageManager.unregisterObject(this);
-		}
+		// unregister for messaging (on Messaging)
+		const Messaging = sap.ui.require("sap/ui/core/Messaging");
+		Messaging?.unregisterObject(this);
 
 		// manifest exit (unload includes, ... / unregister customzing)
 		//   => either call exit on the instance specific manifest or the static one on the ComponentMetadata
@@ -1389,6 +1406,8 @@ sap.ui.define([
 	 * @since 1.15.1
 	 * @name sap.ui.core.Component.prototype.onWindowBeforeUnload
 	 * @function
+	 * @deprecated Since version 1.119, recommended to use the browser-native page lifecycle API,
+	 * providing events such as 'pageshow' and 'pagehide'
 	 */
 	//onWindowBeforeUnload : function() {},
 
@@ -1402,6 +1421,9 @@ sap.ui.define([
 	 * @since 1.15.1
 	 * @name sap.ui.core.Component.prototype.onWindowUnload
 	 * @function
+	 * @deprecated Since 1.119. Newer browser versions deprecate the browser-native 'unload' event.
+	 * Therefore, the former API won't reliably work anymore. Please have a look at the
+	 * browser-native page lifecycle API, e.g. its events 'pageshow' and 'pagehide'.
 	 */
 	//onWindowUnload : function() {},
 
@@ -1417,6 +1439,8 @@ sap.ui.define([
 	 * @since 1.15.1
 	 * @name sap.ui.core.Component.prototype.onWindowError
 	 * @function
+	 * @deprecated Since version 1.119, recommended to use the browser-native API
+	 * to listen for errors: window.addEventListener("error", function() { ... })
 	 */
 	//onWindowError : null, // function(sMessage, sFile, iLine) - function not added directly as it might result in bad stack traces in older browsers
 
@@ -2353,7 +2377,7 @@ sap.ui.define([
 	 * @param {string} [mOptions.altManifestUrl] @since 1.61.0 Alternative URL for the manifest.json. If <code>mOptions.manifest</code>
 	 *     is set to an object value, this URL specifies the location to which the manifest object should resolve the relative
 	 *     URLs to.
-	 * @param {string} [mOptions.handleValidation=false] If set to <code>true</code> validation of the component is handled by the <code>MessageManager</code>
+	 * @param {string} [mOptions.handleValidation=false] If set to <code>true</code> validation of the component is handled by the <code>Messaging</code>
 	 * @param {object} [mOptions.asyncHints] Hints for asynchronous loading.
 	 *     <b>Beware:</b> This parameter is only used internally by the UI5 framework and compatibility cannot be guaranteed.
 	 *     The parameter must not be used in productive code, except in code delivered by the UI5 teams.
@@ -2457,7 +2481,7 @@ sap.ui.define([
 	 *              Component controller. Defaults to <code>sap.ui.getCore().getConfiguration().getManifestFirst()</code>
 	 *              <br/><b>DEPRECATED since 1.49.0, use <code>vConfig.manifest=true|false</code> instead!</b>
 	 *              Note that this property is ignored when <code>vConfig.manifest</code> has a value other than <code>undefined</code>.
-	 * @param {string} [vConfig.handleValidation=false] If set to <code>true</code> validation of the component is handled by the <code>MessageManager</code>
+	 * @param {string} [vConfig.handleValidation=false] If set to <code>true</code> validation of the component is handled by the <code>Messaging</code>
 	 * @returns {sap.ui.core.Component|Promise} the Component instance or a Promise in case of asynchronous loading
 	 *
 	 * @deprecated Since 1.56, use {@link sap.ui.core.Component.get Component.get} or {@link sap.ui.core.Component.create Component.create} instead.
@@ -2506,15 +2530,15 @@ sap.ui.define([
 		var oOwnerComponent = Component.get(ManagedObject._sOwnerId);
 
 		if (Array.isArray(vConfig.activeTerminologies) && vConfig.activeTerminologies.length &&
-			Array.isArray(Configuration.getActiveTerminologies()) && Configuration.getActiveTerminologies().length) {
-			if (JSON.stringify(vConfig.activeTerminologies) !== JSON.stringify(Configuration.getActiveTerminologies())) {
+			Array.isArray(Localization.getActiveTerminologies()) && Localization.getActiveTerminologies().length) {
+			if (JSON.stringify(vConfig.activeTerminologies) !== JSON.stringify(Localization.getActiveTerminologies())) {
 				Log.warning(bLegacy ? "sap.ui.component: " : "Component.create: " +
-					"The 'activeTerminolgies' passed to the component factory differ from the ones defined on the global 'sap.ui.core.Configuration#getActiveTerminologies';" +
+					"The 'activeTerminolgies' passed to the component factory differ from the ones defined on the global 'sap/base/i18n/Localization.getActiveTerminologies';" +
 					"This might lead to inconsistencies; ResourceModels that are not defined in the manifest and created by the component will use the globally configured terminologies.");
 			}
 		}
 		// get terminologies information: API -> Owner Component -> Configuration
-		var aActiveTerminologies = vConfig.activeTerminologies || (oOwnerComponent && oOwnerComponent.getActiveTerminologies()) || Configuration.getActiveTerminologies();
+		var aActiveTerminologies = vConfig.activeTerminologies || (oOwnerComponent && oOwnerComponent.getActiveTerminologies()) || Localization.getActiveTerminologies();
 
 		// Inherit cacheTokens from owner component if not defined in asyncHints
 		if (!vConfig.asyncHints || !vConfig.asyncHints.cacheTokens) {
@@ -2578,13 +2602,13 @@ sap.ui.define([
 			 */
 			var bHandleValidation = oInstance.getMetadata()._getManifestEntry("/sap.ui5/handleValidation");
 			if (bHandleValidation !== undefined || vConfig.handleValidation) {
-				var MessageManager = sap.ui.require("sap/ui/core/message/MessageManager");
-				if (MessageManager) {
-					MessageManager.registerObject(oInstance, bHandleValidation === undefined ? vConfig.handleValidation : bHandleValidation);
+				const Messaging = sap.ui.require("sap/ui/core/Messaging");
+				if (Messaging) {
+					Messaging.registerObject(oInstance, bHandleValidation === undefined ? vConfig.handleValidation : bHandleValidation);
 				} else {
-					sap.ui.require(["sap/ui/core/message/MessageManager"], function(MessageManager) {
+					sap.ui.require(["sap/ui/core/Messaging"], function(Messaging) {
 						if (!oInstance.isDestroyed()) {
-							MessageManager.registerObject(oInstance, bHandleValidation === undefined ? vConfig.handleValidation : bHandleValidation);
+							Messaging.registerObject(oInstance, bHandleValidation === undefined ? vConfig.handleValidation : bHandleValidation);
 						}
 					});
 				}

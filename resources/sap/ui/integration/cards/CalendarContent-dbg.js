@@ -79,7 +79,7 @@ sap.ui.define([
 		 * @extends sap.ui.integration.cards.BaseContent
 		 *
 		 * @author SAP SE
-		 * @version 1.116.0
+		 * @version 1.119.0
 		 *
 		 * @constructor
 		 * @private

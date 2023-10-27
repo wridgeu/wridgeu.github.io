@@ -10,10 +10,11 @@
 sap.ui.define([
 	'sap/ui/base/DataType',
 	'sap/ui/core/Lib',
+	'sap/ui/core/message/MessageType',
 	'sap/ui/core/mvc/ViewType', // provides sap.ui.core.mvc.ViewType
 	'./CalendarType' // provides sap.ui.core.CalendarType
 ],
-	function(DataType, Library, ViewType) {
+	function(DataType, Library, MessageType, ViewType, CalendarType) {
 	"use strict";
 
 	/**
@@ -25,13 +26,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @since 0.8
 	 * @public
 	 */
 	 var thisLib = Library.init({
 		 name: "sap.ui.core",
-		 version: "1.116.0",
+		 version: "1.119.0",
 		 designtime: "sap/ui/core/designtime/library.designtime",
 		 types: [
 
@@ -150,6 +151,9 @@ sap.ui.define([
 					 "sap/ui/core/support/plugins/Trace",
 					 "sap/ui/core/support/plugins/Selector",
 					 "sap/ui/core/support/plugins/Breakpoint",
+					 /**
+					  * @deprecated As of version 1.117
+					  */
 					 "sap/ui/core/support/plugins/ViewInfo",
 					 "sap/ui/core/support/plugins/LocalStorage",
 					 "sap/ui/core/support/plugins/Interaction",
@@ -870,9 +874,9 @@ sap.ui.define([
 		Section : "Section"
 	};
 
-	// Note: the imported module sap/ui/core/CalendarType already defines the global sap.ui.core.CalendarType,
-	// this assignment here is only kept as a reminder
-	// thisLib.CalendarType = CalendarType;
+	// this assignment here is kept so that imports via the library module continue to work
+	// even when the export via globals is abandoned
+	thisLib.CalendarType = CalendarType;
 
 	/**
 	 * @classdesc A string type that represents CSS color values (CSS Color Level 3).
@@ -1302,49 +1306,6 @@ sap.ui.define([
 		Indication08 : "Indication08"
 	};
 
-
-	/**
-	 * Defines the different message types.
-	 *
-	 * @enum {string}
-	 * @public
-	 * @since 1.10
-	 */
-	thisLib.MessageType = {
-
-		/**
-		 * Message should be just an information
-		 * @public
-		 */
-		Information : "Information",
-
-		/**
-		 * Message is a warning
-		 * @public
-		 */
-		Warning : "Warning",
-
-		/**
-		 * Message is an error
-		 * @public
-		 */
-		Error : "Error",
-
-		/**
-		 * Message has no specific level
-		 * @public
-		 */
-		None : "None",
-
-		/**
-		 * Message is a success message
-		 * @public
-		 */
-		Success : "Success"
-
-	};
-
-
 	/**
 	 * Defines the different possible states of an element that can be open or closed and does not only
 	 * toggle between these states, but also spends some time in between (e.g. because of an animation).
@@ -1539,7 +1500,7 @@ sap.ui.define([
 	/**
 	 * Sort order of a column.
 	 *
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0
@@ -1940,7 +1901,6 @@ sap.ui.define([
 	 * @name sap.ui.core.ISemanticFormContent
 	 * @interface
 	 * @public
-	 * @experimental As of version 1.86
 	 */
 
 	/**
@@ -1956,7 +1916,6 @@ sap.ui.define([
 	 * @returns {string|Promise<string>} Formatted value or a <code>Promise</code> returning the formatted value if resolved
 	 * @since 1.86.0
 	 * @public
-	 * @experimental As of version 1.86
 	 * @function
 	 * @name sap.ui.core.ISemanticFormContent.getFormFormattedValue?
 	 */
@@ -1974,9 +1933,37 @@ sap.ui.define([
 	 * @returns {string} Name of the value-holding property
 	 * @since 1.86.0
 	 * @public
-	 * @experimental As of version 1.86
 	 * @function
 	 * @name sap.ui.core.ISemanticFormContent.getFormValueProperty?
+	 */
+
+	/**
+	 * Returns the names of the properties of a control that might update the rendering in a <code>SemanticFormElement</code>.
+	 *
+	 * In the <code>SemanticFormElement</code> element, the assigned fields are rendered in edit mode. In display mode, depending on <code>getFormRenderAsControl</code>,
+	 * either a text is rendered, which concatenates the values of all assigned fields, or the control is rendered.
+	 * So if a property of the control changes that might lead to a different rendering (some controls have a special rendering in display mode), the
+	 * <code>SemanticFormElement</code> needs to check the rendering.
+	 *
+	 * This is an optional method. If not defined, no check for updates (only for property defined in <code>getFormValueProperty</code>) is done once the control has been assigned.
+	 *
+	 * @returns {string[]} Name of the properties
+	 * @since 1.117.0
+	 * @public
+	 * @function
+	 * @name sap.ui.core.ISemanticFormContent.getFormObservingProperties?
+	 */
+
+	/**
+	 * If set to <code>true</code>, the <code>SemanticFormElement</code> also renders the control in display mode, if the used <code>FormLayout</code> supports this.
+	 *
+	 * This is an optional method. If not defined, just the text is rendered.
+	 *
+	 * @returns {string} Name of the value-holding property
+	 * @since 1.117.0
+	 * @public
+	 * @function
+	 * @name sap.ui.core.ISemanticFormContent.getFormRenderAsControl?
 	 */
 
 	/**
@@ -2239,6 +2226,20 @@ sap.ui.define([
 	thisLib.mvc = thisLib.mvc || {};
 
 	/**
+	 * Specifies possible message types.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @name sap.ui.core.MessageType
+	 * @borrows module:sap/ui/core/message/MessageType.Information as Information
+	 * @borrows module:sap/ui/core/message/MessageType.Error as Error
+	 * @borrows module:sap/ui/core/message/MessageType.Warning as Warning
+	 * @borrows module:sap/ui/core/message/MessageType.Success as Success
+	 * @borrows module:sap/ui/core/message/MessageType.None as None
+	 */
+	thisLib.MessageType = MessageType;
+
+	/**
 	 * Specifies possible view types.
 	 *
 	 * @enum {string}
@@ -2360,6 +2361,7 @@ sap.ui.define([
 		}
 
 		// lazy imports
+		lazy("sap.ui.core.message.MessageManager");
 		lazy("sap.ui.core.BusyIndicator", "show hide attachOpen detachOpen attachClose detachClose");
 		lazy("sap.ui.core.tmpl.Template", "registerType unregisterType");
 		lazy("sap.ui.core.Fragment", "registerType byId createId");

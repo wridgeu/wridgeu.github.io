@@ -54,7 +54,7 @@ sap.ui.define((function () { 'use strict';
 
   var json_1 = json;
 
-  Object.defineProperty(json_1, "__" + "esModule", { value: true });
+  try { Object.defineProperty(json_1, "__" + "esModule", { value: true }); } catch (ex) {}
 
   return json_1;
 

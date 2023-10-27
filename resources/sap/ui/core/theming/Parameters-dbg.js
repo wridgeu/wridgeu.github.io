@@ -620,11 +620,6 @@ sap.ui.define([
 			var sParamName, fnAsyncCallback, bAsync, aNames, iIndex;
 			var findRegisteredCallback = function (oCallbackInfo) { return oCallbackInfo.callback === fnAsyncCallback; };
 
-			if (!Core.isInitialized()) {
-				Log.warning("Called sap.ui.core.theming.Parameters.get() before core has been initialized. " +
-					"Consider using the API only when required, e.g. onBeforeRendering.");
-			}
-
 			if (!sTheme) {
 				sTheme = Theming.getTheme();
 			}
@@ -709,7 +704,7 @@ sap.ui.define([
 			if (bAsync && fnAsyncCallback && Object.keys(vResult).length !== aNames.length) {
 				if (!ThemeManager.themeLoaded) {
 					resolveWithParameter = function () {
-						ThemeManager.detachEvent("ThemeChanged", resolveWithParameter);
+						ThemeManager.detachEvent("applied", resolveWithParameter);
 						var vParams = this.get({ // Don't pass callback again
 							name: vName.name,
 							scopeElement: vName.scopeElement
@@ -726,13 +721,13 @@ sap.ui.define([
 					// Check if identical callback is already registered and reregister with current parameters
 					iIndex = aCallbackRegistry.findIndex(findRegisteredCallback);
 					if (iIndex >= 0) {
-						ThemeManager.detachEvent("ThemeChanged", aCallbackRegistry[iIndex].eventHandler);
+						ThemeManager.detachEvent("applied", aCallbackRegistry[iIndex].eventHandler);
 						aCallbackRegistry[iIndex].eventHandler = resolveWithParameter;
 					} else {
 						aCallbackRegistry.push({ callback: fnAsyncCallback, eventHandler: resolveWithParameter });
 					}
-					ThemeManager.attachEvent("ThemeChanged", resolveWithParameter);
-					return undefined; // Don't return partial result in case we expect themeChanged event.
+					ThemeManager.attachEvent("applied", resolveWithParameter);
+					return undefined; // Don't return partial result in case we expect applied event.
 				} else {
 					Log.error("One or more parameters could not be found.", "sap.ui.core.theming.Parameters");
 				}
@@ -794,7 +789,6 @@ sap.ui.define([
 				sTheme = Theming.getTheme();
 				aParametersToLoad = [];
 				mParameters = null;
-				ThemeHelper.reset();
 			}
 		};
 

@@ -12,10 +12,9 @@ sap.ui.define([
 	"sap/m/ToggleButton",
 	"./Card",
 	"sap/ui/core/Core",
-	"sap/ui/dom/includeStylesheet",
-	"sap/ui/integration/util/CardMerger"
+	"sap/ui/dom/includeStylesheet"
 ], function (
-	library, Control, HBox, Image, ToggleButton, Card, Core, includeStylesheet, CardMerger
+	library, Control, HBox, Image, ToggleButton, Card, Core, includeStylesheet
 ) {
 	"use strict";
 
@@ -30,7 +29,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.editor.CardPreview
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted
@@ -266,7 +265,6 @@ sap.ui.define([
 			};
 		}
 		if (this._currentMode === "MockData") {
-			this._oCardPreview.setProperty("useMockData", true);
 			this._oCardPreview.setPreviewMode(CardPreviewMode.MockData);
 		} else if (this._currentMode === "Abstract") {
 			this._oCardPreview.setPreviewMode(CardPreviewMode.Abstract);

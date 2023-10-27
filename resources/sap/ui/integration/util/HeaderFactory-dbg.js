@@ -34,6 +34,8 @@ sap.ui.define([
 
 	var ButtonType = mLibrary.ButtonType;
 
+	var CardDisplayVariant = library.CardDisplayVariant;
+
 	var oResourceBundle = Core.getLibraryResourceBundle("sap.ui.integration");
 
 	/**
@@ -44,7 +46,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.BaseFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @private
@@ -67,12 +69,12 @@ sap.ui.define([
 		mConfiguration = this.createBindingInfos(mConfiguration, oCard.getBindingNamespaces());
 
 		if (bIsInDialog) {
-			oToolbar = this._createCloseButton();
+			oToolbar = this._createCloseButton(mConfiguration);
 		}
 
 		switch (mConfiguration.type) {
 			case "Numeric":
-				oHeader = new NumericHeader(sId, mConfiguration, oToolbar);
+				oHeader = new NumericHeader(sId, mConfiguration, oToolbar, oCard._oIconFormatter);
 				break;
 			default:
 				oHeader = new Header(sId, mConfiguration, oToolbar, oCard._oIconFormatter);
@@ -95,6 +97,10 @@ sap.ui.define([
 		oHeader.setDataProviderFactory(oCard._oDataProviderFactory);
 		oHeader._setDataConfiguration(mConfiguration.data);
 
+		if (oCard.isTileDisplayVariant()) {
+			this._setTileDefaults(oHeader, mConfiguration);
+		}
+
 		var oActions = new CardActions({
 			card: oCard
 		});
@@ -115,10 +121,16 @@ sap.ui.define([
 		return oHeader;
 	};
 
-	HeaderFactory.prototype._createCloseButton = function () {
+	HeaderFactory.prototype._createCloseButton = function (mConfiguration) {
+		var bVisible = true;
+		if (mConfiguration.closeButton && "visible" in mConfiguration.closeButton) {
+			bVisible = mConfiguration.closeButton.visible;
+		}
+
 		var oButton = new Button({
 			type: ButtonType.Transparent,
 			tooltip: oResourceBundle.getText("CARD_DIALOG_CLOSE_BUTTON"),
+			visible: bVisible,
 			icon: "sap-icon://decline",
 			press: function () {
 				this._oCard.hide();
@@ -126,6 +138,29 @@ sap.ui.define([
 		});
 
 		return oButton;
+	};
+
+	HeaderFactory.prototype._setTileDefaults = function (oHeader, mConfiguration) {
+		oHeader.setProperty("useTileLayout", true);
+
+		const oCard = this._oCard;
+		const bIsFlatTile = [CardDisplayVariant.TileFlat, CardDisplayVariant.TileFlatWide].indexOf(oCard.getDisplayVariant()) > -1;
+
+		if (!mConfiguration.titleMaxLines) {
+			oHeader.setTitleMaxLines(bIsFlatTile ? 1 : 2);
+		}
+
+		if (bIsFlatTile) {
+			oHeader.setIconSize("XS");
+
+			if (oHeader.isA("sap.f.cards.NumericHeader")) {
+				oHeader.setNumberSize("S");
+			}
+
+			if (!mConfiguration.subtitleMaxLines) {
+				oHeader.setSubtitleMaxLines(1);
+			}
+		}
 	};
 
 	return HeaderFactory;

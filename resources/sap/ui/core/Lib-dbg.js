@@ -8,6 +8,7 @@
 sap.ui.define([
 	'sap/base/assert',
 	'sap/base/config',
+	'sap/base/i18n/Localization',
 	'sap/base/i18n/ResourceBundle',
 	'sap/base/Log',
 	'sap/base/util/deepExtend',
@@ -27,6 +28,7 @@ sap.ui.define([
 ], function (
 	assert,
 	BaseConfig,
+	Localization,
 	ResourceBundle,
 	Log,
 	deepExtend,
@@ -72,7 +74,7 @@ sap.ui.define([
 	 * The file will be loaded, when a lazy dependency to the library is encountered.
 	 * @private
 	 */
-	 var oLibraryWithBundleInfo = new Set([
+	var oLibraryWithBundleInfo = new Set([
 		"sap.suite.ui.generic.template",
 		"sap.ui.comp",
 		"sap.ui.layout",
@@ -111,7 +113,7 @@ sap.ui.define([
 	 * @param {string} sURL URL from which the bundle has been loaded
 	 *
 	 * @private
-	*/
+	 */
 	function registerPreloadedModules(oData, sURL) {
 		var modules = oData.modules,
 			fnUI5ToRJS = function(sName) {
@@ -142,7 +144,11 @@ sap.ui.define([
 	var mLibraryPreloadFileTypes = {};
 
 	// evaluate configuration for library preload file types
-	Configuration.getValue("xx-libraryPreloadFiles").forEach(function(v){
+	BaseConfig.get({
+		name: "sapUiXxLibraryPreloadFiles",
+		type: BaseConfig.Type.StringArray,
+		external: true
+	}).forEach(function(v){
 		var fields = String(v).trim().split(/\s*:\s*/),
 			name = fields[0],
 			fileType = fields[1];
@@ -215,7 +221,7 @@ sap.ui.define([
 		if (oObject && typeof oObject === 'object' && !Object.isFrozen(oObject)) {
 			Object.freeze(oObject);
 			for (var sKey in oObject) {
-				if (oObject.hasOwnProperty(sKey)) {
+				if (Object.hasOwn(oObject, sKey)) {
 					deepFreeze(oObject[sKey]);
 				}
 			}
@@ -259,36 +265,22 @@ sap.ui.define([
 		return aPreloadLibCSS;
 	}
 
-	/*
-	 * Create an instance that represents a library with the given name.
-	 *
-	 * <h3>Note</h3>
-	 * This constructor is designed for internal usage only. To create an instance, use {@link #.get}.
-	 *
+	/**
 	 * @classdesc
-	 * <h3>Library Loading</h3>
-	 * To load a library, {@link #.load} can be used directly without creating a library instance in advance.
+	 * Constructor must not be used: To load a library, please use the static method {@link #.load}.
 	 *
-	 * <h3>What a library does</h3>
-	 * <ul>
-	 * <li>preload: {@link #preload} loads the library-preload bundle and its resource bundle and apply the
-	 *  same for its dependencies</li>
-	 * <li>theming: {@link #_includeTheme} creates a &lt;link&gt; in the page referring to the corresponding
-	 *  <code>library.css</code></li>
-	 * <li>resource bundle: {@link #getResourceBundle} returns the resource bundle directly when it's already loaded or
-	 *  triggers a synchronous request to load it. {@link #loadResourceBundle} loads a library's resource bundle file
-	 *  asynchronously. The resource bundle file is also loaded when the <code>preload</code> function is called</li>
-	 * </ul>
+	 * This class also provides other static methods which are related to a library, such as {@link
+	 * #.getResourceBundleFor} to retrieve the resource bundle of a library, {@link #.init} to provide information for a
+	 * library and so on.
 	 *
 	 * @param {object} mSettings Info object for the library
 	 * @param {string} mSettings.name Name of the library; when given it must match the name by which the library has been loaded
 	 * @class
 	 * @alias sap.ui.core.Lib
-	 * @extends sap.ui.base.BaseObject
-	 * @since 1.110
-	 * @private
+	 * @extends sap.ui.base.Object
+	 * @since 1.118
 	 * @hideconstructor
-	 * @ui5-restricted sap.ui.core
+	 * @public
 	 */
 	var Library = BaseObject.extend("sap.ui.core.Lib", /** @lends sap.ui.core.Lib.prototype */ {
 
@@ -380,8 +372,9 @@ sap.ui.define([
 		 *  controls); names are in dot notation (e.g. "sap.ui.core.Item")
 		 * @param {boolean} [mSettings.noLibraryCSS=false] Indicates whether the library doesn't provide/use theming.
 		 *  When set to true, no library.css will be loaded for this library
-		 * @param {object} [oLibInfo.extensions] Potential extensions of the library metadata; structure not defined by
-		 *  the UI5 core framework.
+		 * @param {Object<string,any>} [mSettings.extensions] A map of potential extensions of the library metadata; structure not defined by
+		 *  the UI5 core framework. Keys should be qualified names derived from the namespace of the code that introduces the feature, e.g.
+		 *  <code>""sap.ui.support"</code> is used for the support rule metadata of a library.
 		 * @returns {sap.ui.core.Lib} The library instance
 		 * @private
 		 */
@@ -770,6 +763,7 @@ sap.ui.define([
 		 * @param {boolean} [bSync=false] whether to use sync request to load the library manifest when it doesn't exist
 		 *  in preload cache
 		 * @returns {object|undefined} The manifest of the library
+		 * @private
 		 */
 		getManifest: function(bSync) {
 			if (!this.oManifest) {
@@ -834,6 +828,7 @@ sap.ui.define([
 		/**
 		 * Returns the i18n information of the library which is read from the library's manifest.
 		 *
+		 * @private
 		 * @returns {object|undefined} The i18n information of the library
 		 */
 		_getI18nSettings: function() {
@@ -861,6 +856,8 @@ sap.ui.define([
 		 *       fallback and supported locales are not defined (defaulted by ResourceBundle)</li>
 		 *     <li>typeof object - object can contain bundleUrl, supportedLocales, fallbackLocale</li>
 		 * </ul>
+		 *
+		 * @private
 		 * @returns {object} normalized i18N information
 		 */
 		_normalizeI18nSettings: function(vI18n) {
@@ -921,27 +918,10 @@ sap.ui.define([
 		 * be sent. Only when the bundle is needed at module execution time (by top level code in a control module),
 		 * then the asynchronous loading of resource bundle with {@link #loadResourceBundle} should be preferred.
 		 *
-		 * <h3>Configuration via App Descriptor</h3>
-		 * When the App Descriptor for the library is available without further request (manifest.json
-		 * has been preloaded) and when the App Descriptor is at least of version 1.9.0 or higher, then
-		 * this method will evaluate the App Descriptor entry <code>"sap.ui5" / "library" / "i18n"</code>.
-		 * <ul>
-		 * <li>When the entry is <code>true</code>, a bundle with the default name "messagebundle.properties"
-		 * will be loaded</li>
-		 * <li>If it is a string, then that string will be used as name of the bundle</li>
-		 * <li>If it is <code>false</code>, no bundle will be loaded and the result will be
-		 *     <code>undefined</code></li>
-		 * </ul>
-		 *
-		 * <h3>Caching</h3>
-		 * Once a resource bundle for a library has been loaded, it will be cached.
-		 * Further calls for the same locale won't create new requests, but return the already
-		 * loaded bundle. There's therefore no need for control code to cache the returned bundle for a longer
-		 * period of time. Not further caching the result also prevents stale texts after a locale change.
-		 *
 		 * @param {string} [sLocale] Locale to retrieve the resource bundle for
 		 * @returns {module:sap/base/i18n/ResourceBundle} The best matching
 		 *  resource bundle for the given locale or <code>undefined</code> when resource bundle isn't available
+		 * @private
 		 */
 		getResourceBundle: function(sLocale) {
 			return this._loadResourceBundle(sLocale, true /* bSync */);
@@ -973,6 +953,7 @@ sap.ui.define([
 		 * @param {string} [sLocale] Locale to retrieve the resource bundle for
 		 * @returns {Promise<module:sap/base/i18n/ResourceBundle>} Promise that resolves with the best matching
 		 *  resource bundle for the given locale
+		 * @private
 		 */
 		loadResourceBundle: function(sLocale) {
 			return this._loadResourceBundle(sLocale);
@@ -1003,7 +984,7 @@ sap.ui.define([
 				sKey;
 
 			assert(sLocale === undefined || typeof sLocale === "string", "sLocale must be a string or omitted");
-			sLocale = sLocale || Configuration.getLanguage();
+			sLocale = sLocale || Localization.getLanguage();
 			sNotLoadedCacheKey = sLocale + "/manifest-not-available";
 
 			// If the library was loaded in the meantime (or the first time around), we can delete the old ResourceBundle
@@ -1032,7 +1013,7 @@ sap.ui.define([
 						fallbackLocale: vI18n.fallbackLocale,
 						locale: sLocale,
 						async: !bSync,
-						activeTerminologies: Configuration.getActiveTerminologies()
+						activeTerminologies: Localization.getActiveTerminologies()
 					});
 
 					if (vResult instanceof Promise) {
@@ -1066,18 +1047,14 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns an instance of a Library whose "name" is the same as the given <code>sName</code>. Created library
-	 * instances are cached by its name. For one library name, there's maximum one instance created and cached.
-	 *
-	 * If no library under the given <code>sName</code> is created yet, <code>undefined</code> is returned. To load a
-	 * library, {@link #.load} can be used directly without calling this method in advance.
+	 * Checks whether the library for the given <code>sName</code> has been loaded or not.
 	 *
 	 * @param {string} sName The name of the library
-	 * @returns {Promise<module:sap/ui/core/Lib>|undefined} Either an instance of the library or <code>undefined</code>
+	 * @returns {boolean} Returns <code>true</code> if the library is loaded. Otherwise <code>false</code>.
 	 * @public
 	 */
-	Library.get = function(sName) {
-		return Library._get(sName);
+	Library.isLoaded = function(sName) {
+		return mLibraries[sName] ? true : false;
 	};
 
 	/**
@@ -1090,7 +1067,7 @@ sap.ui.define([
 	 * @param {string} sName The name of the library
 	 * @param {boolean} bCreate Whether to create an instance for the library when there's no instance saved in the
 	 *  cache under the given <code>sName</code>
-	 * @returns {Promise<module:sap/ui/core/Lib>|undefined} Either an instance of the library or <code>undefined</code>
+	 * @returns {Promise<sap.ui.core.Lib>|undefined} Either an instance of the library or <code>undefined</code>
 	 * @private
 	 */
 	Library._get = function(sName, bCreate) {
@@ -1166,7 +1143,8 @@ sap.ui.define([
 	 *
 	 * @returns {object} A map that contains the initialized libraries. Each library is saved in the map under its name
 	 *  as key.
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.core, sap.ui.support
 	 */
 	Library.all = function() {
 		// return only libraries that are initialized (settings enhanced)
@@ -1433,7 +1411,7 @@ sap.ui.define([
 	 * @param {object} mOptions The options object that contains the following properties
 	 * @param {string} mOptions.name The name of the library
 	 * @param {string} [mOptions.url] URL to load the library from
-	 * @returns {Promise<module:sap/ui/core/Lib>} A promise that resolves with the library instance after the loading of
+	 * @returns {Promise<sap.ui.core.Lib>} A promise that resolves with the library instance after the loading of
 	 *  the library is finished
 	 * @public
 	 */
@@ -1467,14 +1445,14 @@ sap.ui.define([
 	 *
 	 * @param {object[]|object} vLibConfigs An array of objects for libraries or a single object for one library
 	 *  which contain the following properties
-	 * @param {string} oLibConfig.name The name of the library
-	 * @param {string} [oLibConfig.url] URL to load the library from
-	 * @param {boolean} [oLibConfig.json] Whether to load the library's preload bundle in JSON format
+	 * @param {string} vLibConfigs.name The name of the library
+	 * @param {string} [vLibConfigs.url] URL to load the library from
+	 * @param {boolean} [vLibConfigs.json] Whether to load the library's preload bundle in JSON format
 	 * @param {object} [mOptions] The options object that contains the following properties
 	 * @param {boolean} [mOptions.sync] Whether to load the preload bundle(s) in sync mode
 	 * @param {boolean} [mOptions.preloadOnly] Whether to skip executing the entry module(s) after preloading the
 	 *  library/libraries
-	 * @return {Promise<Array<module:sap/ui/core/Lib>>|Array<module:sap/ui/core/Lib>} A promise that resolves with an
+	 * @return {Promise<Array<sap.ui.core.Lib>>|Array<sap.ui.core.Lib>} A promise that resolves with an
 	 *  array of library instances in async mode or an array of library instances in sync mode
 	 * @private
 	 */
@@ -1563,8 +1541,29 @@ sap.ui.define([
 	/**
 	 * Retrieves a resource bundle for the given library and locale.
 	 *
+	 * This method returns the resource bundle directly. When the resource bundle for the given locale isn't loaded
+	 * yet, synchronous request will be used to load the resource bundle.
+	 *
 	 * If only one argument is given, it is assumed to be the library name. The locale
 	 * then falls back to the current {@link sap.ui.core.Configuration#getLanguage session locale}.
+	 *
+	 * <h3>Configuration via App Descriptor</h3>
+	 * When the App Descriptor for the library is available without further request (manifest.json
+	 * has been preloaded) and when the App Descriptor is at least of version 1.9.0 or higher, then
+	 * this method will evaluate the App Descriptor entry <code>"sap.ui5" / "library" / "i18n"</code>.
+	 * <ul>
+	 * <li>When the entry is <code>true</code>, a bundle with the default name "messagebundle.properties"
+	 * will be loaded</li>
+	 * <li>If it is a string, then that string will be used as name of the bundle</li>
+	 * <li>If it is <code>false</code>, no bundle will be loaded and the result will be
+	 *     <code>undefined</code></li>
+	 * </ul>
+	 *
+	 * <h3>Caching</h3>
+	 * Once a resource bundle for a library has been loaded, it will be cached.
+	 * Further calls for the same locale won't create new requests, but return the already
+	 * loaded bundle. There's therefore no need for control code to cache the returned bundle for a longer
+	 * period of time. Not further caching the result also prevents stale texts after a locale change.
 	 *
 	 * @param {string} sLibrary Name of the library to retrieve the bundle for
 	 * @param {string} [sLocale] Locale to retrieve the resource bundle for
@@ -1587,7 +1586,7 @@ sap.ui.define([
 	Library._registerElement = function(oElementMetadata) {
 		var sElementName = oElementMetadata.getName(),
 			sLibraryName = oElementMetadata.getLibraryName() || "",
-			oLibrary = Library.get(sLibraryName),
+			oLibrary = Library._get(sLibraryName),
 			sCategory = oElementMetadata.isA("sap.ui.core.Control") ? 'controls' : 'elements';
 
 		// if library has not been loaded yet, create a library
@@ -1618,8 +1617,6 @@ sap.ui.define([
 	 *
 	 * @name sap.ui.core.Lib#libraryChanged
 	 * @event
-	 * @private
-	 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.support
 	 * @param {sap.ui.base.Event} oEvent
 	 * @param {sap.ui.base.EventProvider} oEvent.getSource
 	 * @param {object} oEvent.getParameters
@@ -1631,7 +1628,7 @@ sap.ui.define([
 	 *         if it is a library. Note that the API of all metadata objects is not public yet and might change.
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.fl, sap.ui.support
+	 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.support
 	 */
 
 	/**
@@ -1678,7 +1675,7 @@ sap.ui.define([
 	 * Guesses if the given bundleUrl is pointing to a library's ResourceBundle and adapts the given bundle definition accordingly
 	 * based on the inferred library's manifest.
 	 *
-	 * @param {module:sap/base/i18n/ResourceBundle.Configuration} mParams Map containing the arguments of the sap.base.i18n.ResourceBundle.create call
+	 * @param {module:sap/base/i18n/ResourceBundle.Configuration} mParams Map containing the arguments of the <code>ResourceBundle.create</code> call
 	 * @returns {module:sap/base/i18n/ResourceBundle.Configuration} mParams The enriched config object
 	 * @private
 	 */
@@ -1711,7 +1708,7 @@ sap.ui.define([
 					// text verticalization information
 					mParams.terminologies = mParams.terminologies || vI18n.terminologies;
 					mParams.enhanceWith = mParams.enhanceWith || vI18n.enhanceWith;
-					mParams.activeTerminologies = mParams.activeTerminologies || Configuration.getActiveTerminologies();
+					mParams.activeTerminologies = mParams.activeTerminologies || Localization.getActiveTerminologies();
 				}
 			}
 		}

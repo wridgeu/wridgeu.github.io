@@ -19,7 +19,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @public
 	 * @since 1.73
@@ -126,6 +126,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 		}
 
 		if (this._oMessageStrip) {
+			oControl.removeAriaLabelledBy(this._oMessageStrip);
 			this._oMessageStrip.destroy();
 			this._oMessageStrip = null;
 		}
@@ -179,6 +180,10 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 
 		if (this._oMessageStrip) {
 			this._oMessageStrip.setText(sText).setType(sType).setVisible(!!sText);
+			this.getControl().removeAriaLabelledBy(this._oMessageStrip);
+			if (sText) {
+				this.getControl().addAriaLabelledBy(this._oMessageStrip);
+			}
 		} else {
 			sap.ui.require(["sap/m/MessageStrip"], function(MessageStrip) {
 				var oControl = this.getControl();
@@ -187,6 +192,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 					showIcon: true,
 					close: function() {
 						oControl.focus();
+						oControl.removeAriaLabelledBy(this._oMessageStrip);
 						this.fireClose();
 					}.bind(this)
 				}).addStyleClass("sapUiTinyMargin");
@@ -265,11 +271,13 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			return;
 		}
 
-
 		var oParent = this.getParent();
 		var oControl = this.getControl();
 		var oBinding = oControl && oControl.getBinding(this._getBindingName());
 		if (oBinding && oBinding.bIsBeingDestroyed) {
+			oDataState.getAllMessages().forEach(function(oMessage) {
+				oMessage.removeControlId(oControl.getId());
+			});
 			return;
 		}
 
@@ -317,7 +325,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			}
 
 			if (bUpdateMessageModel) {
-				Core.getMessageManager().getMessageModel().checkUpdate(false, true);
+				Core.getMessageManager().getMessageModel().checkUpdate(true, true);
 			}
 		} else {
 			this.showMessage("");

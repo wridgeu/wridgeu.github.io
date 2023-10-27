@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.cardEditor.propertyEditor.iconEditor.IconEditor
 	 * @author SAP SE
 	 * @since 1.81
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @private
 	 * @experimental 1.81

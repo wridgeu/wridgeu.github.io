@@ -6,8 +6,7 @@
 sap.ui.define([
 	"sap/ui/integration/Extension",
 	"sap/base/Log"
-], function (BaseExtension,
-			 Log) {
+], function (BaseExtension, Log) {
 	"use strict";
 
 	/**
@@ -22,7 +21,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.Extension
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @public

@@ -14,7 +14,8 @@ sap.ui.define([
 	"sap/m/AvatarSize",
 	"sap/m/ListItemBase",
 	"sap/ui/core/Core",
-	"sap/ui/core/library"
+	"sap/ui/core/library",
+	"sap/ui/integration/util/BindingResolver"
 ], function (
 	library,
 	ListContentItemRenderer,
@@ -25,13 +26,15 @@ sap.ui.define([
 	AvatarSize,
 	ListItemBase,
 	Core,
-	coreLibrary
+	coreLibrary,
+	BindingResolver
 ) {
 	"use strict";
 
 	var AttributesLayoutType = library.AttributesLayoutType;
 	var ValueState = coreLibrary.ValueState;
 	var EmptyIndicatorMode = mLibrary.EmptyIndicatorMode;
+	var AvatarImageFitType = mLibrary.AvatarImageFitType;
 
 	/**
 	 * Constructor for a new ListContentItem.
@@ -44,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @constructor
 	 * @private
@@ -162,22 +165,29 @@ sap.ui.define([
 		renderer: ListContentItemRenderer
 	});
 
-	ListContentItem.getLinesCount = function (oConfiguration) {
-		var iLines = 1; // at least 1 line for the mandatory title
+	ListContentItem.getLinesCount = function (oConfiguration, oContent) {
+		let iLines = 1; // at least 1 line for the mandatory title
+		const oResolvedConfig = BindingResolver.resolveValue(oConfiguration, oContent);
 
-		if (oConfiguration.description) {
+		const bDescriptionVisible = oResolvedConfig.description?.hasOwnProperty("visible") ? oResolvedConfig.description?.visible : true;
+		if (oResolvedConfig.description && bDescriptionVisible) {
 			iLines += 1;
 		}
 
-		if (oConfiguration.attributes) {
-			if (oConfiguration.attributesLayoutType === AttributesLayoutType.OneColumn) {
-				iLines = oConfiguration.attributes.length;
+		if (oResolvedConfig.attributes) {
+			const aVisibleAttributes = oResolvedConfig.attributes.filter(function (oAttribute) {
+				return oAttribute.hasOwnProperty("visible") ? oAttribute.visible : true;
+			});
+
+			if (oResolvedConfig.attributesLayoutType === AttributesLayoutType.OneColumn) {
+				iLines = aVisibleAttributes.length;
 			} else {
-				iLines += Math.ceil(oConfiguration.attributes.length / 2);
+				iLines += Math.ceil(aVisibleAttributes.length / 2);
 			}
 		}
 
-		if (oConfiguration.chart) {
+		const bChartVisible = oResolvedConfig.chart?.hasOwnProperty("visible") ? oResolvedConfig.chart?.visible : true;
+		if (oResolvedConfig.chart && bChartVisible) {
 			iLines += 1;
 		}
 
@@ -239,7 +249,9 @@ sap.ui.define([
 		var oAvatar = this.getAggregation("_avatar");
 
 		if (!oAvatar) {
-			oAvatar = new Avatar().addStyleClass("sapFCardIcon");
+			oAvatar = new Avatar({
+				imageFitType: AvatarImageFitType.Contain
+			}).addStyleClass("sapFCardIcon");
 			this.setAggregation("_avatar", oAvatar);
 		}
 

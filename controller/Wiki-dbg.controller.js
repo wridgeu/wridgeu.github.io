@@ -1,6 +1,8 @@
 "use strict";
 
 sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.controller", "sap/m/ActionListItem", "sap/ui/model/json/JSONModel", "sap/ui/Device"], function (___util_githubService, ___util_markdownService, __BaseController, ActionListItem, JSONModel, Device) {
+  "use strict";
+
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule && typeof obj.default !== "undefined" ? obj.default : obj;
   }
@@ -83,3 +85,4 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
   });
   return WikiController;
 });
+//# sourceMappingURL=Wiki-dbg.controller.js.map

@@ -35,8 +35,8 @@ sap.ui.define([
 	"sap/ui/base/SyncPromise",
 	"sap/ui/core/Configuration",
 	"sap/ui/core/library",
+	"sap/ui/core/Messaging",
 	"sap/ui/core/message/Message",
-	"sap/ui/core/message/MessageManager",
 	"sap/ui/core/message/MessageParser",
 	"sap/ui/model/_Helper",
 	"sap/ui/model/BindingMode",
@@ -58,7 +58,7 @@ sap.ui.define([
 ], function(_CreatedContextsCache, Context, ODataAnnotations, ODataContextBinding, ODataListBinding,
 		ODataTreeBinding, assert, Log, encodeURL, deepEqual, deepExtend, each, extend,
 		isEmptyObject, isPlainObject, merge, uid, UriParameters, SyncPromise, Configuration,
-		coreLibrary, Message, MessageManager, MessageParser, _Helper, BindingMode, BaseContext, FilterProcessor,
+		coreLibrary, Messaging, Message, MessageParser, _Helper, BindingMode, BaseContext, FilterProcessor,
 		Model, CountMode, MessageScope, ODataMetadata, ODataMetaModel, ODataMessageParser,
 		ODataPropertyBinding, ODataUtils, OperationMode, UpdateMethod, OData, URI, isCrossOriginURL
 ) {
@@ -181,8 +181,11 @@ sap.ui.define([
 	 * @param {Object<string,string>} [mParameters.serviceUrlParams]
 	 *   Map of URL parameters (name/value pairs) - these parameters will be attached to all
 	 *   requests, except for the <code>$metadata</code> request
-	 * @param {boolean} [mParameters.tokenHandling=true]
-	 *   Enable/disable security token handling
+	 * @param {boolean|"skipServerCache"} [mParameters.tokenHandling=true]
+	 *   Enable/disable security token handling. If the "skipServerCache" string value is provided, the security token
+	 *   is not cached with the server as key in order to avoid failing $batch requests when accessing services running
+	 *   on different back-end systems behind a reverse proxy (since 1.119).<br>
+	 *   Use this option only if the system landscape is known.
 	 * @param {boolean} [mParameters.tokenHandlingForGet=false]
 	 *   Send security token for GET requests in case read access logging is activated for the OData
 	 *   Service in the backend.
@@ -213,7 +216,7 @@ sap.ui.define([
 	 * This model is not prepared to be inherited from.
 	 *
 	 * @author SAP SE
-	 * @version 1.116.0
+	 * @version 1.119.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -227,7 +230,7 @@ sap.ui.define([
 			var sUser,
 				sPassword,
 				mHeaders,
-				bTokenHandling,
+				vTokenHandling,
 				bWithCredentials,
 				sMaxDataServiceVersion,
 				bUseBatch,
@@ -272,7 +275,7 @@ sap.ui.define([
 				sUser = mParameters.user;
 				sPassword = mParameters.password;
 				mHeaders = mParameters.headers;
-				bTokenHandling = mParameters.tokenHandling;
+				vTokenHandling = mParameters.tokenHandling;
 				bWithCredentials = mParameters.withCredentials;
 				sMaxDataServiceVersion = mParameters.maxDataServiceVersion;
 				bUseBatch = mParameters.useBatch;
@@ -334,7 +337,7 @@ sap.ui.define([
 			this.mLaunderingState = {};
 			this.sDefaultUpdateMethod = sDefaultUpdateMethod || UpdateMethod.Merge;
 
-			this.bTokenHandling = bTokenHandling !== false;
+			this.bTokenHandling = vTokenHandling !== false;
 			this.bWithCredentials = bWithCredentials === true;
 			this.bUseBatch = bUseBatch !== false;
 			this.bRefreshAfterChange = bRefreshAfterChange !== false;
@@ -414,11 +417,11 @@ sap.ui.define([
 				this.oHeaders["sap-contextid-accept"] = "header";
 				this.mCustomHeaders["sap-contextid-accept"] = "header";
 			}
-			// Get/create shared data containers
-			var sServerUrl = this._getServerUrl();
 			//use warmup url if provided
 			this.sMetadataUrl = this.sWarmupUrl || this._createMetadataUrl("/$metadata");
-			this.oSharedServerData = ODataModel._getSharedData("server", sServerUrl);
+			this.oSharedServerData = vTokenHandling === "skipServerCache"
+				? undefined // server cache for security tokens is not used
+				: ODataModel._getSharedData("server", this._getServerUrl());
 			this.oSharedServiceData = ODataModel._getSharedData("service", this.sServiceUrl);
 			this.oSharedMetaData = ODataModel._getSharedData("meta", this.sMetadataUrl);
 
@@ -494,7 +497,7 @@ sap.ui.define([
 			if (this.bTokenHandling) {
 				if (this.oSharedServiceData.securityToken) {
 					this.oHeaders["x-csrf-token"] = this.oSharedServiceData.securityToken;
-				} else if (this.oSharedServerData.securityToken) {
+				} else if (this.oSharedServerData && this.oSharedServerData.securityToken) {
 					this.oSharedServiceData.securityToken = this.oSharedServerData.securityToken;
 					this.oHeaders["x-csrf-token"] = this.oSharedServiceData.securityToken;
 				}
@@ -3277,12 +3280,12 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the current security token.
+	 * Returns the current security token if available; triggers a request to fetch the security token if it is not
+	 * available.
 	 *
-	 * If the token has not been requested from the server it will be requested first (synchronously).
+	 * @returns {string|undefined} The security token; <code>undefined</code> if it is not available
 	 *
-	 * @returns {string} The security token
-	 *
+	 * @deprecated since 1.119.0; use {@link #securityTokenAvailable} instead
 	 * @public
 	 */
 	ODataModel.prototype.getSecurityToken = function() {
@@ -3345,7 +3348,9 @@ sap.ui.define([
 				sToken = that._getHeader("x-csrf-token", oResponse.headers);
 				that._setSessionContextIdHeader(that._getHeader("sap-contextid", oResponse.headers));
 				if (sToken) {
-					that.oSharedServerData.securityToken = sToken;
+					if (that.oSharedServerData) {
+						that.oSharedServerData.securityToken = sToken;
+					}
 					that.oSharedServiceData.securityToken = sToken;
 					that.pSecurityToken = Promise.resolve(sToken);
 					// For compatibility with applications, that are using getHeaders() to retrieve the current
@@ -3893,7 +3898,7 @@ sap.ui.define([
 	 * Abort internal requests such as created via two-way binding changes or created entries.
 	 *
 	 * @param {string} sGroupId ID of the group that should be searched for the request
-	 * @param {string} [mParameters]
+	 * @param {object} [mParameters]
 	 * Map which contains the following parameter properties:
 	 * @param {string} [mParameters.requestKey] Request key used to find the requests, which needs to aborted.
 	 * @param {string} [mParameters.path] Path used to find the requests, which needs to be aborted.
@@ -6427,7 +6432,7 @@ sap.ui.define([
 		} else {
 			delete this.mChangedEntities[sKey];
 		}
-		MessageManager.removeMessages(this.getMessagesByEntity(sKey,
+		Messaging.removeMessages(this.getMessagesByEntity(sKey,
 			/*bExcludePersistent*/!bDeleteEntity));
 
 		return pMetaDataLoaded;
@@ -6970,7 +6975,7 @@ sap.ui.define([
 			});
 			that._removeEntity(sKey);
 			//cleanup Messages for created Entry
-			MessageManager.removeMessages(
+			Messaging.removeMessages(
 				this.getMessagesByEntity(oContext.getPath(), true));
 		}
 	};
@@ -7808,7 +7813,7 @@ sap.ui.define([
 	/**
 	 * Sets the <code>MessageParser</code> that is invoked upon every back-end request.
 	 *
-	 * This message parser analyzes the response and notifies the <code>MessageManager</code> about added and deleted messages.
+	 * This message parser analyzes the response and notifies the <code>Messaging</code> about added and deleted messages.
 	 *
 	 * @param {object|null} [oParser] The <code>MessageParser</code> instance that parses the responses and adds messages to the <code>MessageManager</code>
 	 * @return {this} Model instance for method chaining

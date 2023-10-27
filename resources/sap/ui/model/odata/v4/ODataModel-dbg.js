@@ -35,11 +35,12 @@ sap.ui.define([
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/ui/base/SyncPromise",
-	"sap/ui/core/cache/CacheManager",
 	"sap/ui/core/Configuration",
 	"sap/ui/core/library",
+	"sap/ui/core/Messaging",
+	"sap/ui/core/Rendering",
+	"sap/ui/core/cache/CacheManager",
 	"sap/ui/core/message/Message",
-	"sap/ui/core/message/MessageManager",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/Context",
 	"sap/ui/model/Model",
@@ -47,8 +48,8 @@ sap.ui.define([
 	"sap/ui/thirdparty/URI"
 ], function (ODataContextBinding, ODataListBinding, ODataMetaModel, ODataPropertyBinding,
 		SubmitMode, _GroupLock, _Helper, _MetadataRequestor, _Parser, _Requestor, assert, Log,
-		SyncPromise, CacheManager, Configuration, coreLibrary, Message, MessageManager, BindingMode,
-		BaseContext, Model, OperationMode, URI) {
+		SyncPromise, Configuration, coreLibrary, Messaging, Rendering, CacheManager, Message,
+		BindingMode, BaseContext, Model, OperationMode, URI) {
 	"use strict";
 
 	var sClassName = "sap.ui.model.odata.v4.ODataModel",
@@ -87,7 +88,8 @@ sap.ui.define([
 			sharedRequests : true,
 			supportReferences : true,
 			synchronizationMode : true,
-			updateGroupId : true
+			updateGroupId : true,
+			withCredentials : true
 		},
 		// system query options allowed in mParameters
 		aSystemQueryOptions = ["$apply", "$count", "$expand", "$filter", "$orderby", "$search",
@@ -174,12 +176,16 @@ sap.ui.define([
 		 *   (Controls synchronization between different bindings which refer to the same data for
 		 *   the case data changes in one binding. Must be set to 'None' which means bindings are
 		 *   not synchronized at all; all other values are not supported and lead to an error.)
-		 *   <b>deprecated:</b> As of version 1.110.0, this parameter is optional; see also
+		 *   <b>deprecated:</b> As of Version 1.110.0, this parameter is optional; see also
 		 *   {@link topic:648e360fa22d46248ca783dc6eb44531 Data Reuse}
 		 * @param {string} [mParameters.updateGroupId]
 		 *   The group ID that is used for update requests. If no update group ID is specified,
 		 *   <code>mParameters.groupId</code> is used. Valid update group IDs are
 		 *   <code>undefined</code>, '$auto', '$direct' or an application group ID.
+		 * @param {boolean} [mParameters.withCredentials]
+		 *   Whether the XMLHttpRequest is called with <code>withCredentials</code>, so that user
+		 *   credentials are included in cross-origin requests by the browser (@experimental as of
+		 *   Version 1.117.0)
 		 * @throws {Error} If an unsupported synchronization mode is given, if the given service
 		 *   root URL does not end with a forward slash, if an unsupported parameter is given, if
 		 *   OData system query options or parameter aliases are specified as parameters, if an
@@ -228,7 +234,7 @@ sap.ui.define([
 		 * @extends sap.ui.model.Model
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.116.0
+		 * @version 1.119.0
 		 */
 		ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */{
@@ -347,7 +353,8 @@ sap.ui.define([
 		mQueryParams = Object.assign({}, mUriParameters, mParameters.metadataUrlParams);
 		this.oMetaModel = new ODataMetaModel(
 			_MetadataRequestor.create(this.mMetadataHeaders, sODataVersion,
-				mParameters.ignoreAnnotationsFromMetadata, mQueryParams),
+				mParameters.ignoreAnnotationsFromMetadata, mQueryParams,
+				mParameters.withCredentials),
 			this.sServiceUrl + "$metadata", mParameters.annotationURI, this,
 			mParameters.supportReferences, mQueryParams["sap-language"]);
 		this.oInterface = {
@@ -373,11 +380,11 @@ sap.ui.define([
 			reportStateMessages : this.reportStateMessages.bind(this),
 			reportTransitionMessages : this.reportTransitionMessages.bind(this),
 			updateMessages : function (aOldMessages, aNewMessages) {
-				MessageManager.updateMessages(aOldMessages, aNewMessages);
+				Messaging.updateMessages(aOldMessages, aNewMessages);
 			}
 		};
 		this.oRequestor = _Requestor.create(this.sServiceUrl, this.oInterface, this.mHeaders,
-			mUriParameters, sODataVersion);
+			mUriParameters, sODataVersion, mParameters.withCredentials);
 		this.changeHttpHeaders(mParameters.httpHeaders);
 		this.bEarlyRequests = mParameters.earlyRequests;
 		if (this.bEarlyRequests) {
@@ -457,12 +464,14 @@ sap.ui.define([
 	 * the entity is also available.
 	 *
 	 * @param {sap.ui.base.Event} oEvent
-	 * @param {object} oEvent.getParameters()
-	 * @param {object} [oEvent.getParameters().data]
+	 *    The event object
+	 * @param {function():Object<any>} oEvent.getParameters
+	 *   Function which returns an object containing all event parameters
+	 * @param {object} [oEvent.getParameters.data]
 	 *   An empty data object if a back-end request succeeds
-	 * @param {Error} [oEvent.getParameters().error]
+	 * @param {Error} [oEvent.getParameters.error]
 	 *   The error object if a back-end request failed.
-	 * @param {string} [oEvent.getParameters().path]
+	 * @param {string} [oEvent.getParameters.path]
 	 *   The absolute path to the entity which caused the event. The path is only provided for
 	 *   additional property requests; for other requests it is <code>undefined</code>.
 	 *
@@ -499,8 +508,10 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @param {sap.ui.base.Event} oEvent
-	 * @param {object} oEvent.getParameters()
-	 * @param {string} [oEvent.getParameters().path]
+	 *    The event object
+	 * @param {function():Object<any>} oEvent.getParameters
+	 *   Function which returns an object containing all event parameters
+	 * @param {string} [oEvent.getParameters.path]
 	 *   The absolute path to the entity which caused the event. The path is only provided for
 	 *   additional property requests; for other requests it is <code>undefined</code>.
 	 *
@@ -528,20 +539,22 @@ sap.ui.define([
 	 * not user input.
 	 *
 	 * @param {sap.ui.base.Event} oEvent
-	 * @param {object} oEvent.getParameters()
-	 * @param {sap.ui.model.Context} [oEvent.getParameters().context]
+	 *    The event object
+	 * @param {function():Object<any>} oEvent.getParameters
+	 *   Function which returns an object containing all event parameters
+	 * @param {sap.ui.model.Context} [oEvent.getParameters.context]
 	 *   The property binding's {@link sap.ui.model.Binding#getContext context}, if available
-	 * @param {string} oEvent.getParameters().path
+	 * @param {string} oEvent.getParameters.path
 	 *   The property binding's {@link sap.ui.model.Binding#getPath path}
-	 * @param {Promise} [oEvent.getParameters().promise]
+	 * @param {Promise<void>} [oEvent.getParameters.promise]
 	 *   A promise on the outcome of the PATCH request, much like
 	 *   {@link sap.ui.model.odata.v4.Context#setProperty} provides it for
 	 *   <code>bRetry === true</code>; missing in case there is no PATCH
-	 * @param {sap.ui.model.ChangeReason} oEvent.getParameters().reason
+	 * @param {sap.ui.model.ChangeReason} oEvent.getParameters.reason
 	 *   The reason for the property change: always <code>sap.ui.model.ChangeReason.Binding</code>
-	 * @param {string} oEvent.getParameters().resolvedPath
+	 * @param {string} oEvent.getParameters.resolvedPath
 	 *   The property binding's {@link sap.ui.model.Binding#getResolvedPath resolved path}
-	 * @param {any} oEvent.getParameters().value
+	 * @param {any} oEvent.getParameters.value
 	 *   The property binding's new
 	 *   {@link sap.ui.model.odata.v4.ODataPropertyBinding#getValue value}
 	 *
@@ -612,7 +625,7 @@ sap.ui.define([
 		if (!this.aPrerenderingTasks) {
 			this.aPrerenderingTasks = [];
 			fnRunTasks = runTasks.bind(null, this.aPrerenderingTasks);
-			sap.ui.getCore().addPrerenderingTask(fnRunTasks);
+			Rendering.addPrerenderingTask(fnRunTasks);
 			// Add a watchdog to run the tasks in case there is no rendering. Ensure that the task
 			// runs after all setTimeout(0) tasks scheduled from within the current task, even those
 			// that were scheduled afterwards. A simple setTimeout(n) with n > 0 is not sufficient
@@ -1204,7 +1217,7 @@ sap.ui.define([
 	 *   <li> It must not contain control characters.
 	 * </ul>
 	 *
-	 * @param {object} [mHeaders]
+	 * @param {Object<string|undefined>} [mHeaders]
 	 *   Map of HTTP header names to their values
 	 * @throws {Error}
 	 *   If <code>mHeaders</code> contains unsupported headers, the same header occurs more than
@@ -1500,10 +1513,10 @@ sap.ui.define([
 	 *   If <code>true</code>, deletion fails if the entity does not exist (HTTP status code 404 or
 	 *   412 due to the <code>If-Match: *</code> header); otherwise we assume that it has already
 	 *   been deleted by someone else and report success
-	 * @returns {Promise}
-	 *   A promise resolving when the delete succeeded, and rejecting with an instance of Error
-	 *   otherwise. In the latter case the HTTP status code of the response is given in the error's
-	 *   property <code>status</code>.
+	 * @returns {Promise<void>}
+	 *   A promise which is resolved without a defined result when the delete succeeded, or rejected
+	 *   with an instance of Error otherwise. In the latter case the HTTP status code of the
+	 *   response is given in the error's property <code>status</code>.
 	 * @throws {Error} If
 	 *   <ul>
 	 *     <li> the path does not start with a '/',
@@ -1545,6 +1558,7 @@ sap.ui.define([
 			).catch(function (oError) {
 				if (bRejectIfNotFound
 						|| !(oError.status === 404 || bInAllBindings && oError.status === 412)) {
+					that.reportError("Failed to delete " + aResults[0], sClassName, oError);
 					throw oError;
 				} // else: map 404/412 to 204
 			}).then(function () {
@@ -1806,7 +1820,7 @@ sap.ui.define([
 	 *
 	 * @param {boolean} [bIncludeContextId]
 	 *   Whether to include the "SAP-ContextId" header (@since 1.86.0)
-	 * @returns {object}
+	 * @returns {Object<string>}
 	 *   The map of HTTP headers
 	 *
 	 * @public
@@ -2406,7 +2420,7 @@ sap.ui.define([
 			});
 		});
 		if (aNewMessages.length || aOldMessages.length) {
-			MessageManager.updateMessages(aOldMessages, aNewMessages);
+			Messaging.updateMessages(aOldMessages, aNewMessages);
 		}
 	};
 
@@ -2425,7 +2439,7 @@ sap.ui.define([
 		var that = this;
 
 		if (aMessages && aMessages.length) {
-			MessageManager.updateMessages(undefined, aMessages.map(function (oMessage) {
+			Messaging.updateMessages(undefined, aMessages.map(function (oMessage) {
 				oMessage.transition = true;
 				return that.createUI5Message(oMessage, sResourcePath);
 			}));
@@ -2521,7 +2535,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.model.odata.v4.Context} oEntityContext
 	 *   A context in this model which must point to a non-contained OData entity
-	 * @returns {Promise}
+	 * @returns {Promise<string>}
 	 *   A promise which is resolved with the canonical path (e.g. "/SalesOrderList('0500000000')")
 	 *   in case of success, or rejected with an instance of <code>Error</code> in case of failure,
 	 *   e.g. when the given context does not point to an entity
@@ -2566,8 +2580,8 @@ sap.ui.define([
 	 *   The absolute paths to request side effects for; each path must not start with the fully
 	 *   qualified container name.
 	 * @returns {sap.ui.base.SyncPromise|undefined}
-	 *   A promise resolving without a defined result, or rejecting with an error if loading of side
-	 *   effects fails, or <code>undefined</code> if there is nothing to do
+	 *   A promise which is resolved without a defined result, or rejected with an error if loading
+	 *   of side effects fails, or <code>undefined</code> if there is nothing to do
 	 *
 	 * @private
 	 */
@@ -2785,8 +2799,8 @@ sap.ui.define([
 	 *
 	 * @param {string} sGroupId
 	 *   A valid group ID as specified in {@link sap.ui.model.odata.v4.ODataModel}.
-	 * @returns {Promise<undefined>}
-	 *   A promise on the outcome of the HTTP request resolving with <code>undefined</code>; it is
+	 * @returns {Promise<void>}
+	 *   A promise which is resolved without a defined result on the outcome of the HTTP request, or
 	 *   rejected with an error if the batch request itself fails
 	 * @throws {Error}
 	 *   If the given group ID is not a valid group ID or has
@@ -2853,10 +2867,12 @@ sap.ui.define([
 	/**
 	 * Cleans up the optimistic batch cache to a given point in time.
 	 *
-	 * @param {Date} [dOlderThan] The point in time from which on older cache entries are deleted.
-	 *   If not supplied, all optimistic batch entries are deleted.
-	 * @returns {Promise} A promise resolving without a defined result, or rejecting with an error
-	 *   if deletion fails.
+	 * @param {Date} [dOlderThan]
+	 *   The point in time from which on older cache entries are deleted. If not supplied, all
+	 *   optimistic batch entries are deleted.
+	 * @returns {Promise<void>}
+	 *   A promise which is resolved without a defined result, or rejected with an error if
+	 *   deletion fails.
 	 *
 	 * @experimental As of version 1.102.0
 	 * @private

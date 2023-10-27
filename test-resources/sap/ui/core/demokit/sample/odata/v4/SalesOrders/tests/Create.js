@@ -26,6 +26,7 @@ sap.ui.define([
 					name : sUIComponent || "sap.ui.core.sample.odata.v4.SalesOrders"
 				}
 			});
+			Then.onAnyPage.iTeardownMyUIComponentInTheEnd();
 
 			Opa.getContext().sViewName = "sap.ui.core.sample.odata.v4.SalesOrders.Main";
 
@@ -244,16 +245,20 @@ sap.ui.define([
 			if (bRealOData) {
 				// primitive sorter and filter tasks,
 				// -> probably not dependent on current sales orders in the back end
-				When.onTheMainPage.selectFirstSalesOrder();
+				When.onTheMainPage.firstSalesOrderIsVisible(); // remember ID of first sales order
 				When.onTheMainPage.sortBySalesOrderID(); // sort via ID ascending (initial order)
-				When.onTheMainPage.firstSalesOrderIsVisible(); //-> we expect first order on POS 0
+				When.onTheMainPage.firstSalesOrderIsAtPos0(); // ID does NOT change
 				When.onTheMainPage.sortBySalesOrderID(); // sort via ID descending
-				Then.onTheMainPage.checkSalesOrderIdInDetails(true); //selection lost
-				When.onTheMainPage.sortBySalesOrderID(); // no sort
+				Then.onTheMainPage.checkFirstSalesOrderChanged(); // ID changed
+				When.onTheMainPage.firstSalesOrderIsVisible(); // remembers ID of first sales order
+				When.onTheMainPage.sortBySalesOrderID(); // sort
+				Then.onTheMainPage.checkFirstSalesOrderChanged(); // ID changed
+				When.onTheMainPage.firstSalesOrderIsVisible();
 				When.onTheMainPage.sortByGrossAmount(); // sort by GrossAmount ascending
-				Then.onTheMainPage.checkSalesOrderIdInDetails(true);
+				Then.onTheMainPage.checkFirstSalesOrderChanged();
+				When.onTheMainPage.firstSalesOrderIsVisible(); // remember ID of first sales order
 				When.onTheMainPage.sortByGrossAmount(); // sort by GrossAmount descending
-				Then.onTheMainPage.checkSalesOrderIdInDetails(true);
+				Then.onTheMainPage.checkFirstSalesOrderChanged();
 				// remember GrossAmount of first item
 				When.onTheMainPage.selectFirstSalesOrder(true);
 				When.onTheMainPage.filterGrossAmount(undefined); // filter by remembered GrossAmount
@@ -266,7 +271,6 @@ sap.ui.define([
 			Then.onAnyPage.checkLog(bRealOData
 				? [oExpectedLog, oExpectedLog, oExpectedLog]
 				: undefined);
-			Then.iTeardownMyUIComponent();
 		}
 	};
 });
