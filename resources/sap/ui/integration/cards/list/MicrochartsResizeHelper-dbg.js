@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @constructor
 	 * @private
@@ -68,7 +68,7 @@ sap.ui.define([
 	 * @param {Object} mChanges The changes.
 	 */
 	MicrochartsResizeHelper.prototype._onItemChange = function (mChanges) {
-		if (mChanges.name !== "items" || !mChanges.child || !mChanges.child.getMicrochart()) {
+		if (mChanges.name !== "items" || !mChanges?.child?.getMicrochart?.()) {
 			return;
 		}
 

@@ -5,7 +5,7 @@ sap.ui.define((function () { 'use strict';
 	var marked_umd = {exports: {}};
 
 	/**
-	 * marked v9.1.2 - a markdown parser
+	 * marked v9.1.4 - a markdown parser
 	 * Copyright (c) 2011-2023, Christopher Jeffrey. (MIT Licensed)
 	 * https://github.com/markedjs/marked
 	 */
@@ -986,7 +986,7 @@ sap.ui.define((function () { 'use strict';
 		        .getRegex();
 		    block.paragraph = edit(block._paragraph)
 		        .replace('hr', block.hr)
-		        .replace('heading', ' {0,3}#{1,6} ')
+		        .replace('heading', ' {0,3}#{1,6}(?:\\s|$)')
 		        .replace('|lheading', '') // setex headings don't interrupt commonmark paragraphs
 		        .replace('|table', '')
 		        .replace('blockquote', ' {0,3}>')
@@ -1013,7 +1013,7 @@ sap.ui.define((function () { 'use strict';
 		    };
 		    block.gfm.table = edit(block.gfm.table)
 		        .replace('hr', block.hr)
-		        .replace('heading', ' {0,3}#{1,6} ')
+		        .replace('heading', ' {0,3}#{1,6}(?:\\s|$)')
 		        .replace('blockquote', ' {0,3}>')
 		        .replace('code', ' {4}[^\\n]')
 		        .replace('fences', ' {0,3}(?:`{3,}(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n')
@@ -1023,7 +1023,7 @@ sap.ui.define((function () { 'use strict';
 		        .getRegex();
 		    block.gfm.paragraph = edit(block._paragraph)
 		        .replace('hr', block.hr)
-		        .replace('heading', ' {0,3}#{1,6} ')
+		        .replace('heading', ' {0,3}#{1,6}(?:\\s|$)')
 		        .replace('|lheading', '') // setex headings don't interrupt commonmark paragraphs
 		        .replace('table', block.gfm.table) // interrupt paragraphs with table
 		        .replace('blockquote', ' {0,3}>')
@@ -1311,7 +1311,7 @@ sap.ui.define((function () { 'use strict';
 		                    src = src.substring(token.raw.length);
 		                    if (token.raw.length === 1 && tokens.length > 0) {
 		                        // if there's a single \n as a spacer, it's terminating the last line,
-		                        // so move it there so that we don't get unecessary paragraph tags
+		                        // so move it there so that we don't get unnecessary paragraph tags
 		                        tokens[tokens.length - 1].raw += '\n';
 		                    }
 		                    else {

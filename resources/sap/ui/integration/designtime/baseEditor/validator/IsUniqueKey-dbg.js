@@ -13,7 +13,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.integration.designtime.baseEditor.validator.IsUniqueKey
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @static
 	 * @since 1.81

@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @alias module:sap/ui/integration/designtime/baseEditor/util/unset
 	 * @author SAP SE
 	 * @since 1.76
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @private
 	 * @experimental 1.76

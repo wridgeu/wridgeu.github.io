@@ -47,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @constructor
 	 * @private
@@ -165,25 +165,37 @@ sap.ui.define([
 		renderer: ListContentItemRenderer
 	});
 
+	ListContentItem.getPlaceholderInfo  = function (oResolvedConfigItem) {
+		const aVisibleAttributes = oResolvedConfigItem?.attributes?.filter(function (oAttribute) {
+			return oAttribute.hasOwnProperty("visible") ? oAttribute.visible : true;
+		});
+
+		const bVisibleIcon = oResolvedConfigItem?.icon?.hasOwnProperty("visible") ? oResolvedConfigItem?.icon.visible : !!oResolvedConfigItem?.icon;
+
+		return {
+			hasIcon: bVisibleIcon,
+			attributesLength: aVisibleAttributes ? aVisibleAttributes.length : 0,
+			hasChart: !!oResolvedConfigItem?.chart,
+			hasActionsStrip: !!(oResolvedConfigItem?.actionsStrip?.length > 0),
+			hasDescription: !!oResolvedConfigItem?.description
+		};
+	};
+
 	ListContentItem.getLinesCount = function (oConfiguration, oContent) {
 		let iLines = 1; // at least 1 line for the mandatory title
 		const oResolvedConfig = BindingResolver.resolveValue(oConfiguration, oContent);
+		const oPlaceholderInfo = ListContentItem.getPlaceholderInfo(oResolvedConfig);
 
 		const bDescriptionVisible = oResolvedConfig.description?.hasOwnProperty("visible") ? oResolvedConfig.description?.visible : true;
 		if (oResolvedConfig.description && bDescriptionVisible) {
 			iLines += 1;
 		}
 
-		if (oResolvedConfig.attributes) {
-			const aVisibleAttributes = oResolvedConfig.attributes.filter(function (oAttribute) {
-				return oAttribute.hasOwnProperty("visible") ? oAttribute.visible : true;
-			});
-
-			if (oResolvedConfig.attributesLayoutType === AttributesLayoutType.OneColumn) {
-				iLines = aVisibleAttributes.length;
-			} else {
-				iLines += Math.ceil(aVisibleAttributes.length / 2);
-			}
+		const aVisibleAttributesLength = oPlaceholderInfo.attributesLength;
+		if (oResolvedConfig.attributesLayoutType === AttributesLayoutType.OneColumn) {
+			iLines += aVisibleAttributesLength;
+		} else {
+			iLines += Math.ceil(aVisibleAttributesLength / 2);
 		}
 
 		const bChartVisible = oResolvedConfig.chart?.hasOwnProperty("visible") ? oResolvedConfig.chart?.visible : true;
@@ -192,6 +204,24 @@ sap.ui.define([
 		}
 
 		return iLines;
+	};
+
+	/**
+	 * Called on before rendering of the control.
+	 * @private
+	 */
+	ListContentItem.prototype.onBeforeRendering = function () {
+		ListItemBase.prototype.onBeforeRendering.apply(this, arguments);
+
+		if (this.isPropertyInitial("iconSize")) {
+			if (this.getLinesCount() === 1){
+				this._getAvatar().setDisplaySize(AvatarSize.XS);
+			} else {
+				this._getAvatar().setDisplaySize(AvatarSize.S);
+			}
+		} else {
+			this._getAvatar().setDisplaySize(this.getIconSize());
+		}
 	};
 
 	ListContentItem.prototype.getLinesCount = function () {
@@ -260,7 +290,6 @@ sap.ui.define([
 			.setDisplayShape(this.getIconDisplayShape())
 			.setTooltip(this.getIconAlt())
 			.setInitials(this.getIconInitials())
-			.setDisplaySize(this.getIconSize())
 			.setBackgroundColor(this.getIconBackgroundColor())
 			.setVisible(this.getIconVisible());
 

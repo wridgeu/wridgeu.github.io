@@ -178,7 +178,7 @@ sap.ui.define([
 	 * @extends sap.f.CardBase
 	 *
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 * @public
 	 * @constructor
 	 * @see {@link topic:5b46b03f024542ba802d99d67bc1a3f4 Cards}
@@ -546,7 +546,7 @@ sap.ui.define([
 		 * @experimental since 1.79
 		 * @public
 		 * @author SAP SE
-		 * @version 1.119.0
+		 * @version 1.120.0
 		 * @borrows sap.ui.integration.widgets.Card#getDomRef as getDomRef
 		 * @borrows sap.ui.integration.widgets.Card#setVisible as setVisible
 		 * @borrows sap.ui.integration.widgets.Card#getParameters as getParameters
@@ -920,6 +920,9 @@ sap.ui.define([
 				}
 
 				this._logSevereError(e.message);
+
+				// even if manifest processing or extension loading fails
+				// we want to show the maximum from the card which we can - like header, footer and etc.
 				this._applyManifest();
 			}.bind(this));
 	};

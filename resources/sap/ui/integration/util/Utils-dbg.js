@@ -25,7 +25,7 @@ sap.ui.define([
 	 * Utility class helping with JSON strings and formatters.
 	 *
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.Utils

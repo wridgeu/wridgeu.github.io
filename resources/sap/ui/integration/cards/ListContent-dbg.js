@@ -38,9 +38,6 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	// shortcut for sap.m.AvatarSize
-	var AvatarSize = mLibrary.AvatarSize;
-
 	// shortcut for sap.m.AvatarColor
 	var AvatarColor = mLibrary.AvatarColor;
 
@@ -70,7 +67,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @constructor
 	 * @private
@@ -127,10 +124,16 @@ sap.ui.define([
 	ListContent.prototype.createLoadingPlaceholder = function (oConfiguration) {
 		var oCard = this.getCardInstance(),
 			iContentMinItems = oCard.getContentMinItems(oConfiguration);
+		const oResolvedConfig = BindingResolver.resolveValue(oConfiguration.item, this);
+		const oPlaceholderInfo = ListContentItem.getPlaceholderInfo(oResolvedConfig);
 
 		return new ListPlaceholder({
 			minItems: iContentMinItems !== null ? iContentMinItems : 2,
-			item: oConfiguration.item,
+			hasIcon: oPlaceholderInfo.hasIcon,
+			attributesLength: oPlaceholderInfo.attributesLength,
+			hasChart: oPlaceholderInfo.hasChart,
+			hasActionsStrip: oPlaceholderInfo.hasActionsStrip,
+			hasDescription: oPlaceholderInfo.hasDescription,
 			itemHeight: ListContentRenderer.getItemMinHeight(oConfiguration, this) + "rem"
 		});
 	};
@@ -327,13 +330,9 @@ sap.ui.define([
 			mSettings.iconInitials = mItem.icon.initials || mItem.icon.text;
 			mSettings.iconVisible = mItem.icon.visible;
 
-			if (ListContentItem.getLinesCount(mItem, this) === 1) {
-				mSettings.iconSize = AvatarSize.XS;
-			} else {
-				mSettings.iconSize = AvatarSize.S;
+			if (mItem.icon.size) {
+				mSettings.iconSize = mItem.icon.size;
 			}
-
-			mSettings.iconSize = mItem.icon.size || mSettings.iconSize;
 			mSettings.iconBackgroundColor = mItem.icon.backgroundColor || (mSettings.iconInitials ? undefined : AvatarColor.Transparent);
 		}
 

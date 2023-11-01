@@ -25,13 +25,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.integration
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 * @since 1.62
 	 * @public
 	 */
 	var thisLib = oCore.initLibrary({
 		name: "sap.ui.integration",
-		version: "1.119.0",
+		version: "1.120.0",
 		dependencies: [
 			"sap.ui.core",
 			"sap.f",

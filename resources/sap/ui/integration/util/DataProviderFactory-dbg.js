@@ -38,7 +38,7 @@ sap.ui.define([
 	 * When destroyed, all data providers created by this class are also destroyed.
 	 *
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.integration, shell-toolkit

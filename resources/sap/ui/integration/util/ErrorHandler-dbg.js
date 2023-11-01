@@ -35,7 +35,7 @@ sap.ui.define([
 	 * Utility class for handling errors in the cards.
 	 *
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @private
 	 * @ui5-restricted

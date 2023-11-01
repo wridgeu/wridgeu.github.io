@@ -15,7 +15,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.fragment.Controller
 	 * @author SAP SE
 	 * @since 1.105.0
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 * @private
 	 * @experimental since 1.105.0
 	 * @ui5-restricted

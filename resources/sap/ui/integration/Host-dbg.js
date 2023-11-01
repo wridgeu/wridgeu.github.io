@@ -6,12 +6,12 @@
 sap.ui.define([
 	"sap/ui/integration/library",
 	"sap/ui/core/Element",
-	"sap/ui/core/Configuration",
+	"sap/ui/core/Supportability",
 	"sap/base/util/fetch"
 ], function (
 	library,
 	Element,
-	Configuration,
+	Supportability,
 	fetch
 ) {
 		"use strict";
@@ -30,7 +30,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.119.0
+		 * @version 1.120.0
 		 *
 		 * @constructor
 		 * @public
@@ -457,7 +457,7 @@ sap.ui.define([
 		 * @returns {Promise<Response>} A <code>Promise</code> that resolves to a <code>Response</code> object.
 		 */
 		Host.prototype.fetch = function (sResource, mOptions, mRequestSettings, oCard) {
-			if (Configuration.getStatisticsEnabled()) {
+			if (Supportability.isStatisticsEnabled()) {
 				sResource = this._addStatisticsParameter(sResource);
 			}
 

@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 *
 	 * @constructor
 	 * @private
@@ -121,11 +121,11 @@ sap.ui.define([
 
 		if (oChart) {
 			aNames = oChart._calculateChartData()
+				.filter(function (oData) {
+					return oData.color?.startsWith("sapUi");
+				})
 				.map(function (oData) {
 					return oData.color;
-				})
-				.filter(function (sColor) {
-					return sColor.startsWith("sapUi");
 				});
 		}
 

@@ -54,7 +54,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.BaseField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 * @private
 	 * @ui5-restricted
 	 * @experimental since 1.83.0

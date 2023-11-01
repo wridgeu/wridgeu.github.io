@@ -33,7 +33,7 @@ sap.ui.define([
 		 * Resolves a binding syntax based on a provided model and path.
 		 *
 		 * @author SAP SE
-		 * @version 1.119.0
+		 * @version 1.120.0
 		 *
 		 * @private
 		 * @ui5-restricted sap.ushell

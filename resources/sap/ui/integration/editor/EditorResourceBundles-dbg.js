@@ -17,7 +17,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.EditorResourceBundles
 	 * @author SAP SE
 	 * @since 1.94.0
-	 * @version 1.119.0
+	 * @version 1.120.0
 	 * @private
 	 */
 	var EditorResourceBundles = ManagedObject.extend("sap.ui.integration.editor.EditorResourceBundles", {
