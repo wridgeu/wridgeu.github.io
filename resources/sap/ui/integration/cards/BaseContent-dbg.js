@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,8 +12,8 @@ sap.ui.define([
 	"sap/m/library",
 	"sap/m/IllustratedMessageType",
 	"sap/m/IllustratedMessageSize",
-	"sap/ui/core/Core",
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
 	"sap/ui/core/InvisibleMessage",
 	"sap/ui/core/library",
 	"sap/ui/integration/controls/BlockingMessage",
@@ -22,8 +22,10 @@ sap.ui.define([
 	"sap/ui/integration/util/LoadingProvider",
 	"sap/ui/integration/util/BindingHelper",
 	"sap/ui/integration/util/BindingResolver",
+	"sap/ui/integration/delegate/OverflowHandler",
 	"sap/base/util/merge",
-	"sap/ui/integration/library"
+	"sap/ui/integration/library",
+	"sap/ui/core/message/MessageType"
 ], function (
 	BaseContentRenderer,
 	GenericPlaceholder,
@@ -32,8 +34,8 @@ sap.ui.define([
 	mLibrary,
 	IllustratedMessageType,
 	IllustratedMessageSize,
-	Core,
 	Control,
+	Element,
 	InvisibleMessage,
 	coreLibrary,
 	BlockingMessage,
@@ -42,20 +44,25 @@ sap.ui.define([
 	LoadingProvider,
 	BindingHelper,
 	BindingResolver,
+	OverflowHandler,
 	merge,
-	library
+	library,
+	MessageType
 ) {
 	"use strict";
 
 	// shortcut for sap.ui.core.InvisibleMessageMode
-	var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
+	const InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
 
 	// shortcut for sap.ui.integration.CardDesign
-	var CardDesign = library.CardDesign;
-	// shortcut for sap.ui.integration.CardBlockingMessageType
-	var CardBlockingMessageType = library.CardBlockingMessageType;
+	const CardDesign = library.CardDesign;
 
-	var CardPreviewMode = library.CardPreviewMode;
+	// shortcut for sap.ui.integration.CardBlockingMessageType
+	const CardBlockingMessageType = library.CardBlockingMessageType;
+
+	const CardMessageType = library.CardMessageType;
+
+	const CardPreviewMode = library.CardPreviewMode;
 
 	/**
 	 * Constructor for a new <code>BaseContent</code>.
@@ -69,7 +76,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -82,7 +89,6 @@ sap.ui.define([
 			properties: {
 				/**
 				 * Defines the design of the content.
-				 * @experimental Since 1.109
 				 * @since 1.109
 				 */
 				design: {
@@ -103,10 +109,17 @@ sap.ui.define([
 				 */
 				noDataConfiguration: {
 					type: "object"
+				},
+
+				/**
+				 * Set this property if the height is insufficient and the card should show a footer with "Show More" button.
+				 */
+				overflowWithShowMore:  {
+					type: "boolean",
+					defaultValue: false
 				}
 			},
 			aggregations: {
-
 				/**
 				 * Defines the content of the control.
 				 */
@@ -159,7 +172,14 @@ sap.ui.define([
 				/**
 				 * Fires when the user presses the control.
 				 */
-				press: {},
+				press: {
+					parameters: {
+						/**
+						 * The original Event.
+						 */
+						originalEvent: { type: "object" }
+					}
+				},
 
 				/**
 				 * Fires after all internally awaited events are fired.
@@ -181,27 +201,38 @@ sap.ui.define([
 
 		this.setAggregation("_loadingProvider", new LoadingProvider());
 		this.awaitEvent("_dataReady");
-		this.awaitEvent("_actionContentReady");
 	};
 
 	BaseContent.prototype.onBeforeRendering = function () {
-		var oConfiguration = this.getConfiguration(),
-			oCard = this.getCardInstance(),
+		const oCard = this.getCardInstance();
+
+		if (!oCard) {
+			return;
+		}
+
+		const oConfiguration = this.getParsedConfiguration();
+		let oLoadingPlaceholder = this.getAggregation("_loadingPlaceholder");
+
+		if (!oLoadingPlaceholder && oConfiguration) {
+			this.setAggregation("_loadingPlaceholder", this.createLoadingPlaceholder(oConfiguration));
 			oLoadingPlaceholder = this.getAggregation("_loadingPlaceholder");
+		}
 
-			if (!oLoadingPlaceholder && oConfiguration) {
-				this.setAggregation("_loadingPlaceholder", this.createLoadingPlaceholder(oConfiguration));
-				oLoadingPlaceholder = this.getAggregation("_loadingPlaceholder");
+		if (oLoadingPlaceholder) {
+			oLoadingPlaceholder.setRenderTooltip(oCard.getPreviewMode() !== CardPreviewMode.Abstract);
+
+			if (typeof this._getTable === "function") {
+				oLoadingPlaceholder.setHasContent((this._getTable().getColumns().length > 0));
 			}
+		}
 
-			if (oLoadingPlaceholder && oCard) {
-				oLoadingPlaceholder.setRenderTooltip(oCard.getPreviewMode() !== CardPreviewMode.Abstract);
-
-				if (typeof this._getTable === "function") {
-					oLoadingPlaceholder.setHasContent((this._getTable().getColumns().length > 0));
-				}
-			}
+		if (!this._oOverflowHandler && this.getOverflowWithShowMore() && this._supportsOverflow()) {
+			this._oOverflowHandler = new OverflowHandler(this);
+			this._oOverflowHandler.attach();
+		}
 	};
+
+	BaseContent.prototype.onAfterRendering = function () { };
 
 	/**
 	 * Handles tap event.
@@ -211,7 +242,7 @@ sap.ui.define([
 	BaseContent.prototype.ontap = function (oEvent) {
 		if (!oEvent.isMarked()) {
 			this.firePress({
-				/* no parameters */
+				originalEvent: oEvent
 			});
 		}
 	};
@@ -227,7 +258,6 @@ sap.ui.define([
 			}, this);
 		}
 
-		this._oServiceManager = null;
 		this._oDataProviderFactory = null;
 		this._oIconFormatter = null;
 
@@ -242,6 +272,11 @@ sap.ui.define([
 		}
 
 		this._sContentBindingPath = null;
+
+		if (this._oOverflowHandler)	{
+			this._oOverflowHandler.destroy();
+			this._oOverflowHandler = null;
+		}
 	};
 
 	/**
@@ -269,6 +304,32 @@ sap.ui.define([
 	 */
 	BaseContent.prototype.applyConfiguration = function () { };
 
+	/**
+	 * Called when card is opened inside a dialog as a result of Pagination or Show More action.
+	 * @protected
+	 */
+	BaseContent.prototype.onOpenInDialog = function () {
+		this._keepWidth();
+	};
+
+	/**
+	 * Called when the user resizes the dialog hosting this card.
+	 * @protected
+	 */
+	BaseContent.prototype.onDialogResize = function () {
+		this._releaseWidth();
+	};
+
+	BaseContent.prototype.isInDialog = function () {
+		const oCard = this.getCardInstance();
+
+		if (!oCard) {
+			return false;
+		}
+
+		return !!oCard.getAssociation("openerReference");
+	};
+
 	BaseContent.prototype.setLoadDependenciesPromise = function (oPromise) {
 		this._pLoadDependencies = oPromise;
 		this.awaitEvent("_loadDependencies");
@@ -276,6 +337,38 @@ sap.ui.define([
 		this._pLoadDependencies.then(function () {
 			this.fireEvent("_loadDependencies");
 		}.bind(this));
+	};
+
+
+	/**
+	 * Keeps the current content width as min-width when inside a dialog.
+	 * @private
+	 */
+	BaseContent.prototype._keepWidth = function () {
+		if (!this.isInDialog()) {
+			return;
+		}
+
+		const oDomRef = this.getDomRef();
+
+		if (!oDomRef) {
+			return;
+		}
+
+		this._iKeptWidth = oDomRef.getBoundingClientRect().width;
+		oDomRef.style.minWidth = this._iKeptWidth + "px";
+	};
+
+	/**
+	 * Releases the kept min-width.
+	 * @private
+	 */
+	BaseContent.prototype._releaseWidth = function () {
+		delete this._iKeptWidth;
+
+		if (this.getDomRef()) {
+			this.getDomRef().style.minWidth = "";
+		}
 	};
 
 	BaseContent.prototype.getLoadDependenciesPromise = function () {
@@ -317,6 +410,14 @@ sap.ui.define([
 		}.bind(this));
 	};
 
+	/**
+	 * Whether the content supports overflowing and needs the OverflowHandler.
+	 * @returns {boolean} True if the content can support overflow.
+	 */
+	BaseContent.prototype._supportsOverflow = function () {
+		return true;
+	};
+
 	BaseContent.prototype._forceCompleteAwaitedEvents = function () {
 		this._oAwaitedEvents.forEach(function (sEvent) {
 			this.fireEvent(sEvent);
@@ -356,26 +457,74 @@ sap.ui.define([
 	 * Displays a message strip above the content.
 	 *
 	 * @param {string} sMessage The message.
-	 * @param {sap.ui.core.MessageType} sType Type of the message.
+	 * @param {sap.ui.integration.CardMessageType} sType Type of the message.
+	 * @param {boolean} bAutoClose Close the message automatically. Default is <code>false</code> for most message types.
+	 * 	It is <code>true</code> for message type <code>Toast</code>.
+	 * 	<b>Note</b> This property has no effect for message type <code>Loading</code>.
 	 * @private
 	 * @ui5-restricted sap.ui.integration
 	 */
-	BaseContent.prototype.showMessage = function (sMessage, sType) {
-		var oMessagePopup = this._getMessageContainer();
-		var oMessage = new MessageStrip({
-			text: BindingHelper.createBindingInfos(sMessage, this.getCardInstance().getBindingNamespaces()),
-			type: sType,
-			showCloseButton: true,
-			showIcon: true,
-			close: function () {
-				this._getMessageContainer().destroy();
-			}.bind(this)
-		}).addStyleClass("sapFCardContentMessage");
-		var oDomRef = this.getDomRef();
+	BaseContent.prototype.showMessage = function (sMessage, sType, bAutoClose) {
+		const oMessagePopup = this._getMessageContainer();
 
-		oMessagePopup.destroyItems();
+		this.hideMessage();
+
+		if (sType === CardMessageType.Loading) {
+			bAutoClose = false;
+			this.addStyleClass("sapFCardBaseContentHasMessageLoading");
+			this.setBusyIndicatorDelay(0);
+			this.setBusy(true);
+		}
+
+		if (sType === CardMessageType.Toast) {
+			bAutoClose = bAutoClose ?? true;
+		}
+
+		const bIsSpecialType = sType === CardMessageType.Loading || sType === CardMessageType.Toast;
+		const oMessage = new MessageStrip({
+			text: BindingHelper.createBindingInfos(sMessage, this.getCardInstance().getBindingNamespaces()),
+			type: bIsSpecialType ? MessageType.Information : sType,
+			showCloseButton: true,
+			showIcon: sType === CardMessageType.Loading ? false : true,
+			close: function () {
+				this.hideMessage();
+			}.bind(this)
+		});
+
+		oMessage.addStyleClass("sapFCardContentMessage");
+		oMessage.addStyleClass("sapFCardContentMessage" + sType);
+
+		const fnAnimationEnd = (oEvent) => {
+			// prevents animations from re-appearing after re-render
+			oMessage.addStyleClass(oEvent.animationName + "Finished");
+		};
+
+		oMessage.addEventDelegate({
+			onBeforeRendering: () => {
+				const oRef = oMessage.getDomRef();
+				oRef?.removeEventListener("animationend", fnAnimationEnd);
+				oRef?.removeEventListener("animationcancel", fnAnimationEnd);
+			},
+			onAfterRendering: () => {
+				const oRef = oMessage.getDomRef();
+				oRef.addEventListener("animationend", fnAnimationEnd);
+				oRef.addEventListener("animationcancel", fnAnimationEnd);
+			}
+		});
+
 		oMessagePopup.addItem(oMessage);
 
+		if (bAutoClose) {
+			const iDuration = sMessage ? Math.max(sMessage.split(" ").length * 250, 3000) : 3000; // sMessage.split(" ").length * 250 is a rough estimation of the time needed to read the message 4 words per second
+			setTimeout(() => {
+				oMessage.close();
+			}, iDuration + 400 ); // 0.4s the duration of the closing animation
+			setTimeout(() => {
+				oMessage.addStyleClass("sapFCardContentMessageClosing");
+			}, iDuration);
+		}
+
+		const oDomRef = this.getDomRef();
 		if (oDomRef && oDomRef.contains(document.activeElement)) {
 			InvisibleMessage.getInstance().announce(sMessage, InvisibleMessageMode.Assertive);
 		} else {
@@ -392,16 +541,23 @@ sap.ui.define([
 	BaseContent.prototype.hideMessage = function () {
 		var oMessagePopup = this._getMessageContainer();
 		oMessagePopup.destroyItems();
+
+		if (this.hasStyleClass("sapFCardBaseContentHasMessageLoading")) {
+			this.removeStyleClass("sapFCardBaseContentHasMessageLoading");
+			this.setBusy(false);
+		}
 	};
 
 	BaseContent.prototype.showBlockingMessage = function (mSettings) {
 		this.destroyAggregation("_blockingMessage");
 		this.setAggregation("_blockingMessage", BlockingMessage.create(mSettings, this.getCardInstance()));
 		this._forceCompleteAwaitedEvents();
+		this.addStyleClass("sapUiIntCardContentWithBlockingMessage");
 	};
 
 	BaseContent.prototype.hideBlockingMessage = function () {
 		this.destroyAggregation("_blockingMessage");
+		this.removeStyleClass("sapUiIntCardContentWithBlockingMessage");
 	};
 
 	BaseContent.prototype.getBlockingMessage = function () {
@@ -414,11 +570,22 @@ sap.ui.define([
 				illustrationSize: oBlockingMessage.getIllustrationSize(),
 				title: oBlockingMessage.getTitle(),
 				description: oBlockingMessage.getDescription(),
-				httpResponse: oBlockingMessage.getHttpResponse()
+				imageSrc: oBlockingMessage.getImageSrc(),
+				httpResponse: oBlockingMessage.getHttpResponse(),
+				additionalContent: oBlockingMessage.getAdditionalContent()
 			};
 		}
 
 		return null;
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {Object} The static configuration for the blocking message
+	 */
+	BaseContent.prototype.getBlockingMessageStaticConfiguration = function () {
+		return this.getAggregation("_blockingMessage")?.getStaticConfiguration();
 	};
 
 	/**
@@ -447,7 +614,9 @@ sap.ui.define([
 	};
 
 	BaseContent.prototype.hideNoDataMessage = function () {
-		this.hideBlockingMessage();
+		if (this.getBlockingMessage()?.type === CardBlockingMessageType.NoData) {
+			this.hideBlockingMessage();
+		}
 	};
 
 	/**
@@ -474,7 +643,7 @@ sap.ui.define([
 			this._oDataProvider.destroy();
 		}
 
-		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings, this._oServiceManager);
+		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings);
 
 		if (oDataSettings.name) {
 			oModel = oCard.getModel(oDataSettings.name);
@@ -509,7 +678,7 @@ sap.ui.define([
 
 				this.getLoadDependenciesPromise().then(function (bLoadSuccessful){
 					if (bLoadSuccessful && !this.isDestroyed()) {
-						oModel.setData(oData);
+						this.setModelData(oData, oModel);
 					}
 				}.bind(this));
 			}.bind(this));
@@ -517,7 +686,7 @@ sap.ui.define([
 			this._oDataProvider.attachError(function (oEvent) {
 				this.handleError({
 					requestErrorParams: oEvent.getParameters(),
-					requestSettings: this._oDataProvider.getSettings()
+					requestSettings: this._oDataProvider.getResolvedConfiguration()
 				});
 				this.onDataRequestComplete();
 			}.bind(this));
@@ -609,6 +778,10 @@ sap.ui.define([
 				this.onDataChanged();
 			}
 		}.bind(this));
+	};
+
+	BaseContent.prototype.setModelData = function (vData, oModel) {
+		oModel.setData(vData);
 	};
 
 	/**
@@ -713,11 +886,6 @@ sap.ui.define([
 		this.fireEvent("_error", { errorInfo: mErrorInfo });
 	};
 
-	BaseContent.prototype.setServiceManager = function (oServiceManager) {
-		this._oServiceManager = oServiceManager;
-		return this;
-	};
-
 	BaseContent.prototype.setDataProviderFactory = function (oDataProviderFactory) {
 		this._oDataProviderFactory = oDataProviderFactory;
 		return this;
@@ -794,15 +962,13 @@ sap.ui.define([
 	BaseContent.prototype.validateControls = function (bShowValueState, bSkipFiringStateChangedEvent) { };
 
 	BaseContent.prototype.getCardInstance = function () {
-		return Core.byId(this.getCard());
+		return Element.getElementById(this.getCard());
 	};
 
 	BaseContent.prototype.isSkeleton = function () {
 		var oCard = this.getCardInstance();
 		return oCard && oCard.isSkeleton();
 	};
-
-	BaseContent.prototype.sliceData = function (iStartIndex, iEndIndex) { };
 
 	BaseContent.prototype.getDataLength = function () {
 		return 0;
@@ -816,6 +982,7 @@ sap.ui.define([
 				renderType: mLibrary.FlexRendertype.Bare,
 				alignItems: mLibrary.FlexAlignItems.Center
 			}).addStyleClass("sapFCardContentMessageContainer");
+
 			this.setAggregation("_messageContainer", oMessageContainer);
 		}
 
@@ -823,7 +990,7 @@ sap.ui.define([
 	};
 
 	BaseContent.prototype._isDataProviderJson = function () {
-		return this._oDataProvider && this._oDataProvider.getSettings() && this._oDataProvider.getSettings()["json"];
+		return !!this._oDataProvider?.getConfiguration()?.json;
 	};
 
 	/*
@@ -837,7 +1004,7 @@ sap.ui.define([
 			return undefined;
 		}
 
-		return oCard.getId() + "-header-title-inner";
+		return oCard.getId() + "-header-title";
 	};
 
 	/**
@@ -847,6 +1014,18 @@ sap.ui.define([
 	 */
 	BaseContent.prototype.isInteractive = function () {
 		return this.hasListeners("press");
+	};
+
+	BaseContent.prototype.getDataPath = function () {
+		if (this._sContentBindingPath === null) {
+			return "";
+		}
+
+		return this._sContentBindingPath;
+	};
+
+	BaseContent.prototype.getCardDataPath = function () {
+		return this.getCardInstance()?._getDataPath();
 	};
 
 	return BaseContent;

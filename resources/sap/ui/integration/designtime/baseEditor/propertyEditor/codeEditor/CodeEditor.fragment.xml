@@ -4,10 +4,9 @@
 >
 	<Input
 		value="{displayValue}"
-		liveChange="_onLiveChange"
+		liveChange="._onLiveChange"
 		showSuggestion="true"
 		showValueHelp="true"
-		valueHelpOnly="{= ${config/codeType} === 'javascript'}"
-		valueHelpRequest="_openCodeEditor"
+		valueHelpRequest="._openCodeEditor"
 	/>
 </core:FragmentDefinition>

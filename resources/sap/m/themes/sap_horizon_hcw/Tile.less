@@ -1,3 +1,7 @@
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.Tile
+ */
 /* ================================== */
 /* CSS for control sap.m/Tile         */
 /* Horizon High Contrast White theme  */
@@ -5,25 +9,28 @@
 
 .sapMTile,
 .sapMCustomTile {
-	border: 1px solid @sapUiTileBorderColor;
+	border: 1px solid var(--sapTile_BorderColor);
 	border-radius: 0.25rem;
 	box-shadow: none;
-    -webkit-transition-property: none;
 	transition-property: none;
-	background-color: @sapUiTileBackground;
+	background-color: var(--sapTile_Background);
 }
 
-.sapMTile:focus,
-.sapMCustomTile:focus .sapMTile {
+html.sap-desktop .sapMTile:focus,
+html.sap-desktop .sapMCustomTile:focus .sapMTile,
+.sapMTile:focus-visible,
+.sapMCustomTile:focus-visible .sapMTile {
 	border: 1px dotted transparent;
 	border-radius: 0;
 }
 
-.sapMTile:focus::before,
+html.sap-desktop .sapMTile:focus::before,
+.sapMTile:focus-visible::before,
 .sapMTile:hover::before,
-.sapMCustomTile:focus .sapMTile::before,
-.sapMCustomTile:hover .sapMTile::before{
-	content: "";
+html.sap-desktop .sapMCustomTile:focus .sapMTile::before,
+.sapMCustomTile:focus-visible .sapMTile::before,
+.sapMCustomTile:hover .sapMTile::before {
+	content: '';
 	position: absolute;
 	top: -1px;
 	right: -1px;
@@ -32,9 +39,11 @@
 	pointer-events: none;
 }
 
-.sapMTile:focus::before,
-.sapMCustomTile:focus .sapMTile::before {
-	outline: 0.125rem dotted @sapUiContentFocusColor;
+html.sap-desktop .sapMTile:focus::before,
+.sapMTile:focus-visible::before,
+html.sap-desktop .sapMCustomTile:focus .sapMTile::before,
+.sapMCustomTile:focus-visible .sapMTile::before {
+	outline: 0.125rem dotted var(--sapContent_FocusColor);
 	outline-offset: -0.25rem;
 }
 
@@ -45,7 +54,7 @@
 
 .sapMTile:hover::before,
 .sapMCustomTile:hover .sapMTile::before {
-	border: 0.188rem solid @sapUiTileBorderColor;
+	border: 0.188rem solid var(--sapTile_BorderColor);
 }
 
 .sapMTile:hover,
@@ -56,13 +65,14 @@
 }
 
 .sapMTile.sapMTileActive {
-	background-color: @sapUiTileBackground;
+	background-color: var(--sapTile_Background);
 }
 
 .sapMTile .sapUiLocalBusyIndicator {
-	background-color: @sapUiTileBackground;
+	background-color: var(--sapTile_Background);
 	border-radius: 0.25rem;
 	margin: 0.125rem;
+
 	.sapUiLocalBusyIndicatorAnimation {
 		border: none;
 		box-shadow: none;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,9 +8,9 @@
 sap.ui.define([
 	"sap/ui/Device",
 	"sap/ui/core/Control",
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/core/Icon",
-	"sap/ui/core/Popup",
+	"sap/ui/core/Lib",
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/core/delegate/ScrollEnablement",
 	'sap/ui/core/delegate/ItemNavigation',
@@ -24,15 +24,17 @@ sap.ui.define([
 	"./SidePanelRenderer",
 	"./library",
 	"sap/ui/core/library",
+	"sap/m/library",
 	"sap/ui/events/F6Navigation",
+	"sap/base/i18n/Localization",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/events/KeyCodes"
 ], function(
 	Device,
 	Control,
-	Core,
+	Element,
 	Icon,
-	Popup,
+	Library,
 	ResizeHandler,
 	ScrollEnablement,
 	ItemNavigation,
@@ -46,16 +48,19 @@ sap.ui.define([
 	SidePanelRenderer,
 	library,
 	coreLibrary,
+	mLibrary,
 	F6Navigation,
+	Localization,
 	jQuery,
 	KeyCodes
 ) {
 	"use strict";
 
 	// Resource Bundle
-	var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.f"),
+	var oResourceBundle = Library.getResourceBundleFor("sap.f"),
 		InvisibleMessageMode = coreLibrary.InvisibleMessageMode,
-		SidePanelPosition = library.SidePanelPosition;
+		SidePanelPosition = library.SidePanelPosition,
+		PlacementType = mLibrary.PlacementType;
 
 	// Resize positions
 	var SIDE_PANEL_POSITION_MIN_WIDTH = 0,	// Minimum width
@@ -92,7 +97,7 @@ sap.ui.define([
 	 *
 	 * Each click/tap fires an event, and in the event handler specific content can be added/changed
 	 * to the <code>content</code> aggregation of the clicked/tapped action item or data can be
-	 * retreived from the same aggregation depending on the state of the action item.
+	 * retrieved from the same aggregation depending on the state of the action item.
 	 *
 	 * If the side content is displayed, there is automatically generated header of the side content which
 	 * contains the icon and title of the selected action item and a close button that closes the area where
@@ -149,7 +154,7 @@ sap.ui.define([
  	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -330,6 +335,25 @@ sap.ui.define([
 				}.bind(this)
 			}).addStyleClass("sapFSPOverflowMenu");
 
+			// Position the overflow menu to the left of the opener, bottom-aligned.
+			// HorizontalPreferredLeft corresponds to index 3 (Left) in the Popover._placements array.
+			// _adaptPositionParams resets _myPositions on every openBy(), so patch it on the instance.
+			var oResponsivePopover = oMenu._getPopover(),
+				oInnerPopover = oResponsivePopover._oControl,
+				fnAdaptPositionParams = oInnerPopover._adaptPositionParams;
+
+			oResponsivePopover.setPlacement(PlacementType.HorizontalPreferredLeft);
+			oInnerPopover._adaptPositionParams = function() {
+				fnAdaptPositionParams.call(this);
+				this._myPositions[3] = "end bottom";
+				this._atPositions[3] = "begin bottom";
+			};
+
+			// Add the keyboard navigation delegate once (popover is created eagerly in Menu.init)
+			oResponsivePopover.addEventDelegate({
+				onkeydown: this._overflowMenuOnkeydown.bind(this)
+			});
+
 			this.setAggregation("_overflowMenu", oMenu);
 		}
 
@@ -384,7 +408,7 @@ sap.ui.define([
 	 * <b>Note:</b> it will be good to have dedicated Ids of the action items that will be selected programatically,
 	 * otherwise the Ids of the action items wouldn't be stable.
 	 *
-	 * @param {sap.f.SidePanelItem|string} vItem an action item or Id of the action item to select
+	 * @param {sap.f.SidePanelItem|sap.ui.core.ID} vItem an action item or Id of the action item to select
 	 * @returns {this} this for method chaining
 	 */
 	SidePanel.prototype.setSelectedItem = function(vItem) {
@@ -394,7 +418,7 @@ sap.ui.define([
 
 		if (typeof vItem === "string") {
 			sId = vItem;
-			oItem = Core.byId(vItem);
+			oItem = Element.getElementById(vItem);
 		} else if (vItem && vItem.isA("sap.f.SidePanelItem")) {
 			sId = vItem.getId();
 			oItem = vItem;
@@ -402,7 +426,7 @@ sap.ui.define([
 
 		if (!sId) {
 			// remove selected action item (if any) and collapse its side content
-			sSelectedItem && this._toggleItemSelection(Core.byId(sSelectedItem));
+			sSelectedItem && this._toggleItemSelection(Element.getElementById(sSelectedItem));
 		} else if (oItem && oItem.getEnabled() && sId !== sSelectedItem && sId !== this.getAggregation("_overflowItem").getId()) {
 			// select an action item and expand its side content
 			this._toggleItemSelection(oItem);
@@ -434,6 +458,12 @@ sap.ui.define([
 		this._detachResizableHandlers();
 
 		this._oInvisibleMessage = InvisibleMessage.getInstance();
+
+		if (this._isSingleItem()) {
+			var oSelectedItem = bActionBarExpanded ? this.getItems()[0] : null;
+			this.setProperty("sideContentExpanded", bActionBarExpanded);
+			this.setAssociation("selectedItem", oSelectedItem, true);
+		}
 	};
 
 	SidePanel.prototype.onAfterRendering = function() {
@@ -460,7 +490,7 @@ sap.ui.define([
 				this.getItems().length && this._fixSidePanelWidth();
 			}
 		} else {
-			if (this.getDomRef().querySelector(".sapFSPMain").scrollTop === 0) {
+			if (this.getDomRef().querySelector(".sapFSPMain").scrollTop === 0 && !this._isSingleItem()) {
 				this.setActionBarExpanded(true);
 			}
 		}
@@ -480,7 +510,7 @@ sap.ui.define([
 			if (bSplitterFocused){
 				this._bContextMenuFromSplitter = true;
 			}
-			this._showResizeContextMenu(oEvent);
+			this._showResizeContextMenu(oEvent, !bSplitterFocused);
 		}
 	};
 
@@ -490,7 +520,12 @@ sap.ui.define([
 			bSideContentExpanded = this._getSideContentExpanded(),
 			bSideExpanded = this.getActionBarExpanded() || bSideContentExpanded,
 			bCtrlOrCmd = oEvent.ctrlKey || oEvent.metaKey,
-			bSplitterFocused = document.activeElement === this.getDomRef().querySelector(".sapFSPSplitterBar");
+			bSplitterFocused = document.activeElement === this.getDomRef().querySelector(".sapFSPSplitterBar"),
+			iDirectionModifier = this.getSidePanelPosition() === SidePanelPosition.Right ? 1 : -1;
+
+		if (Localization.getRTL()) {
+			iDirectionModifier = -iDirectionModifier;
+		}
 
 		if (bCtrlOrCmd && oEvent.which === KeyCodes.ARROW_LEFT) {
 			oEvent.preventDefault();
@@ -499,7 +534,7 @@ sap.ui.define([
 			}
 		} else if (bCtrlOrCmd && oEvent.which === KeyCodes.ARROW_RIGHT && bSideContentExpanded) {
 			if (bSideContentExpanded) {
-				this._contentControlToFocus = Core.getCurrentFocusedControlId();
+				this._contentControlToFocus = Element.getActiveElement();
 			}
 			this._oItemNavigation.getFocusedDomRef().focus();
 		} else if (bCtrlOrCmd && oEvent.shiftKey && oEvent.which === KeyCodes.P) {
@@ -531,10 +566,14 @@ sap.ui.define([
 					this._setSidePanelResizePosition(SIDE_PANEL_POSITION_MIN_WIDTH);
 					break;
 				case KeyCodes.ARROW_LEFT:
+					this._moveSidePanelResizePositionWith(oEvent.shiftKey ? this.getSidePanelResizeLargerStep() * iDirectionModifier : this.getSidePanelResizeStep() * iDirectionModifier);
+					break;
 				case KeyCodes.ARROW_UP:
 					this._moveSidePanelResizePositionWith(oEvent.shiftKey ? this.getSidePanelResizeLargerStep() : this.getSidePanelResizeStep());
 					break;
 				case KeyCodes.ARROW_RIGHT:
+					this._moveSidePanelResizePositionWith(oEvent.shiftKey ? -this.getSidePanelResizeLargerStep() * iDirectionModifier : -this.getSidePanelResizeStep() * iDirectionModifier);
+					break;
 				case KeyCodes.ARROW_DOWN:
 					this._moveSidePanelResizePositionWith(oEvent.shiftKey ? -this.getSidePanelResizeLargerStep() : -this.getSidePanelResizeStep());
 					break;
@@ -596,7 +635,7 @@ sap.ui.define([
 			return;
 		}
 
-		this._toggleItemSelection(Core.byId(oItemDom.id));
+		this._toggleItemSelection(Element.getElementById(oItemDom.id));
 	};
 
 	/**
@@ -663,6 +702,7 @@ sap.ui.define([
 	};
 
 	SidePanel.prototype._setSideContentExpanded = function(bState) {
+		this._isSingleItem() && this.setActionBarExpanded(bState);
 		return this.setProperty("sideContentExpanded", bState);
 	};
 
@@ -686,13 +726,13 @@ sap.ui.define([
 
 	SidePanel.prototype._focusSideContent = function() {
 		// set focus to the last focused side content element, or to the Close Button
-		var oFocusControl = this._contentControlToFocus ? Core.byId(this._contentControlToFocus) : this.getAggregation("_closeButton");
+		var oFocusControl = this._contentControlToFocus || this.getAggregation("_closeButton");
 
 		oFocusControl && oFocusControl.focus();
 	};
 
 	SidePanel.prototype._closeSideContent = function() {
-		var oSelectedItem = Core.byId(this.getSelectedItem()),
+		var oSelectedItem = Element.getElementById(this.getSelectedItem()),
 			bSkipPrevent = true;
 
 		// fire 'toggle' event for collapse if there is expanded action item
@@ -978,7 +1018,7 @@ sap.ui.define([
 		// fire 'toggle' event for collapsed action item
 		if (oSelectedItem && (!bExpanded || bToggleDifferent)) {
 			bSkipPrevent = this._fireToggle({
-				item: bToggleDifferent ? Core.byId(oSelectedItem) : oItem,
+				item: bToggleDifferent ? Element.getElementById(oSelectedItem) : oItem,
 				expanded: false
 			});
 		}
@@ -1016,10 +1056,7 @@ sap.ui.define([
 	};
 
 	SidePanel.prototype._toggleOverflowMenu = function(oDomRef) {
-		var oOverflowMenu = this.getAggregation("_overflowMenu"),
-			oDelegate = {
-				onkeydown: this._overflowMenuOnkeydown.bind(this)
-			};
+		var oOverflowMenu = this.getAggregation("_overflowMenu");
 
 		if (!oDomRef) {
 			if (this._bOverflowMenuOpened) {
@@ -1034,10 +1071,8 @@ sap.ui.define([
 		} else {
 			this._setOverflowItemSelection(true);
 			setTimeout(function() {
-				var bNoMenu = !oOverflowMenu.getAggregation("_menu");
-				oOverflowMenu.openBy(oDomRef, false, Popup.Dock.BeginBottom, Popup.Dock.EndBottom, "3 0");
-				oOverflowMenu._getMenu().getPopup().setExtraContent([this.getAggregation("_overflowItem")]);
-				bNoMenu && oOverflowMenu.getAggregation("_menu").addEventDelegate(oDelegate);
+				oOverflowMenu.openBy(oDomRef);
+				oOverflowMenu._setExtraContent(this.getAggregation("_overflowItem"));
 			}.bind(this), 0);
 		}
 	};
@@ -1057,11 +1092,15 @@ sap.ui.define([
 	};
 
 	SidePanel.prototype._getSelectedItem = function() {
-		return Core.byId(this.getSelectedItem());
+		return Element.getElementById(this.getSelectedItem());
 	};
 
 	SidePanel.prototype._getSideContentHeaderTitle = function() {
 		var oSelectedItem = this._getSelectedItem();
+
+		if (oSelectedItem.getTitle()) {
+			return oSelectedItem.getTitle();
+		}
 
 		if (!this._contentHeaderTitle) {
 			this._contentHeaderTitle = new Title();
@@ -1073,13 +1112,18 @@ sap.ui.define([
 	};
 
 	SidePanel.prototype._getSideContentHeaderIcon = function() {
-		var oSelectedItem = this._getSelectedItem();
+		var oSelectedItem = this._getSelectedItem(),
+			sSrc = oSelectedItem && oSelectedItem.getIcon();
+
+		if (!sSrc) {
+			return null;
+		}
 
 		if (!this._contentHeaderIcon) {
 			this._contentHeaderIcon = new Icon();
 		}
 
-		oSelectedItem && this._contentHeaderIcon.setSrc(oSelectedItem.getIcon());
+		oSelectedItem && this._contentHeaderIcon.setSrc(sSrc);
 
 		return this._contentHeaderIcon;
 	};
@@ -1108,7 +1152,7 @@ sap.ui.define([
 					this._bAnnounceSelected = false;
 					if (!this._isSingleItem()) {
 						// set proper focus
-						if (this.getDomRef().querySelector("#" + oSelectedItem.getId()).style.display === "none") {
+						if (document.getElementById(oSelectedItem.getId()).style.display === "none") {
 							oOverflowItem && oOverflowItem.focus();
 						} else {
 							oSelectedItem && oSelectedItem.focus();
@@ -1180,7 +1224,7 @@ sap.ui.define([
 			setTimeout(function() {
 				bForward = iTop > this._iLastScrollPosition;
 				bBackward = iTop < this._iLastScrollPosition;
-				this.setActionBarExpanded(!bForward || bBackward);
+				!this._isSingleItem() && this.setActionBarExpanded(!bForward || bBackward);
 				this._iLastScrollPosition = iTop;
 				this.bScrolling = false;
 			}.bind(this), 100);
@@ -1320,6 +1364,14 @@ sap.ui.define([
 			oSide = this.getDomRef().querySelector(".sapFSPSide"),
 			iSidePanelWidth = parseInt(window.getComputedStyle(oSide)['width']);
 
+		if (this.getSidePanelPosition() === SidePanelPosition.Left) {
+			iDeltaX = -iDeltaX;
+		}
+
+		if (Localization.getRTL()) {
+			iDeltaX = -iDeltaX;
+		}
+
 		oEvent.preventDefault();
 
 		if (iSidePanelWidth) {
@@ -1364,11 +1416,16 @@ sap.ui.define([
 		}
 	};
 
-	SidePanel.prototype._showResizeContextMenu = function(oEvent) {
-		var oContextMenu = this._getContextMenu();
+	SidePanel.prototype._showResizeContextMenu = function(oEvent, bSkipOpener) {
+		const oContextMenu = this._getContextMenu(),
+			oOpener = !bSkipOpener ? this : null;
 
 		this._bResizeStarted = false;
-		(this._bContextMenuFromSplitter && oContextMenu.openBy(this.getDomRef().querySelector(".sapFSPSplitterBarGrip"))) || oContextMenu.openAsContextMenu(oEvent, this);
+		if (this._bContextMenuFromSplitter) {
+			oContextMenu.openBy(this.getDomRef().querySelector(".sapFSPSplitterBarGrip"));
+		} else {
+			oContextMenu.openAsContextMenu(oEvent, oOpener);
+		}
 	};
 
 	return SidePanel;

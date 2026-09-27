@@ -3,18 +3,31 @@
 /* Horizon theme                       */
 /* =================================== */
 
-.sapMObjectNumberInverted .sapMObjectNumberText,
-.sapMObjectNumberInverted .sapMObjectNumberUnit {
-	text-shadow: @sapUiContentContrastTextShadow;
-}
-
-.sapMObjectNumberInverted {
+.sapMObjectNumber.sapMLnkLargeReactiveArea:not(.sapMObjectNumberLarge):not(.sapMObjectNumberInverted) {
 	.sapMObjectNumberInner {
-		border-radius: 0.25rem;
+		line-height: 1.5rem;
 	}
 }
 
-html.sap-desktop .sapMObjectNumberActive:focus {
+.sapMObjectNumberInverted {
+	box-sizing: border-box;
+
+	&:not(.sapMObjectNumberLarge) .sapMObjectNumberInner {
+		min-height: 1rem;
+		height: auto;
+	}
+}
+
+.sapMObjectNumberInverted .sapMObjectNumberInner {
+	border: 0.0625rem solid;
+	border-radius: var(--sapButton_BorderCornerRadius);
+	padding: 0.1875rem 0.25rem;
+	vertical-align: middle;
+}
+
+html.sap-desktop .sapMObjectNumberActive:focus,
+.sapMObjectNumberActive:focus-visible {
+
 	.sapMObjectNumberInner::after {
 		left: -0.0625rem;
 		top: -0.0625rem;
@@ -23,7 +36,7 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 		height: auto;
 		outline: none;
 		border-radius: 0.25rem;
-		border: 0.125rem solid @sapUiContentFocusColor;
+		border: 0.125rem solid var(--sapContent_FocusColor);
 	}
 
 	&.sapMObjectNumberInverted .sapMObjectNumberInner::after {
@@ -33,11 +46,12 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 		bottom: -0.0625rem;
 		height: auto;
 		outline: none;
-		border-radius: 0.25rem;
-		border: 0.125rem solid @sapUiContentFocusColor;
+		border-radius: var(--sapButton_BorderCornerRadius);
+		border: 0.125rem solid var(--sapContent_FocusColor);
 	}
 
 	&.sapMObjectNumberLarge {
+
 		.sapMObjectNumberInner::after {
 			left: -0.0625rem;
 			top: -0.0625rem;
@@ -45,6 +59,7 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 			bottom: -0.0625rem;
 			height: auto;
 		}
+
 		&.sapMObjectNumberInverted .sapMObjectNumberInner::after {
 			left: -0.0625rem;
 			top: -0.0625rem;
@@ -52,29 +67,119 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 			bottom: -0.0625rem;
 			height: auto;
 			outline: none;
-			border-radius: 0.25rem;
-			border: 0.125rem solid @sapUiContentFocusColor;
+			border-radius: var(--sapButton_BorderCornerRadius);
+			border: 0.125rem solid var(--sapContent_FocusColor);
 		}
 	}
 }
 
-.objectNumberStatusMixIn(@class, @innerBackgroundColor, @innerColor, @activeInnerBackgroundColor, @activeInnerColor, @pressedInnerBackgroundColor) {
+.objectNumberStatusMixIn(@class, @regularBackgroundColor, @regularTextColor,
+				@hoverBackgroundColor, @hoverTextColor,
+				@activeBackgroundColor, @activeTextColor,
+				@regularTextShadow, @activeTextShadow,
+				@regularBorderColor, @hoverBorderColor, @activeBorderColor) {
 	.sapMObjectNumberInverted.@{class} {
+
+		.sapMObjectNumberText,
+		.sapMObjectNumberUnit {
+			text-shadow: @regularTextShadow;
+		}
+
 		.sapMObjectNumberInner {
-			background-color: @innerBackgroundColor;
-			color: @innerColor;
+			border-color: @regularBorderColor;
+			background-color: @regularBackgroundColor;
+			color: @regularTextColor;
 		}
 
 		&.sapMObjectNumberActive {
+
 			.sapMObjectNumberInner:hover {
-				background-color: @activeInnerBackgroundColor;
-				color: @activeInnerColor;
+				border-color: @hoverBorderColor;
+				background-color: @hoverBackgroundColor;
+				color: @hoverTextColor;
 			}
+
 			.sapMObjectNumberInner:active,
 			&.sapMObjectNumberPressed .sapMObjectNumberInner {
-				background-color: @pressedInnerBackgroundColor;
-				color: @innerColor;
+				border-color: @activeBorderColor;
+				background-color: @activeBackgroundColor;
+				color: @activeTextColor;
+
+				.sapMObjectNumberText,
+				.sapMObjectNumberUnit {
+					text-shadow: @activeTextShadow;
+				}
 			}
 		}
 	}
 }
+
+.objectNumberStatusMixIn(sapMObjectNumberStatusNone,
+	@sapNeutralBackground,
+	@sapTextColor,
+	@sapUiButtonNeutralHoverBackground,
+	@sapUiButtonNeutralHoverTextColor,
+	@sapUiButtonNeutralActiveBackground,
+	@sapUiButtonActiveTextColor,
+	@sapUiContentTextShadow,
+	@sapUiContentTextShadow,
+	@sapNeutralBorderColor,
+	@sapUiButtonNeutralHoverBorderColor,
+	@sapUiButtonNeutralActiveBorderColor
+);
+
+.objectNumberStatusMixIn(sapMObjectNumberStatusInformation,
+	@sapUiButtonInformationBackground,
+	@sapUiButtonInformationTextColor,
+	@sapUiButtonInformationHoverBackground,
+	@sapUiButtonInformationHoverTextColor,
+	@sapUiButtonInformationActiveBackground,
+	@sapUiButtonSelectedTextColor,
+	@sapUiContentTextShadow,
+	@sapUiContentTextShadow,
+	@sapUiButtonInformationBorderColor,
+	@sapUiButtonInformationHoverBorderColor,
+	@sapUiButtonInformationActiveBorderColor
+);
+
+.objectNumberStatusMixIn(sapMObjectNumberStatusError,
+	@sapUiButtonNegativeBackground,
+	@sapUiButtonNegativeTextColor,
+	@sapUiButtonNegativeHoverBackground,
+	@sapUiButtonNegativeHoverTextColor,
+	@sapUiButtonNegativeActiveBackground,
+	@sapUiButtonRejectSelectedTextColor,
+	@sapUiContentContrastTextShadow,
+	@sapUiContentTextShadow,
+	@sapUiButtonNegativeBorderColor,
+	@sapUiButtonNegativeHoverBorderColor,
+	@sapUiButtonNegativeActiveBorderColor
+);
+
+.objectNumberStatusMixIn(sapMObjectNumberStatusWarning,
+	@sapUiButtonCriticalBackground,
+	@sapUiButtonCriticalTextColor,
+	@sapUiButtonCriticalHoverBackground,
+	@sapUiButtonCriticalHoverTextColor,
+	@sapUiButtonCriticalActiveBackground,
+	@sapUiButtonAttentionSelectedTextColor,
+	@sapUiContentContrastTextShadow,
+	@sapUiContentTextShadow,
+	@sapUiButtonCriticalBorderColor,
+	@sapUiButtonCriticalHoverBorderColor,
+	@sapUiButtonCriticalActiveBorderColor
+);
+
+.objectNumberStatusMixIn(sapMObjectNumberStatusSuccess,
+	@sapUiButtonSuccessBackground,
+	@sapUiButtonSuccessTextColor,
+	@sapUiButtonSuccessHoverBackground,
+	@sapUiButtonSuccessHoverTextColor,
+	@sapUiButtonSuccessActiveBackground,
+	@sapUiButtonAcceptSelectedTextColor,
+	@sapUiContentContrastTextShadow,
+	@sapUiContentTextShadow,
+	@sapUiButtonSuccessBorderColor,
+	@sapUiButtonSuccessHoverBorderColor,
+	@sapUiButtonSuccessActiveBorderColor
+);

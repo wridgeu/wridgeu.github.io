@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(function () {
@@ -18,7 +18,6 @@ sap.ui.define(function () {
 	 * to be outside of the aggregation that the checked <code>oControl</code> is part of, i.e. a control embedding
 	 * a fragment containing <code>oControl</code>
 	 * @return {boolean} <code>true</code> if the given control is a template
-	 * @experimental
 	 * @private
 	 */
 

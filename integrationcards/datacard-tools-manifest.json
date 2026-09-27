@@ -27,7 +27,7 @@
 		}
 	},
 	"sap.ui": {
-		"deviceTypes":{
+		"deviceTypes": {
 			"desktop": true,
 			"phone": true,
 			"tablet": true
@@ -39,7 +39,7 @@
 		"header": {
 			"title": "Toolbox",
 			"icon": {
-                "shape": "Square",
+				"shape": "Square",
 				"src": "../resources/img/src-images/toolbox.png"
 			}
 		},
@@ -51,28 +51,28 @@
 						"Description": "Github, Gitlab",
 						"Icon": "../resources/img/webp/giticon.webp",
 						"Initials": "GIT",
-                        "Alt": "Version Control"
+						"Alt": "Version Control"
 					},
 					{
 						"Name": "Package Managers",
 						"Description": "NPM, Yarn",
 						"Icon": "../resources/img/webp/yarn_logo.webp",
 						"Initials": "NPM",
-                        "Alt": "Node Package Manager"
+						"Alt": "Node Package Manager"
 					},
 					{
 						"Name": "Docker",
 						"Description": "Docker (incl. WSL)",
 						"Icon": "../resources/img/src-images/docker.png",
 						"Initials": "D",
-                        "Alt": "Containerization"
+						"Alt": "Containerization"
 					},
 					{
 						"Name": "IDEs",
 						"Description": "VSC, Eclipse, BAS, SE80",
 						"Icon": "../resources/img/webp/vsc.webp",
 						"Initials": "D",
-                        "Alt": "Development Environments"
+						"Alt": "Development Environments"
 					}
 				]
 			},

@@ -1,14 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.DateRangeSelection.
 sap.ui.define([
+	"sap/base/i18n/Formatting",
 	'sap/ui/Device',
 	'./DatePicker',
 	'./library',
+	"sap/ui/core/Lib",
+	"sap/ui/core/Locale",
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/date/UniversalDate',
@@ -18,16 +21,18 @@ sap.ui.define([
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
 	"sap/base/assert",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/date/UI5Date",
-	"sap/ui/core/Core",
+	"./DateHighZoomInputs",
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
+		Formatting,
 		Device,
 		DatePicker,
 		library,
+		Library,
+		Locale,
 		LocaleData,
 		DateFormat,
 		UniversalDate,
@@ -37,9 +42,8 @@ sap.ui.define([
 		deepEqual,
 		Log,
 		assert,
-		Configuration,
 		UI5Date,
-		Core
+		DateHighZoomInputs
 	) {
 	"use strict";
 
@@ -100,7 +104,8 @@ sap.ui.define([
 	 *
 	 * <ul><li>Use the <code>value</code> property if the date range is already provided as
 	 * a formatted string</li>
-	 * @example <caption> binding the <code>value</code> property by using types </caption>
+	 * <caption> binding the <code>value</code> property by using types </caption>
+	 * <pre>
 	 * new sap.ui.model.json.JSONModel({start:'2022-11-10', end:'2022-11-15'});
 	 *
 	 * new sap.m.DateRangeSelection({
@@ -125,7 +130,7 @@ sap.ui.define([
 	 *         }}]
 	 *     }
 	 * });
-	 *
+	 * </pre>
 	 * <b>Note:</b> There are multiple binding type choices, such as:
 	 * sap.ui.model.type.Date
 	 * sap.ui.model.odata.type.DateTime
@@ -165,8 +170,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.120.0
-	 * @version 1.120.0
+	 * @version 1.152.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -240,6 +245,7 @@ sap.ui.define([
 
 		if (oCalendar instanceof CustomYearPicker) {
 			oCalendar._getYearPicker().setIntervalSelection(true);
+			oCalendar._getYearRangePicker().setIntervalSelection(true);
 		}
 
 		this._getCalendar().detachWeekNumberSelect(this._handleWeekSelect, this);
@@ -276,7 +282,7 @@ sap.ui.define([
 
 		if (!sPlaceholder) {
 			oBinding = this.getBinding("value");
-			oLocale = Configuration.getFormatSettings().getFormatLocale();
+			oLocale = new Locale(Formatting.getLanguageTag());
 			oLocaleData = LocaleData.getInstance(oLocale);
 
 			if (oBinding && oBinding.getType() && oBinding.getType().isA("sap.ui.model.type.DateInterval")) {
@@ -310,8 +316,26 @@ sap.ui.define([
 		return sPlaceholder;
 	};
 
+	/**
+	 * Returns the message bundle key of the invisible text for the accessible name of the popover.
+	 * @private
+	 * @returns {string} The message bundle key
+	 */
+	DateRangeSelection.prototype._getAccessibleNameBundleKey = function() {
+		var sConstructorName = this._getCalendarConstructor().getMetadata().getName();
+
+		switch (sConstructorName) {
+			case "sap.ui.unified.internal.CustomYearPicker":
+				return "DATERANGESELECTION_YEAR_POPOVER_ACCESSIBLE_NAME";
+			case "sap.ui.unified.internal.CustomMonthPicker":
+				return "DATERANGESELECTION_MONTH_POPOVER_ACCESSIBLE_NAME";
+			default:
+				return "DATERANGESELECTION_POPOVER_ACCESSIBLE_NAME";
+		}
+	};
+
 	DateRangeSelection.prototype._getDateFormatPlaceholderText = function (oFormatOptions) {
-		return  DateFormat.getDateInstance(oFormatOptions).getPlaceholderText();
+		return  DateFormat.getDateInstance(oFormatOptions).getPlaceholderText(this.getMinDate(), this.getMaxDate());
 	};
 
 	// Overwrite DatePicker's setValue to support two date range processing
@@ -493,7 +517,7 @@ sap.ui.define([
 
 	/**
 	 * Set the start date of the range.
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oFrom A date instance
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oFrom A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 * @deprecated since version 1.22.0, replaced by <code>dateValue</code> property of the {@link sap.m.DateTimeField}
@@ -505,7 +529,7 @@ sap.ui.define([
 
 	/**
 	 * Get the start date of the range.
-	 * @returns {Date} the start date of the date range
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the start date of the date range
 	 * @public
 	 * @deprecated since version 1.22.0, replaced by <code>dateValue</code> property of the {@link sap.m.DateTimeField}
 	 */
@@ -515,7 +539,7 @@ sap.ui.define([
 
 	/**
 	 * Set the end date of the range.
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oTo A date instance
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oTo A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 * @deprecated since version 1.22.0, replaced by <code>secondDateValue</code> property
@@ -527,7 +551,7 @@ sap.ui.define([
 
 	/**
 	 * Get the end date of the range.
-	 * @returns {Date|module:sap/ui/core/date/UI5Date} the end date of the date range
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the end date of the date range
 	 * @public
 	 * @deprecated since version 1.22.0, replaced by <code>secondDateValue</code> property
 	 */
@@ -544,10 +568,10 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>dateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the value of property <code>dateValue</code>
 	 * @public
 	 * @name sap.m.DateRangeSelection#getDateValue
-	 * @function
+	 * @method
 	 */
 
 	/**
@@ -557,7 +581,7 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oDateValue New value for property <code>dateValue</code>
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oDateValue New value for property <code>dateValue</code>
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -585,10 +609,10 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>secondDateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the value of property <code>secondDateValue</code>
 	 * @public
 	 * @name sap.m.DateRangeSelection#getSecondDateValue
-	 * @function
+	 * @method
 	 */
 
 	/**
@@ -598,7 +622,7 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oSecondDateValue New value for property <code>dateValue</code>
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oSecondDateValue New value for property <code>dateValue</code>
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -734,7 +758,16 @@ sap.ui.define([
 					aDates[1] = aDates[1].slice(1);
 				}
 			} else {
-				aDates = sValue.split(" " + sDelimiter + " ");// Delimiter appears more than once -> try with separators
+				const aDateInterval = sValue.split(" " + sDelimiter + " ");// Delimiter appears more than once -> try with separators
+
+				if ( (aDateInterval.length  === 1 || aDateInterval.length  % 2 === 0) && aDates.length % 2 === 0) {
+					const sFirstDate = aDates.slice(0, aDates.length / 2).join(sDelimiter);
+					const sSecondDate = aDates.slice(aDates.length / 2).join(sDelimiter);
+					aDates = [sFirstDate, sSecondDate];
+				} else {
+					aDates = aDateInterval;
+				}
+
 			}
 
 			if (sValue.indexOf(sDelimiter) === -1) {
@@ -962,11 +995,22 @@ sap.ui.define([
 	 * @private
 	 */
 	DateRangeSelection.prototype.onsapescape = function(oEvent) {
-		var sLastValue = this.getLastValue(),
-			aDates = this._parseValue(this._getInputValue(), true),
-			sValueFormatInputDate = this._formatValue(aDates[0], aDates[1], true);
+		const sLastValue = this.getLastValue();
+		const sInputValue = this._getInputValue();
 
-		if (sValueFormatInputDate !== sLastValue) {
+		if (!sInputValue) {
+			return;
+		}
+
+		const aDates = this._parseValue(sInputValue, true);
+		const sValueFormatInputDate = this._formatValue(aDates[0], aDates[1], true) || "";
+
+		// If nothing changed in the input (raw or formatted), allow default action.
+		if (sInputValue === sLastValue || sValueFormatInputDate === sLastValue) {
+			return;
+		}
+
+		if (sLastValue.trim() !== "" && sValueFormatInputDate !== sLastValue) {
 			oEvent.setMarked();
 			oEvent.preventDefault();
 
@@ -977,6 +1021,17 @@ sap.ui.define([
 
 	//Support of two date range version of Calendar added into original DatePicker's version
 	DateRangeSelection.prototype._fillDateRange = function(){
+		if (this._bHighZoom) {
+			// DatePicker._fillDateRange handles the high-zoom path (syncs _oHighZoomInputs).
+			// We additionally sync the end date.
+			DatePicker.prototype._fillDateRange.apply(this, arguments);
+			if (this._oHighZoomInputs) {
+				this._oHighZoomInputs.setMode(library.DateHighZoomInputsMode.Range);
+				this._oHighZoomInputs.syncEndDate(this.getSecondDateValue());
+				this._oHighZoomInputs.validateEndDate();
+			}
+			return;
+		}
 
 		DatePicker.prototype._fillDateRange.apply(this, arguments);
 
@@ -1092,7 +1147,7 @@ sap.ui.define([
 		var oRenderer = this.getRenderer();
 		var oInfo = DatePicker.prototype.getAccessibilityInfo.apply(this, arguments);
 		var sValue = this.getValue() || "";
-		var sRequired = this.getRequired() ? Core.getLibraryResourceBundle("sap.m").getText("ELEMENT_REQUIRED") : '';
+		var sRequired = this.getRequired() ? Library.getResourceBundleFor("sap.m").getText("ELEMENT_REQUIRED") : '';
 
 		if (this._bValid) {
 			var oDate = this.getDateValue();
@@ -1100,7 +1155,7 @@ sap.ui.define([
 				sValue = this._formatValue(oDate, this.getSecondDateValue());
 			}
 		}
-		oInfo.type = Core.getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_DATERANGEINPUT");
+		oInfo.type = Library.getResourceBundleFor("sap.m").getText("ACC_CTR_TYPE_DATERANGEINPUT");
 		oInfo.description = [sValue || this._getPlaceholder(), oRenderer.getLabelledByAnnouncement(this), oRenderer.getDescribedByAnnouncement(this), sRequired].join(" ").trim();
 		return oInfo;
 	};
@@ -1132,8 +1187,8 @@ sap.ui.define([
 	function _fireChange(bValid) {
 
 		this.fireChangeEvent(this.getValue(), {
-			from: this.getDateValue(),
-			to: this.getSecondDateValue(),
+			from: bValid ? this.getDateValue() : undefined,
+			to: bValid ? this.getSecondDateValue() : undefined,
 			valid: bValid
 		});
 
@@ -1305,7 +1360,7 @@ sap.ui.define([
 
 		if (!sDelimiter) {
 			if (!this._sLocaleDelimiter) {
-				var oLocale = Configuration.getFormatSettings().getFormatLocale();
+				var oLocale = new Locale(Formatting.getLanguageTag());
 				var oLocaleData = LocaleData.getInstance(oLocale);
 				var sPattern = oLocaleData.getIntervalPattern();
 				var iIndex1 = sPattern.indexOf("{0}") + 3;
@@ -1431,6 +1486,150 @@ sap.ui.define([
 	 * @name sap.m.DateRangeSelection#fireChange
 	 * @function
 	 */
+
+	// ============================================================
+	// High-zoom (≤320px) overrides for range mode
+	// ============================================================
+
+	/**
+	 * Override to create DateHighZoomInputs in range mode.
+	 * @returns {sap.m.DateHighZoomInputs}
+	 * @private
+	 */
+	DateRangeSelection.prototype._getOrCreateHighZoomInputs = function() {
+		if (!this._oHighZoomInputs) {
+			this._oHighZoomInputs = new DateHighZoomInputs(this.getId() + "-hzInputs", {
+				mode: "Range",
+				change: this._onHighZoomChange.bind(this)
+			});
+		}
+		return this._oHighZoomInputs;
+	};
+
+	/**
+	 * Live validation on every field change — validate both groups.
+	 * @private
+	 */
+	DateRangeSelection.prototype._onHighZoomChange = function() {
+		const bStartValid = this._oHighZoomInputs.validate();
+		const bEndValid   = this._oHighZoomInputs.validateEndDate();
+		if (this._oPopup && this._oPopup.getBeginButton) {
+			this._oPopup.getBeginButton().setEnabled(bStartValid && bEndValid);
+		}
+	};
+
+	/**
+	 * Override DatePicker._onZoomChange to activate range mode on the high-zoom inputs.
+	 * @param {boolean} bHighZoom
+	 * @private
+	 */
+	DateRangeSelection.prototype._onZoomChange = function(bHighZoom) {
+		if (bHighZoom === this._bHighZoom) { return; }
+		this._bHighZoom = bHighZoom;
+		if (this._oHighZoomInputs) {
+			this._oHighZoomInputs.setMode(library.DateHighZoomInputsMode.Range);
+		}
+		if (this.isOpen()) {
+			this._switchPickerContent(bHighZoom);
+		}
+	};
+
+	/**
+	 * Override DatePicker._switchPickerContent to sync both start and end dates.
+	 * @param {boolean} bHighZoom
+	 * @private
+	 */
+	DateRangeSelection.prototype._switchPickerContent = function(bHighZoom) {
+		// Ensure range mode before calling super (which calls syncToDate)
+		if (!this._oHighZoomInputs) {
+			this._getOrCreateHighZoomInputs().setMode(library.DateHighZoomInputsMode.Range);
+		} else {
+			this._oHighZoomInputs.setMode(library.DateHighZoomInputsMode.Range);
+		}
+
+		DatePicker.prototype._switchPickerContent.call(this, bHighZoom);
+
+		if (bHighZoom && this._oHighZoomInputs) {
+			this._oHighZoomInputs.syncEndDate(this.getSecondDateValue());
+		}
+	};
+
+	/**
+	 * Override DatePicker._onZoomChange to activate range mode on the high-zoom inputs.
+	 * @private
+	 */
+	DateRangeSelection.prototype._handleOKButton = function() {
+		if (this._bHighZoom && this._oHighZoomInputs) {
+			const bStartValid = this._oHighZoomInputs.validate();
+			const bEndValid   = this._oHighZoomInputs.validateEndDate();
+			if (!bStartValid || !bEndValid) {
+				return;
+			}
+
+			const oOldStart = this.getDateValue();
+			const oOldEnd   = this.getSecondDateValue();
+
+			// Write end date before _selectDate so _syncDateObjectsToValue sees both values.
+			const oEndParts = this._oHighZoomInputs.getSelectedSecondDate();
+			if (oEndParts) {
+				const oEnd = UI5Date.getInstance(oEndParts.year, oEndParts.month, oEndParts.day);
+				oEnd.setFullYear(oEndParts.year);
+				oEnd.setHours(23, 59, 59, 999);
+				this.setSecondDateValue(oEnd);
+			}
+
+			DatePicker.prototype._selectDate.call(this);
+
+			const oNewEnd = this.getSecondDateValue();
+			if (deepEqual(this.getDateValue(), oOldStart) && !deepEqual(oNewEnd, oOldEnd)) {
+				this.fireChangeEvent(this.getValue(), { valid: true });
+			}
+			return;
+		}
+		this._selectDate();
+	};
+
+	/**
+	 * Override DatePicker._handleCancelButton to clear error states on both groups.
+	 * @private
+	 */
+	DateRangeSelection.prototype._handleCancelButton = function() {
+		if (this._bHighZoom && this._oHighZoomInputs) {
+			this._oHighZoomInputs.resetValueState();
+		}
+		// Delegate to base class which also disables OK button when dateValue is null
+		DatePicker.prototype._handleCancelButton.apply(this, arguments);
+	};
+
+	/**
+	 * Override DatePicker._getSelectedDate to return start date only (read-only, no side effects).
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null}
+	 * @private
+	 */
+	DateRangeSelection.prototype._getSelectedDate = function() {
+		if (this._bHighZoom && this._oHighZoomInputs) {
+			const oStartParts = this._oHighZoomInputs.getSelectedDate();
+			const oStart = UI5Date.getInstance(oStartParts.year, oStartParts.month, oStartParts.day);
+			oStart.setFullYear(oStartParts.year);
+			return oStart;
+		}
+
+		return DatePicker.prototype._getSelectedDate.apply(this, arguments);
+	};
+
+	/**
+	 * Override DatePicker._onHZCalTogglePress to also re-sync the end date after the
+	 * calendar type switch. The base implementation calls switchCalendarType which only
+	 * re-syncs the start date; the end date would remain displayed in the previous
+	 * calendar type without this override.
+	 * @private
+	 */
+	DateRangeSelection.prototype._onHZCalTogglePress = function() {
+		DatePicker.prototype._onHZCalTogglePress.call(this);
+		if (this._oHighZoomInputs) {
+			this._oHighZoomInputs.syncEndDate(this.getSecondDateValue());
+		}
+	};
 
 	return DateRangeSelection;
 

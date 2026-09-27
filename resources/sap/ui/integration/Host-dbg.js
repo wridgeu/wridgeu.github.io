@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -30,11 +30,10 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
-		 * @experimental since 1.75
 		 * @since 1.75
 		 * @alias sap.ui.integration.Host
 		 */
@@ -44,8 +43,7 @@ sap.ui.define([
 				properties: {
 					/**
 					 * The actions configuration.
-					 * @experimental since 1.75
-					 * Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+					 * @ui5-experimental-since 1.75
 					 */
 					actions: {
 						type: "sap.ui.integration.CardMenuAction[]"
@@ -86,8 +84,7 @@ sap.ui.define([
 					 * When an action is triggered in the card it can be handled on several places by "action" event handlers. In consecutive order those places are: <code>Extension</code>, <code>Card</code>, <code>Host</code>.
 					 * Each of them can prevent the next one to handle the action by calling <code>oEvent.preventDefault()</code>.
 					 *
-					 * @experimental since 1.75
-					 * Disclaimer: this event is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+					 * @since 1.75
 					 */
 					action: {
 
@@ -113,8 +110,20 @@ sap.ui.define([
 
 							/**
 							 * The parameters related to the triggered action.
+							 *
+							 * <b>Disclaimer:</b> Since 1.129 the special parameter <code>data</code> for action <code>Submit</code> is deprecated and must not be used. Use event parameter <code>formData</code> instead.
 							 */
 							parameters: {
+								type: "object"
+							},
+
+							/**
+							 * All form data that is filled inside the card. This parameter is available only with action types <code>Submit</code> and <code>Custom</code>.
+							 *
+							 * The format will be the same as in the <code>form</code> model available in the card manifest. For more information look at the documentation for each individual form type.
+							 * @since 1.129
+							 */
+							formData: {
 								type: "object"
 							},
 
@@ -130,7 +139,9 @@ sap.ui.define([
 					/**
 					 * Fired when some card configuration settings are changed as a result of user interaction.
 					 * For example - filter value is changed.
-					 * @experimental since 1.96
+					 * @private
+					 * @ui5-restricted
+					 * @since 1.96
 					 */
 					cardConfigurationChange: {
 						parameters: {
@@ -158,7 +169,7 @@ sap.ui.define([
 					/**
 					 * Fired when the state of a card is changed.
 					 * For example - the card is ready, new page is selected inside the card, a filter is changed or data is refreshed.
-					 * @experimental since 1.107
+					 * @since 1.107
 					 */
 					cardStateChanged: {
 						parameters: {
@@ -172,7 +183,7 @@ sap.ui.define([
 					/**
 					 * Fired when the card is initially ready for the first time.
 					 * Will not be fired for consecutive refreshes or data changes.
-					 * @experimental since 1.116
+					 * @since 1.116
 					 */
 					cardInitialized: {
 						parameters: {
@@ -185,7 +196,7 @@ sap.ui.define([
 
 					/**
 					 * Fired when a message from channels like navigator.serviceWorker is received.
-					 * @experimental since 1.91
+					 * @ui5-experimental-since 1.91
 					 */
 					message: {
 						parameters: {
@@ -268,15 +279,17 @@ sap.ui.define([
 		};
 
 		/**
-		 * Resolves the CSRF token and returns a Promise with its value.
+		 * Resolves the value of a CSRF token.
+		 * Subclasses of Host can override this method to take over the default CSRF token resolving.
+		 * Applications must not call this method directly, it is called by the framework.
 		 *
-		 * @param {{data: object}} mCSRFTokenConfig The CSRF token configuration.
+		 * @param {{data: object}} csrfTokenConfig The CSRF token configuration.
 		 * @returns {Promise<string>} A promise which resolves the CSRF token to its value.
-		 * @experimental since 1.97
 		 * @abstract
-		 * @public
+		 * @private
+		 * @deprecated As of version 1.120.0, the concept has been discarded.
 		 */
-		Host.prototype.getCsrfToken = function (mCSRFTokenConfig) {
+		Host.prototype.getCsrfToken = function (csrfTokenConfig) {
 			return Promise.resolve();
 		};
 
@@ -285,9 +298,9 @@ sap.ui.define([
 		 *
 		 * @param {{data: object}} mCSRFTokenConfig The CSRF token configuration.
 		 * @param {Promise<string>} pCSRFTokenValuePromise A promise which resolves the CSRF token to its value.
-		 * @experimental since 1.97
 		 * @abstract
 		 * @public
+		 * @deprecated As of version 1.120.0, the concept has been discarded.
 		 */
 		Host.prototype.csrfTokenFetched = function (mCSRFTokenConfig, pCSRFTokenValuePromise) {
 
@@ -297,9 +310,9 @@ sap.ui.define([
 		 * This function is called when a CSRF token has expired.
 		 *
 		 * @param {{data: object}} mCSRFTokenConfig The CSRF token configuration.
-		 * @experimental since 1.97
 		 * @abstract
 		 * @public
+		 * @deprecated As of version 1.120.0, the concept has been discarded.
 		 */
 		Host.prototype.csrfTokenExpired = function (mCSRFTokenConfig) {
 
@@ -333,14 +346,11 @@ sap.ui.define([
 		 *
 		 * @param {string} sPath The path to a context
 		 * @returns {Promise<null>} A promise which resolves with the value of this context.
-		 * @since 1.83
-		 *
+		 * @since 1.143
+		 * @abstract
 		 * @public
 		 */
 		Host.prototype.getContextValue = function (sPath) {
-			if (!sPath) {
-				return Promise.resolve(null);
-			}
 			return Promise.resolve(null);
 		};
 
@@ -382,7 +392,8 @@ sap.ui.define([
 		 * The context information and texts should be translated as they appear in the design-time UI of the Card Editor.
 		 *
 		 * @returns {Promise<object>} A promise which contains the context structure.
-		 * @since 1.83
+		 * @since 1.143
+		 * @abstract
 		 * @public
 		 */
 		Host.prototype.getContexts = function () {
@@ -393,7 +404,7 @@ sap.ui.define([
 		 * Call this method if you want to use the experimental caching for all cards.
 		 * @private
 		 * @ui5-restricted
-		 * @experimental Since 1.91. The API might change.
+		 * @since 1.91
 		 */
 		Host.prototype.useExperimentalCaching = function () {
 			this.bUseExperimentalCaching = true;
@@ -404,7 +415,7 @@ sap.ui.define([
 		 * Stops the usage of the experimental caching for all cards.
 		 * @private
 		 * @ui5-restricted
-		 * @experimental Since 1.91. The API might change.
+		 * @since 1.91
 		 */
 		Host.prototype.stopUsingExperimentalCaching = function () {
 			this.bUseExperimentalCaching = false;
@@ -414,10 +425,10 @@ sap.ui.define([
 		/**
 		 * Modifies the card HTTP data request headers before sending.
 		 * Override if you need to change the default headers behavior, including cache headers.
-		 * @param {map} mHeaders The current map of headers.
-		 * @param {map} mSettings The map of request settings defined in the card manifest.
+		 * @param {object} mHeaders The current map of headers.
+		 * @param {object} mSettings The map of request settings defined in the card manifest.
 		 * @param {sap.ui.integration.widgets.Card} [oCard] Optional. The card for which the request is made.
-		 * @returns {map} Map of http headers.
+		 * @returns {object} Map of http headers.
 		 * @private
 		 * @ui5-restricted
 	 	 * @deprecated Since 1.113 Use Host.prototype.fetch instead.
@@ -429,12 +440,12 @@ sap.ui.define([
 		/**
 		 * Modifies the card HTTP data request before sending.
 		 * Override if you need to change the default data request behavior.
-		 * @param {map} mRequest The current request.
+		 * @param {object} mRequest The current request.
 		 * @param {string} mRequest.url The request url.
 		 * @param {object} mRequest.options The request options in the same format as for the native Request object.
-		 * @param {map} mSettings The map of request settings defined in the card manifest.
+		 * @param {object} mSettings The map of request settings defined in the card manifest.
 		 * @param {sap.ui.integration.widgets.Card} [oCard] Optional. The card for which the request is made.
-		 * @returns {map} The modified request.
+		 * @returns {object} The modified request.
 		 * @private
 		 * @ui5-restricted
 		 * @deprecated Since 1.113 Use Host.prototype.fetch instead.
@@ -448,8 +459,8 @@ sap.ui.define([
 		 * Use this method to override the default behavior when fetching network resources.
 		 * Mimics the browser native Fetch API.
 		 * @private
-		 * @ui5-restricted
-		 * @experimental Since 1.113. The API might change.
+		 * @ui5-restricted Work Zone
+		 * @since 1.113
 		 * @param {string} sResource This defines the resource that you wish to fetch.
 		 * @param {object} mOptions An object containing any custom settings that you want to apply to the request.
 		 * @param {object} mRequestSettings The map of request settings defined in the card manifest. Use this only for reading, they can not be modified.
@@ -468,6 +479,17 @@ sap.ui.define([
 			return fetch(sResource, mOptions);
 		};
 
+		/**
+		 * Override this method to change the source for the analytics cloud widget script.
+		 * @private
+		 * @ui5-restricted Joule
+		 * @since 1.125
+		 * @returns {string|undefined} The source for the analytics cloud widget script, or <code>undefined</code> to use the default.
+		 */
+		Host.prototype.getAnalyticsCloudWidgetSrc = function () {
+			return undefined;
+		};
+
 		Host.prototype._addStatisticsParameter = function (sUrl) {
 			var oUrl = new URL(sUrl, window.location.href);
 
@@ -480,7 +502,7 @@ sap.ui.define([
 		/**
 		 * @private
 		 * @param {Headers} mHeaders The current map of headers.
-		 * @param {map} mRequestSettings The map of request settings defined in the card manifest.
+		 * @param {object} mRequestSettings The map of request settings defined in the card manifest.
 		 */
 		Host.prototype._addCacheHeaders = function (mHeaders, mRequestSettings) {
 			var oCacheSettings = mRequestSettings.cache,

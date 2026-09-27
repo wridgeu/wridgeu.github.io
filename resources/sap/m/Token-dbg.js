@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,20 +8,20 @@
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'sap/ui/core/Icon',
 	'./TokenRenderer',
-	'sap/ui/events/KeyCodes',
-	'sap/ui/core/Core'
+	'sap/ui/events/KeyCodes'
 ],
 	function(
 		library,
 		Control,
+		Library,
 		coreLibrary,
 		Icon,
 		TokenRenderer,
-		KeyCodes,
-		Core
+		KeyCodes
 	) {
 	"use strict";
 
@@ -50,7 +50,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -71,12 +71,12 @@ sap.ui.define([
 				/**
 				 * Key of the token.
 				 */
-				key : {type : "string", group : "Misc", defaultValue : ""},
+				key : {type : "string", group : "Data", defaultValue : ""},
 
 				/**
 				 * Displayed text of the token.
 				 */
-				text : {type : "string", group : "Misc", defaultValue : ""},
+				text : {type : "string", group : "Data", defaultValue : ""},
 
 				/**
 				 * Indicates the editable status of the token. If it is set to <code>true</code>, token displays a delete icon.
@@ -93,6 +93,11 @@ sap.ui.define([
 				 * Indicates the editable status of the token's parent (Tokenizer). If it is set to <code>true</code>, the ARIA attributes of the token are updated accordingly.
 				 */
 				editableParent : {type : "boolean", group : "Behavior", defaultValue : true, visibility: "hidden"},
+
+				/**
+				 * Indicates if token's parent (Tokenizer) is enabled or disabled. If it is set to <code>true</code>, the ARIA attributes of the token are updated accordingly.
+				 */
+				enabledParent : {type : "boolean", group : "Behavior", defaultValue : true, visibility: "hidden"},
 
 				/**
 				 * Indicates if the token's text should be truncated.
@@ -160,12 +165,14 @@ sap.ui.define([
 	});
 
 	Token.prototype.init = function() {
+		this._bFocusFromTouch = false;
+
 		var oDeleteIcon = new Icon({
 				id : this.getId() + "-icon",
 				src : "sap-icon://decline",
 				noTabStop: true,
 				press : this._fireDeleteToken.bind(this),
-				tooltip: Core.getLibraryResourceBundle("sap.m").getText("TOKEN_ICON_TOOLTIP")
+				tooltip: Library.getResourceBundleFor("sap.m").getText("TOKEN_ICON_TOOLTIP")
 			});
 
 		oDeleteIcon.addStyleClass("sapMTokenIcon");
@@ -180,9 +187,41 @@ sap.ui.define([
 	 * @private
 	 */
 	Token.prototype.ontouchstart = function(oEvent) {
+		this._markFocusFromTouch();
+
 		if (oEvent.target.id === this.getId() + "-icon") {
 			// prevent default or else the icon may get focused
 			oEvent.preventDefault();
+		}
+	};
+
+	/**
+	 * Clears the touch-origin focus marker when focus leaves the token.
+	 *
+	 * @private
+	 */
+	Token.prototype.onfocusout = function() {
+		this._clearFocusFromTouch();
+	};
+
+	/**
+	 * Marks the current focus as touch-originated so the theme can suppress the
+	 * focus ring on touch devices while keeping it for keyboard focus.
+	 * @private
+	 */
+	Token.prototype._markFocusFromTouch = function() {
+		this._bFocusFromTouch = true;
+		this.addStyleClass("sapMTokenFocusFromTouch");
+	};
+
+	/**
+	 * Clears the touch-origin focus marker.
+	 * @private
+	 */
+	Token.prototype._clearFocusFromTouch = function() {
+		if (this._bFocusFromTouch) {
+			this._bFocusFromTouch = false;
+			this.removeStyleClass("sapMTokenFocusFromTouch");
 		}
 	};
 
@@ -205,7 +244,7 @@ sap.ui.define([
 	Token.prototype._onTokenPress = function(oEvent) {
 		var bSelected = this.getSelected(),
 			bCtrlKey = oEvent.ctrlKey || oEvent.metaKey,
-			bNewSelectedValue = true;
+			bNewSelectedValue = !bSelected;
 
 		if (bCtrlKey || (oEvent.which === KeyCodes.SPACE)) {
 			bNewSelectedValue = !bSelected;
@@ -248,7 +287,7 @@ sap.ui.define([
 	};
 
 	Token.prototype._fireDeleteToken = function (oEvent, bKey, bBackspace) {
-		if (this.getEditable() && this.getProperty("editableParent")) {
+		if (this.getEditable() && this.getProperty("editableParent") && this.getProperty("enabledParent")) {
 			this.fireDelete({
 				token: this,
 				byKeyboard: bKey,
@@ -281,6 +320,8 @@ sap.ui.define([
 	 * @private
 	 */
 	Token.prototype.onkeydown = function(oEvent) {
+
+		this._clearFocusFromTouch();
 
 		if ((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.SPACE) {
 			//metaKey for MAC command

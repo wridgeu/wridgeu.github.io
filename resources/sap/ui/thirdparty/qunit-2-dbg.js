@@ -22,8 +22,7 @@
   // the goal is to prevent QUnit timeouts while test is already paused.
   if (window && window.sap && window.sap.ui && window.sap.ui.require) {
     try {
-      var QUnitPause = window.sap.ui.require("sap/ui/test/qunitPause") || window.sap.ui.requireSync("sap/ui/test/qunitPause"); // legacy-relevant
-      QUnitPause.setupBeforeQUnit();
+      window.sap.ui.require("sap/ui/test/qunitPause") || window.sap.ui.requireSync("sap/ui/test/qunitPause"); // legacy-relevant
     } catch (e) {
       console.warn("Could not find module sap/ui/test/qunitPause. Details: " + e);
     }
@@ -2740,7 +2739,10 @@
   			started: 0,
   			updateRate: 1000,
   			autostart: true,
-  			filter: ""
+  			filter: "",
+			//### BEGIN MODIFIED BY SAP
+			testTimeout: 30000
+			//### END MODIFIED BY SAP
   		}, true);
 
   		if (!runStarted) {

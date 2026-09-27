@@ -1,26 +1,20 @@
 [
 	{
-		"company": "awenɢ meᴅia",
-		"website": "https://aweng.media/",
+		"company": "Accenture DACH",
+		"website": "https://www.accenture.com/",
 		"nodes": [
 			{
 				"description": "Role: ",
-				"position": "Web Developer & Project Management",
+				"position": "Solution Architect / MES MOM Associate Manager",
 				"nodes": [
 					{
 						"textFrom": "From: ",
 						"textTo": "To: ",
-						"from": "01.04.2022",
+						"from": "01.06.2026",
 						"to": "Now"
 					}
 				]
-			}
-		]
-	},
-	{
-		"company": "Accenture DACH",
-		"website": "https://www.accenture.com/",
-		"nodes": [
+			},
 			{
 				"description": "Role: ",
 				"position": "Senior Developer / MES MOM Consultant/Specialist",
@@ -29,7 +23,7 @@
 						"textFrom": "From: ",
 						"textTo": "To: ",
 						"from": "01.06.2023",
-						"to": "Now"
+						"to": "01.05.2026"
 					}
 				]
 			},
@@ -40,7 +34,7 @@
 					{
 						"textFrom": "From: ",
 						"textTo": "To: ",
-						"from": "01.04.2022",
+						"from": "01.06.2022",
 						"to": "01.06.2023"
 					}
 				]
@@ -54,6 +48,24 @@
 						"textTo": "To: ",
 						"from": "01.11.2021",
 						"to": "01.06.2022"
+					}
+				]
+			}
+		]
+	},
+	{
+		"company": "awenɢ meᴅia",
+		"website": "https://aweng.media/",
+		"nodes": [
+			{
+				"description": "Role: ",
+				"position": "Full Stack Developer",
+				"nodes": [
+					{
+						"textFrom": "From: ",
+						"textTo": "To: ",
+						"from": "01.04.2022",
+						"to": "01.06.2024"
 					}
 				]
 			}

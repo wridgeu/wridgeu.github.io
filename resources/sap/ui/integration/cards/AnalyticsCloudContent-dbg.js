@@ -1,28 +1,35 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./AnalyticsCloudContentRenderer",
 	"./BaseContent",
-	"sap/ui/integration/library",
 	"sap/ui/core/HTML",
 	"sap/ui/integration/util/BindingResolver",
 	"sap/m/IllustratedMessageType",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/core/Lib",
+	"sap/base/util/deepClone",
+	"sap/base/util/deepEqual",
+	"sap/ui/integration/util/AnalyticsCloudHelper"
 ], function (
 	AnalyticsCloudContentRenderer,
 	BaseContent,
-	library,
 	HTML,
 	BindingResolver,
 	IllustratedMessageType,
-	Log) {
+	Log,
+	Library,
+	deepClone,
+	deepEqual,
+	AnalyticsCloudHelper
+) {
 	"use strict";
 
-	var ActionArea = library.CardActionArea;
+	const oResourceBundle = Library.getResourceBundleFor("sap.ui.integration");
 
 	/**
 	 * Constructor for a new <code>AnalyticsCloudContent</code>.
@@ -31,18 +38,16 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * A control that allows the creation of a card content which is based on Highcharts library and Analytics Cloud Service response.
-	 *
-	 * <b>Note:</b> In order to use this content, the Highcharts library must be preloaded on the page. And <code>window.Highcharts</code> must be available.
+	 * A control that allows the creation of a card content which is based on Analytics Cloud Widgets library and Analytics Cloud Service response.
 	 *
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
-	 * @since 1.73
+	 * @since 1.125
 	 * @alias sap.ui.integration.cards.AnalyticsCloudContent
 	 */
 	var AnalyticsCloudContent = BaseContent.extend("sap.ui.integration.cards.AnalyticsCloudContent", {
@@ -58,12 +63,11 @@ sap.ui.define([
 	AnalyticsCloudContent.prototype.init = function () {
 		BaseContent.prototype.init.apply(this, arguments);
 
-		var sId = this.getId() + "-highchartContainer";
-		// Add "sapFCardAnalyticsCloudContentHCC" class to the container content for CSP compliance
-		this._oHighchartContainer = new HTML(sId, {
-			content: "<div id=" + sId + " class='sapFCardAnalyticsCloudContentHCC'></div>"
+		var sId = this.getId() + "-widgetContainer";
+		this._oWidgetContainer = new HTML(sId, {
+			content: "<div id=" + sId + " class='sapUiIntAnalyticsCloudContentContainer'></div>"
 		});
-		this.setAggregation("_content", this._oHighchartContainer);
+		this.setAggregation("_content", this._oWidgetContainer);
 	};
 
 	/**
@@ -72,37 +76,24 @@ sap.ui.define([
 	AnalyticsCloudContent.prototype.exit = function () {
 		BaseContent.prototype.exit.apply(this, arguments);
 
-		if (this._oHighchart) {
-			this._oHighchart.destroy();
-			this._oHighchart = null;
+		if (this._oWidgetContainer) {
+			this._oWidgetContainer.destroy();
+			this._oWidgetContainer = null;
 		}
-
-		if (this._oHighchartContainer) {
-			this._oHighchartContainer.destroy();
-			this._oHighchartContainer = null;
-		}
-	};
-
-	/**
-	 * @inheritdoc
-	 */
-	AnalyticsCloudContent.prototype.loadDependencies = function (oCardManifest) {
-		return this._loadHighcharts();
 	};
 
 	/**
 	 * @override
 	 */
-	AnalyticsCloudContent.prototype.applyConfiguration = function () {
-		var oConfiguration = this.getParsedConfiguration();
+	AnalyticsCloudContent.prototype.loadDependencies = function (oCardManifest) {
+		return AnalyticsCloudHelper.loadWidget(this.getCardInstance()?.getHostInstance());
+	};
 
-		//workaround until actions refactor
-		this.fireEvent("_actionContentReady");
-		this._oActions.attach({
-			area: ActionArea.Content,
-			actions: oConfiguration.actions,
-			control: this
-		});
+	/**
+	 * @override
+	 */
+	AnalyticsCloudContent.prototype.getStaticConfiguration = function () {
+		return this._getResolvedConfiguration();
 	};
 
 	/**
@@ -114,230 +105,184 @@ sap.ui.define([
 			return;
 		}
 
-		this._createHighchart();
+		this._renderWidget();
 	};
 
 	/**
-	 * Loads the Highchart library based on the sac destination.
-	 * @returns {Promise} A Promise which is resolved when Highcharts library is loaded.
+	 * @override
 	 */
-	AnalyticsCloudContent.prototype._loadHighcharts = function () {
-		var oCard = this.getCardInstance(),
-			sDestinationKey = AnalyticsCloudContent.SAC_DESTINATION_KEY,
-			pDestination = oCard.resolveDestination(sDestinationKey);
-
-		return pDestination
-			.then(function (sUrl) {
-				return AnalyticsCloudContent.loadHighcharts(sUrl);
-			}, function (sReason) {
-				return Promise.reject("Destination with key '" + sDestinationKey + "' is required for AnalyticsCloud card. It could not be resolved. Reason: '" + sReason + "'");
-			});
+	AnalyticsCloudContent.prototype._supportsOverflow = function () {
+		return false;
 	};
 
 	/**
-	 * Creates Highcharts' chart inside the card content.
+	 * Creates Widgets' chart inside the card content.
 	 */
-	AnalyticsCloudContent.prototype._createHighchart = function () {
+	AnalyticsCloudContent.prototype._renderWidget = function () {
 		if (this._bIsBeingDestroyed) {
 			return;
 		}
 
-		var oCard = this.getCardInstance(),
-			oConfiguration = this.getParsedConfiguration(),
-			oBindingContext = this.getBindingContext(),
-			sPath,
-			oChartOptions;
-
-		// is all data already loaded (either from card level or from content level)
+		const oCard = this.getCardInstance();
 		if (!oCard.isReady()) {
-			oCard.attachEventOnce("_ready", this._createHighchart, this);
-			return;
-		}
-
-		// is Highcharts library available
-		if (!window.Highcharts) {
-			this.handleError({
-				illustrationType: IllustratedMessageType.ErrorScreen,
-				title: oCard.getTranslatedText("CARD_DATA_LOAD_ERROR"),
-				description: oCard.getTranslatedText("CARD_ERROR_HIGHCHARTS_DESCRIPTION")
+			oCard.attachEventOnce("_ready", () => {
+				// Makes sure that it goes through onAfterRendering when card is ready
+				this.invalidate();
 			});
 			return;
 		}
 
-		if (!this._oHighchartContainer) {
-			Log.error("Highcharts container is not created or destroyed.");
+		if (!sap?.sac?.api?.widget) {
+			this._showError("Object sap.sac.api.widget not found on the page.");
 			return;
 		}
 
-		if (oBindingContext) {
-			sPath = oBindingContext.getPath();
+		const oConfig = this._getResolvedConfiguration();
+		if (!oConfig.sacTenantDestination) {
+			this._showError("Required configuration /sap.card/content/sacTenantDestination was not found or is empty.");
+			return;
 		}
 
-		oChartOptions = BindingResolver.resolveValue(oConfiguration.options, this, sPath);
+		const sContainerId = this._oWidgetContainer.getId();
+		const oWidget = oConfig?.widget;
+		const vInterpretation = oConfig?.interpretation;
+		const oOptions = this._getOptions(oConfig);
 
-		this._oHighchart = new window.Highcharts.Chart(this._oHighchartContainer.getId(), oChartOptions);
-	};
-
-	/** Static methods */
-
-	/**
-	 * The key which must point to the SAC destination inside the card configuration. This destination will be used to load Highcharts library.
-	 * @readonly
-	 * @const {string}
-	 */
-	AnalyticsCloudContent.SAC_DESTINATION_KEY = "sac";
-
-	/**
-	 * List of Highcharts modules to load.
-	 * @readonly
-	 * @const {Object}
-	 */
-	AnalyticsCloudContent.HIGHCHART_MODULES = {
-		"highcharts/highstock": {
-			amd: true,
-			exports: 'Highcharts'
-		},
-		"highcharts/highcharts-more": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/solid-gauge": {
-			deps: ["highcharts/highstock", "highcharts/highcharts-more"]
-		},
-		"highcharts/histogram-bellcurve": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/no-data-to-display": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/wordcloud": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/variable-pie": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/heatmap": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/treemap": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/variwide": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/pattern-fill": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/highcharts-3d": {
-			deps: ["highcharts/highstock"]
-		},
-		"highcharts/grouped-categories": {
-			deps: ["highcharts/highstock"]
-		}
-	};
-
-	/**
-	 * Loads the Highcharts library.
-	 * @param {string} sBaseUrl The base url of the sac service from which the Highcharts library can be loaded.
-	 * @return {Promise} A Promise which is resolved when all Highcharts dependencies are loaded. Rejected if there is a problem.
-	 */
-	AnalyticsCloudContent.loadHighcharts = function (sBaseUrl) {
-		var sSanitizedUrl = sBaseUrl.trim().replace(/\/$/, ""), // remove any trailing spaces and slashes
-			sFireflyServiceUrl = sSanitizedUrl,
-			bIsIncluded = this._isHighchartsIncluded(sFireflyServiceUrl),
-			bIsIncludedByOthers = this._isHighchartsIncludedByThirdParty();
-
-		if (bIsIncluded) {
-			return this._pLoadModules;
+		// Check if the configuration has changed
+		// during rendering the sac widget.
+		if (deepEqual(this._oLastConfig, oConfig)) {
+			return;
 		}
 
-		if (bIsIncludedByOthers) {
-			return Promise.resolve();
-		}
+		this._oLastConfig = oConfig;
 
-		this._sIncludedFrom = sFireflyServiceUrl;
-		this._pLoadModules = this._loadModules(sFireflyServiceUrl);
-
-		return this._pLoadModules;
-	};
-
-	/**
-	 * Is the Highcharts library already loaded.
-	 * @param {string} sBaseUrl The base url of the sac service from which the Highcharts library can be loaded.
-	 * @return {boolean} True if loaded.
-	 */
-	AnalyticsCloudContent._isHighchartsIncluded = function (sBaseUrl) {
-		var sIncludedFrom = this._sIncludedFrom;
-
-		if (sIncludedFrom && sIncludedFrom === sBaseUrl) {
-			return true;
-		}
-
-		if (sIncludedFrom && sIncludedFrom !== sBaseUrl) {
-			Log.warning(
-				"Highcharts library is already included from '" + sIncludedFrom + "'. The included version will be used and will not load from '" + sBaseUrl + "'",
-				"sap.ui.integration.widgets.Card#AnalyticsCloud"
+		if (oWidget) {
+			sap.sac.api.widget.renderWidget(
+				sContainerId,
+				{ proxy: oConfig.sacTenantDestination },
+				oWidget.storyId,
+				oWidget.widgetId,
+				oOptions
 			);
-			return true;
+		} else if (vInterpretation) {
+			sap.sac.api.widget.renderWidgetForJustAsk(
+				sContainerId,
+				{ proxy: oConfig.sacTenantDestination },
+				vInterpretation,
+				oOptions
+			);
+		} else {
+			this._showError("Required configuration /sap.card/content/widget or /sap.card/content/interpretation was not found or is empty.");
+		}
+	};
+
+	/**
+	 * Gets the content configuration, with resolved binding.
+	 * @returns {Object} The resolved configuration.
+	 */
+	AnalyticsCloudContent.prototype._getResolvedConfiguration = function () {
+		return BindingResolver.resolveValue(
+			this.getParsedConfiguration(),
+			this,
+			this.getBindingContext()?.getPath() || "/"
+		);
+	};
+
+	/**
+	 * Gets the options from manifest merged with default options.
+	 * @param {Object} oConfig The content config.
+	 * @returns {Object} The options.
+	 */
+	AnalyticsCloudContent.prototype._getOptions = function (oConfig) {
+		const oOptions = deepClone(oConfig.options) || {};
+		const oDefaultAttributes = {
+			enableInteraction: false,
+			enableUndoRedo: false,
+			enableMenus: false,
+			showHeader: false,
+			showFooter: false
+		};
+
+		oOptions.attributes = Object.assign({}, oDefaultAttributes, oOptions.attributes);
+
+		oOptions.renderComplete = {
+			onSuccess: this._onWidgetSuccess.bind(this),
+			onFailure: this._onWidgetFailure.bind(this)
+		};
+
+		return oOptions;
+	};
+
+	/**
+	 * Handles the case where widget rendering was successful.
+	 */
+	AnalyticsCloudContent.prototype._onWidgetSuccess = function () {
+		const sWidgetId = this._getResolvedConfiguration()?.widget?.widgetId || "interpretation";
+
+		Log.info(`Widget rendered successfully: ${sWidgetId}`, this);
+		this._updateWidgetInfo();
+	};
+
+	/**
+	 * Handles the case where widget rendering was failure.
+	 * @param {Error|Object|string|null} vError The error returned by the widget.
+	 */
+	AnalyticsCloudContent.prototype._onWidgetFailure = function (vError) {
+		const oWidget = this._getResolvedConfiguration()?.widget;
+		const sStoryId = oWidget?.storyId || "interpretation";
+		const sWidgetId = oWidget?.widgetId || "interpretation";
+
+		let sError = `There was a failure in sap.sac.api.widget.renderWidget with storyId ${sStoryId} and widgetId ${sWidgetId}.`;
+
+		if (vError instanceof Error) {
+			sError += " " + vError.toString();
+			Log.error(vError.stack);
+		} else if (typeof vError === "object") {
+			sError += " " + JSON.stringify(vError);
+		} else if (vError) {
+			sError += " " + vError;
 		}
 
-		return false;
+		Log.error(sError, this);
+
+		this._updateWidgetInfo();
 	};
 
 	/**
-	 * Is the Highcharts library already loaded.
-	 * @return {boolean} True if loaded.
+	 * Sets the widget info from sap.sac.api.widget.getWidgetInfo to card's model widgetInfo
 	 */
-	AnalyticsCloudContent._isHighchartsIncludedByThirdParty = function () {
-		if (window.Highcharts) {
-			Log.warning(
-				"Highcharts library is already included on the page. The included version will be used and will not load another one.",
-				"sap.ui.integration.widgets.Card#AnalyticsCloud"
-			);
-			return true;
+	AnalyticsCloudContent.prototype._updateWidgetInfo = async function () {
+		// clear the last config after the widget is rendered
+		// sо that it can be re-rendered with new configuration,
+		// if the configuration is changed.
+		this._oLastConfig = null;
+
+		const oCard = this.getCardInstance();
+		const sContainerId = this._oWidgetContainer.getId();
+
+		let oWidgetInfo = {};
+		try {
+			oWidgetInfo = await sap.sac.api.widget.getWidgetInfo(sContainerId);
+		} catch (oError) {
+			Log.error("Call to sap.sac.api.widget.getWidgetInfo failed.", this);
 		}
 
-		return false;
+		oCard.getModel("widgetInfo").setData(oWidgetInfo);
+
+		oCard.scheduleFireStateChanged();
 	};
 
 	/**
-	 * Loads all files from the Highcharts dependencies list.
-	 * @param {string} sBaseUrl The base url of the sac service from which the Highcharts library can be loaded.
-	 * @return {Promise} A Promise which is resolved when all Highcharts dependencies are loaded. Rejected if there is a problem.
+	 * Displays widget initialization error to the end user and logs error message.
+	 * @param {string} sError The error message to log.
 	 */
-	AnalyticsCloudContent._loadModules = function (sBaseUrl) {
-		var oShim = this.HIGHCHART_MODULES,
-			aModules = Object.getOwnPropertyNames(oShim);
+	AnalyticsCloudContent.prototype._showError = function (sError) {
+		Log.error(sError, this);
 
-		sap.ui.loader.config({
-			paths: {
-				"highcharts": sBaseUrl + "/highcharts"
-			},
-			async: true,
-			shim: oShim
-		});
-
-		return this._require(aModules)
-			.catch(function () {
-				return Promise.reject("There was a problem with loading of the Highcharts library files.");
-			});
-	};
-
-	/**
-	 * Require the modules.
-	 * @param {array} aModules The modules to require
-	 * @return {Promise} A Promise which is resolved when the modules are loaded and rejected when failed to load.
-	 */
-	AnalyticsCloudContent._require = function (aModules) {
-		return new Promise(function (fnResolve, fnReject) {
-			sap.ui.require(
-				aModules,
-				function () {
-					fnResolve(arguments);
-				},
-				function (oError) {
-					fnReject(oError);
-				}
-			);
+		this.handleError({
+			illustrationType: IllustratedMessageType.UnableToLoad,
+			title: oResourceBundle.getText("CARD_ERROR_ANALYTICS_CLOUD_TITLE"),
+			description: oResourceBundle.getText("CARD_ERROR_ANALYTICS_CLOUD_DESCRIPTION")
 		});
 	};
 

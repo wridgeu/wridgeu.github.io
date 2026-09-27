@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([], function() {
@@ -9,8 +9,8 @@ sap.ui.define([], function() {
 	/**
 	 * Provide methods for sap.m.routing.Targets in sync mode
 	 * @private
-	 * @experimental
-	 * @since 1.33
+	 * @ui5-experimental-since 1.33
+	 * @deprecated as of 1.90
 	 */
 	return {
 

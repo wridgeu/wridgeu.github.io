@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -132,14 +132,29 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 	 *
 	 * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the Render-Output-Buffer.
 	 * @param {sap.m.ListItemBase} oLI an object representation of the control that should be rendered.
+	 * @param {sap.m.ListType} [sCheckType] optional type to check before rendering
 	 * @protected
 	 */
-	ListItemBaseRenderer.renderType = function(rm, oLI) {
-		var oTypeControl = oLI.getTypeControl(true);
-		if (oTypeControl) {
-			rm.renderControl(oTypeControl);
+	ListItemBaseRenderer.renderType = function(rm, oLI, sCheckType) {
+		if (!sCheckType || oLI.getEffectiveType() === sCheckType) {
+			const oTypeControl = oLI.getTypeControl(true);
+			this.renderTypeContent(rm, oLI, oTypeControl);
 		}
 	};
+
+	/**
+     * Renders type content for the list item
+     *
+     * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the Render-Output-Buffer.
+     * @param {sap.m.ListItemBase} oLI an object representation of the control that should be rendered.
+     * @param {sap.ui.core.Control} oTypeControl the control representing the type content
+     * @protected
+     */
+    ListItemBaseRenderer.renderTypeContent = function(rm, oLI, oTypeControl) {
+        if (oTypeControl) {
+            rm.renderControl(oTypeControl);
+        }
+    };
 
 	/**
 	 * Renders list item HTML starting tag
@@ -164,6 +179,10 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 	};
 
 	ListItemBaseRenderer.renderTabIndex = function(rm, oLI) {
+		const oList = oLI.getList();
+		if (oList?.getSkipGroupHeaderFocus() && oLI.isGroupHeader()) {
+			return;
+		}
 		rm.attr("tabindex", "-1");
 	};
 
@@ -254,8 +273,8 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 			return "";
 		}
 
-		var aDescribedBy = [],
-			sType = oLI.getType();
+		const aDescribedBy = [];
+		const sType = oLI.getEffectiveType();
 
 		if (oLI.getListProperty("showUnread") && oLI.getUnread()) {
 			aDescribedBy.push(this.getAriaAnnouncement("unread"));
@@ -306,6 +325,7 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 			};
 
 		if (sAriaLabelledBy) {
+			// Maybe remove the aria-labelled by here? Or remove logic that has ariaLabelledBy
 			mAccessibilityState.labelledby = {
 				value: sAriaLabelledBy.trim(),
 				append: true
@@ -326,12 +346,20 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 		if (sRole === "listitem") {
 			mAccessibilityState.selected = null;
 			if (oLI.isGroupHeader()) {
+				const oList = oLI.getList();
 				bPositionNeeded = false;
-				mAccessibilityState.role = "group";
+				mAccessibilityState.role = oList?.getAriaRole() === "listbox" ? "group" : "listitem";
+
+				if (oLI.getTitle) {
+					mAccessibilityState.label = oLI.getTitle();
+				}
 				mAccessibilityState.roledescription = Library.getResourceBundleFor("sap.m").getText("LIST_ITEM_GROUP_HEADER");
-				var aGroupedItems = oLI.getGroupedItems();
-				if (aGroupedItems && aGroupedItems.length) {
-					mAccessibilityState.owns = aGroupedItems.join(" ");
+
+				if (!oList?._hasNestedGrouping()) {
+					const aGroupedItems = oLI.getGroupedItems();
+					if (aGroupedItems && aGroupedItems.length) {
+						mAccessibilityState.owns = aGroupedItems.join(" ");
+					}
 				}
 			}
 		} else if (oLI.isSelectable()) {
@@ -354,6 +382,27 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 	 * @protected
 	 */
 	ListItemBaseRenderer.renderLIContent = function(rm, oLI) {
+	};
+
+	/**
+	 * Hook for rendering a list's sub list (in case of grouping).
+	 *
+	 * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the Render-Output-Buffer.
+	 * @param {sap.m.ListItemBase} oLI an object representation of the control that should be rendered.
+	 * @protected
+	 */
+	ListItemBaseRenderer.renderLISubList = function(rm, oLI) {
+		rm.openStart("ul");
+		rm.attr("role", "list");
+		rm.attr("aria-labelledby", oLI.getId() + "-title");
+
+		var aGroupedItems = oLI.getGroupedItems();
+		if (aGroupedItems && aGroupedItems.length) {
+			rm.attr("aria-owns", aGroupedItems.join(" "));
+		}
+
+		rm.openEnd();
+		rm.close("ul");
 	};
 
 	/**
@@ -387,14 +436,26 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 	 */
 	ListItemBaseRenderer.renderContentLatter = function(rm, oLI) {
 		this.renderCounter(rm, oLI);
-		this.renderType(rm, oLI);
-		this.renderMode(rm, oLI, 1);
+		const iMaxActionsCount = oLI._getMaxActionsCount();
+		if (iMaxActionsCount < 0) {
+			this.renderType(rm, oLI);
+			this.renderMode(rm, oLI, 1);
+		} else if (iMaxActionsCount > 0) {
+			this.renderActions(rm, oLI);
+		} else {
+			this.renderType(rm, oLI, ListItemType.Navigation);
+		}
 		this.renderNavigated(rm, oLI);
 	};
 
 	ListItemBaseRenderer.renderLIContentWrapper = function(rm, oLI) {
 		rm.openStart("div", oLI.getId() + "-content").class("sapMLIBContent").openEnd();
 		this.renderLIContent(rm, oLI);
+
+		const oList = oLI.getList();
+		if (oList?._hasNestedGrouping() && oLI.isGroupHeader()) {
+			this.renderLISubList(rm, oLI);
+		}
 		rm.close("div");
 	};
 
@@ -405,6 +466,42 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 
 		rm.openStart("div");
 		rm.class("sapMLIBNavigated");
+		rm.openEnd();
+		rm.close("div");
+	};
+
+	ListItemBaseRenderer.renderActions = function(rm, oLI) {
+		rm.openStart("div", oLI.getId() + "-actions");
+		rm.class("sapMLIBActions");
+		rm.openEnd();
+
+		oLI._getActionsToRender().forEach((oAction) => {
+			if (oAction.getVisible()) {
+				rm.renderControl(oAction._getAction());
+			} else {
+				this.renderHiddenAction(rm, oAction.getId());
+			}
+		});
+		if (oLI._hasOverflowActions()) {
+			rm.renderControl(oLI._getOverflowButton());
+		}
+		this.renderNavigationInActions(rm, oLI);
+
+		rm.close("div");
+	};
+
+	ListItemBaseRenderer.renderNavigationInActions = function(rm, oLI, bRenderHidden) {
+		if (oLI.getEffectiveType() === ListItemType.Navigation) {
+			const oNavigationControl = oLI.getNavigationControl(true);
+			this.renderTypeContent(rm, oLI, oNavigationControl);
+		} else if (bRenderHidden) {
+			this.renderHiddenAction(rm, oLI.getId() + "-imgNav");
+		}
+	};
+
+	ListItemBaseRenderer.renderHiddenAction = function(rm, sActionId) {
+		rm.openStart("div", sActionId + "-hidden");
+		rm.class("sapMLIBActionHidden");
 		rm.openEnd();
 		rm.close("div");
 	};
@@ -432,7 +529,10 @@ sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap
 		rm.class("sapMLIB");
 		rm.class("sapMLIB-CTX");
 		rm.class("sapMLIBShowSeparator");
-		rm.class("sapMLIBType" + oLI.getType());
+		const sType = oLI.getEffectiveType();
+		if (oLI._getMaxActionsCount() === -1 || !sType.startsWith("Detail")) {
+			rm.class("sapMLIBType" + sType);
+		}
 
 		if (oLI.isActionable(true)) {
 			rm.class("sapMLIBActionable");

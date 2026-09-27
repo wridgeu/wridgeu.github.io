@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -39,8 +39,6 @@ sap.ui.define([
 			properties: {
 				/**
 				 * The actions configuration.
-				 * @experimental since 1.75
-				 * Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
 				 * @deprecated Since version 1.85
 				 * This property is replaced by the <code>actions</code> aggregation of the card;
 				 */
@@ -51,7 +49,7 @@ sap.ui.define([
 
 				/**
 				 * The formatters that can be used in the manifest.
-				 * @experimental since 1.79
+				 * @since 1.79
 				 */
 				formatters: {
 					type: "object"
@@ -65,8 +63,7 @@ sap.ui.define([
 				 * When an action is triggered in the card it can be handled on several places by "action" event handlers. In consecutive order those places are: <code>Extension</code>, <code>Card</code>, <code>Host</code>.
 				 * Each of them can prevent the next one to handle the action by calling <code>oEvent.preventDefault()</code>.
 				 *
-				 * @experimental since 1.75
-				 * Disclaimer: this event is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+				 * @since 1.75
 				 */
 				action: {
 
@@ -92,8 +89,20 @@ sap.ui.define([
 
 						/**
 						 * The parameters related to the triggered action.
+						 *
+						 * <b>Disclaimer:</b> Since 1.129 the special parameter <code>data</code> for action <code>Submit</code> is deprecated and must not be used. Use event parameter <code>formData</code> instead.
 						 */
 						parameters: {
+							type: "object"
+						},
+
+						/**
+						 * All form data that is filled inside the card. This parameter is available only with action types <code>Submit</code> and <code>Custom</code>.
+						 *
+						 * The format will be the same as in the <code>form</code> model available in the card manifest. For more information look at the documentation for each individual form type.
+						 * @since 1.129
+						 */
+						formData: {
 							type: "object"
 						},
 
@@ -179,9 +188,14 @@ sap.ui.define([
 	/**
 	 * Override this method to lazy load dependencies for the extension.
 	 *
+	 * The card waits for the returned promise to resolve before it continues with its initialization.
+	 * If the promise is rejected, the card initialization fails and an error message is shown.
+	 *
+	 * The default implementation loads no dependencies and returns an already resolved promise.
+	 *
 	 * @public
-	 * @experimental Since 1.108
-	 * @returns {Promise} Returns a promise. The card will wait for this promise to be resolved before continuing with the initialization.
+	 * @since 1.108
+	 * @returns {Promise<any>} A promise which resolves when all dependencies of the extension are loaded.
 	 */
 	Extension.prototype.loadDependencies = function () {
 		return Promise.resolve();
@@ -200,8 +214,9 @@ sap.ui.define([
 	 * Starts the process of fetching a resource from the network, returning a promise that is fulfilled once the response is available.
 	 * Use this method to override the default behavior when fetching network resources.
 	 * Mimics the browser native Fetch API.
-	 * @public
-	 * @experimental Since 1.113. The API might change.
+	 * @private
+	 * @ui5-restricted sap.insights
+	 * @since 1.113
 	 * @param {string} sResource This defines the resource that you wish to fetch.
 	 * @param {object} mOptions An object containing any custom settings that you want to apply to the request.
 	 * @param {object} mRequestSettings The map of request settings defined in the card manifest. Use this only for reading, they can not be modified.
@@ -216,6 +231,17 @@ sap.ui.define([
 		} else {
 			return fetch(sResource, mOptions);
 		}
+	};
+
+	/**
+	 * Override this method to provide a custom blocking message in case of an automatic blocking message shown by the card.
+	 * It will be called when there is a <code>NoData</code> or an <code>Error</code> message.
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {sap.ui.integration.BlockingMessageSettings} The blocking message settings.
+	 */
+	Extension.prototype.overrideBlockingMessage = function () {
+		return null;
 	};
 
 	/**

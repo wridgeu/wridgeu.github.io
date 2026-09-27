@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,14 +23,14 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.f.DynamicPageAccessibleLandmarkInfo
 	 * @since 1.61
 	 */
-	var DynamicPageAccessibleLandmarkInfo = Element.extend("sap.f.DynamicPageAccessibleLandmarkInfo", /** @lends sap.f.DynamicAccessibleLandmarkInfo.prototype */ { metadata : {
+	var DynamicPageAccessibleLandmarkInfo = Element.extend("sap.f.DynamicPageAccessibleLandmarkInfo", /** @lends sap.f.DynamicPageAccessibleLandmarkInfo.prototype */ { metadata : {
 
 		library : "sap.f",
 		properties : {
@@ -88,7 +88,16 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 			 *
 			 * If not set (and a landmark different than <code>sap.ui.core.AccessibleLandmarkRole.None</code> is defined), no label is set.
 			 */
-			footerLabel : {type : "string", defaultValue : null}
+			footerLabel : {type : "string", defaultValue : null},
+
+			/**
+			* Texts which describe the landmark of the section inside the header container of the corresponding <code>sap.f.DynamicPage</code> control.
+			*
+			* If not set, default "Expanded header" aria-label is set.
+			* @public
+			* @since 1.127.0
+			*/
+			headerContentLabel: {type : "string", defaultValue : null}
 		}
 	}});
 

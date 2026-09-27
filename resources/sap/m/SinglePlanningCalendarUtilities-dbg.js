@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -172,6 +172,32 @@ sap.ui.define([], function() {
 		} else {
 			return this.insertAt(iIndex + 1, oNode);
 		}
+	};
+
+	AppointmentsList.prototype.sort = function(fnComparator) {
+		if (this.getSize() <= 1) {
+			return this;
+		}
+
+		var aNodes = [];
+		this.getIterator().forEach(function(oNode) {
+			aNodes.push(oNode);
+		});
+
+		aNodes.sort(fnComparator);
+
+		this.head = aNodes[0];
+		this.tail = aNodes[aNodes.length - 1];
+		this.size = aNodes.length;
+
+		for (var i = 0; i < aNodes.length; i++) {
+			aNodes[i].prev = (i > 0) ? aNodes[i - 1] : null;
+			aNodes[i].next = (i < aNodes.length - 1) ? aNodes[i + 1] : null;
+		}
+
+		this.iterator = new AppointmentsIterator(this);
+
+		return this;
 	};
 
 	// AppointmentsList Iterator

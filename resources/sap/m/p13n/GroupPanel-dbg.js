@@ -1,11 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"./QueryPanel", "sap/m/HBox", "sap/m/CheckBox", "sap/ui/layout/Grid"
-], function (QueryPanel, HBox, CheckBox, Grid) {
+	"./QueryPanel",
+	"sap/m/HBox",
+	"sap/m/CheckBox",
+	"sap/ui/core/Lib",
+	"sap/ui/layout/Grid",
+	"sap/ui/layout/GridData"
+], (QueryPanel, HBox, CheckBox, Library, Grid, GridData) => {
 	"use strict";
 
 	/**
@@ -21,12 +26,12 @@ sap.ui.define([
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @alias sap.m.p13n.GroupPanel
 	 */
-	var GroupPanel = QueryPanel.extend("sap.m.p13n.GroupPanel", {
+	const GroupPanel = QueryPanel.extend("sap.m.p13n.GroupPanel", {
 		metadata: {
 			library: "sap.m",
 			properties: {
@@ -36,7 +41,7 @@ sap.ui.define([
 				 */
 				title: {
 					type: "string",
-					defaultValue: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("p13n.DEFAULT_TITLE_GROUP")
+					defaultValue: Library.getResourceBundleFor("sap.m").getText("p13n.DEFAULT_TITLE_GROUP")
 				},
 				/**
 				 * Toggles an additional checkbox in the group panel to define whether items are made visible.
@@ -70,19 +75,25 @@ sap.ui.define([
 
 	/**
 	 * Sets the personalization state of the panel instance.
+	 *
 	 * @name sap.m.p13n.GroupPanel.setP13nData
 	 * @function
 	 * @public
-	 * @param {sap.m.p13n.GroupItem} aP13nData An array containing the personalization state
+	 * @param {sap.m.p13n.GroupItem[]} aP13nData An array containing the personalization state
 	 * @returns {sap.m.p13n.GroupPanel} The GroupPanel instance
 	 *
 	 */
 
-	GroupPanel.prototype._createQueryRowGrid = function(oItem) {
-		var sKey = oItem.name;
-		var oSelect = this._createKeySelect(sKey);
+	GroupPanel.prototype.init = function() {
+		QueryPanel.prototype.init.apply(this, arguments);
+		this.addStyleClass("sapMP13nGroupPanel");
+	};
 
-		var oGrid = new Grid({
+	GroupPanel.prototype._createQueryRowGrid = function(oItem) {
+		const sKey = oItem.name;
+		const oSelect = this._createKeySelect(sKey);
+
+		const oGrid = new Grid({
 			containerQuery: true,
 			defaultSpan: this.getEnableShowField() ? "XL4 L4 M4 S4" : "XL6 L6 M6 S6",
 			content: [
@@ -90,8 +101,18 @@ sap.ui.define([
 			]
 		}).addStyleClass("sapUiTinyMargin");
 
-		if (this.getEnableShowField()){
-			var oCheckBox = this._createCheckBox(oItem);
+		let sSpan = "XL6 L6 M6 S8";
+		if (this.getEnableShowField()) {
+			sSpan = "XL4 L4 M4 S12"; // use full row on small screens to prevent truncation of Checkbox label
+		} else if (!this.getEnableReorder() || this.getQueryLimit() === 1) { // no reordering
+			sSpan = "XL6 L6 M6 S10"; // no reordering, use available space
+		}
+		oSelect.setLayoutData(new GridData(oSelect.getId() + "-GD", {
+			span: sSpan
+		})).setWidth("100%");
+
+		if (this.getEnableShowField()) {
+			const oCheckBox = this._createCheckBox(oItem);
 			oGrid.addContent(oCheckBox);
 		}
 
@@ -99,36 +120,52 @@ sap.ui.define([
 	};
 
 	GroupPanel.prototype._createCheckBox = function(oItem) {
-		var sKey = oItem.name;
-		var oCheckBox = new HBox({
+		const sKey = oItem.name;
+		const oCheckBox = new HBox({
 			alignItems: "Center",
 			items: [
 				new CheckBox({
 					enabled: sKey ? true : false,
+					wrapping: true,
 					selected: oItem.hasOwnProperty("showIfGrouped") ? oItem.showIfGrouped : true,
-					select: function(oEvt) {
-						var oPanel = oEvt.getSource().getParent().getParent().getParent().getParent().getParent().getParent();
-						var sKey = oEvt.oSource.getParent().getParent().getContent()[0].getSelectedItem().getKey();
+					select: (oEvt) => {
+						const sKey = oEvt.getSource().getParent().getParent().getContent()[0].getSelectedItem().getKey();
 						this._changeShowIfGrouped(sKey, oEvt.getParameter("selected"));
-						oPanel.fireChange({
-							reason: "change",
-							item: {
-								name: sKey,
-								grouped: true,
-								showIfGrouped: oEvt.getParameter("selected")
-							}
-						});
-					}.bind(this),
+					},
 					text: this._getResourceText("p13n.GROUP_CHECKBOX")
 				})
-			]
+			],
+			layoutData: new GridData({
+				span: "XL4 L4 M4 S12", // use full row on small screens to prevent truncation
+				linebreakS: true
+			})
 		});
 
 		return oCheckBox;
 	};
 
-	GroupPanel.prototype._changeShowIfGrouped = function (sKey, bShow) {
-		var aItems = this._getP13nModel().getProperty("/items").filter(function (oItem) {
+	GroupPanel.prototype._createRemoveButton = function() {
+		const oRemoveBtn = QueryPanel.prototype._createRemoveButton.apply(this, arguments);
+		if (this.getEnableShowField()) {
+			oRemoveBtn.setLayoutData(new GridData(oRemoveBtn.getId() + "-GD", {
+				span: "XL4 L4 M4 S4", // use full row on small screens to prevent truncation
+				indentS: 8,
+				linebreakS: true
+			}));
+		} else {
+			let sSpan = "XL6 L6 M6 S4";
+			if (!this.getEnableReorder() || this.getQueryLimit() === 1) { // no reordering
+				sSpan = "XL6 L6 M6 S2";
+			}
+			oRemoveBtn.setLayoutData(new GridData(oRemoveBtn.getId() + "-GD", {
+				span: sSpan
+			}));
+		}
+		return oRemoveBtn;
+	};
+
+	GroupPanel.prototype._changeShowIfGrouped = function(sKey, bShow) {
+		const aItems = this._getP13nModel().getProperty("/items").filter((oItem) => {
 			return oItem.name === sKey;
 		});
 
@@ -140,15 +177,15 @@ sap.ui.define([
 		});
 	};
 
-	GroupPanel.prototype._getPlaceholderText = function () {
+	GroupPanel.prototype._getPlaceholderText = function() {
 		return this._getResourceText("p13n.GROUP_PLACEHOLDER");
 	};
 
-	GroupPanel.prototype._getRemoveButtonTooltipText = function () {
+	GroupPanel.prototype._getRemoveButtonTooltipText = function() {
 		return this._getResourceText("p13n.GROUP_REMOVEICONTOOLTIP");
 	};
 
-	GroupPanel.prototype._getRemoveButtonAnnouncementText = function () {
+	GroupPanel.prototype._getRemoveButtonAnnouncementText = function() {
 		return this._getResourceText("p13n.GROUP_REMOVEICONANNOUNCE");
 	};
 
@@ -157,9 +194,9 @@ sap.ui.define([
 		QueryPanel.prototype._selectKey.apply(this, arguments);
 
 		//Enable CheckBox
-		var oListItem = oComboBox.getParent().getParent();
-		var sNewKey = oComboBox.getSelectedKey();
-		var aContent = oListItem.getContent()[0].getContent();
+		const oListItem = oComboBox.getParent().getParent();
+		const sNewKey = oComboBox.getSelectedKey();
+		const aContent = oListItem.getContent()[0].getContent();
 
 		aContent[1].getItems()[0].setEnabled(!!sNewKey);
 	};

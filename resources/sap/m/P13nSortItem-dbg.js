@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,40 +17,40 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class Type for <code>sortItems</code> aggregation in P13nSortPanel control.
 	 * @extends sap.ui.core.Item
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
 	 * @alias sap.m.P13nSortItem
-     * @deprecated sind 1.120
+     * @deprecated As of 1.120, replaced by the artifacts in {@link sap.m.p13n}.
 	 */
 	var P13nSortItem = Item.extend("sap.m.P13nSortItem", /** @lends sap.m.P13nSortItem.prototype */
-	{
-		metadata: {
+		{
+			metadata: {
 
-			library: "sap.m",
-			properties: {
+				library: "sap.m",
+				properties: {
 
-				/**
-				 * sap.m.P13nConditionOperation
-				 */
-				operation: {
-					type: "string",
-					group: "Misc",
-					defaultValue: null
-				},
+					/**
+					 * sap.m.P13nConditionOperation
+					 */
+					operation: {
+						type: "string",
+						group: "Misc",
+						defaultValue: null
+					},
 
-				/**
-				 * key of the column
-				 */
-				columnKey: {
-					type: "string",
-					group: "Misc",
-					defaultValue: null
+					/**
+					 * key of the column
+					 */
+					columnKey: {
+						type: "string",
+						group: "Misc",
+						defaultValue: null
+					}
 				}
 			}
-		}
-	});
+		});
 
 	P13nSortItem.prototype.setColumnKey = function(v) {
 		return this.setProperty("columnKey", v, true);

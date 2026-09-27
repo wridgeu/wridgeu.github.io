@@ -118,7 +118,11 @@ var cssSchema = (function () {
         'inset' ], [ 'invert' ], [ 'justify' ], [ 'local' ], [ 'medium' ], [
         'mix' ], [ 'none' ], [ 'normal' ], [ 'once' ], [ 'repeat' ], [ 'scroll'
       ], [ 'separate' ], [ 'small-caps' ], [ 'spell-out' ], [ 'transparent' ],
-      [ 'visible' ] ];
+      [ 'visible' ],
+      // ##### BEGIN: MODIFIED BY SAP
+      [ 'flex', 'inline-flex', 'grid', 'inline-grid', 'flow-root', 'contents' ], [ 'initial', 'revert', 'revert-layer', 'unset' ]
+      // ##### END: MODIFIED BY SAP
+    ];
     return {
       '-moz-border-radius': {
         'cssExtra': c[ 0 ],
@@ -440,7 +444,9 @@ var cssSchema = (function () {
       },
       'display': {
         'cssPropBits': 32,
-        'cssLitGroup': [ L[ 2 ], L[ 47 ], L[ 54 ] ]
+        // ##### BEGIN: MODIFIED BY SAP
+        'cssLitGroup': [ L[ 2 ], L[ 47 ], L[ 54 ], L[ 64 ], L[ 65 ] ]
+        // ##### END: MODIFIED BY SAP
       },
       'elevation': {
         'cssPropBits': 5,
@@ -707,6 +713,12 @@ var cssSchema = (function () {
         'cssPropBits': 0,
         'cssLitGroup': [ L[ 18 ], L[ 47 ], L[ 54 ] ]
       },
+      // ##### BEGIN: MODIFIED BY SAP
+      'text-decoration-line': {
+        'cssPropBits': 0,
+        'cssLitGroup': [ L[ 18 ], L[ 47 ], L[ 54 ] ]
+      },
+      // ##### END: MODIFIED BY SAP
       'text-indent': {
         'cssPropBits': 5,
         'cssLitGroup': [ L[ 47 ] ]
@@ -2004,7 +2016,7 @@ if (typeof window !== 'undefined') {
 }
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 // Based on coding from the HTML4 Sanitizer by Google Inc.
@@ -2547,7 +2559,7 @@ html4.ELEMENTS = {
 	'hr': 2, //EMPTY
 	'html': 49, //OPTIONAL_ENDTAG, UNSAFE, FOLDABLE
 	'i': 0,
-	'iframe': 4, //CDATA
+	'iframe': 0, //new
 	'img': 2,//EMPTY
 	'input': 2, //EMPTY
 	'ins': 0,

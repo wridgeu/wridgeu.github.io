@@ -1,12 +1,14 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 sap.ui.define([
+	"sap/base/Eventing",
 	"sap/base/config/MemoryConfigurationProvider",
 	"ui5loader-autoconfig"
 ], (
+	Eventing,
 	MemoryConfigurationProvider
 	/*autoconfig*/
 ) => {
@@ -16,16 +18,16 @@ sap.ui.define([
 	 * The base Configuration.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+	 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.integration, sap.ui.export, sap.ushell
 	 * @alias module:sap/base/config
-	 * @borrows module:sap/base/config/_Configuration.get as get
-	 * @borrows module:sap/base/config/_Configuration.Type as Type
 	 * @namespace
 	 */
 
 	const _Configuration = sap.ui.require("sap/base/config/_Configuration");
+
+	const oEventing = new Eventing();
 
 	/**
 	 * Returns a writable base configuration instance
@@ -54,6 +56,23 @@ sap.ui.define([
 			},
 			Type: _Configuration.Type
 		};
+	};
+
+	/**
+	 * Attaches the <code>fnFunction</code> event handler to the {@link #event:invalidated invalidated} event
+	 *
+	 * @param {function} fnFunction The function to be called when the event occurs
+	 * @private
+	 */
+	function attachInvalidated(fnFunction) {
+		oEventing.attachEvent("invalidated", fnFunction);
+	}
+	_Configuration._.attachInvalidated = attachInvalidated;
+
+	const origInvalidate = _Configuration._.invalidate;
+	_Configuration._.invalidate = () => {
+		origInvalidate();
+		oEventing.fireEvent("invalidated");
 	};
 
 	return _Configuration;

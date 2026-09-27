@@ -1,14 +1,14 @@
 /* eslint-disable no-loop-func */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/strings/formatMessage", "sap/m/OverflowToolbarButton", "../library"], function(PluginBase, Log, Core, formatTemplate, OverflowToolbarButton, library) {
+sap.ui.define(["./PluginBase", "sap/base/Log", "sap/base/strings/formatMessage", "sap/base/security/encodeXML", "sap/m/OverflowToolbarButton", "../library", "sap/ui/core/Element", "sap/ui/core/Lib", "sap/ui/Device"], function(PluginBase, Log, formatTemplate, encodeXML, OverflowToolbarButton, mLibrary, Element, coreLib, Device) {
 	"use strict";
 
-	const CopyPreference = library.plugins.CopyPreference;
+	const CopyPreference = mLibrary.plugins.CopyPreference;
 
 	/**
 	 * Constructor for a new CopyProvider plugin that can be used to copy table rows to the clipboard.
@@ -37,22 +37,47 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @since 1.110
 	 * @alias sap.m.plugins.CopyProvider
+	 * @borrows sap.m.plugins.PluginBase.findOn as findOn
 	 */
-	var CopyProvider = PluginBase.extend("sap.m.plugins.CopyProvider", /** @lends sap.m.plugins.CopyProvider.prototype */ { metadata: {
+	const CopyProvider = PluginBase.extend("sap.m.plugins.CopyProvider", /** @lends sap.m.plugins.CopyProvider.prototype */ { metadata: {
 		library: "sap.m",
 		properties: {
 			/**
 			 * Callback function to extract the cell data that is copied to the clipboard.
+			 * <ul>
+			 * <li>If an array is returned, then each array value will be copied as a separate cell into the clipboard.</li>
+			 * <li>If <code>undefined</code> or <code>null</code> is returned, then the cell will be excluded from copying.</li>
+			 * <li>If an object is returned, then it must have the following properties:
+			 * <ul>
+			 *     <li><code>text</code>: (mandatory) The cell data to be copied to the clipboard as <code>text/plain</code> MIME type.</li>
+			 *     <li><code>html</code>: (optional) The cell data to be copied to the clipboard as <code>text/html</code> MIME type.</li>
+			 * </ul>
+			 * </li>
+			 * </ul>
+			 *
+			 * <b>Note:</b> The <code>CopyProvider</code> uses the <code>text/html</code> MIME type to display the merged cell data shown in a UI5 table as a single cell in the clipboard. This allows users
+			 * in applications supporting <code>text/html</code> MIME type, such as <code>Spreadsheet</code>, to preserve the cell data format that appears in a UI5 table.
+			 * The <code>CopyProvider</code> also uses the <code>text/plain</code> MIME type to display the merged cell data shown in a UI5 table as separate clipboard cells. This allows users
+			 * to edit plain data with applications like <code>SpreadSheet</code>, then copy and paste the data back into a UI5 table, preserving data integrity without in-cell formatting.<br>
+			 * Spreadsheet-like applications supporting <code>text/html</code> MIME type typically prioritize <code>text/html</code> clipboard data during paste. This means that
+			 * the data format copied from a UI5 table is preserved with the default paste operation. Users wanting to make edits can access the individual and unformatted cell data in the clipboard,
+			 * which is stored in the text/plain MIME type, by selecting the "Paste Special" option and then choosing "Unicode Text" in spreadsheet applications.<br>
+			 *
+			 * <b>Note:</b> Using <code>text/html</code> MIME type as a clipboard item might not be supported on all platforms. In such cases, the <code>CopyProvider</code> writes only <code>text/plain</code> data
+			 * to the clipboard. Refer to the <code>bIncludeHtmlMimeType</code> parameter and do not return the object type if this value is <code>false</code>.<br>
+			 *
+			 * <b>Note:</b> Even if the user is on a platform supporting <code>text/html</code> MIME type as a clipboard item, currently, any HTML tags are not allowed; all data is encoded.
 			 *
 			 * @callback sap.m.plugins.CopyProvider.extractDataHandler
 			 * @param {sap.ui.model.Context|sap.m.ColumnListItem} oContextOrRow The binding context of the selected row or the row instance if there is no binding
 			 * @param {sap.m.Column|sap.ui.table.Column|sap.ui.mdc.table.Column} oColumn The related column instance of selected cells
-			 * @returns {*|Array.<*>|undefined|null} The cell data to be copied or array of cell data to be split into different cells in the clipboard. <code>undefined</code> or <code>null</code> to exclude the cell from copying.
+			 * @param {boolean} bIncludeHtmlMimeType Indicates whether writing <code>text/html</code> MIME type to the clipboard is supported
+			 * @returns {*|{text: *, html: *}|Array.<*>|undefined|null} The cell data to be copied to the clipboard
 			 * @public
 			 */
 			/**
@@ -62,7 +87,7 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 			 * For the <code>sap.ui.table.Table</code> control, the row context parameter can also be the context of an unselectable row in case of a range selection, for example the context of grouping or sub-total row.<br>
 			 * For the <code>sap.m.Table</code> control, if the <code>items</code> aggregation of the table is not bound then the callback function gets called with the row instance instead of the binding context.<br>
 			 * The callback function must return the cell data that is then stringified and copied to the clipboard.<br>
-			 * If an array is returned from the callback function, then each array values will be copied as a separate cell into the clipboard.<br>
+			 * If an array is returned from the callback function, then each array value will be copied as a separate cell into the clipboard.<br>
 			 * If a column should not be copied to the clipboard, then the callback function must return <code>undefined</code> or <code>null</code> for each cell of the same column.<br>
 			 * <br>
 			 * <b>Note:</b> This property is mandatory to make the <code>CopyProvider</code> plugin work, and it must be set in the constructor.
@@ -73,6 +98,9 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 			 * Determines whether unselected rows that are located between the selected rows are copied to the clipboard as an empty row.
 			 *
 			 * This can be useful for maintaining the original structure of the data when it is pasted into a new location (e.g. spreadsheets).
+			 *
+			 * <b>Note:</b> Sparse copying must not be enabled in combination with <code>sap.ui.table.plugins.ODataV4MultiSelection</code> or the
+			 * <code>sap.ui.mdc.Table</code> with the <code>sap.ui.mdc.odata.v4.TableDelegate</code>.
 			 */
 			copySparse: { type: "boolean", defaultValue: false, invalidate: false },
 
@@ -133,34 +161,43 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 		}
 	}});
 
-	function isCellValueCopyable(vCellValue) {
-		return vCellValue != null;
+	function isHtmlMimeTypeAllowed() {
+		return Boolean(Device.system.desktop && window.ClipboardItem && navigator.clipboard?.write);
 	}
 
-	function stringifyForSpreadSheet(vCellValue) {
-		if (isCellValueCopyable(vCellValue)) {
-			var sCellValue = String(vCellValue);
-			return /\n|\r|\t/.test(sCellValue) ? '"' + sCellValue.replaceAll('"', '""') + '"' : sCellValue;
-		} else {
+	function isCellDataCopyable(vCellData) {
+		return vCellData != null;
+	}
+
+	function pushCellDataTo(vCellData, aArray) {
+		if (isCellDataCopyable(vCellData)) {
+			aArray.push(...[].concat(vCellData));
+		}
+	}
+
+	function stringifyForHtmlMimeType(vCellData) {
+		if (!isCellDataCopyable(vCellData)) {
 			return "";
 		}
+
+		const sCellData = String(vCellData).replaceAll("\r\n", "\n").replaceAll("\t", "    ");
+		return encodeXML(sCellData).replaceAll("&#x20;", "&nbsp;").replaceAll("&#xa;", "<br>");
 	}
 
-	function copyMatrixForSpreadSheet(oCopyProvider, aMatrix) {
-		if (!navigator.clipboard) {
-			throw new Error(oCopyProvider + " requires a secure context in order to access the clipboard API.");
+	function stringifyForTextMimeType(vCellData) {
+		if (!isCellDataCopyable(vCellData)) {
+			return "";
 		}
 
-		var sClipboardText = aMatrix.map(function(aRows) {
-			return aRows.map(stringifyForSpreadSheet).join("\t");
-		}).join("\n");
-
-		return navigator.clipboard.writeText(sClipboardText);
+		const sCellData = String(vCellData);
+		return /\n|\r|\t/.test(sCellData) ? '"' + sCellData.replaceAll('"', '""') + '"' : sCellData;
 	}
 
+	CopyProvider.findOn = PluginBase.findOn;
+
 	CopyProvider.prototype._shouldManageExtractData = function() {
-		var oControl = this.getControl();
-		var oParent = this.getParent();
+		const oControl = this.getControl();
+		const oParent = this.getParent();
 		return (oControl !== oParent && oParent.indexOfDependent(this) == -1);
 	};
 
@@ -179,37 +216,52 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 	};
 
 	CopyProvider.prototype.onActivate = function(oControl) {
-		this._oDelegate = { onkeydown: this.onkeydown };
+		this._oDelegate = { onkeydown: this.onkeydown, onBeforeRendering: this.onBeforeRendering };
 		oControl.addEventDelegate(this._oDelegate, this);
 
-		this._oCopyButton && this._oCopyButton.setEnabled(true);
 		this._shouldManageExtractData() && this.setExtractData(this._extractData.bind(this));
+
+		this._handleCellSelectorSelectionChange();
+		this._handleControlSelectionChange();
+		this._updateCopyButtonVisibility();
+		this._updateCopyButtonEnabled();
 	};
 
 	CopyProvider.prototype.onDeactivate = function(oControl) {
 		oControl.removeEventDelegate(this._oDelegate, this);
 		this._oDelegate = null;
 
-		this._oCopyButton && this._oCopyButton.setEnabled(false);
 		this._shouldManageExtractData() && this.setExtractData();
+
+		this._handleCellSelectorSelectionChange();
+		this._handleControlSelectionChange();
+		this._updateCopyButtonEnabled();
 	};
 
 	CopyProvider.prototype.setVisible = function(bVisible) {
 		this.setProperty("visible", bVisible, true);
-		this._oCopyButton && this._oCopyButton.setVisible(this.getVisible());
+		this._updateCopyButtonVisibility();
 		return this;
 	};
 
 	CopyProvider.prototype.setParent = function() {
 		PluginBase.prototype.setParent.apply(this, arguments);
-		if (!this.getParent() && this._oCopyButton) {
-			this._oCopyButton.destroy(true);
-			this._oCopyButton = null;
+		if (!this.getParent()) {
+			this._destroyCopyButton();
 		}
+	};
+
+	CopyProvider.prototype.exit = function() {
+		PluginBase.prototype.exit.call(this);
+		this._mColumnClipboardSettings = null;
+		this._destroyCopyButton();
 	};
 
 	/**
 	 * Creates and returns a Copy button that can be used to trigger a copy action, for example, from the table toolbar.
+	 *
+	 * <b>Note:</b> The <code>visible</code> and <code>enabled</code> properties of the Copy button must be managed
+	 * through this plugin's own <code>visible</code> and <code>enabled</code> properties.
 	 *
 	 * @param {object} [mSettings] The settings of the button control
 	 * @returns {sap.m.OverflowToolbarButton} The button instance
@@ -218,24 +270,33 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 	 */
 	CopyProvider.prototype.getCopyButton = function(mSettings) {
 		if (!this._oCopyButton) {
-			this._oCopyButton = new OverflowToolbarButton(Object.assign({
+			const oBundle = coreLib.getResourceBundleFor("sap.m");
+			const sText = oBundle.getText("COPYPROVIDER_COPY");
+			this._oCopyButton = new OverflowToolbarButton({
 				icon: "sap-icon://copy",
-				visible: this.getVisible(),
-				tooltip: Core.getLibraryResourceBundle("sap.m").getText("COPYPROVIDER_COPY"),
-				press: this.copySelectionData.bind(this, true)
-			}, mSettings));
+				enabled: this._getEffectiveEnabled(),
+				visible: this._getEffectiveVisible(),
+				text: sText,
+				tooltip: sText,
+				press: this.copySelectionData.bind(this, true),
+				...mSettings
+			});
+			sap.ui.require(["sap/ui/core/ShortcutHintsMixin"], (ShortcutHintsMixin) => {
+				if (this._oCopyButton) { // Button might be destroyed in the meantime, esp. in tests
+					this._oCopyButton.attachBrowserEvent("keydown", this._onCopyButtonKeyDown, this);
+					ShortcutHintsMixin.addConfig(this._oCopyButton, { shortcut: "Ctrl+C" }, this.getParent());
+				}
+			});
 		}
 		return this._oCopyButton;
 	};
 
-	CopyProvider.prototype.exit = function() {
-		if (this._oCopyButton) {
-			this._oCopyButton.destroy(true);
-			this._oCopyButton = null;
+	CopyProvider.prototype._onCopyButtonKeyDown = function(oEvent) {
+		if (oEvent.repeat || oEvent.code !== "KeyC" || !(oEvent.ctrlKey || oEvent.metaKey)) {
+			return;
 		}
-		if (this._mColumnClipboardSettings) {
-			this._mColumnClipboardSettings = null;
-		}
+		oEvent.preventDefault();
+		this.copySelectionData(true);
 	};
 
 	/**
@@ -243,75 +304,111 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 	 * if the {@link sap.m.plugins.CellSelector CellSelector} plugin is also enabled for the table.
 	 * <b>Note: </b> The returned array might be a sparse array if the {@link #getCopySparse copySparse} property is <code>true</code>.
 	 *
-	 * @returns {Array.<Array.<*>>} Two-dimensional extracted data from the selection.
+	 * @param {boolean} bIncludeHtmlMimeType Determines whether the selection data to be returned includes <code>text/html</code> MIME type values, if the platform supports <code>text/html</code> MIME type as a clipboard item
+	 * @returns {Array.<Array.<*>>|{text: Array.<Array.<*>>, html: Array.<Array.<*>>}} Two-dimensional data extracted from the selection, or an object with <code>text</code> and <code>html</code> keys, each with two-dimensional data extracted from the selection if <code>bIncludeHtmlMimeType</code> parameter is <code>true</code> and the platform supports <code>text/html</code> MIME type as a clipboard item.
 	 * @public
 	 */
-	CopyProvider.prototype.getSelectionData = function() {
-		var oControl = this.getControl();
-		var fnExtractData = this.getExtractData();
+	CopyProvider.prototype.getSelectionData = function(bIncludeHtmlMimeType = false) {
+		const oControl = this.getControl();
+		const fnExtractData = this.getExtractData();
 		if (!oControl || !fnExtractData) {
 			return [];
 		}
 
-		var aSelectableColumns = this.getConfig("selectableColumns", oControl);
+		let aSelectableColumns = this.getConfig("selectableColumns", oControl);
 		if (!aSelectableColumns.length) {
 			return [];
 		}
 
 		if (oControl.getParent().isA("sap.ui.mdc.Table")) {
 			aSelectableColumns = aSelectableColumns.map(function(oSelectableColumn) {
-				return Core.byId(oSelectableColumn.getId().replace(/\-innerColumn$/, ""));
+				return Element.getElementById(oSelectableColumn.getId().replace(/\-innerColumn$/, ""));
 			});
 		}
 
-		var aSelectionData = [];
-		var aSelectedRowContexts = [];
-		var aAllSelectedRowContexts = [];
-		var bCopySparse = this.getCopySparse();
-		var fnExludeContext = this.getExcludeContext();
-		var oCellSelectorPlugin = PluginBase.getPlugin(this.getParent(), "sap.m.plugins.CellSelector") ?? PluginBase.getPlugin(oControl, "sap.m.plugins.CellSelector");
-		var mCellSelectionRange = oCellSelectorPlugin && oCellSelectorPlugin.getSelectionRange();
-		var aCellSelectorRowContexts = mCellSelectionRange ? oCellSelectorPlugin.getSelectedRowContexts() : [];
-		var bCellSelectorRowContextsMustBeMerged = Boolean(aCellSelectorRowContexts.length);
-		var bSelectedRowContextsMustBeSparse = bCellSelectorRowContextsMustBeMerged || bCopySparse;
+		let aSelectedRowContexts = [];
+		const aAllSelectedRowContexts = [];
+		const bCopySparse = this.getCopySparse();
+		const fnExludeContext = this.getExcludeContext();
+		const oCellSelectorPlugin = PluginBase.getPlugin(this.getParent(), "sap.m.plugins.CellSelector") ?? PluginBase.getPlugin(oControl, "sap.m.plugins.CellSelector");
+		const mCellSelectionRange = oCellSelectorPlugin && oCellSelectorPlugin.getSelectionRange();
+		const aCellSelectorRowContexts = mCellSelectionRange ? oCellSelectorPlugin.getSelectedRowContexts() : [];
+		const bCellSelectorRowContextsMustBeMerged = Boolean(aCellSelectorRowContexts.length);
+		const bSelectedRowContextsMustBeSparse = bCellSelectorRowContextsMustBeMerged || bCopySparse;
+
+		this._iSelectedRows = 0;
+		this._iSelectedCells = 0;
 
 		if (this.getCopyPreference() == CopyPreference.Full || !bCellSelectorRowContextsMustBeMerged) {
 			aSelectedRowContexts = this.getConfig("selectedContexts", oControl, bSelectedRowContextsMustBeSparse);
 			Object.assign(aAllSelectedRowContexts, aSelectedRowContexts);
+			this._iSelectedRows = aSelectedRowContexts.filter(Boolean).length;
 		}
 
 		if (bCellSelectorRowContextsMustBeMerged) {
 			Object.assign(aAllSelectedRowContexts, Array(mCellSelectionRange.from.rowIndex).concat(aCellSelectorRowContexts));
+			this._iSelectedCells = aCellSelectorRowContexts.length * (Math.abs(mCellSelectionRange.to.colIndex - mCellSelectionRange.from.colIndex) + 1);
 		}
 
-		for (var iContextIndex = 0; iContextIndex < aAllSelectedRowContexts.length; iContextIndex++) {
-			var oRowContext = aAllSelectedRowContexts[iContextIndex];
+		const aHtmlSelectionData = [];
+		const aTextSelectionData = [];
+		let bHtmlMimeTypeProvided = false;
+
+		if (bIncludeHtmlMimeType && !isHtmlMimeTypeAllowed()) {
+			bIncludeHtmlMimeType = false;
+		}
+
+		for (let iContextIndex = 0; iContextIndex < aAllSelectedRowContexts.length; iContextIndex++) {
+			const oRowContext = aAllSelectedRowContexts[iContextIndex];
 			if (!oRowContext) {
-				if (bCopySparse && aSelectionData.length) {
-					aSelectionData.push(Array(aSelectionData[0].length));
+				if (bCopySparse) {
+					if (aTextSelectionData.length) {
+						aTextSelectionData.push(Array(aTextSelectionData[0].length));
+					}
+					if (bHtmlMimeTypeProvided && aHtmlSelectionData.length) {
+						aHtmlSelectionData.push(Array(aHtmlSelectionData[0].length));
+					}
 				}
 			} else if (fnExludeContext && fnExludeContext(oRowContext)) {
 				continue;
 			} else {
-				var aRowData = [];
-				var bContextFromSelectedRows = (oRowContext == aSelectedRowContexts[iContextIndex]);
-				aSelectableColumns.forEach(function(oColumn, iColumnIndex) {
+				const aHtmlRowData = [];
+				const aTextRowData = [];
+				const bContextFromSelectedRows = (oRowContext == aSelectedRowContexts[iContextIndex]);
+				aSelectableColumns.forEach((oColumn, iColumnIndex) => {
 					if (bContextFromSelectedRows || (iColumnIndex >= mCellSelectionRange?.from.colIndex && iColumnIndex <= mCellSelectionRange?.to.colIndex)) {
-						var vCellData = fnExtractData(oRowContext, oColumn);
-						if (isCellValueCopyable(vCellData)) {
-							aRowData.push[Array.isArray(vCellData) ? "apply" : "call"](aRowData, vCellData);
+						const vCellData = fnExtractData(oRowContext, oColumn, bIncludeHtmlMimeType);
+						if (!isCellDataCopyable(vCellData)) {
+							return;
+						}
+
+						if (bIncludeHtmlMimeType && vCellData.hasOwnProperty("html")) {
+							bHtmlMimeTypeProvided = true;
+							pushCellDataTo(vCellData.html, aHtmlRowData);
+						}
+						if (bHtmlMimeTypeProvided && vCellData.hasOwnProperty("text")) {
+							pushCellDataTo(vCellData.text, aTextRowData);
+						} else {
+							pushCellDataTo(vCellData, aTextRowData);
 						}
 					} else if (aSelectedRowContexts.length) {
-						aRowData.push(undefined);
+						aTextRowData.push(undefined);
+						aHtmlRowData.push(undefined);
 					}
 				});
-				if (bCopySparse || aRowData.some(isCellValueCopyable)) {
-					aSelectionData.push(aRowData);
+				if (bHtmlMimeTypeProvided && (bCopySparse || aHtmlRowData.some(isCellDataCopyable))) {
+					aHtmlSelectionData.push(aHtmlRowData);
+				}
+				if (bCopySparse || aTextRowData.some(isCellDataCopyable)) {
+					aTextSelectionData.push(aTextRowData);
 				}
 			}
 		}
 
-		return aSelectionData;
+		return (bHtmlMimeTypeProvided) ? {
+			text: aTextSelectionData,
+			html: aHtmlSelectionData
+		} : aTextSelectionData;
 	};
 
 	/**
@@ -325,19 +422,70 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 	 * @public
 	 */
 	CopyProvider.prototype.copySelectionData = function(bFireCopyEvent) {
-		var aSelectionData = this.getSelectionData();
-		if (!aSelectionData.length || bFireCopyEvent && !this.fireCopy({ data: aSelectionData }, true)) {
+		const vSelectionData = this.getSelectionData(true);
+		const aTextSelectionData = vSelectionData.text || vSelectionData;
+		if (!aTextSelectionData.length || bFireCopyEvent && !this.fireCopy({data: aTextSelectionData}, true)) {
 			return Promise.resolve();
 		}
 
-		return copyMatrixForSpreadSheet(this, aSelectionData);
+		if (!navigator.clipboard) {
+			throw new Error(this + " requires a secure context in order to access the clipboard API.");
+		}
+
+		const aHtmlSelectionData = vSelectionData.html || [];
+		const sClipboardText = aTextSelectionData.map((aRows) => {
+			return aRows.map(stringifyForTextMimeType).join("\t");
+		}).join("\n");
+
+		if (!aHtmlSelectionData.length) {
+			return navigator.clipboard.writeText(sClipboardText).then(() => {
+				this._notifyUser();
+			});
+		}
+
+		const sHtmlMimeType = "text/html";
+		const sTextMimeType = "text/plain";
+		const sClipboardHtml = "<table><tr>" + aHtmlSelectionData.map((aRows) => {
+			return "<td>" + aRows.map(stringifyForHtmlMimeType).join("</td><td>") + "</td>";
+		}).join("</tr><tr>") + "</tr></table>";
+		const oClipboardItem = new ClipboardItem({
+			[sTextMimeType]: new Blob([sClipboardText], {type: sTextMimeType}),
+			[sHtmlMimeType]: new Blob([sClipboardHtml], {type: sHtmlMimeType})
+		});
+
+		return navigator.clipboard.write([oClipboardItem]).then(() => {
+			this._notifyUser();
+		});
+	};
+
+	/**
+	 * This hook gets called by the CellSelector when the selectable state is changed.
+	 *
+	 * @param {sap.m.plugins.CellSelector} oCellSelector The CellSelector instance
+	 * @private
+	 * @ui5-restricted sap.m.plugins.CellSelector
+	 */
+	CopyProvider.prototype.onCellSelectorSelectableChange = function(oCellSelector) {
+		this._handleCellSelectorSelectionChange(oCellSelector);
+		this._updateCopyButtonVisibility();
+	};
+
+	CopyProvider.prototype.onBeforeRendering = function() {
+		this._handleControlSelectionChange();
+		this._updateCopyButtonVisibility();
 	};
 
 	CopyProvider.prototype.onkeydown = function(oEvent) {
 		if (oEvent.isMarked() ||
 			oEvent.code != "KeyC" ||
 			!(oEvent.ctrlKey || oEvent.metaKey) ||
-			!oEvent.target.matches(this.getConfig("allowForCopySelector"))) {
+			!oEvent.target.matches(this.getConfig("allowForCopySelector")) ||
+			!this._isControlSelectable()) {
+			return;
+		}
+
+		const oSelection = window.getSelection();
+		if (oSelection.toString() && oSelection.containsNode(oEvent.target, true)) {
 			return;
 		}
 
@@ -346,12 +494,69 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 		this.copySelectionData(true);
 	};
 
-	CopyProvider.prototype._extractData = function(oRowContext, oColumn) {
+	CopyProvider.prototype._handleControlSelectionChange = function() {
+		const oControl = this.getControl();
+		this.getConfig("detachSelectionChange", oControl, this._updateCopyButtonEnabled, this);
+		if (this.isActive() && this.getConfig("isSelectable", oControl)) {
+			this.getConfig("attachSelectionChange", oControl, this._updateCopyButtonEnabled, this);
+		}
+	};
+
+	CopyProvider.prototype._handleCellSelectorSelectionChange = function(oCellSelector) {
+		oCellSelector ??= this.getPlugin("sap.m.plugins.CellSelector");
+		if (!oCellSelector) {
+			return;
+		}
+
+		oCellSelector.detachEvent("selectionChange", this._updateCopyButtonEnabled, this);
+		if (this.isActive() && oCellSelector.isSelectable()) {
+			oCellSelector.attachEvent("selectionChange", this._updateCopyButtonEnabled, this);
+		}
+	};
+
+	CopyProvider.prototype._isControlSelectable = function() {
+		return Boolean(
+			this.getConfig("isSelectable", this.getControl()) ||
+			this.getPlugin("sap.m.plugins.CellSelector")?.isSelectable()
+		);
+	};
+
+	CopyProvider.prototype._hasControlSelection = function() {
+		return Boolean(
+			this.getConfig("hasSelection", this.getControl()) ||
+			this.getPlugin("sap.m.plugins.CellSelector")?.hasSelection()
+		);
+	};
+
+	CopyProvider.prototype._destroyCopyButton = function() {
+		if (this._oCopyButton) {
+			this._oCopyButton.destroy();
+			this._oCopyButton = null;
+		}
+	};
+
+	CopyProvider.prototype._getEffectiveVisible = function() {
+		return this.getVisible() ? this._isControlSelectable() : false;
+	};
+
+	CopyProvider.prototype._updateCopyButtonVisibility = function() {
+		this._oCopyButton?.setVisible(this._getEffectiveVisible());
+	};
+
+	CopyProvider.prototype._getEffectiveEnabled = function() {
+		return this.isActive() ? this._hasControlSelection() : false;
+	};
+
+	CopyProvider.prototype._updateCopyButtonEnabled = function() {
+		this._oCopyButton?.setEnabled(this._getEffectiveEnabled());
+	};
+
+	CopyProvider.prototype._extractData = function(oRowContext, oColumn, bIncludeHtmlMimeType) {
 		if (!this._mColumnClipboardSettings) {
 			this._mColumnClipboardSettings = new WeakMap();
 		}
 
-		var mColumnClipboardSettings = this._mColumnClipboardSettings.get(oColumn);
+		let mColumnClipboardSettings = this._mColumnClipboardSettings.get(oColumn);
 		if (mColumnClipboardSettings === undefined) {
 			mColumnClipboardSettings = this.getParent().getColumnClipboardSettings(oColumn);
 			this._mColumnClipboardSettings.set(oColumn, mColumnClipboardSettings);
@@ -360,9 +565,9 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 			return;
 		}
 
-		var aPropertyValues = mColumnClipboardSettings.properties.map(function(sProperty, iIndex) {
-			var vPropertyValue = oRowContext.getProperty(sProperty);
-			var oType = mColumnClipboardSettings.types[iIndex];
+		const aPropertyValues = mColumnClipboardSettings.properties.map(function(sProperty, iIndex) {
+			let vPropertyValue = oRowContext.getProperty(sProperty);
+			const oType = mColumnClipboardSettings.types[iIndex];
 			if (oType) {
 				try {
 					vPropertyValue = oType.formatValue(vPropertyValue, "string");
@@ -370,16 +575,59 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 					Log.error(this + ': Formatting error during copy "' + oError.message + '"');
 				}
 			}
-			return isCellValueCopyable(vPropertyValue) ? vPropertyValue : "";
+			return isCellDataCopyable(vPropertyValue) ? vPropertyValue : "";
 		});
 
-		var fnUnitFormatter = mColumnClipboardSettings.unitFormatter;
+		const fnUnitFormatter = mColumnClipboardSettings.unitFormatter;
 		if (fnUnitFormatter) {
 			aPropertyValues[0] = fnUnitFormatter(aPropertyValues[0], aPropertyValues[1]);
 		}
 
-		var sExtractValue = formatTemplate(mColumnClipboardSettings.template, aPropertyValues).trim();
-		return sExtractValue;
+		if (!bIncludeHtmlMimeType) {
+			return aPropertyValues;
+		}
+
+		let sExtractValue = aPropertyValues.some(String) ? formatTemplate(mColumnClipboardSettings.template, aPropertyValues).trim() : "";
+		if (sExtractValue[0] == "(" && /^\([0-9]+\)$/.test(sExtractValue)) {
+			// Spreadsheets format "(123)" as "-123" for this specific case we remove parenthesis
+			sExtractValue = sExtractValue.slice(1, -1);
+		}
+
+		return {
+			text: aPropertyValues,
+			html: sExtractValue
+		};
+	};
+
+	/**
+	 * Shows the user a notification message about the result of the copy action.
+	 *
+	 * @returns {Promise}
+	 * @private
+	 */
+	CopyProvider.prototype._notifyUser = function() {
+		const iRows = this._iSelectedRows;
+		const iCells = this._iSelectedCells;
+		const bPreferCells = this.getCopyPreference() === "Cells";
+
+		return new Promise((resolve) => {
+			sap.ui.require(["sap/m/MessageToast"], (MessageToast) => {
+				let sBundleKey;
+				if (iRows && !iCells) {
+					sBundleKey = (iRows == 1) ? "ROW_SINGLE" : "ROW_MULTI";
+				} else if (iCells && (!iRows || bPreferCells)) {
+					sBundleKey = (iCells == 1) ? "CELL_SINGLE" : "CELL_MULTI";
+				} else if (iRows > 0 && iCells > 0) {
+					sBundleKey = "ROW_AND_CELL";
+				}
+				if (sBundleKey) {
+					const oBundle = coreLib.getResourceBundleFor("sap.m");
+					const sMessage = oBundle.getText("COPYPROVIDER_SELECT_" + sBundleKey + "_MSG");
+					MessageToast.show(sMessage);
+				}
+				resolve();
+			});
+		});
 	};
 
 	/**
@@ -387,15 +635,16 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 	 */
 	PluginBase.setConfigs({
 		"sap.m.Table": {
-			allowForCopySelector: ".sapMLIBFocusable,.sapMLIBSelectM,.sapMLIBSelectS",
+			_oWM: new WeakMap(),
+			allowForCopySelector: ".sapMLIBFocusable,.sapMLIBSelectM,.sapMLIBSelectS,.sapMListTblCell",
 			selectedContexts: function(oTable, bSparse) {
-				var aSelectedContexts = [];
-				var oBindingInfo = oTable.getBindingInfo("items");
+				const aSelectedContexts = [];
+				const oBindingInfo = oTable.getBindingInfo("items");
 				oTable.getItems(true).forEach(function(oItem, iIndex) {
 					if (oItem.isSelectable() && oItem.getVisible()) {
 						if (oItem.getSelected()) {
-							var oContextOrItem = oBindingInfo ? oItem.getBindingContext(oBindingInfo.model) : oItem;
-							var iSparseOrDenseIndex = bSparse ? iIndex : aSelectedContexts.length;
+							const oContextOrItem = oBindingInfo ? oItem.getBindingContext(oBindingInfo.model) : oItem;
+							const iSparseOrDenseIndex = bSparse ? iIndex : aSelectedContexts.length;
 							aSelectedContexts[iSparseOrDenseIndex] = oContextOrItem;
 						}
 					}
@@ -404,21 +653,43 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 			},
 			selectableColumns: function(oTable) {
 				return oTable.getRenderedColumns();
+			},
+			isSelectable: function(oTable) {
+				return oTable.getMode().includes("Select");
+			},
+			hasSelection: function(oTable) {
+				return Boolean(oTable.getSelectedItem());
+			},
+			attachSelectionChange: function(oTable, fnHandler, oListener) {
+				// removal of the selected item might cause a selection change
+				const oDelegate = { onBeforeRendering: fnHandler };
+				this._oWM.set(oTable, oDelegate);
+				oTable.addEventDelegate(oDelegate, oListener);
+
+				// the binding update might cause a selection change
+				oTable.attachUpdateFinished(fnHandler, oListener);
+				oTable.attachEvent("itemSelectedChange", fnHandler, oListener);
+			},
+			detachSelectionChange: function(oTable, fnHandler, oListener) {
+				const oDelegate = this._oWM.get(oTable);
+				oTable.removeEventDelegate(oDelegate, oListener);
+				oTable.detachUpdateFinished(fnHandler, oListener);
+				oTable.detachEvent("itemSelectedChange", fnHandler, oListener);
 			}
 		},
 		"sap.ui.table.Table": {
 			allowForCopySelector: ".sapUiTableCell",
 			selectedContexts: function(oTable, bSparse) {
-				var oSelectionOwner = PluginBase.getPlugin(oTable, "sap.ui.table.plugins.SelectionPlugin") || oTable;
+				const oSelectionOwner = PluginBase.getPlugin(oTable, "sap.ui.table.plugins.SelectionPlugin") || oTable;
 				if (oSelectionOwner.getSelectedContexts) {
 					return oSelectionOwner.getSelectedContexts();
 				}
 
-				var aSelectedContexts = [];
+				const aSelectedContexts = [];
 				oSelectionOwner.getSelectedIndices().forEach(function(iSelectedIndex) {
-					var oContext = oTable.getContextByIndex(iSelectedIndex);
+					const oContext = oTable.getContextByIndex(iSelectedIndex);
 					if (oContext) {
-						var iSparseOrDenseIndex = bSparse ? iSelectedIndex : aSelectedContexts.length;
+						const iSparseOrDenseIndex = bSparse ? iSelectedIndex : aSelectedContexts.length;
 						aSelectedContexts[iSparseOrDenseIndex] = oContext;
 					}
 				});
@@ -428,6 +699,20 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/ui/core/Core", "sap/base/str
 				return oTable.getColumns().filter(function(oColumn) {
 					return oColumn.getDomRef();
 				});
+			},
+			isSelectable: function(oTable) {
+				return oTable.getSelectionMode() != "None";
+			},
+			hasSelection: function(oTable) {
+				return oTable._getSelectionPlugin().getSelectedCount() > 0;
+			},
+			attachSelectionChange: function(oTable, fnHandler, oListener) {
+				oTable._getSelectionPlugin().attachSelectionChange(fnHandler, oListener);
+				oTable.attachRowsUpdated(fnHandler, oListener);
+			},
+			detachSelectionChange: function(oTable, fnHandler, oListener) {
+				oTable._getSelectionPlugin()?.detachSelectionChange(fnHandler, oListener);
+				oTable.detachRowsUpdated(fnHandler, oListener);
 			}
 		}
 	}, CopyProvider);

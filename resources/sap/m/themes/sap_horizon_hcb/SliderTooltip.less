@@ -3,40 +3,43 @@
 /* Horizon High Contrast Black theme    */
 /* ==================================== */
 
-/* ------------------------------ */
 /* Slider Tooltip styles          */
-/* ------------------------------ */
 
 .sapMSliderTooltip {
-	background: @sapUiFieldBackground;
-	border-radius: @sapUiElementBorderCornerRadius;
-	border: 1px solid @sapUiFieldBorderColor;
+	background: var(--sapBackgroundColor);
+	border-radius: 0.0625rem;
+	border: 1px solid var(--sapField_BorderColor);
 	box-shadow: none;
-	height: 1.375rem;
 	min-width: 2rem;
 	padding: 0.25rem;
-	font-size: @sapMFontSmallSize;
+	font-size: var(--sapFontSmallSize);
 }
 
 .sapMSliderTooltipInput {
-	background-color: @sapUiFieldBackground;
+	background-color: var(--sapField_Background);
 	font-size: @sapMFontMediumSize;
-	color: @sapUiFieldTextColor;
+	color: var(--sapField_TextColor);
 }
 
-.sapMSliderTooltipErrorState {
-	background: @sapUiFieldInvalidBackground;
-	border-color: @sapUiFieldInvalidColor
+.sapMSliderTooltip.sapMSliderTooltipErrorState {
+	background: var(--sapField_InvalidBackground);
+
+	.sapMSliderTooltipInput {
+		background: var(--sapField_InvalidBackground);
+		font-style: italic;
+		font-weight: bold;
+	}
 }
 
-.sapMSliderTooltipErrorState .sapMSliderTooltipInput {
-	background: @sapUiFieldInvalidBackground;
+.sapMSliderTooltip:has(.sapMSliderTooltipInput:focus) {
+	outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapField_Active_BorderColor);
+	outline-offset: -.3125rem;
 }
 
 .sapMSliderTooltip.sapMSliderTooltipNonEditableWrapper {
-	border-radius: 0.25rem;
-	height: 0.875rem;
+	border-radius: 0.0625rem;
+	height: 1rem;
 	padding: 0.25rem;
-	font-size: @sapMFontSmallSize;
-	color: @sapUiContentLabelColor;
+	font-size: var(--sapFontSmallSize);
+	color: var(--sapContent_LabelColor);
 }

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,7 +29,7 @@ sap.ui.define(['./InputBase', './MaskEnabler', './MaskInputRenderer'], function(
 	 *
 	 * @author SAP SE
 	 * @extends sap.m.InputBase
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -101,7 +101,28 @@ sap.ui.define(['./InputBase', './MaskEnabler', './MaskInputRenderer'], function(
 						 */
 						previousValue: {type : "string"}
 					}
+				},
+				/**
+				 * This event is fired when user presses the <kbd>Enter</kbd> key on the Mask input.
+				 *
+				 * <b>Notes:</b>
+				 * <ul>
+				 * <li>The event is fired independent of whether there was a change before or not. If a change was performed, the event is fired after the change event.</li>
+				 * <li>The event is only fired on an input which allows text input (<code>editable</code> and <code>enabled</code>).</li>
+				 * </ul>
+				 *
+				 * @since 1.131.0
+				 */
+				submit : {
+					parameters: {
+
+						/**
+						 * The new value of the Mask input.
+						 */
+						value: { type: "string" }
+					}
 				}
+
 			},
 			dnd: { draggable: false, droppable: true }
 		},
@@ -119,6 +140,110 @@ sap.ui.define(['./InputBase', './MaskEnabler', './MaskInputRenderer'], function(
 	 */
 	MaskInput.prototype._isMaskEnabled = function () {
 		return true;
+	};
+
+	MaskInput.prototype._revertKey = function(oKey, oSelection) {
+		oSelection = oSelection || this._getTextSelection();
+
+		let iBegin = oSelection.iFrom,
+			iEnd = oSelection.iTo,
+			iStart = iBegin,
+			sPlaceholder,
+			iLen;
+
+		if (!oSelection.bHasSelection) {
+			if (oKey.bBackspace) {
+				iStart = iBegin = this._oRules.previousTo(iBegin);
+			} else if (oKey.bDelete) {
+				sPlaceholder = this.getPlaceholderSymbol();
+				iLen = this._oTempValue._aContent.length;
+
+				// find first character that is not a placeholder or separator character
+				while ((this._oTempValue._aContent[iBegin] === sPlaceholder ||
+						this._oTempValue._aInitial[iBegin] !== sPlaceholder) &&
+						iBegin < iLen) {
+					iBegin++;
+				}
+				iEnd = iBegin;
+			}
+		}
+
+		if (oKey.bBackspace || (oKey.bDelete && oSelection.bHasSelection)) {
+			iEnd = iEnd - 1;
+		}
+
+		this._resetTempValue(iBegin, iEnd);
+		this._bCheckForLiveChange = true;
+		this.updateDomValue(this._oTempValue.toString());
+		this._setCursorPosition(Math.max(this._iUserInputStartPosition, iStart));
+	};
+
+	MaskInput.prototype.getValueStateLinksForAcc = function(){
+		const oFormattedText = this.getFormattedValueStateText();
+		if (!oFormattedText){
+			return [];
+		}
+		return oFormattedText.getControls();
+	};
+
+	/**
+	 * Handles the focusin event.
+	 *
+	 * Adds an aria-description attribute with the placeholder text when the input has no value,
+	 * so that screen readers announce the placeholder despite the presence of a mask.
+	 *
+	 * @param {jQuery.Event} oEvent Event object
+	 */
+	MaskInput.prototype.onfocusin = function(oEvent) {
+		MaskEnabler.onfocusin.apply(this, arguments);
+		if (this.getMask() && !this.getValue()) {
+			this._$input.attr("aria-description", this._getPlaceholder());
+		}
+	};
+
+	MaskInput.prototype.onkeydown = function(oEvent) {
+		// Handle keyboard shortcut for value state link navigation first
+		if (this.areHotKeysPressed(oEvent)) {
+			this._handleValueStateLinkNav();
+			return;
+		}
+
+		// Let MaskEnabler handle all other keys
+		MaskEnabler.onkeydown.apply(this, arguments);
+	};
+
+
+	MaskInput.prototype.onfocusout = function (oEvent) {
+		// Call MaskEnabler's onfocusout but prevent it from closing value state message
+		// if focus is moving to a value state link
+		if (this._isMaskEnabled()) {
+			this.bFocusoutDueRendering = this.bRenderingPhase;
+			this.removeStyleClass("sapMFocus");
+
+			if (this.bRenderingPhase) {
+				return;
+			}
+
+			// Don't close the ValueStateMessage on focusout if it contains links and we're navigating to one
+			if (!this._bClickOnValueStateLink(oEvent)) {
+				this.closeValueStateMessage();
+			}
+			this._inputCompletedHandler();
+		} else {
+			this._inputCompletedHandlerNoMask();
+			InputBase.prototype.onfocusout.apply(this, arguments);
+		}
+		this._$input.removeAttr("aria-description");
+	};
+
+
+	MaskInput.prototype.onsapenter = function(oEvent) {
+		const bFireSubmit = this.getEnabled() && this.getEditable();
+
+		if (bFireSubmit) {
+			InputBase.prototype.onsapenter.apply(this, arguments);
+			this.fireSubmit({value: this.getValue()});
+		}
 	};
 
 	return MaskInput;

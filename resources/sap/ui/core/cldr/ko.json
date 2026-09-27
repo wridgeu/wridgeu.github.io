@@ -1,7 +1,7 @@
 {
 	"__license": "This file has been derived from Unicode Common Locale Data Repository (CLDR) files (http://cldr.unicode.org). See the copyright and permission notice in the Unicode-Data-Files-LICENSE.txt available at the same location as this file or visit http://www.unicode.org/copyright.html",
-	"__version": "43.0.0",
-	"__buildtime": "2023-09-28T11:39:07.908Z",
+	"__version": "48.0.0",
+	"__buildtime": "2025-11-18T12:31:55.685Z",
 	"languages": {
 		"aa": "아파르어",
 		"ab": "압카즈어",
@@ -55,6 +55,7 @@
 		"bez": "베나어",
 		"bfd": "바푸트어",
 		"bg": "불가리아어",
+		"bgc": "하리안비어",
 		"bgn": "서부 발로치어",
 		"bho": "호즈푸리어",
 		"bi": "비슬라마어",
@@ -62,6 +63,7 @@
 		"bin": "비니어",
 		"bkm": "콤어",
 		"bla": "식시카어",
+		"blo": "아니이어",
 		"bm": "밤바라어",
 		"bn": "벵골어",
 		"bo": "티베트어",
@@ -99,6 +101,7 @@
 		"ckb_alt-menu": "쿠르드어(소라니)",
 		"ckb_alt-variant": "쿠르드어(소라니)",
 		"clc": "칠코틴어",
+		"cnr": "몬테네그로어",
 		"co": "코르시카어",
 		"cop": "콥트어",
 		"cr": "크리어",
@@ -184,7 +187,6 @@
 		"gmh": "중세 고지 독일어",
 		"gn": "과라니어",
 		"goh": "고대 고지 독일어",
-		"gom": "고아 콘칸어",
 		"gon": "곤디어",
 		"gor": "고론탈로어",
 		"got": "고트어",
@@ -281,11 +283,14 @@
 		"ksf": "바피아어",
 		"ksh": "콜로그니안어",
 		"ku": "쿠르드어",
+		"ku_menu-core": "쿠르드어",
+		"ku_menu-extension": "쿠르만지",
 		"kum": "쿠믹어",
 		"kut": "쿠테네어",
 		"kv": "코미어",
 		"kw": "콘월어",
 		"kwk": "곽왈라어",
+		"kxv": "쿠비어",
 		"ky": "키르기스어",
 		"la": "라틴어",
 		"lad": "라디노어",
@@ -297,8 +302,10 @@
 		"lfn": "링구아 프랑카 노바",
 		"lg": "간다어",
 		"li": "림버거어",
+		"lij": "리구리아어",
 		"lil": "릴루엣어",
 		"lkt": "라코타어",
+		"lmo": "롬바르드어",
 		"ln": "링갈라어",
 		"lo": "라오어",
 		"lol": "몽고어",
@@ -401,7 +408,7 @@
 		"os": "오세트어",
 		"osa": "오세이지어",
 		"ota": "오스만 터키어",
-		"pa": "펀잡어",
+		"pa": "펀자브어",
 		"pag": "판가시난어",
 		"pal": "팔레비어",
 		"pam": "팜팡가어",
@@ -495,6 +502,7 @@
 		"swb": "코모로어",
 		"syc": "고전 시리아어",
 		"syr": "시리아어",
+		"szl": "실레시아어",
 		"ta": "타밀어",
 		"tce": "남부 투톤어",
 		"te": "텔루구어",
@@ -522,7 +530,7 @@
 		"tog": "니아사 통가어",
 		"tok": "도기 보나",
 		"tpi": "토크 피신어",
-		"tr": "터키어",
+		"tr": "튀르키예어",
 		"trv": "타로코어",
 		"ts": "총가어",
 		"tsi": "트심시안어",
@@ -545,7 +553,9 @@
 		"uz": "우즈베크어",
 		"vai": "바이어",
 		"ve": "벤다어",
+		"vec": "베네치아어",
 		"vi": "베트남어",
+		"vmw": "마쿠와어",
 		"vo": "볼라퓌크어",
 		"vot": "보틱어",
 		"vun": "분조어",
@@ -559,6 +569,7 @@
 		"wuu": "우어",
 		"xal": "칼미크어",
 		"xh": "코사어",
+		"xnr": "캉리어",
 		"xog": "소가어",
 		"yao": "야오족어",
 		"yap": "얍페세어",
@@ -843,6 +854,7 @@
 		"CN": "중국",
 		"CO": "콜롬비아",
 		"CP": "클리퍼턴섬",
+		"CQ": "사크",
 		"CR": "코스타리카",
 		"CU": "쿠바",
 		"CV": "카보베르데",
@@ -877,7 +889,6 @@
 		"FR": "프랑스",
 		"GA": "가봉",
 		"GB": "영국",
-		"GB-alt-short": "영국",
 		"GD": "그레나다",
 		"GE": "조지아",
 		"GF": "프랑스령 기아나",
@@ -908,7 +919,8 @@
 		"IL": "이스라엘",
 		"IM": "맨섬",
 		"IN": "인도",
-		"IO": "영국령 인도양 식민지",
+		"IO": "영국령 인도양 지역",
+		"IO-alt-chagos": "차고스 제도",
 		"IQ": "이라크",
 		"IR": "이란",
 		"IS": "아이슬란드",
@@ -925,6 +937,7 @@
 		"KN": "세인트키츠 네비스",
 		"KP": "북한",
 		"KR": "대한민국",
+		"KR-alt-short": "한국",
 		"KW": "쿠웨이트",
 		"KY": "케이맨 제도",
 		"KZ": "카자흐스탄",
@@ -975,7 +988,6 @@
 		"NR": "나우루",
 		"NU": "니우에",
 		"NZ": "뉴질랜드",
-		"NZ-alt-variant": "뉴질랜드",
 		"OM": "오만",
 		"PA": "파나마",
 		"PE": "페루",
@@ -1035,7 +1047,6 @@
 		"TN": "튀니지",
 		"TO": "통가",
 		"TR": "튀르키예",
-		"TR-alt-variant": "튀르키예",
 		"TT": "트리니다드 토바고",
 		"TV": "투발루",
 		"TW": "대만",
@@ -1046,7 +1057,6 @@
 		"UN": "국제연합",
 		"UN-alt-short": "유엔",
 		"US": "미국",
-		"US-alt-short": "미국",
 		"UY": "우루과이",
 		"UZ": "우즈베키스탄",
 		"VA": "바티칸 시국",
@@ -1071,8 +1081,8 @@
 	"orientation": "left-to-right",
 	"ca-gregorian": {
 		"dateFormats": {
-			"full": "y년 M월 d일 EEEE",
-			"long": "y년 M월 d일",
+			"full": "y년 MMMM d일 EEEE",
+			"long": "y년 MMMM d일",
 			"medium": "y. M. d.",
 			"short": "yy. M. d."
 		},
@@ -1093,16 +1103,20 @@
 				"Bhms": "B h:mm:ss",
 				"d": "d일",
 				"E": "ccc",
+				"EBh": "(E) B h시",
 				"EBhm": "(E) B h:mm",
 				"EBhms": "(E) B h:mm:ss",
 				"Ed": "d일 (E)",
 				"EEEEd": "d일 EEEE",
+				"Eh": "(E) a h",
 				"Ehm": "(E) a h:mm",
 				"EHm": "(E) HH:mm",
 				"Ehms": "(E) a h:mm:ss",
 				"EHms": "(E) HH:mm:ss",
 				"Gy": "G y년",
+				"GyM": "G y/M",
 				"GyMd": "GGGGG y/M/d",
+				"GyMEd": "G y/M/d (E)",
 				"GyMMM": "G y년 MMM",
 				"GyMMMd": "G y년 MMM d일",
 				"GyMMMEd": "G y년 MMM d일 (E)",
@@ -1118,6 +1132,8 @@
 				"Hmsv": "H시 m분 s초 v",
 				"hmv": "a h:mm v",
 				"Hmv": "HH:mm v",
+				"hv": "a h시 v",
+				"Hv": "H시 v",
 				"M": "M월",
 				"Md": "M. d.",
 				"MEd": "M. d. (E)",
@@ -1246,8 +1262,8 @@
 					"M": "M월~M월"
 				},
 				"Md": {
-					"d": "M. d ~ M. d",
-					"M": "M. d ~ M. d"
+					"d": "M/d ~ M/d",
+					"M": "M/d ~ M/d"
 				},
 				"MEd": {
 					"d": "M. d (E) ~ M. d (E)",
@@ -1258,11 +1274,11 @@
 				},
 				"MMMd": {
 					"d": "MMM d일~d일",
-					"M": "M월 d일 ~ M월 d일"
+					"M": "MMM d일~MMM d일"
 				},
 				"MMMEd": {
-					"d": "M월 d일 (E) ~ d일 (E)",
-					"M": "M월 d일 (E) ~ M월 d일 (E)"
+					"d": "MMM d일 (E)~d일 (E)",
+					"M": "MMM d일 (E)~MMM d일 (E)"
 				},
 				"MMMM": {
 					"M": "LLLL–LLLL"
@@ -1286,17 +1302,17 @@
 				},
 				"yMMM": {
 					"M": "y년 M월~M월",
-					"y": "y년 M월 ~ y년 M월"
+					"y": "y년 MMM~y년 MMM"
 				},
 				"yMMMd": {
 					"d": "y년 M월 d일~d일",
-					"M": "y년 M월 d일 ~ M월 d일",
-					"y": "y년 M월 d일 ~ y년 M월 d일"
+					"M": "y년 MMM d일~MMM d일",
+					"y": "y년 MMM d일~y년 MMM d일"
 				},
 				"yMMMEd": {
-					"d": "y년 M월 d일 (E) ~ d일 (E)",
-					"M": "y년 M월 d일 (E) ~ M월 d일 (E)",
-					"y": "y년 M월 d일 (E) ~ y년 M월 d일 (E)"
+					"d": "y년 MMM d일 (E)~d일 (E)",
+					"M": "y년 MMM d일 (E)~MMM d일 (E)",
+					"y": "y년 MMM d일 (E)~y년 MMM d일 (E)"
 				},
 				"yMMMEEEEd": {
 					"d": "y년 M월 d일 EEEE ~ d일 EEEE",
@@ -1304,8 +1320,8 @@
 					"y": "y년 M월 d일 EEEE ~ y년 M월 d일 EEEE"
 				},
 				"yMMMM": {
-					"M": "y년 MMMM ~ MMMM",
-					"y": "y년 MMMM ~ y년 MMMM"
+					"M": "y년 MMMM~MMMM",
+					"y": "y년 MMMM~y년 MMMM"
 				}
 			}
 		},
@@ -1554,7 +1570,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -1563,7 +1579,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -1572,7 +1588,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -1583,7 +1599,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -1592,7 +1608,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -1601,7 +1617,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -1646,16 +1662,20 @@
 				"Bhms": "B h:mm:ss",
 				"d": "d일",
 				"E": "ccc",
+				"EBh": "E B h시",
 				"EBhm": "E B h:mm",
 				"EBhms": "E B h:mm:ss",
 				"Ed": "d일 (E)",
 				"EEEEd": "d일 EEEE",
+				"Eh": "E a h시",
 				"Ehm": "E a h:mm",
 				"EHm": "E HH:mm",
 				"Ehms": "E a h:mm:ss",
 				"EHms": "E HH:mm:ss",
 				"Gy": "G y년",
+				"GyM": "G y/M",
 				"GyMd": "GGGGG y/M/d",
+				"GyMEd": "G y/M/d (E)",
 				"GyMMM": "G y년 M월",
 				"GyMMMd": "G y년 M월 d일",
 				"GyMMMEd": "G y년 M월 d일 (E)",
@@ -1667,6 +1687,8 @@
 				"Hm": "HH:mm",
 				"hms": "a h:mm:ss",
 				"Hms": "HH:mm:ss",
+				"hv": "a h시 v",
+				"Hv": "H시 v",
 				"M": "M월",
 				"Md": "M. d.",
 				"MEd": "M. d. (E)",
@@ -2104,7 +2126,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2113,7 +2135,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2122,7 +2144,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2133,7 +2155,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2142,7 +2164,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2151,7 +2173,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2160,13 +2182,16 @@
 			}
 		},
 		"era-wide": {
-			"0": "히즈라력"
+			"0": "히즈라력",
+			"1": "BH"
 		},
 		"era-abbreviated": {
-			"0": "AH"
+			"0": "AH",
+			"1": "BH"
 		},
 		"era-narrow": {
-			"0": "AH"
+			"0": "AH",
+			"1": "BH"
 		}
 	},
 	"ca-japanese": {
@@ -2193,16 +2218,20 @@
 				"Bhms": "B h:mm:ss",
 				"d": "d일",
 				"E": "ccc",
+				"EBh": "E B h시",
 				"EBhm": "E B h:mm",
 				"EBhms": "E B h:mm:ss",
 				"Ed": "d일 (E)",
 				"EEEEd": "d일 EEEE",
+				"Eh": "E a h시",
 				"Ehm": "E a h:mm",
 				"EHm": "E HH:mm",
 				"Ehms": "E a h:mm:ss",
 				"EHms": "E HH:mm:ss",
 				"Gy": "G y년",
+				"GyM": "G y/M",
 				"GyMd": "GGGGG y/M/d",
+				"GyMEd": "G y/M/d (E)",
 				"GyMMM": "G y년 MMM",
 				"GyMMMd": "G y년 MMM d일",
 				"GyMMMEd": "G y년 MMM d일 (E)",
@@ -2214,6 +2243,8 @@
 				"Hm": "HH:mm",
 				"hms": "a h:mm:ss",
 				"Hms": "HH:mm:ss",
+				"hv": "a h시 v",
+				"Hv": "H시 v",
 				"M": "M월",
 				"Md": "M. d.",
 				"MEd": "M. d. (E)",
@@ -2660,7 +2691,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2669,7 +2700,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2678,7 +2709,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2689,7 +2720,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2698,7 +2729,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2707,7 +2738,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -2761,16 +2792,20 @@
 				"Bhms": "B h:mm:ss",
 				"d": "d일",
 				"E": "ccc",
+				"EBh": "E B h시",
 				"EBhm": "E B h:mm",
 				"EBhms": "E B h:mm:ss",
 				"Ed": "d일 (E)",
 				"EEEEd": "d일 EEEE",
+				"Eh": "E a h시",
 				"Ehm": "E a h:mm",
 				"EHm": "E HH:mm",
 				"Ehms": "E a h:mm:ss",
 				"EHms": "E HH:mm:ss",
 				"Gy": "G y년",
+				"GyM": "G y/M",
 				"GyMd": "GGGGG y/M/d",
+				"GyMEd": "G y/M/d (E)",
 				"GyMMM": "G y년 M월",
 				"GyMMMd": "G y년 M월 d일",
 				"GyMMMEd": "G y년 M월 d일 (E)",
@@ -2782,6 +2817,8 @@
 				"Hm": "HH:mm",
 				"hms": "a h:mm:ss",
 				"Hms": "HH:mm:ss",
+				"hv": "a h시 v",
+				"Hv": "H시 v",
 				"M": "M월",
 				"Md": "M. d.",
 				"MEd": "M. d. (E)",
@@ -3219,7 +3256,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3228,7 +3265,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3237,7 +3274,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3248,7 +3285,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3257,7 +3294,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3266,7 +3303,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3308,16 +3345,20 @@
 				"Bhms": "B h:mm:ss",
 				"d": "d일",
 				"E": "ccc",
+				"EBh": "E B h시",
 				"EBhm": "E B h:mm",
 				"EBhms": "E B h:mm:ss",
 				"Ed": "d일 (E)",
 				"EEEEd": "d일 EEEE",
+				"Eh": "E a h시",
 				"Ehm": "E a h:mm",
 				"EHm": "E HH:mm",
 				"Ehms": "E a h:mm:ss",
 				"EHms": "E HH:mm:ss",
 				"Gy": "G y년",
+				"GyM": "G y/M",
 				"GyMd": "GGGGG y/M/d",
+				"GyMEd": "G y/M/d (E)",
 				"GyMMM": "G y년 MMM",
 				"GyMMMd": "G y년 MMM d일",
 				"GyMMMEd": "G y년 MMM d일 (E)",
@@ -3329,6 +3370,8 @@
 				"Hm": "HH:mm",
 				"hms": "a h:mm:ss",
 				"Hms": "HH:mm:ss",
+				"hv": "a h시 v",
+				"Hv": "H시 v",
 				"M": "M월",
 				"Md": "M. d.",
 				"MEd": "M. d. (E)",
@@ -3766,7 +3809,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3775,7 +3818,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3784,7 +3827,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3795,7 +3838,7 @@
 				"abbreviated": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3804,7 +3847,7 @@
 				"narrow": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -3813,7 +3856,7 @@
 				"wide": {
 					"midnight": "자정",
 					"noon": "정오",
-					"morning1": "새벽",
+					"morning1": "아침",
 					"morning2": "오전",
 					"afternoon1": "오후",
 					"evening1": "저녁",
@@ -4220,6 +4263,7 @@
 			"Chihuahua": "치와와",
 			"Ciudad_Juarez": "시우다드후아레스",
 			"Costa_Rica": "코스타리카",
+			"Coyhaique": "코이아이케",
 			"Creston": "크레스톤",
 			"Cuiaba": "쿠이아바",
 			"Curacao": "퀴라소",
@@ -4286,7 +4330,6 @@
 			"Montserrat": "몬세라트",
 			"Nassau": "나소",
 			"New_York": "뉴욕",
-			"Nipigon": "니피곤",
 			"Nome": "놈",
 			"Noronha": "노롱야",
 			"North_Dakota": {
@@ -4297,7 +4340,6 @@
 			"Nuuk": "고드호프",
 			"Ojinaga": "오히나가",
 			"Panama": "파나마",
-			"Pangnirtung": "팡니르퉁",
 			"Paramaribo": "파라마리보",
 			"Phoenix": "피닉스",
 			"Port-au-Prince": "포르토프랭스",
@@ -4305,13 +4347,11 @@
 			"Porto_Velho": "포르토벨료",
 			"Puerto_Rico": "푸에르토리코",
 			"Punta_Arenas": "푼타아레나스",
-			"Rainy_River": "레이니강",
 			"Rankin_Inlet": "랭킹 인렛",
 			"Recife": "레시페",
 			"Regina": "리자이나",
 			"Resolute": "리졸루트",
 			"Rio_Branco": "히우 브랑쿠",
-			"Santa_Isabel": "산타 이사벨",
 			"Santarem": "산타렘",
 			"Santiago": "산티아고",
 			"Santo_Domingo": "산토도밍고",
@@ -4327,7 +4367,6 @@
 			"Swift_Current": "스위프트커런트",
 			"Tegucigalpa": "테구시갈파",
 			"Thule": "툴레",
-			"Thunder_Bay": "선더베이",
 			"Tijuana": "티후아나",
 			"Toronto": "토론토",
 			"Tortola": "토르톨라",
@@ -4335,7 +4374,6 @@
 			"Whitehorse": "화이트호스",
 			"Winnipeg": "위니펙",
 			"Yakutat": "야쿠타트",
-			"Yellowknife": "옐로나이프",
 			"_parent": "아메리카 대륙"
 		},
 		"Antarctica": {
@@ -4373,7 +4411,6 @@
 			"Bishkek": "비슈케크",
 			"Brunei": "브루나이",
 			"Chita": "치타",
-			"Choibalsan": "초이발산",
 			"Colombo": "콜롬보",
 			"Damascus": "다마스쿠스",
 			"Dhaka": "다카",
@@ -4522,7 +4559,6 @@
 			"Tallinn": "탈린",
 			"Tirane": "티라나",
 			"Ulyanovsk": "울리야노프스크",
-			"Uzhgorod": "우주고로트",
 			"Vaduz": "파두츠",
 			"Vatican": "바티칸",
 			"Vienna": "비엔나",
@@ -4530,7 +4566,6 @@
 			"Volgograd": "볼고그라트",
 			"Warsaw": "바르샤바",
 			"Zagreb": "자그레브",
-			"Zaporozhye": "자포로지예",
 			"Zurich": "취리히",
 			"_parent": "유럽"
 		},
@@ -4630,21 +4665,17 @@
 	},
 	"currencyFormat": {
 		"standard": "¤#,##0.00",
+		"standard-alphaNextToNumber": "¤ #,##0.00",
+		"standard-noCurrency": "#,##0.00",
 		"accounting": "¤#,##0.00;(¤#,##0.00)",
-		"currencySpacing": {
-			"beforeCurrency": {
-				"currencyMatch": "[[:^S:]&[:^Z:]]",
-				"surroundingMatch": "[:digit:]",
-				"insertBetween": " "
-			},
-			"afterCurrency": {
-				"currencyMatch": "[[:^S:]&[:^Z:]]",
-				"surroundingMatch": "[:digit:]",
-				"insertBetween": " "
-			}
-		},
+		"accounting-alphaNextToNumber": "¤ #,##0.00;(¤ #,##0.00)",
+		"accounting-noCurrency": "#,##0.00;(#,##0.00)",
 		"sap-standard": "#,##0.00¤",
-		"sap-accounting": "#,##0.00¤;(#,##0.00¤)"
+		"sap-standard-alphaNextToNumber": "#,##0.00 ¤",
+		"sap-accounting": "#,##0.00¤;(#,##0.00¤)",
+		"sap-accounting-alphaNextToNumber": "#,##0.00 ¤;(#,##0.00 ¤)",
+		"sap-standard-noCurrency": "#,##0.00",
+		"sap-accounting-noCurrency": "#,##0.00;(#,##0.00)"
 	},
 	"miscPattern": {
 		"approximately": "~{0}",
@@ -4653,18 +4684,30 @@
 		"range": "{0}~{1}"
 	},
 	"currencyFormat-short": {
-		"1000-other": "¤ 0천",
-		"10000-other": "¤ 0만",
-		"100000-other": "¤ 00만",
-		"1000000-other": "¤ 000만",
-		"10000000-other": "¤ 0000만",
-		"100000000-other": "¤ 0억",
-		"1000000000-other": "¤ 00억",
-		"10000000000-other": "¤ 000억",
-		"100000000000-other": "¤ 0000억",
-		"1000000000000-other": "¤ 0조",
-		"10000000000000-other": "¤ 00조",
-		"100000000000000-other": "¤ 000조"
+		"1000-other": "¤0천",
+		"1000-other-alphaNextToNumber": "¤ 0천",
+		"10000-other": "¤0만",
+		"10000-other-alphaNextToNumber": "¤ 0만",
+		"100000-other": "¤00만",
+		"100000-other-alphaNextToNumber": "¤ 00만",
+		"1000000-other": "¤000만",
+		"1000000-other-alphaNextToNumber": "¤ 000만",
+		"10000000-other": "¤0000만",
+		"10000000-other-alphaNextToNumber": "¤ 0000만",
+		"100000000-other": "¤0억",
+		"100000000-other-alphaNextToNumber": "¤ 0억",
+		"1000000000-other": "¤00억",
+		"1000000000-other-alphaNextToNumber": "¤ 00억",
+		"10000000000-other": "¤000억",
+		"10000000000-other-alphaNextToNumber": "¤ 000억",
+		"100000000000-other": "¤0000억",
+		"100000000000-other-alphaNextToNumber": "¤ 0000억",
+		"1000000000000-other": "¤0조",
+		"1000000000000-other-alphaNextToNumber": "¤ 0조",
+		"10000000000000-other": "¤00조",
+		"10000000000000-other-alphaNextToNumber": "¤ 00조",
+		"100000000000000-other": "¤000조",
+		"100000000000000-other-alphaNextToNumber": "¤ 000조"
 	},
 	"symbols-latn-decimal": ".",
 	"symbols-latn-group": ",",
@@ -4698,6 +4741,7 @@
 		"VND": "₫",
 		"XAF": "FCFA",
 		"XCD": "EC$",
+		"XCG": "Cg.",
 		"XOF": "F CFA",
 		"XPF": "CFPF",
 		"XXX": "¤"
@@ -4759,6 +4803,12 @@
 			"10p-24": {
 				"unitPrefixPattern": "y{0}"
 			},
+			"10p-27": {
+				"unitPrefixPattern": "r{0}"
+			},
+			"10p-30": {
+				"unitPrefixPattern": "q{0}"
+			},
 			"10p1": {
 				"unitPrefixPattern": "da{0}"
 			},
@@ -4788,6 +4838,12 @@
 			},
 			"10p24": {
 				"unitPrefixPattern": "Y{0}"
+			},
+			"10p27": {
+				"unitPrefixPattern": "R{0}"
+			},
+			"10p30": {
+				"unitPrefixPattern": "Q{0}"
 			},
 			"1024p1": {
 				"unitPrefixPattern": "Ki{0}"
@@ -4916,7 +4972,11 @@
 				"displayName": "항목",
 				"unitPattern-count-other": "{0}개 항목"
 			},
-			"concentr-permillion": {
+			"concentr-part": {
+				"displayName": "part",
+				"unitPattern-count-other": "{0}part"
+			},
+			"concentr-part-per-1e6": {
 				"displayName": "ppm",
 				"unitPattern-count-other": "{0}ppm"
 			},
@@ -4935,6 +4995,10 @@
 			"concentr-mole": {
 				"displayName": "mol",
 				"unitPattern-count-other": "{0}mol"
+			},
+			"concentr-ofglucose": {
+				"displayName": "Glc",
+				"unitPattern-count-other": "{0}Glc"
 			},
 			"consumption-liter-per-kilometer": {
 				"displayName": "L/km",
@@ -5165,8 +5229,8 @@
 				"unitPattern-count-other": "{0}dpi"
 			},
 			"graphics-dot": {
-				"displayName": "px",
-				"unitPattern-count-other": "{0}dot"
+				"displayName": "도트",
+				"unitPattern-count-other": "{0}도트"
 			},
 			"length-earth-radius": {
 				"displayName": "R⊕",
@@ -5369,6 +5433,10 @@
 				"displayName": "mmHg",
 				"unitPattern-count-other": "{0}mmHg"
 			},
+			"pressure-ofhg": {
+				"displayName": "Hg",
+				"unitPattern-count-other": "{0}Hg"
+			},
 			"pressure-pound-force-per-square-inch": {
 				"displayName": "psi",
 				"unitPattern-count-other": "{0}psi"
@@ -5420,6 +5488,10 @@
 			"speed-knot": {
 				"displayName": "kn",
 				"unitPattern-count-other": "{0}kn"
+			},
+			"speed-beaufort": {
+				"displayName": "Bft",
+				"unitPattern-count-other": "B {0}"
 			},
 			"temperature-generic": {
 				"displayName": "°",
@@ -5508,6 +5580,10 @@
 				"displayName": "mcup",
 				"unitPattern-count-other": "{0}mc"
 			},
+			"volume-fluid-ounce-metric": {
+				"displayName": "fl oz m.",
+				"unitPattern-count-other": "{0}fl oz m."
+			},
 			"volume-acre-foot": {
 				"displayName": "ac ft",
 				"unitPattern-count-other": "{0}ac ft"
@@ -5534,9 +5610,17 @@
 				"displayName": "pt",
 				"unitPattern-count-other": "{0}pt"
 			},
+			"volume-pint-imperial": {
+				"displayName": "pint Imp.",
+				"unitPattern-count-other": "{0} pt Imp."
+			},
 			"volume-cup": {
 				"displayName": "컵",
 				"unitPattern-count-other": "{0}컵"
+			},
+			"volume-cup-imperial": {
+				"displayName": "cup Imp.",
+				"unitPattern-count-other": "{0} cup Imp."
 			},
 			"volume-fluid-ounce": {
 				"displayName": "fl oz",
@@ -5586,6 +5670,171 @@
 				"displayName": "qt Imp",
 				"unitPattern-count-other": "{0}qt Imp."
 			},
+			"angle-steradian": {
+				"displayName": "sr",
+				"unitPattern-count-other": "{0}sr"
+			},
+			"concentr-katal": {
+				"displayName": "kat",
+				"unitPattern-count-other": "{0}kat"
+			},
+			"electric-coulomb": {
+				"displayName": "C",
+				"unitPattern-count-other": "{0}C"
+			},
+			"electric-farad": {
+				"displayName": "F",
+				"unitPattern-count-other": "{0}F"
+			},
+			"electric-henry": {
+				"displayName": "H",
+				"unitPattern-count-other": "{0}H"
+			},
+			"electric-siemens": {
+				"displayName": "S",
+				"unitPattern-count-other": "{0}S"
+			},
+			"energy-calorie-it": {
+				"displayName": "cal-IT",
+				"unitPattern-count-other": "{0}cal-IT"
+			},
+			"energy-british-thermal-unit-it": {
+				"displayName": "BTU-IT",
+				"unitPattern-count-other": "{0} BTU-IT"
+			},
+			"energy-becquerel": {
+				"displayName": "Bq",
+				"unitPattern-count-other": "{0}Bq"
+			},
+			"energy-sievert": {
+				"displayName": "Sv",
+				"unitPattern-count-other": "{0}Sv"
+			},
+			"energy-gray": {
+				"displayName": "Gy",
+				"unitPattern-count-other": "{0}Gy"
+			},
+			"force-kilogram-force": {
+				"displayName": "kgf",
+				"unitPattern-count-other": "{0}kgf"
+			},
+			"length-rod": {
+				"displayName": "rod",
+				"unitPattern-count-other": "{0} rod"
+			},
+			"length-chain": {
+				"displayName": "chain",
+				"unitPattern-count-other": "{0} chain"
+			},
+			"magnetic-tesla": {
+				"displayName": "T",
+				"unitPattern-count-other": "{0}T"
+			},
+			"magnetic-weber": {
+				"displayName": "Wb",
+				"unitPattern-count-other": "{0}Wb"
+			},
+			"temperature-rankine": {
+				"displayName": "°R",
+				"unitPattern-count-other": "{0} °R"
+			},
+			"duration-fortnight": {
+				"displayName": "fortnight",
+				"unitPattern-count-other": "{0} fw"
+			},
+			"mass-slug": {
+				"displayName": "slug",
+				"unitPattern-count-other": "{0} slug"
+			},
+			"pressure-gasoline-energy-density": {
+				"displayName": "gas E",
+				"unitPattern-count-other": "{0} gas E"
+			},
+			"length-rin": {
+				"displayName": "rin [JP]",
+				"unitPattern-count-other": "{0} rin [JP]"
+			},
+			"length-sun": {
+				"displayName": "sun [JP]",
+				"unitPattern-count-other": "{0} sun [JP]"
+			},
+			"length-shaku-length": {
+				"displayName": "shaku [JP]",
+				"unitPattern-count-other": "{0} shaku [JP]"
+			},
+			"length-shaku-cloth": {
+				"displayName": "shaku [cloth, JP]",
+				"unitPattern-count-other": "{0} shaku [cloth, JP]"
+			},
+			"length-ken": {
+				"displayName": "ken [JP]",
+				"unitPattern-count-other": "{0} ken [JP]"
+			},
+			"length-jo-jp": {
+				"displayName": "jo [JP]",
+				"unitPattern-count-other": "{0} jo [JP]"
+			},
+			"length-ri-jp": {
+				"displayName": "ri [JP]",
+				"unitPattern-count-other": "{0} ri [JP]"
+			},
+			"area-bu-jp": {
+				"displayName": "bu [JP]",
+				"unitPattern-count-other": "{0} bu [JP]"
+			},
+			"area-se-jp": {
+				"displayName": "se [JP]",
+				"unitPattern-count-other": "{0} se [JP]"
+			},
+			"area-cho": {
+				"displayName": "cho [JP]",
+				"unitPattern-count-other": "{0} cho [JP]"
+			},
+			"volume-kosaji": {
+				"displayName": "kosaji [JP]",
+				"unitPattern-count-other": "{0} kosaji [JP]"
+			},
+			"volume-osaji": {
+				"displayName": "osaji [JP]",
+				"unitPattern-count-other": "{0} osaji [JP]"
+			},
+			"volume-cup-jp": {
+				"displayName": "cup [JP]",
+				"unitPattern-count-other": "{0} cup [JP]"
+			},
+			"volume-shaku": {
+				"displayName": "shaku [vol, JP]",
+				"unitPattern-count-other": "{0} shaku [vol, JP]"
+			},
+			"volume-sai": {
+				"displayName": "sai [JP]",
+				"unitPattern-count-other": "{0} sai [JP]"
+			},
+			"volume-to-jp": {
+				"displayName": "to [JP]",
+				"unitPattern-count-other": "{0} to [JP]"
+			},
+			"volume-koku": {
+				"displayName": "koku [JP]",
+				"unitPattern-count-other": "{0} koku [JP]"
+			},
+			"speed-light-speed": {
+				"displayName": "light",
+				"unitPattern-count-other": "{0}light"
+			},
+			"mass-fun": {
+				"displayName": "fun [JP]",
+				"unitPattern-count-other": "{0} fun [JP]"
+			},
+			"concentr-part-per-1e9": {
+				"displayName": "ppb",
+				"unitPattern-count-other": "{0}ppb"
+			},
+			"duration-night": {
+				"displayName": "박",
+				"unitPattern-count-other": "{0}박",
+				"perUnitPattern": "{0}/박"
+			},
 			"coordinateUnit": {
 				"displayName": "쪽",
 				"east": "{0}E",
@@ -5596,9 +5845,9 @@
 		}
 	},
 	"lenient-scope-number": {
-		"minusSign": "-‒⁻₋−➖﹣－",
-		"commaSign": ",،٫、︐︑﹐﹑，､",
-		"plusSign": "+⁺₊➕﬩﹢＋"
+		"minusSign": "-－﹣‑‒−⁻₋➖",
+		"commaSign": ",，﹐︐،٫、﹑､︑",
+		"plusSign": "+＋﬩﹢⁺₊➕"
 	},
 	"currencyFormat-sap-short": {
 		"1000-other": "0천 ¤",
@@ -5623,11 +5872,13 @@
 		"BYR": 0,
 		"CLF": 4,
 		"CLP": 0,
+		"COP": 0,
 		"DEFAULT": 2,
 		"DJF": 0,
 		"ESP": 0,
 		"GNF": 0,
 		"HUF": 0,
+		"IDR": 0,
 		"IQD": 0,
 		"IRR": 0,
 		"ISK": 0,
@@ -5647,6 +5898,7 @@
 		"MMK": 0,
 		"MRO": 0,
 		"OMR": 3,
+		"PKR": 0,
 		"PYG": 0,
 		"RSD": 0,
 		"RWF": 0,
@@ -5681,45 +5933,46 @@
 	},
 	"eras-gregorian": {
 		"0": {
-			"_code": "gregory-inverse",
-			"_aliases": "bc bce",
+			"_code": "bce",
+			"_aliases": "bc",
 			"_end": "0-12-31"
 		},
 		"1": {
-			"_code": "gregory",
-			"_aliases": "ad ce",
+			"_code": "ce",
+			"_aliases": "ad",
 			"_start": "1-01-01"
 		}
 	},
 	"eras-islamic": {
 		"0": {
-			"_code": "islamic",
-			"_aliases": "ah",
-			"_start": "622-7-15"
+			"_code": "ah",
+			"_start": "622-07-19"
+		},
+		"1": {
+			"_code": "bh",
+			"_end": "622-07-18"
 		}
 	},
 	"eras-persian": {
 		"0": {
-			"_code": "persian",
-			"_aliases": "ap",
-			"_start": "622-01-01"
+			"_code": "ap",
+			"_start": "622-03-21"
 		}
 	},
 	"eras-buddhist": {
 		"0": {
-			"_code": "buddhist",
-			"_aliases": "be",
+			"_code": "be",
 			"_start": "-542-01-01"
 		}
 	},
 	"eras-japanese": {
 		"232": {
 			"_code": "meiji",
-			"_start": "1868-9-8"
+			"_start": "1868-10-23"
 		},
 		"233": {
 			"_code": "taisho",
-			"_start": "1912-7-30"
+			"_start": "1912-07-30"
 		},
 		"234": {
 			"_code": "showa",
@@ -5727,11 +5980,11 @@
 		},
 		"235": {
 			"_code": "heisei",
-			"_start": "1989-1-8"
+			"_start": "1989-01-08"
 		},
 		"236": {
 			"_code": "reiwa",
-			"_start": "2019-5-1"
+			"_start": "2019-05-01"
 		}
 	},
 	"dayPeriodRules": {
@@ -5765,5 +6018,30 @@
 	"calendarPreference": [
 		"gregorian",
 		"dangi"
-	]
+	],
+	"sap-calendarWeek": {
+		"narrow": "CW {0}",
+		"wide": "역주 {0}"
+	},
+	"sap-datePlaceholder": "예: {0}",
+	"sap-fileSize": {
+		"Byte": "{0}바이트",
+		"Bytes": "{0}바이트",
+		"Kilobyte": "{0}KB",
+		"Megabyte": "{0}MB",
+		"Gigabyte": "{0}GB",
+		"Terabyte": "{0}TB",
+		"Petabyte": "{0}PB",
+		"Exabyte": "{0}EB",
+		"Zettabyte": "{0}ZB",
+		"Yottabyte": "{0}YB",
+		"Kibibyte": "{0}KiB",
+		"Mebibyte": "{0}MiB",
+		"Gibibyte": "{0}GiB",
+		"Tebibyte": "{0}TiB",
+		"Pebibyte": "{0}PiB",
+		"Exbibyte": "{0}EiB",
+		"Zebibyte": "{0}ZiB",
+		"Yobibyte": "{0}YiB"
+	}
 }

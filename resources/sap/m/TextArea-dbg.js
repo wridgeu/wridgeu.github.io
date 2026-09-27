@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,27 +8,29 @@
 sap.ui.define([
 	'./InputBase',
 	'./Text',
+	"sap/ui/core/Lib",
 	'sap/ui/core/ResizeHandler',
 	'./library',
 	'sap/ui/core/library',
-	'sap/ui/core/Core',
 	'sap/ui/events/KeyCodes',
 	'sap/ui/Device',
 	"sap/base/security/encodeXML",
 	'./TextAreaRenderer',
+	"sap/ui/core/Theming",
 	"sap/ui/thirdparty/jquery"
 ],
 function(
 	InputBase,
 	Text,
+	Lib,
 	ResizeHandler,
 	library,
 	coreLibrary,
-	oCore,
 	KeyCodes,
 	Device,
 	encodeXML,
 	TextAreaRenderer,
+	Theming,
 	jQuery
 ) {
 	"use strict";
@@ -84,7 +86,7 @@ function(
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -307,20 +309,19 @@ function(
 	 */
 	TextArea.prototype._setGrowingMaxHeight = function () {
 		var oHiddenDiv = this.getDomRef('hidden'),
-			oLoadedLibraries = oCore.getLoadedLibraries(),
+			oLoadedLibraries = Lib.all(),
 			fLineHeight,
 			fMaxHeight,
 			oStyle;
-
 		// The CSS rules might not hve been applied yet and the getComputedStyle function might not return the proper values. So, wait for the theme to be applied properly
 		// The check for loaded libraries is to ensure that sap.m has been loaded. TextArea's CSS sources would be loaded along with the library
 		if (!oLoadedLibraries || !oLoadedLibraries['sap.m']) {
-			oCore.attachThemeChanged(this._setGrowingMaxHeight.bind(this));
+			Theming.attachApplied(this._setGrowingMaxHeight.bind(this));
 			return;
 		}
 
 		// After it's been executed, we need to release the resources
-		oCore.detachThemeChanged(this._setGrowingMaxHeight);
+		Theming.detachApplied(this._setGrowingMaxHeight);
 
 		oStyle = window.getComputedStyle(oHiddenDiv);
 
@@ -448,7 +449,7 @@ function(
 			bShowExceededText = this.getShowExceededText(),
 			iMaxLength = this.getMaxLength();
 
-		if (!bShowExceededText && iMaxLength && sValue.length > iMaxLength) {
+		if (!bShowExceededText && !this._bIsComposingCharacter && iMaxLength && sValue.length > iMaxLength) {
 			sValue = sValue.substring(0, iMaxLength);
 			oTextAreaRef.value = sValue;
 		}
@@ -599,7 +600,7 @@ function(
 	};
 
 	TextArea.prototype._getCounterValue = function () {
-		var oBundle = oCore.getLibraryResourceBundle("sap.m"),
+		var oBundle = Lib.getResourceBundleFor("sap.m"),
 				iCharactersExceeded = this.getMaxLength() - this.getValue().length,
 				bExceeded = (iCharactersExceeded < 0 ? true : false),
 				sMessageBundleKey = "TEXTAREA_CHARACTER" + ( Math.abs(iCharactersExceeded) === 1 ? "" : "S") + "_" + (bExceeded ? "EXCEEDED" : "LEFT");

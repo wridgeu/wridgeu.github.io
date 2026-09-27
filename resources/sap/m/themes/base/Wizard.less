@@ -24,7 +24,7 @@
 		margin-top: 1rem;
 	}
 
-	.sapMWizardStep  {
+	.sapMWizardStep {
 		position: relative;
 		padding-bottom: 2rem;
 		display: none;
@@ -36,33 +36,19 @@
 
 	&.sapMWizardModeScroll .sapMWizardStepTitle::before {
 		counter-increment: steps-counter;
-		content: counter(steps-counter) ". ";
-	}
-
-	.sapMWizardNextButtonHidden {
-		bottom: -3rem;
-		opacity: 0;
-		animation-name: hideWizardButton
-	}
-
-	.sapMWizardNextButtonVisible {
-		margin-top: 0.5rem;
-		bottom: 0rem;
-		opacity: 1;
-		animation-name: showWizardButton
+		content: counter(steps-counter) '. ';
 	}
 
 	.sapMDialogSection {
 		height: auto;
 	}
 
-
 	&.sapMWizardBgStandard .sapMWizardStepContainer {
-		background-color: @sapUiBaseBG;
+		background-color: var(--sapBackgroundColor);
 	}
 
 	&.sapMWizardBgSolid .sapMWizardStepContainer {
-		background-color: @sapUiBaseBG;
+		background-color: var(--sapBackgroundColor);
 	}
 
 	&.sapMWizardBgTransparent .sapMWizardStepContainer {
@@ -70,7 +56,7 @@
 	}
 
 	&.sapMWizardBgList .sapMWizardStepContainer {
-		background-color: @sapUiGroupContentBackground;
+		background-color: var(--sapGroup_ContentBackground);
 	}
 }
 
@@ -78,33 +64,21 @@
 	min-height: ~"calc(100% - 1rem)"; /* 1rem is the margin from the top of the container*/
 }
 
-html[data-sap-ui-animation='on'] .sapMWizardNextButtonVisible,
-html[data-sap-ui-animation='on'] .sapMWizardNextButtonVisible {
-	animation-timing-function: linear;
-	animation-duration: @_sap_m_WizardStep_Animation_Duration;
-}
+html.sap-desktop .sapMWizard .sapMWizardNextButton,
+html.sap-tablet .sapMWizard .sapMWizardNextButton {
+	& {
+		display: block;
+		opacity: 0;
+		transform: translateY(3rem);
+		transition: opacity @_sap_m_WizardStep_Animation_Duration ease, transform @_sap_m_WizardStep_Animation_Duration ease;
+	}
 
-@keyframes showWizardButton {
-	from {opacity: 0; bottom: -3rem}
-	to {opacity: 1; bottom: 0rem}
-}
-
-@keyframes hideWizardButton {
-	from {opacity: 1; bottom: 0rem}
-	to {opacity: 0; bottom: -3rem}
-}
-
-html.sap-desktop .sapMWizard .sapMWizardNextButtonVisible,
-html.sap-tablet .sapMWizard .sapMWizardNextButtonVisible {
-	display: block;
-}
-
-html.sap-phone .sapMWizard {
-	.sapMWizardNextButtonVisible {
-		position: fixed;
-		left: 50%;
-		-webkit-transform: translate(-50%, 0);
-		transform: translate(-50%, 0);
-		bottom: 3rem;
+	&.sapMWizardNextButtonAnimated {
+		transform: translateY(0);
+		opacity: 1;
 	}
 }
+
+html .sapMWizard .sapMWizardNextButton.sapMWizardNextButtonHidden {
+	display: none;
+  }

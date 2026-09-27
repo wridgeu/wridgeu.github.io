@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -42,10 +42,11 @@ sap.ui.define([
 	 * @param {string} sPath The binding path in the model
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context which is required as base for a relative path.
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters]
-	 *   Initial sort order, can be either a sorter or an array of sorters.
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters]
-	 *   Predefined filters, can be either a filter or an array of filters.
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters used initially; call {@link #sort} to replace them
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call {@link #filter} to
+	 *   replace them
 	 * @param {object} [mParameters] A map which contains additional parameters for the binding.
 	 * @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
 	 *   Defines the count mode of the binding; if not specified, the default count mode of the
@@ -85,8 +86,8 @@ sap.ui.define([
 	 *   {@link topic:6c47b2b39db9404582994070ec3d57a2#loio62149734b5c24507868e722fe87a75db
 	 *   Optimizing Dependent Bindings}.
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated</b>, use <code>groupId</code> instead. Sets the batch group id to be used for
-	 *   requests originating from the binding.
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead. Sets the batch group id to be used
+	 *   for requests originating from the binding.
 	 * @param {int} [mParameters.threshold]
 	 *   Deprecated since 1.102.0, as {@link sap.ui.model.odata.OperationMode.Auto} is deprecated;
 	 *   the threshold that defines how many entries should be fetched at least by the binding if
@@ -140,7 +141,7 @@ sap.ui.define([
 			this.oCombinedFilter = null;
 			this.sDeepPath = oModel.resolveDeep(sPath, oContext);
 			this.bCanonicalRequest = mParameters && mParameters.bCanonicalRequest;
-			this.mNormalizeCache = {};
+			this.mNormalizeCache = FilterProcessor.createNormalizeCache();
 			this.bTransitionMessagesOnly = !!(mParameters
 				&& mParameters.transitionMessagesOnly);
 			this.sCreatedEntitiesKey = mParameters && mParameters.createdEntitiesKey || "";
@@ -149,7 +150,7 @@ sap.ui.define([
 			this.bRemovePersistedCreatedAfterRefresh = false;
 
 			// check filter integrity
-			this.oModel.checkFilterOperation(this.aApplicationFilters);
+			this.oModel.checkFilter(this.aApplicationFilters);
 
 			if (mParameters && (mParameters.batchGroupId || mParameters.groupId)) {
 				this.sGroupId = mParameters.groupId || mParameters.batchGroupId;
@@ -198,26 +199,28 @@ sap.ui.define([
 	 * Attach event handler <code>fnFunction</code> to the 'createActivate' event of this binding.
 	 *
 	 * @param {function} fnFunction The function to call when the event occurs
-	 * @param {object} [oListener] Object on which to call the given function
+	 * @param {object} [oListener=this] Object on which to call the given function
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 *
 	 * @public
 	 * @since 1.98.0
 	 */
 	 ODataListBinding.prototype.attachCreateActivate = function (fnFunction, oListener) {
-		this.attachEvent("createActivate", fnFunction, oListener);
+		return this.attachEvent("createActivate", fnFunction, oListener);
 	};
 
 	/**
 	 * Detach event handler <code>fnFunction</code> from the 'createActivate' event of this binding.
 	 *
 	 * @param {function} fnFunction The function to call when the event occurs
-	 * @param {object} [oListener] Object on which to call the given function
+	 * @param {object} [oListener=this] Object on which to call the given function
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 *
 	 * @public
 	 * @since 1.98.0
 	 */
 	ODataListBinding.prototype.detachCreateActivate = function (fnFunction, oListener) {
-		this.detachEvent("createActivate", fnFunction, oListener);
+		return this.detachEvent("createActivate", fnFunction, oListener);
 	};
 
 	/**
@@ -309,7 +312,9 @@ sap.ui.define([
 	 *   Whether this call keeps the result of {@link #getCurrentContexts} untouched; since 1.102.0.
 	 * @return {sap.ui.model.odata.v2.Context[]}
 	 *   The array of already available contexts with the first entry containing the context for
-	 *   <code>iStartIndex</code>
+	 *   <code>iStartIndex</code>. Since 1.131.0, the array has an additional property <code>bExpectMore</code>, which
+	 *   is <code>true</code> if the response is not complete, a {@link #event:change 'change'} event will follow, and
+	 *   a busy indicator should be switched on.
 	 * @throws {Error}
 	 *   If extended change detection is enabled and <code>bKeepCurrent</code> is set, or if
 	 *   <code>iMaximumPrefetchSize</code> and <code>bKeepCurrent</code> are set
@@ -359,6 +364,7 @@ sap.ui.define([
 			}
 		}
 		aContexts = this._getContexts(iStartIndex, iLength);
+		aContexts.bExpectMore = this._isExpectingMoreContexts(aContexts, iStartIndex, iLength);
 		if (this.oCombinedFilter === Filter.NONE || this._hasTransientParentContext()) {
 			// skip #loadData
 		} else if (this.useClientMode()) {
@@ -385,10 +391,10 @@ sap.ui.define([
 		}
 		if (this.bRefresh) {
 			this.bRefresh = false;
-			// if we do not need to load data after a refresh event (e.g. we have enough created
-			// contexts) we need to fire a change event to fulfill the contract that after a refresh
+			// if there is no need to load data after a refresh event (e.g. we have enough created contexts or
+			// FILTER.None is set), fire a change event to fulfill the contract that after a refresh
 			// event a change event is triggered when the data is available.
-			if (!aContexts.dataRequested && aContexts.length > 0) {
+			if (!aContexts.dataRequested) {
 				this._fireChange({reason : ChangeReason.Change});
 			}
 		} else if (!bKeepCurrent) {
@@ -548,7 +554,9 @@ sap.ui.define([
 				this.aKeys = [];
 				this.iLength = 0;
 				this.bLengthFinal = true;
-				this.abortPendingRequest();
+				// pending requests (data request and potential count request) are obsolete; cancel them and ensure that
+				// the "dataReceived" event is fired, e.g. to disable the busy indicator
+				this.abortPendingRequest(true, true);
 				if (bHadNonTransientContext) {
 					this._fireChange({reason : ChangeReason.Context});
 				}
@@ -1425,14 +1433,27 @@ sap.ui.define([
 	 * Aborts the current pending request (if any).
 	 *
 	 * This can be called if we are sure that the data from the current request is no longer relevant,
-	 * e.g. when filtering/sorting is triggered or the context is changed.
+	 * e.g. when filtering or sorting is triggered, or the context is changed.
+	 * If there is a sequence of <code>refresh</code>, <code>sort</code> and <code>filter</code>,
+	 * then the requests created by refresh and sort are aborted before the request is really created.
+	 * The <code>dataRequested</code> and the <code>dataReceived</code> events shall be sent only once,
+	 * for this sequences, that means <code>refresh</code> triggers the <code>dataRequested</code> event
+	 * and <code>filter/<code> shall trigger the <code>dataReceived</code> event. The cancelled requests
+	 * must not sent the <code>dataReceived</code> event.
+	 * If there is a context switch the requested data is obsolete and the requests have to be aborted.
+	 * In that case the <code>dataReceived</code> event has be fired so that a potential busy inticator
+	 * can be removed.
 	 *
-	 * @param {boolean} [bAbortCountRequest] Also abort the count request
+	 * @param {boolean} [bAbortCountRequest=false]
+	 *   Also abort the count request
+	 * @param {boolean} [bFireDataEvents=false]
+	 *   Whether the <code>dataRequested</code> and the <code>dataReceived</code> events shall be fired
+	 *   although the request is aborted
 	 * @private
 	 */
-	ODataListBinding.prototype.abortPendingRequest = function(bAbortCountRequest) {
+	ODataListBinding.prototype.abortPendingRequest = function (bAbortCountRequest, bFireDataEvents) {
 		if (!isEmptyObject(this.mRequestHandles)) {
-			this.bSkipDataEvents = true;
+			this.bSkipDataEvents = !bFireDataEvents;
 			each(this.mRequestHandles, function(sPath, oRequestHandle){
 				oRequestHandle.abort();
 			});
@@ -1519,8 +1540,9 @@ sap.ui.define([
 	 * from the creation rows area and inserted at the right position based on the current filters
 	 * and sorters.
 	 *
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} aSorters
-	 *   A new sorter or an array of sorters which define the sort order
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters to use; they replace the sorters given in {@link sap.ui.model.odata.v2.ODataModel#bindList}; a
+	 *   falsy value is treated as an empty array and thus removes all sorters
 	 * @param {boolean} [bReturnSuccess=false]
 	 *   Whether the success indicator should be returned instead of <code>this</code>
 	 * @return {this}
@@ -1729,10 +1751,17 @@ sap.ui.define([
 	 * from the creation rows area and inserted at the right position based on the current filters
 	 * and sorters.
 	 *
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters] Single filter or array of filter objects
-	 * @param {sap.ui.model.FilterType} [sFilterType=Control] Type of the filter which should be adjusted. If it is not given, type <code>Control</code> is assumed
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to use; in case of type {@link sap.ui.model.FilterType.Application} this replaces the filters given
+	 *   in {@link sap.ui.model.odata.v2.ODataModel#bindList}; a falsy value is treated as an empty array and thus
+	 *   removes all filters of the specified type
+	 * @param {sap.ui.model.FilterType} [sFilterType=sap.ui.model.FilterType.Control]
+	 *   The type of the filter to replace
 	 * @param {boolean} [bReturnSuccess=false] Whether the success indicator should be returned instead of <code>this</code>
 	 * @return {this} Reference to <code>this</code> to facilitate method chaining or a boolean success indicator
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>aFilters</code> together with other filters
 	 *
 	 * @public
 	 */
@@ -1751,10 +1780,10 @@ sap.ui.define([
 		}
 
 		// check filter integrity
-		this.oModel.checkFilterOperation(aFilters);
+		this.oModel.checkFilter(aFilters);
 
-		if (sFilterType === FilterType.Application) {
-			this.aApplicationFilters = aFilters;
+		if (sFilterType === FilterType.Application || sFilterType === FilterType.ApplicationBound) {
+			this.aApplicationFilters = this.computeApplicationFilters(aFilters, sFilterType);
 		} else {
 			this.aFilters = aFilters;
 		}
@@ -1792,7 +1821,7 @@ sap.ui.define([
 			} else {
 				this._removePersistedCreatedContexts();
 				this.resetData();
-				this.abortPendingRequest(true);
+				this.abortPendingRequest(true, this.oCombinedFilter === Filter.NONE);
 				this.sChangeReason = ChangeReason.Filter;
 				this._fireRefresh({reason: this.sChangeReason});
 			}
@@ -1969,7 +1998,7 @@ sap.ui.define([
 	 *   where only the subset given below is supported. In case of deep create, <b>none</b> of the
 	 *   parameters in <code>mParameters</code> must be set.
 	 * @param {string} [mParameters.changeSetId]
-	 *   The ID of the <code>ChangeSet</code> that this request should belong to
+	 *   The ID of the change set that this request should belong to
 	 * @param {function} [mParameters.error]
 	 *   The error callback function
 	 * @param {string} [mParameters.expand]
@@ -2092,26 +2121,26 @@ sap.ui.define([
 			aFilters = [],
 			aPredicateSet = new Set(),
 			sResolvedPath = this.getResolvedPath(),
-			bTransientMatched = false,
-			that = this;
-
-		function isNonTransientTarget(sFullTarget) {
-			return aCreatedContextDeepPaths
-				.every((sCreatedContextDeepPath) => !sFullTarget.startsWith(sCreatedContextDeepPath));
-		}
+			bTransientMatched = false;
 
 		if (!sResolvedPath) {
 			return Promise.resolve(null);
 		}
 
 		const aCreatedContextDeepPaths = this._getCreatedContexts()
+			.filter((oContext) => oContext.isTransient())
 			.map((oCreatedContext) => oCreatedContext.getDeepPath());
-		this.oModel.getMessagesByPath(sDeepPath, true).forEach(function (oMessage) {
+
+		const isNonTransientTarget = (sFullTarget) =>
+			aCreatedContextDeepPaths
+				.every((sCreatedContextDeepPath) => !sFullTarget.startsWith(sCreatedContextDeepPath));
+
+		this.oModel.getMessagesByPath(sDeepPath, true).forEach((oMessage) => {
 			var sPredicate;
 
 			if (!fnFilter || fnFilter(oMessage)) {
 				// this.oModel.getMessagesByPath returns only messages with full target starting with deep path
-				oMessage.aFullTargets.forEach(function (sFullTarget) {
+				oMessage.aFullTargets.forEach((sFullTarget) => {
 					if (sFullTarget.startsWith(sDeepPath)) {
 						if (isNonTransientTarget(sFullTarget)) {
 							sPredicate = sFullTarget.slice(sDeepPath.length).split("/")[0];
@@ -2125,8 +2154,8 @@ sap.ui.define([
 				});
 			}
 		});
-		aPredicateSet.forEach(function (sPredicate) {
-			aFilters.push(that._getFilterForPredicate(sPredicate));
+		aPredicateSet.forEach((sPredicate) => {
+			aFilters.push(this._getFilterForPredicate(sPredicate));
 		});
 
 		if (aFilters.length === 1) {
@@ -2226,8 +2255,8 @@ sap.ui.define([
 
 	/**
 	 * Returns the count of active entries in the list if the list length is final, otherwise
-	 * <code>undefined</code>. Contrary to {#getLength}, this method does not consider inactive
-	 * entries which are created via {#create}.
+	 * <code>undefined</code>. Contrary to {@link #getLength}, this method does not consider inactive
+	 * entries which are created via {@link #create}.
 	 *
 	 * @returns {number|undefined} The count of entries
 	 *

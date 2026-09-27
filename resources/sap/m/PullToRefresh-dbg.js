@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.PullToRefresh.
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/thirdparty/jquery",
 	'./library',
 	'sap/ui/core/Control',
@@ -17,7 +18,7 @@ sap.ui.define([
 	"sap/m/BusyIndicator",
 	"sap/m/ImageHelper"
 ],
-	function(jQuery, library, Control, Device, PullToRefreshRenderer, KeyCodes, encodeXML, InvisibleText, BusyIndicator, ImageHelper) {
+	function(Library, jQuery, library, Control, Device, PullToRefreshRenderer, KeyCodes, encodeXML, InvisibleText, BusyIndicator, ImageHelper) {
 	"use strict";
 
 	/**
@@ -36,7 +37,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -123,7 +124,6 @@ sap.ui.define([
 			this._oScroller = oParent && oParent.getScrollDelegate ? oParent.getScrollDelegate() : null;
 
 			if (this._oScroller) {
-				this._oScroller.setBounce(true);
 				this._oScroller.setPullDown(this.getVisible() ? this : null);
 			}
 		}
@@ -246,7 +246,6 @@ sap.ui.define([
 				$this.toggleClass("sapMFlip", false).toggleClass("sapMLoading", true);
 				this._oBusyIndicator.setVisible(true);
 				$text.html(oResourceBundle.getText("PULL2REFRESH_LOADING"));
-				$this.attr("aria-live", "assertive");
 				$this.find(".sapMPullDownInfo").html(this._bTouchMode ? oResourceBundle.getText("PULL2REFRESH_LOADING_LONG") : "");
 				break;
 		}
@@ -363,7 +362,7 @@ sap.ui.define([
 	};
 
 	PullToRefresh.prototype._getRB = function(){
-		return sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		return Library.getResourceBundleFor("sap.m");
 	};
 
 	return PullToRefresh;

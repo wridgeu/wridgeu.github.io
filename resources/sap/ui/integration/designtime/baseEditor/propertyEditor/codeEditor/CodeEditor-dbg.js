@@ -1,14 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor",
-	"sap/ui/core/Fragment"
+	"sap/ui/core/Fragment",
+	"sap/ui/integration/designtime/baseEditor/util/EvalUtils",
+	"sap/m/MessageToast"
 ], function (
 	BasePropertyEditor,
-	Fragment
+	Fragment,
+	EvalUtils,
+	MessageToast
 ) {
 	"use strict";
 	function json2str(o) {
@@ -57,18 +61,23 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.codeEditor.CodeEditor
 	 * @author SAP SE
 	 * @since 1.106
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
-	 * @experimental 1.106
 	 * @ui5-restricted
 	 */
 	var CodeEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.codeEditor.CodeEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.codeEditor.CodeEditor",
 		metadata: {
-			library: "sap.ui.integration"
+			library: "sap.ui.integration",
+			events: {
+				/**
+				 * Fired after enabled status of begin button changed.
+				 */
+				"changeEnabledOfBeginButton": {}
+			}
 		},
-		renderer: BasePropertyEditor.getMetadata().getRenderer().render
+		renderer: BasePropertyEditor.getMetadata().getRenderer()
 	});
 
 	CodeEditor.configMetadata = Object.assign({}, BasePropertyEditor.configMetadata, {
@@ -124,10 +133,10 @@ sap.ui.define([
 		}).then(function (oDialog) {
 			this._oDialog = oDialog;
 			this._oEditor = this._oDialog.getContent()[0];
-			this._oEditor.getInternalEditorInstance().getSession().on("changeAnnotation", this.onChangeAnnotation.bind(this));
+			this._oEditor.getAceEditor().getSession().on("changeAnnotation", this.onChangeAnnotation.bind(this));
 			this._oDialog.attachAfterOpen(function () {
-				this._oEditor.getInternalEditorInstance().focus();
-				this._oEditor.getInternalEditorInstance().navigateFileEnd();
+				this._oEditor.getAceEditor().focus();
+				this._oEditor.getAceEditor().navigateFileEnd();
 			}, this);
 			this.addDependent(this._oDialog);
 			this._openDialog();
@@ -162,16 +171,20 @@ sap.ui.define([
 	};
 
 	CodeEditor.prototype.onChangeAnnotation = function () {
-		if (!this._oDialog.isOpen()) {
+		// if dialog is not open, no need to check the annotations.
+		// if code editor is not focused, it means the user is not editing the code, the error annotations will be removed by sap.ui.codeeditor.CodeEditor itself,
+		// then we can not use error annotations to determine whether the code is valid or not.
+		if (!this._oDialog.isOpen() || !this._oEditor.getAceEditor().isFocused()) {
 			return;
 		}
-		var oErrors = (this._oEditor.getInternalEditorInstance().getSession().getAnnotations() || []).filter(function (oError) {
+		var oErrors = this._oEditor.getAceEditor().getSession().getAnnotations().filter(function (oError) {
 			return oError.type === "error";
 		});
 		if (oErrors.length > 0) {
 			this._oDialog.getBeginButton().setEnabled(false);
 		} else {
-			var sValue = this._oEditor.getInternalEditorInstance().getValue();
+			this._oDialog.getBeginButton().setEnabled(true);
+			var sValue = this._oEditor.getAceEditor().getValue();
 			if (sValue && sValue !== "") {
 				//TODO: validate js format manually since the value maybe just as "aaa;" which will not be recognized as error by code editor itself
 				/*
@@ -181,6 +194,7 @@ sap.ui.define([
 						eval("(" + sValue + ")");
 					} catch (vError) {
 						this._oDialog.getBeginButton().setEnabled(false);
+						this.fireChangeEnabledOfBeginButton();
 						return;
 					}
 				}*/
@@ -188,8 +202,8 @@ sap.ui.define([
 			} else {
 				this._oCode = undefined;
 			}
-			this._oDialog.getBeginButton().setEnabled(true);
 		}
+		this.fireChangeEnabledOfBeginButton();
 	};
 
 	CodeEditor.prototype.onSave = function () {
@@ -197,8 +211,18 @@ sap.ui.define([
 		if (this._oCode && this._oCode !== "") {
 			oInput.setValueState("None");
 			if (this._oCode && this._oCode !== "") {
-				// eslint-disable-next-line no-eval
-				this._oCode = eval("(" + this._oCode + ")");
+				try {
+					if (EvalUtils.isEvalAllowed()) {
+						this._oCode = EvalUtils.evalJson(this._oCode);
+					} else {
+						this._oCode = JSON.parse(this._oCode);
+					}
+				} catch (vError) {
+					MessageToast.show(vError);
+					this._oDialog.getBeginButton().setEnabled(false);
+					this.fireChangeEnabledOfBeginButton();
+					return;
+				}
 			}
 		} else {
 			this._oCode = undefined;

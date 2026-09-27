@@ -1,8 +1,13 @@
+/**
+ * @file
+ * @deprecated As of version 1.50, together with sap.m.CustomTile
+ */
 /* ================================== */
 /* CSS for control sap.m/CustomTile   */
 /* Horizon High Contrast White theme  */
 /* ================================== */
 
-.sapMCustomTile:focus {
-	outline: 2px dotted @sapUiContentFocusColor;
+html.sap-desktop .sapMCustomTile:focus,
+.sapMCustomTile:focus-visible {
+	outline: 2px dotted var(--sapContent_FocusColor);
 }

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,19 @@ sap.ui.define([], function () {
 			aItems = oControl.getItems(),
 			sTooltip = oControl.getTooltip_AsString();
 
-		oRM.openStart("div", oControl).class("sapFGridContainer");
+		oRM.openStart("div", oControl)
+			.class("sapFGridContainer");
+
+		if (oControl.getWidth()) {
+			oRM.style("width", oControl.getWidth());
+		}
+
+		oRM.openEnd();
+
+		this.renderDummyArea(oRM, sId, "before", aItems.length > 0 ? 0 : -1);
+
+		oRM.openStart("div", `${sId}-listUl`)
+			.class("sapFGridContainerListUl");
 
 		this.setGridStyles(oRM, oControl._getActiveGridStyles());
 
@@ -35,6 +47,10 @@ sap.ui.define([], function () {
 			role: "list",
 			roledescription: oControl._oRb.getText("GRIDCONTAINER_ROLEDESCRIPTION")
 		});
+
+		if (oControl.getMinHeight()) {
+			oRM.style("min-height", oControl.getMinHeight());
+		}
 
 		if (oControl.getSnapToRow()) {
 			oRM.class("sapFGridContainerSnapToRow");
@@ -44,25 +60,17 @@ sap.ui.define([], function () {
 			oRM.class("sapFGridContainerDenseFill");
 		}
 
-		if (oControl.getWidth()) {
-			oRM.style("width", oControl.getWidth());
-		}
-
-		if (oControl.getMinHeight()) {
-			oRM.style("min-height", oControl.getMinHeight());
-		}
-
 		if (sTooltip) {
 			oRM.attr("title", sTooltip);
 		}
 
 		oRM.openEnd();
 
-		this.renderDummyArea(oRM, sId, "before", aItems.length > 0 ? 0 : -1);
-
 		aItems.forEach(function (oItem, iIndex) {
 			this.renderItem(oRM, oItem, oControl, iIndex);
 		}.bind(this));
+
+		oRM.close("div");
 
 		this.renderDummyArea(oRM, sId, "after", 0);
 
@@ -92,6 +100,7 @@ sap.ui.define([], function () {
 		var mStylesInfo = this.getStylesForItemWrapper(oItem, oControl),
 			mStyles = mStylesInfo.styles,
 			aClasses = mStylesInfo.classes,
+			bIsListItem = oControl._isListItem(oItem),
 			mAccState = {
 				role: "listitem"
 			};
@@ -100,9 +109,13 @@ sap.ui.define([], function () {
 			mAccState.roledescription = oItem.getAriaRoleDescription();
 		}
 
-		oRM.openStart("div", this.generateWrapperId(oItem, oControl))
-			.attr("tabindex", "0")
-			.accessibilityState(oControl, mAccState);
+		oRM.openStart("div", this.generateWrapperId(oItem, oControl));
+
+		if (!bIsListItem) {
+			oRM.attr("tabindex", "0")
+				.class("sapFGCFocusable")
+				.accessibilityState(oControl, mAccState);
+		}
 
 		mStyles.forEach(function (sValue, sKey) {
 			oRM.style(sKey, sValue);

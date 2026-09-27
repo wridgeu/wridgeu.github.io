@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -9,8 +9,8 @@
  */
 sap.ui.define([
 	'sap/ui/core/InvisibleText',
-	'sap/ui/core/Core'
-	], function (InvisibleText, Core) {
+	"sap/ui/core/Lib"
+	], function (InvisibleText, Library) {
 	"use strict";
 
 	/**
@@ -43,7 +43,7 @@ sap.ui.define([
 		if (sContainerRole === "group" && oAdaptiveCardElement.isRequired) {
 			var sInvisibleTextId = new InvisibleText({
 				id: oAdaptiveCardElement._renderedInputControlElement.id + "-InvisibleText",
-				text: Core.getLibraryResourceBundle("sap.ui.integration").getText("ADAPTIVE_CARDS_REQUIRED_FIELD")
+				text: Library.getResourceBundleFor("sap.ui.integration").getText("ADAPTIVE_CARDS_REQUIRED_FIELD")
 			}).toStatic().getId();
 
 			oAdaptiveCardElement.renderedInputControlElement.setAttribute("aria-describedby", sInvisibleTextId);
@@ -60,7 +60,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oLabel = document.createElement("ui5-label");
+		var oLabel = document.createElement("ui5-label-ac");
 
 		oLabel.id = oAdaptiveCardElement._renderedLabelElement.id;
 		oLabel.innerText = oAdaptiveCardElement.label;

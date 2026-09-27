@@ -1,12 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
 // Provides an abstraction for model bindings
-sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
-	function(BaseObject, isPlainObject) {
+sap.ui.define([
+	"sap/base/util/isPlainObject",
+	"sap/ui/base/Object"
+], function (isPlainObject, BaseObject) {
 	"use strict";
 
 
@@ -29,7 +31,6 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	 *
 	 * @param {sap.ui.model.Model} oModel the model
 	 * @param {string} sPath the binding path
-	 * @abstract
 	 * @public
 	 * @alias sap.ui.model.Context
 	 * @extends sap.ui.base.Object
@@ -47,7 +48,6 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 		},
 
 		metadata : {
-			"abstract" : true,
 		  publicMethods : [
 				"getModel", "getPath", "getProperty", "getObject"
 			]
@@ -86,18 +86,43 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	};
 
 	/**
-	 * Gets the (model dependent) object the context points to or the object with the given relative binding path
-	 * @public
-	 * @param {string} [sPath] the binding path
-	 * @param {object} [mParameters] additional model specific parameters (optional)
-	 * @return {object} the context object
+	 * Sets the given value for the property with the given binding path relative to this context in the model.
+	 *
+	 * @param {string} sPath
+	 *   The binding path
+	 * @param {any} vValue
+	 *   The value to set
+	 * @param {string} [sGroupId]
+	 *   Not used in default implementation; may be used by sub classes
+	 * @param {boolean} [bRetry]
+	 *   Not used in default implementation; may be used by sub classes
+	 * @throws {Error}
+	 *   If the value cannot be set because this context does not refer to an entry in the model data
+	 * @private
 	 */
-	Context.prototype.getObject = function(sPath, mParameters) {
-		if (isPlainObject(sPath)) {
-			mParameters = sPath;
-			sPath = undefined;
+	Context.prototype.setProperty = function(sPath, vValue, sGroupId, bRetry) {
+		if (!this.oModel.setProperty(sPath, vValue, this, /*bAsyncUpdate*/ true)) {
+			throw new Error("Cannot set the value " + vValue + " for the property " + sPath + " as the context path "
+				+ this.getPath() + " does not refer to an entry in the model data.");
 		}
-		return this.oModel.getObject(sPath, this, mParameters);
+	};
+
+	/**
+	 * Gets the (model-dependent) object the context points to, or the object with the given relative binding path.
+	 *
+	 * @param {string|object} [vPath] the binding path as a string, or if an object is provided,
+	 *   it is treated as additional parameters (same as <code>mParameters</code>)
+	 * @param {object} [mParameters] additional model-specific parameters
+	 * @returns {any} the context object
+	 *
+	 * @public
+	 */
+	Context.prototype.getObject = function(vPath, mParameters) {
+		if (isPlainObject(vPath)) {
+			mParameters = vPath;
+			vPath = undefined;
+		}
+		return this.oModel.getObject(vPath, this, mParameters);
 	};
 
 	/**

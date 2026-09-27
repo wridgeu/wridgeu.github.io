@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -8,12 +8,13 @@ sap.ui.define([
 	"../cards/Footer",
 	"../controls/ActionsToolbar",
 	"../controls/BlockingMessage",
+	"../delegate/Paginator",
 	"sap/ui/base/Interface",
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
+	"sap/ui/thirdparty/jquery",
 	"sap/ui/integration/util/Manifest",
-	"sap/ui/integration/util/ServiceManager",
 	"sap/base/Log",
 	"sap/base/util/merge",
 	"sap/base/util/deepEqual",
@@ -25,9 +26,10 @@ sap.ui.define([
 	"sap/ui/integration/model/ContextModel",
 	"sap/f/CardBase",
 	"sap/f/library",
+	"sap/f/cards/CardBadgeCustomData",
 	"sap/ui/integration/library",
 	"sap/ui/integration/util/Destinations",
-	"sap/ui/integration/util/LoadingProvider",
+	"sap/ui/integration/util/DelayedLoadingProvider",
 	"sap/ui/integration/util/HeaderFactory",
 	"sap/ui/integration/util/ContentFactory",
 	"sap/ui/integration/util/BindingResolver",
@@ -39,18 +41,20 @@ sap.ui.define([
 	"sap/m/IllustratedMessageType",
 	"sap/ui/integration/util/Utils",
 	"sap/ui/integration/util/ParameterMap",
-	"sap/ui/integration/util/Measurement"
-], function (
+	"sap/ui/integration/util/Measurement",
+	"sap/ui/integration/util/DisplayVariants"
+], function(
 	CardRenderer,
 	Footer,
 	ActionsToolbar,
 	BlockingMessage,
+	Paginator,
 	Interface,
-	jQuery,
-	Core,
+	Element,
+	Library,
 	coreLibrary,
+	jQuery,
 	CardManifest,
-	ServiceManager,
 	Log,
 	merge,
 	deepEqual,
@@ -62,9 +66,10 @@ sap.ui.define([
 	ContextModel,
 	CardBase,
 	fLibrary,
+	CardBadgeCustomData,
 	library,
 	Destinations,
-	LoadingProvider,
+	DelayedLoadingProvider,
 	HeaderFactory,
 	ContentFactory,
 	BindingResolver,
@@ -76,56 +81,69 @@ sap.ui.define([
 	IllustratedMessageType,
 	Utils,
 	ParameterMap,
-	Measurement
+	Measurement,
+	DisplayVariants
 ) {
 	"use strict";
 
-	var MANIFEST_PATHS = {
+	const MANIFEST_PATHS = {
 		TYPE: "/sap.card/type",
+		ACTIONS: "/sap.card/actions",
 		DATA: "/sap.card/data",
 		HEADER: "/sap.card/header",
 		HEADER_POSITION: "/sap.card/headerPosition",
 		CONTENT: "/sap.card/content",
 		FOOTER: "/sap.card/footer",
-		SERVICES: "/sap.ui5/services",
+		PAGINATOR: "/sap.card/footer/paginator",
+		BADGES: "/sap.card/badges",
 		APP_TYPE: "/sap.app/type",
 		PARAMS: "/sap.card/configuration/parameters",
 		DESTINATIONS: "/sap.card/configuration/destinations",
 		CSRF_TOKENS: "/sap.card/configuration/csrfTokens",
 		FILTERS: "/sap.card/configuration/filters",
+		CUSTOM_SETTINGS: "/sap.card/customSettings",
 		NO_DATA_MESSAGES: "/sap.card/configuration/messages/noData",
-		MODEL_SIZE_LIMIT: "/sap.card/configuration/modelSizeLimit"
+		MODEL_SIZE_LIMIT: "/sap.card/configuration/modelSizeLimit",
+		CHILD_CARDS: "/sap.card/configuration/childCards"
 	};
 
-	var RESERVED_PARAMETER_NAMES = ["visibleItems", "allItems"];
+	const RESERVED_PARAMETER_NAMES = ["visibleItems", "allItems"];
 
-	var HeaderPosition = fLibrary.cards.HeaderPosition;
+	const HeaderPosition = fLibrary.cards.HeaderPosition;
 
-	var CardArea = library.CardArea;
+	const SemanticRole = fLibrary.cards.SemanticRole;
 
-	var CardDataMode = library.CardDataMode;
+	const CardBadgeVisibilityMode = fLibrary.CardBadgeVisibilityMode;
 
-	var CardDesign = library.CardDesign;
+	const IndicationColor = coreLibrary.IndicationColor;
 
-	var CardDisplayVariant = library.CardDisplayVariant;
+	const CardArea = library.CardArea;
 
-	var CardPreviewMode = library.CardPreviewMode;
+	const CardDataMode = library.CardDataMode;
 
-	var CardBlockingMessageType = library.CardBlockingMessageType;
+	const CardDesign = library.CardDesign;
 
-	var CARD_DESTROYED_ERROR = "Card is destroyed!";
+	const CardDisplayVariant = library.CardDisplayVariant;
 
-	var MODULE_PREFIX = "module:";
+	const CardPreviewMode = library.CardPreviewMode;
 
-	var MessageType = coreLibrary.MessageType;
+	const CardOverflow = library.CardOverflow;
 
-	var DEFAULT_MODEL_SIZE_LIMIT = 1000;
+	const CardBlockingMessageType = library.CardBlockingMessageType;
+
+	const CARD_DESTROYED_ERROR = "Card is destroyed!";
+
+	const MODULE_PREFIX = "module:";
+
+	const DEFAULT_MODEL_SIZE_LIMIT = 1000;
+
+	const oResourceBundle = Library.getResourceBundleFor("sap.ui.integration");
 
 	/**
 	 * Constructor for a new <code>Card</code>.
 	 *
-	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
-	 * @param {object} [mSettings] Initial settings for the new control
+	 * @param {string} [sId] ID for the new control. ID generated automatically if no ID is provided.
+	 * @param {object} [mSettings] Initial settings for the new control.
 	 *
 	 * @class
 	 * A control that represents a container with a header and content.
@@ -151,7 +169,16 @@ sap.ui.define([
 	 * <li>Content</li>
 	 * <li>Data source</li>
 	 * <li>Possible actions</li>
+	 * <li>Badge (optional) - Since 1.151</li>
 	 * </ul>
+	 *
+	 * <h4>Manifest Badges vs. Programmatic Badges:</h4>
+	 * Badges can be set in two ways:
+	 * <ul>
+	 * <li><b>Manifest Badges:</b> Defined in <code>sap.card/badges</code> array - ideal for backend-driven scenarios where badge state is known at card definition time</li>
+	 * <li><b>Programmatic Badges:</b> Added via <code>customData</code> aggregation using {@link sap.f.cards.CardBadgeCustomData} - ideal for runtime dynamic scenarios controlled by the host application</li>
+	 * </ul>
+	 * Both types can coexist on the same card, allowing combination of backend-defined and host-controlled badges.
 	 *
 	 * The role of the app developer is to integrate the card into the app and define:
 	 * <ul>
@@ -178,7 +205,7 @@ sap.ui.define([
 	 * @extends sap.f.CardBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @public
 	 * @constructor
 	 * @see {@link topic:5b46b03f024542ba802d99d67bc1a3f4 Cards}
@@ -212,7 +239,7 @@ sap.ui.define([
 				 * Overrides the default values of the parameters, which are defined in the manifest.
 				 * The value is an object containing parameters in format <code>{parameterKey: parameterValue}</code>.
 				 *
-				 * @experimental Since 1.65. This property might be changed in future.
+				 * @since 1.65
 				 */
 				parameters: {
 					type: "object",
@@ -220,9 +247,23 @@ sap.ui.define([
 				},
 
 				/**
+				 * Defines custom settings passed from the Mobile SDK or a hosting application.
+				 * These are global defaults that can be overridden by individual cards via their manifest.
+				 * The value is an object containing custom settings as key-value pairs.
+				 *
+				 * <b>Note:</b> For Mobile SDK usage, set this property before calling <code>startManifestProcessing</code>.
+				 *
+				 * @ui5-experimental-since 1.146
+				 */
+				customSettings: {
+					type: "object",
+					defaultValue: {},
+					visibility: "hidden"
+				},
+
+				/**
 				 * Defines the state of the <code>Card</code>. When set to <code>Inactive</code>, the <code>Card</code> doesn't make requests.
-				 * @experimental Since 1.65
-				 * @since 1.65
+				 * @ui5-experimental-since 1.65
 				 */
 				dataMode: {
 					type: "sap.ui.integration.CardDataMode",
@@ -231,9 +272,15 @@ sap.ui.define([
 				},
 
 				/**
-				 * Defines the base URL of the card manifest. It should be used when manifest property is an object instead of a URL.
-				 * If both manifest URL and base URL are defined - the base URL will be used for loading dependencies.
-				 * @experimental Since 1.70
+				 * Defines the base URL of the card manifest. It must be provided when the manifest is an object and not a URL.
+				 * The base URL is used to load relatively referenced resources.
+				 *
+				 *	If the base URL is not defined and the manifest URL is defined, the manifest URL is used as the base URL.
+				 *	<ul>
+				 *	<li>If both the manifest URL and the base URL are defined, the base URL is used.</li>
+				 *	<li>If neither the manifest URL nor the base URL is defined, relative resources will not load correctly.</li>
+				 *	</ul>
+				 *
 				 * @since 1.70
 				 */
 				baseUrl: {
@@ -274,17 +321,15 @@ sap.ui.define([
 				 * 	}
 				 * ]
 				 * </pre>
-				 *
-				 * @experimental Since 1.76 This API might be removed when a permanent solution for flexibility changes is implemented.
 				 * @since 1.76
 				 */
 				manifestChanges: {
-					type: "object[]"
+					type: "object[]",
+					defaultValue: []
 				},
 
 				/**
 				 * Defines if the card should be displayed with mock data. To be used with component cards.
-				 * @experimental Since 1.109
 				 * @private
 				 * @since 1.109
 				 * @deprecated Since 1.112. Use <code>previewMode</code> instead.
@@ -297,8 +342,7 @@ sap.ui.define([
 
 				/**
 				 * Defines the design of the <code>Card</code>.
-				 * @experimental Since 1.109
-				 * @since 1.109
+				 * @ui5-experimental-since 1.109
 				 */
 				design: {
 					type: "sap.ui.integration.CardDesign",
@@ -308,8 +352,8 @@ sap.ui.define([
 
 				/**
 				 * Defines the display variant for card rendering and behavior.
-				 * @experimental Since 1.118. For usage only by Work Zone.
-				 * @since 1.118
+				 * @ui5-experimental-since 1.118
+				 * @ui5-restricted Work Zone
 				 */
 				displayVariant: {
 					type: "sap.ui.integration.CardDisplayVariant",
@@ -325,13 +369,65 @@ sap.ui.define([
 				 * <li>When set to "Abstract", the card shows abstract placeholder without loading data.</li>
 				 * <li>When set to "Off", the card displays real data.</li>
 				 * </ul>
-				 * @experimental Since 1.112
-				 * @since 1.112
+				 * @ui5-experimental-since 1.112
 				 */
 				previewMode: {
 					type: "sap.ui.integration.CardPreviewMode",
 					group: "Behavior",
 					defaultValue: CardPreviewMode.Off
+				},
+
+				/**
+				 * If the card should change depending on its size.
+				 * This property is temporary. Should be used to enable the feature for cards where it is needed.
+				 * @ui5-experimental-since 1.127
+				 */
+				useProgressiveDisclosure: {
+					type: "boolean",
+					group: "Behavior",
+					defaultValue: false
+				},
+
+				/**
+				 * Allows to control the overflow behaviour of the card.
+				 *
+				 * <b>Note</b>: If the "Default" option is used, the card must be allowed to grow in height as much as it needs to avoid overflowing. Use a layout which allows this.
+				 *
+				 * @ui5-experimental-since 1.133
+				 */
+				overflow: {
+					type: "sap.ui.integration.CardOverflow",
+					group: "Behavior",
+					defaultValue: CardOverflow.Default
+				},
+
+				/**
+				 * @since 1.128
+				 */
+				showCloseButton: {
+					type: "boolean",
+					group: "Behavior",
+					defaultValue: false,
+					visibility: "hidden"
+				},
+
+				/**
+				 * @since 1.140
+				 */
+				isPaginationCard: {
+					type: "boolean",
+					group: "Behavior",
+					defaultValue: false,
+					visibility: "hidden"
+				},
+
+				/**
+				 * Defines if the card is interactive.
+				 */
+				interactive: {
+					type: "boolean",
+					defaultValue: false,
+					visibility: "hidden"
 				}
 			},
 			aggregations: {
@@ -339,8 +435,7 @@ sap.ui.define([
 				/**
 				 * Actions definitions from which actions in the header menu of the card are created.
 				 * <b>Note</b>: This aggregation is destroyed when the property <code>manifest</code> changes.
-				 * @experimental Since 1.85. Disclaimer: this aggregation is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
-				 * @since 1.85
+				 * @ui5-experimental-since 1.85
 				 */
 				actionDefinitions: {
 					type: "sap.ui.integration.ActionDefinition",
@@ -403,6 +498,16 @@ sap.ui.define([
 					type: "sap.ui.core.Element",
 					multiple: false,
 					visibility: "hidden"
+				},
+
+				/**
+				 * Defines the manifest-declared badges.
+				 * @since 1.151
+				 */
+				_manifestBadge: {
+					type: "sap.f.cards.CardBadgeCustomData",
+					multiple: true,
+					visibility: "hidden"
 				}
 			},
 			events: {
@@ -413,8 +518,7 @@ sap.ui.define([
 				 * When an action is triggered in the card it can be handled on several places by "action" event handlers. In consecutive order those places are: <code>Extension</code>, <code>Card</code>, <code>Host</code>.
 				 * Each of them can prevent the next one to handle the action by calling <code>oEvent.preventDefault()</code>.
 				 *
-				 * @experimental since 1.64
-				 * Disclaimer: this event is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+				 * @since 1.64
 				 */
 				action: {
 					allowPreventDefault: true,
@@ -437,9 +541,21 @@ sap.ui.define([
 
 						/**
 						 * The parameters related to the triggered action.
+						 *
+						 * <b>Disclaimer:</b> Since 1.129 the special parameter <code>data</code> for action <code>Submit</code> is deprecated and must not be used. Use event parameter <code>formData</code> instead.
 						 * @since 1.76
 						 */
 						parameters: {
+							type: "object"
+						},
+
+						/**
+						 * All form data that is filled inside the card. This parameter is available only with action types <code>Submit</code> and <code>Custom</code>.
+						 *
+						 * The format will be the same as in the <code>form</code> model available in the card manifest. For more information look at the documentation for each individual form type.
+						 * @since 1.129
+						 */
+						formData: {
 							type: "object"
 						},
 
@@ -455,7 +571,9 @@ sap.ui.define([
 				/**
 				 * Fired when some configuration settings are changed as a result of user interaction.
 				 * For example - filter value is changed.
-				 * @experimental since 1.96
+				 * @private
+				 * @ui5-restricted
+				 * @since 1.96
 				 */
 				configurationChange: {
 					parameters: {
@@ -478,7 +596,8 @@ sap.ui.define([
 
 				/**
 				 * Fired when the manifest is loaded.
-				 * @experimental since 1.72
+				 * @since 1.72
+				 * @public
 				 */
 				manifestReady: {},
 
@@ -494,7 +613,8 @@ sap.ui.define([
 				/**
 				 * Fired when the state of the card is changed.
 				 * For example - the card is ready, new page is selected, a filter is changed or data is refreshed.
-				 * @experimental since 1.107
+				 * @since 1.107
+				 * @public
 				 */
 				stateChanged: {}
 			},
@@ -508,9 +628,23 @@ sap.ui.define([
 				/**
 				 * The opener card.
 				 * @private
-				 * @ui5-restricted
+				 * @ui5-private
 				 */
-				openerReference: { visibility: "hidden" }
+				openerReference: { visibility: "hidden" },
+
+				/**
+				 * The opener card.
+				 * @private
+				 * @ui5-private
+				 */
+				dialogHeader: { visibility: "hidden" },
+
+				/**
+				 * The child card which is openned for pagination or different show more.
+				 * @private
+				 * @ui5-private
+				 */
+				showMoreChildCard: { visibility: "hidden" }
 			}
 		},
 		renderer: CardRenderer
@@ -523,33 +657,38 @@ sap.ui.define([
 	Card.prototype.init = function () {
 		CardBase.prototype.init.call(this);
 
-		this.setAggregation("_loadingProvider", new LoadingProvider());
+		this.setAggregation("_loadingProvider", new DelayedLoadingProvider());
 
-		this._oIntegrationRb = Core.getLibraryResourceBundle("sap.ui.integration");
+		this._oIntegrationRb = Library.getResourceBundleFor("sap.ui.integration");
 		this._iModelSizeLimit = DEFAULT_MODEL_SIZE_LIMIT;
+		this._oDisplayVariants = new DisplayVariants(this);
 		this._initModels();
 		this._oContentFactory = new ContentFactory(this);
 		this._oCardObserver = new CardObserver(this);
 		this._aSevereErrors = [];
 		this._sPerformanceId = "UI5 Integration Cards " + this.getId() + " ";
 		this._aActiveLoadingProviders = [];
+		this._oCustomSettings = this.getProperty("customSettings");
 		this._fnOnDataReady = function () {
 			this._bDataReady = true;
 		}.bind(this);
 
 		this._fireStateChangedBound = this._fireStateChanged.bind(this);
+		this._sizeFormatterBound = this._oDisplayVariants.sizeFormatter.bind(this._oDisplayVariants);
 
 		/**
 		 * Facade of the {@link sap.ui.integration.widgets.Card} control.
+		 *
+		 * This facade contains methods accessible within the card extension.
+		 * The available methods represent a limited subset of all card methods, since not all card methods function as expected when called from within the extension.
+		 *
 		 * @interface
 		 * @name sap.ui.integration.widgets.CardFacade
-		 * @experimental since 1.79
 		 * @public
 		 * @author SAP SE
-		 * @version 1.120.0
-		 * @borrows sap.ui.integration.widgets.Card#getDomRef as getDomRef
-		 * @borrows sap.ui.integration.widgets.Card#setVisible as setVisible
-		 * @borrows sap.ui.integration.widgets.Card#getParameters as getParameters
+		 * @version 1.152.0
+		 * @borrows sap.ui.integration.widgets.Card#getId as getId
+		 * @borrows sap.ui.integration.widgets.Card#getResolvedParameters as getResolvedParameters
 		 * @borrows sap.ui.integration.widgets.Card#getCombinedParameters as getCombinedParameters
 		 * @borrows sap.ui.integration.widgets.Card#getManifestEntry as getManifestEntry
 		 * @borrows sap.ui.integration.widgets.Card#resolveDestination as resolveDestination
@@ -558,17 +697,15 @@ sap.ui.define([
 		 * @borrows sap.ui.integration.widgets.Card#refreshData as refreshData
 		 * @borrows sap.ui.integration.widgets.Card#showMessage as showMessage
 		 * @borrows sap.ui.integration.widgets.Card#hideMessage as hideMessage
-		 * @borrows sap.ui.integration.widgets.Card#getBaseUrl as getBaseUrl
-		 * @borrows sap.ui.integration.widgets.Card#getRuntimeUrl as getRuntimeUrl
+		 * @borrows sap.ui.integration.widgets.Card#resolveUrl as resolveUrl
 		 * @borrows sap.ui.integration.widgets.Card#getTranslatedText as getTranslatedText
-		 * @borrows sap.ui.integration.widgets.Card#getModel as getModel
 		 * @borrows sap.ui.integration.widgets.Card#triggerAction as triggerAction
 		 * @borrows sap.ui.integration.widgets.Card#addActionDefinition as addActionDefinition
 		 * @borrows sap.ui.integration.widgets.Card#removeActionDefinition as removeActionDefinition
 		 * @borrows sap.ui.integration.widgets.Card#insertActionDefinition as insertActionDefinition
-		 * @borrows sap.ui.integration.widgets.Card#getActionDefinition as getActionDefinition
+		 * @borrows sap.ui.integration.widgets.Card#getActionDefinitions as getActionDefinitions
 		 * @borrows sap.ui.integration.widgets.Card#indexOfActionDefinition as indexOfActionDefinition
-		 * @borrows sap.ui.integration.widgets.Card#destroyActionDefinition as destroyActionDefinition
+		 * @borrows sap.ui.integration.widgets.Card#destroyActionDefinitions as destroyActionDefinitions
 		 * @borrows sap.ui.integration.widgets.Card#showLoadingPlaceholders as showLoadingPlaceholders
 		 * @borrows sap.ui.integration.widgets.Card#hideLoadingPlaceholders as hideLoadingPlaceholders
 		 * @borrows sap.ui.integration.widgets.Card#showCard as showCard
@@ -580,9 +717,11 @@ sap.ui.define([
 		 * @borrows sap.ui.integration.widgets.Card#getBlockingMessage as getBlockingMessage
 		 */
 		this._oLimitedInterface = new Interface(this, [
+			"getId",
 			"getDomRef",
 			"setVisible",
 			"getParameters",
+			"getResolvedParameters",
 			"getCombinedParameters",
 			"getManifestEntry",
 			"resolveDestination",
@@ -590,17 +729,19 @@ sap.ui.define([
 			"refresh",
 			"refreshData",
 			"showMessage",
+			"hideMessage",
 			"getBaseUrl",
-			"getRuntimeUrl",
+			"resolveUrl",
+			"getRuntimeUrl", // @deprecated since 1.147.0
 			"getTranslatedText",
 			"getModel",
 			"triggerAction",
 			"addActionDefinition",
 			"removeActionDefinition",
 			"insertActionDefinition",
-			"getActionDefinition",
+			"getActionDefinitions",
 			"indexOfActionDefinition",
-			"destroyActionDefinition",
+			"destroyActionDefinitions",
 			"showLoadingPlaceholders",
 			"hideLoadingPlaceholders",
 			"showCard",
@@ -611,7 +752,49 @@ sap.ui.define([
 			"hideBlockingMessage",
 			"getBlockingMessage"
 		]);
+
+		// Temporary compatibility for deprecated getBaseUrl method
+		const fnOriginalGetBaseUrl = this._oLimitedInterface.getBaseUrl;
+		this._oLimitedInterface.getBaseUrl = function() {
+			Log.warning("Method 'getBaseUrl' must not be used through the card interface. It will be removed soon. Use 'resolveUrl' instead.");
+			return fnOriginalGetBaseUrl.apply(this, arguments);
+		};
 	};
+
+	/**
+	 * Gets current value of property {@link #getParameters parameters}.
+	 *
+	 * Overrides the default values of the parameters, which are defined in the manifest.
+	 * The returned value is an object containing parameters in format <code>{parameterKey: parameterValue}</code>.
+	 *
+	 * @public
+	 * @method
+	 * @name sap.ui.integration.widgets.CardFacade.getParameters
+	 * @deprecated Since 1.143. Use <code>getResolvedParameters()</code> instead.
+	 * @returns {object} Value of property <code>parameters<code>
+	 */
+
+	/**
+	 * @public
+	 * @method
+	 * @name sap.ui.integration.widgets.CardFacade.getDomRef
+	 * @deprecated Since 1.143. Do not access the card dom reference, as this is not supported in a mobile native environment.
+	 */
+
+	/**
+	 * @public
+	 * @method
+	 * @name sap.ui.integration.widgets.CardFacade.setVisible
+	 * @deprecated Since 1.143. Use <code>hide()</code> to hide a card opened by <code>showCard()</code>.
+	 * The card facade does not provide methods for showing or hiding the main card itself.
+	 */
+
+	/**
+	 * @public
+	 * @method
+	 * @name sap.ui.integration.widgets.CardFacade.getModel
+	 * @deprecated Since 1.143. Avoid accessing the models directly, use the binding syntax instead.
+	 */
 
 	/**
 	 * Initializes the internally used models.
@@ -625,16 +808,22 @@ sap.ui.define([
 			parameters: {
 				init: () => this.setModel(new JSONModel(ParameterMap.getParamsForModel()), "parameters")
 			},
+			customSettings: {
+				init: () => this.setModel(new JSONModel({}), "customSettings"),
+				reset: () => this.getModel("customSettings").setData({})
+			},
 			filters: {
 				init: () => this.setModel(new JSONModel(), "filters"),
 				reset: () => this.getModel("filters").setData({})
 			},
 			paginator: {
 				init: () => this.setModel(new JSONModel({
-					skip: 0
+					skip: 0,
+					pageIndex: 0
 				}),  "paginator"),
 				reset: () => this.getModel("paginator").setData({
-					skip: 0
+					skip: 0,
+					pageIndex: 0
 				})
 			},
 			form: {
@@ -651,9 +840,26 @@ sap.ui.define([
 				init: () => this.setModel(new ContextModel(), "context")
 			},
 			i18n: {
-				init: () => this.setModel(new ResourceModel({
-					bundle: this._oIntegrationRb
-				}), "i18n")
+				init: () => {
+					this.setModel(new ResourceModel({
+						bundleName: "sap.ui.integration.i18n.public.messagebundle",
+						async: true
+					}), "i18n");
+				},
+				reset: () => {
+					this._oActiveRb = null;
+					this.getModel("i18n").destroy();
+					this.setModel(new ResourceModel({
+						bundleName: "sap.ui.integration.i18n.public.messagebundle",
+						async: true
+					}), "i18n");
+				}
+			},
+			size: {
+				init: () => this.setModel(this._oDisplayVariants.getInitialSizeModel(), "size")
+			},
+			widgetInfo: {
+				init: () => this.setModel(new JSONModel(), "widgetInfo")
 			}
 		};
 
@@ -683,15 +889,18 @@ sap.ui.define([
 	 */
 	Card.prototype._initReadyState = function () {
 		this._aReadyPromises = [];
-
+		const aReadyPromises = this._aReadyPromises;
 		this._awaitEvent("_dataReady");
 		this._awaitEvent("_dataPassedToContent");
 		this._awaitEvent("_headerReady");
 		this._awaitEvent("_filterBarReady");
 		this._awaitEvent("_contentReady");
+		this._awaitEvent("_paginatorReady");
 
 		Promise.all(this._aReadyPromises).then(function () {
-			this._onReady();
+			if ( aReadyPromises === this._aReadyPromises ) {
+				this._onReady();
+			}
 		}.bind(this));
 
 		this.attachEventOnce("_dataReady", this._fnOnDataReady);
@@ -714,14 +923,26 @@ sap.ui.define([
 	 * @private
 	 */
 	Card.prototype.onBeforeRendering = function () {
+		CardBase.prototype.onBeforeRendering.call(this);
 
-		var oCardContent = this.getCardContent();
+		const oCardContent = this.getCardContent();
 		if (oCardContent && oCardContent.isA("sap.ui.integration.cards.BaseContent")) {
 			oCardContent.setDesign(this.getDesign());
+			oCardContent.setOverflowWithShowMore(this.getOverflow() === CardOverflow.ShowMore);
 		}
 
-		if (this.getDataMode() !== CardDataMode.Active) {
+		const oFooter = this.getCardFooter();
+		if (oFooter) {
+			oFooter.setDetectVisibility(this.getOverflow() === CardOverflow.ShowMore);
+		}
+
+		if (this._getActualDataMode() !== CardDataMode.Active) {
 			return;
+		}
+
+		if (this._oCustomSettings !== this.getProperty("customSettings")) {
+			this._bApplyCustomSettings = true;
+			this._oCustomSettings = this.getProperty("customSettings");
 		}
 
 		this.startManifestProcessing();
@@ -744,7 +965,7 @@ sap.ui.define([
 
 		var oCardDomRef = this.getDomRef();
 
-		if (this.getDataMode() === CardDataMode.Auto) {
+		if (this._getActualDataMode() === CardDataMode.Auto) {
 			this._oCardObserver.observe(oCardDomRef);
 		} else {
 			this._oCardObserver.unobserve(oCardDomRef);
@@ -759,6 +980,9 @@ sap.ui.define([
 	 * @ui5-restricted
 	 */
 	Card.prototype.startManifestProcessing = function () {
+		/**
+		 * @deprecated As of version 1.119
+		 */
 		if (!Utils.isBindingSyntaxComplex()) {
 			this._logSevereError(
 				"Cannot parse manifest. Complex binding syntax is not enabled - " +
@@ -767,7 +991,7 @@ sap.ui.define([
 			);
 		}
 
-		if (this._bApplyManifest || this._bApplyParameters) {
+		if (this._bApplyManifest || this._bApplyParameters || this._bApplyCustomSettings) {
 			this._clearReadyState();
 			this._initReadyState();
 		}
@@ -778,13 +1002,19 @@ sap.ui.define([
 			this.createManifest(vManifest, this.getBaseUrl());
 		}
 
-		if (!this._bApplyManifest && this._bApplyParameters) {
+		if (!this._bApplyManifest && (this._bApplyParameters || this._bApplyCustomSettings)) {
 			this._oCardManifest.processParameters(this._getContextAndRuntimeParams());
-			this._applyManifestSettings();
+
+			this.processDestinations(this._oCardManifest.getJson()).then((oResult) => {
+				this._oCardManifest.setJson(oResult);
+
+				this._applyManifestSettings();
+			});
 		}
 
 		this._bApplyManifest = false;
 		this._bApplyParameters = false;
+		this._bApplyCustomSettings = false;
 		this._refreshActionsMenu();
 	};
 
@@ -809,7 +1039,7 @@ sap.ui.define([
 		return this;
 	};
 
-	/**
+	/*
 	 * @override
 	 */
 	Card.prototype.setParameters = function (vValue) {
@@ -819,7 +1049,17 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets a single parameter in the parameters property
+	 * Sets a single parameter in the <code>parameters</code> property.
+	 *
+	 * Merges the given key-value pair into the existing parameters, keeping all other
+	 * parameters untouched. If the key already exists, its value is overwritten.
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @since 1.79
+	 * @param {string} sKey The key of the parameter to set.
+	 * @param {any} vValue The value to set for the given key.
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining.
 	 */
 	Card.prototype.setParameter = function (sKey, vValue) {
 		var mParameters = this.getParameters() || {};
@@ -871,8 +1111,6 @@ sap.ui.define([
 	 */
 	Card.prototype.createManifest = function (vManifest, sBaseUrl) {
 		var mOptions = {};
-
-		this._isManifestReady = false;
 
 		if (typeof vManifest === "string") {
 			mOptions.manifestUrl = vManifest;
@@ -980,11 +1218,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Causes all of the controls within the Card
+	 * Causes all the controls within the Card
 	 * that support validation to validate their data.
 	 * @public
-	 * @experimental
-	 * @returns {boolean} if all of the controls validated successfully; otherwise, false
+	 * @since 1.106
+	 * @returns {boolean} if all the controls validated successfully; otherwise, false
 	 */
 	Card.prototype.validateControls = function () {
 		this._validateContentControls(true);
@@ -1009,66 +1247,38 @@ sap.ui.define([
 	/**
 	 * Prepares the manifest and applies all settings.
 	 */
-	Card.prototype._applyManifest = function () {
+	Card.prototype._applyManifest = async function () {
 		var oCardManifest = this._oCardManifest;
 
 		if (!oCardManifest.get("/sap.card")) {
 			this._logSevereError("There must be a 'sap.card' section in the manifest.");
 		}
 
-		if (oCardManifest && oCardManifest.getResourceBundle()) {
+		if (oCardManifest.getResourceBundle()) {
 			this._enhanceI18nModel(oCardManifest.getResourceBundle());
 		}
 
+		this._oActiveRb = await this.getModel("i18n").getResourceBundle();
 		this.getModel("context").resetHostProperties();
 
 		if (this._hasContextParams()) {
-			this._resolveContextParams().then(function (oContextParameters) {
-				this._oContextParameters = oContextParameters;
-				this._applyManifestWithParams();
-			}.bind(this));
-			return;
+			this._oContextParameters = await this._resolveContextParams();
 		}
 
-		this._applyManifestWithParams();
+		oCardManifest.processParameters(this._getContextAndRuntimeParams());
+
+		await this._prepareToApplyManifestSettings();
+		this._applyManifestSettings();
 	};
 
 	/**
-	 * Applies all settings with the given parameters.
-	 * @private
-	 */
-	Card.prototype._applyManifestWithParams = function () {
-		var oCardManifest = this._oCardManifest,
-			oParameters = this._getContextAndRuntimeParams();
-
-		oCardManifest.processParameters(oParameters);
-
-		this._prepareToApplyManifestSettings().then(function () {
-			this._applyManifestSettings();
-		}.bind(this));
-	};
-
-	/**
-	 * Enhances or creates the i18n model for the card.
+	 * Enhances the public resource bundle with the one of the card.
 	 *
-	 * @param {module:sap/base/i18n/ResourceBundle} oResourceBundle The resource bundle which will be used to create the model or will enhance it.
+	 * @param {module:sap/base/i18n/ResourceBundle} oResourceBundle The resource bundle of the card.
 	 * @private
 	 */
 	Card.prototype._enhanceI18nModel = function (oResourceBundle) {
-		var oResourceModel = this.getModel("i18n"),
-			oNewResourceModel;
-
-		// the library resource bundle must not be enhanced
-		// so the card resource bundle should be first
-		oNewResourceModel = new ResourceModel({
-			bundle: oResourceBundle,
-			enhanceWith: [
-				this._oIntegrationRb
-			]
-		});
-
-		this.setModel(oNewResourceModel, "i18n");
-		oResourceModel.destroy();
+		this.getModel("i18n").enhance(oResourceBundle);
 	};
 
 	/**
@@ -1082,6 +1292,9 @@ sap.ui.define([
 			vValue;
 
 		for (sKey in oManifestParams) {
+			if (oManifestParams[sKey].ignoreBinding === true) {
+				continue;
+			}
 			vValue = oManifestParams[sKey].value;
 			if (typeof vValue === "string" && vValue.indexOf("{context>") !== -1) {
 				return true;
@@ -1105,6 +1318,9 @@ sap.ui.define([
 			vValue;
 
 		for (sKey in oManifestParams) {
+			if (oManifestParams[sKey].ignoreBinding === true) {
+				continue;
+			}
 			vValue = oManifestParams[sKey].value;
 			if (typeof vValue === "string" && vValue.indexOf("{context>") !== -1) {
 				oContextParams[sKey] = vValue;
@@ -1147,8 +1363,12 @@ sap.ui.define([
 	};
 
 	/**
+	 * Checks if the card is ready.
+	 *
+	 * The card is ready when all of its content, header, filters and data are loaded and rendered.
+	 *
 	 * @public
-	 * @experimental Since 1.65. The API might change.
+	 * @since 1.65
 	 * @returns {boolean} If the card is ready or not.
 	 */
 	Card.prototype.isReady = function () {
@@ -1159,10 +1379,10 @@ sap.ui.define([
 	 * Refreshes the card by re-applying the manifest settings and triggering all data requests.
 	 *
 	 * @public
-	 * @experimental Since 1.65. The API might change.
+	 * @since 1.65
 	 */
 	Card.prototype.refresh = function () {
-		if (this.getDataMode() === CardDataMode.Active) {
+		if (this._getActualDataMode() === CardDataMode.Active) {
 			this._bApplyManifest = true;
 			this.invalidate();
 		}
@@ -1197,20 +1417,35 @@ sap.ui.define([
 
 	/**
 	 * Sets the values of form fields in the Object card.
-	 * Each value in the aFormValues array must have a
-	 * key and the respective value for ObjectGroupItems as defined in the card's manifest:
+	 * Each value in the aFormValues array must have an
+	 * id and the respective value for ObjectGroupItems as defined in the card's manifest:
 	 * <code>[
 	 *     {
 	 *         "id": "textAreaItemId",
 	 *         "value": "New value"
 	 *     },
 	 *     {
-	 *         "id": "textAreaItemId",
-	 *         "value": "New value"
+	 *         "id": "inputItemId",
+	 *         "value": "New input value"
 	 *     },
 	 *     {
 	 *         "id": "comboBoxItemId",
-	 *         "selectedKey": "key"
+	 *         "key": "key"
+	 *     },
+	 *     {
+	 *         "id": "radioButtonGroupId",
+	 *         "key": "radioButtonKey"
+	 *     },
+	 *     {
+	 *         "id": "dateRangeItemId",
+	 *         "value": {
+	 *              "option": "date",
+	 *              "values": ["2024-01-01"]
+	 *          }
+	 *     },
+	 *     {
+	 *         "id": "durationItemId",
+	 *         "value": "PT11H12M"
 	 *     }
 	 * ]</code>
 	 *
@@ -1241,6 +1476,7 @@ sap.ui.define([
 			return;
 		}
 
+		this.hideBlockingMessage();
 		this.refreshAllData();
 		this.resetPaginator();
 	};
@@ -1271,6 +1507,11 @@ sap.ui.define([
 		if (oFilterBar) {
 			oFilterBar.refreshData();
 		}
+
+		const oShowMoreChildCard = Element.getElementById(this.getAssociation("showMoreChildCard"));
+		if (oShowMoreChildCard) {
+			oShowMoreChildCard.refreshData();
+		}
 	};
 
 	/**
@@ -1292,6 +1533,9 @@ sap.ui.define([
 			aActions = aActions.concat(oHost.getActions() || []);
 		}
 
+		/**
+		 * @deprecated As of version 1.85
+		 */
 		if (oExtension) {
 			aActions = aActions.concat(oExtension.getActions() || []);
 		}
@@ -1306,19 +1550,26 @@ sap.ui.define([
 	Card.prototype.exit = function () {
 		CardBase.prototype.exit.call(this);
 
+		this.destroyAggregation("_manifestBadge");
+
 		this._destroyManifest();
 		this._oCardObserver.destroy();
 		this._oCardObserver = null;
+		this._oDisplayVariants = null;
 		this._oContentFactory = null;
 		this._oIntegrationRb = null;
 		this._aActiveLoadingProviders = null;
-		this._oContentMessage = null;
 		this._oMessage = null;
 		clearTimeout(this._iFireStateChangedCallId);
 
 		if (this._oActionsToolbar) {
 			this._oActionsToolbar.destroy();
 			this._oActionsToolbar = null;
+		}
+
+		if (this._oActions) {
+			this._oActions.destroy();
+			this._oActions = null;
 		}
 	};
 
@@ -1330,11 +1581,6 @@ sap.ui.define([
 			this._oCardManifest.destroy();
 			this._oCardManifest = null;
 		}
-		if (this._oServiceManager) {
-			this._oServiceManager.destroy();
-			this._oServiceManager = null;
-		}
-
 		if (this._oDestinations) {
 			this._oDestinations.destroy();
 			this._oDestinations = null;
@@ -1355,29 +1601,34 @@ sap.ui.define([
 		this.destroyAggregation("_filterBar");
 		this.destroyAggregation("_footer");
 
-		this._cleanupOldManifest();
+		this._cleanupOldManifest(false);
 	};
 
 	/**
 	 * Cleans up internal models and other before new manifest processing.
+	 * @param {boolean} [bResetInternalModels=true] If true, the internal models will be reset.
 	 */
-	Card.prototype._cleanupOldManifest = function() {
-		this._aReadyPromises = null;
+	Card.prototype._cleanupOldManifest = function(bResetInternalModels = true) {
+		this._isManifestReady = false;
 
 		if (this._fnOnModelChange) {
 			this.getModel().detachEvent("change", this._fnOnModelChange, this);
 			delete this._fnOnModelChange;
 		}
 
-		for (const modelName in this._INTERNAL_MODELS) {
-			if (this._INTERNAL_MODELS[modelName].reset) {
-				this._INTERNAL_MODELS[modelName].reset();
+		if (bResetInternalModels) {
+			for (const modelName in this._INTERNAL_MODELS) {
+				if (this._INTERNAL_MODELS[modelName].reset) {
+					this._INTERNAL_MODELS[modelName].reset();
+				}
 			}
 		}
 
 		this._oContextParameters = null;
 
 		this._deregisterCustomModels();
+
+		this.destroyAggregation("_manifestBadge");
 
 		this.destroyAggregation("_extension");
 
@@ -1386,6 +1637,11 @@ sap.ui.define([
 			this._oDataProviderFactory.destroy();
 			this._oDataProviderFactory = null;
 			this._oDataProvider = null;
+		}
+
+		if (this._oPaginator) {
+			this._oPaginator.destroy();
+			this._oPaginator = null;
 		}
 
 		this._setLoadingProviderState(false);
@@ -1405,9 +1661,7 @@ sap.ui.define([
 		return vValue;
 	};
 
-	/**
-	 * @override
-	 */
+	// @override
 	Card.prototype.getParameters = function () {
 		var vValue = this.getProperty("parameters");
 		if (vValue && typeof vValue === "object") {
@@ -1426,10 +1680,10 @@ sap.ui.define([
 	 * - Use when developing a Component card.
 	 *
 	 * @public
-	 * @experimental Since 1.77
+	 * @since 1.152
 	 * @returns {map} Object containing parameters in format <code>{parameterKey: parameterValue}</code>.
 	 */
-	Card.prototype.getCombinedParameters = function () {
+	Card.prototype.getResolvedParameters = function () {
 		if (!this._isManifestReady) {
 			Log.error("The manifest is not ready. Consider using the 'manifestReady' event.", "sap.ui.integration.widgets.Card");
 			return null;
@@ -1447,12 +1701,60 @@ sap.ui.define([
 	};
 
 	/**
+	 * Gets values of manifest parameters combined with the parameters from <code>parameters</code> property.
+	 *
+	 * <b>Notes</b>
+	 *
+	 * - Use this method when the manifest is ready. Check <code>manifestReady</code> event.
+	 *
+	 * - Use when developing a Component card.
+	 *
+	 * @public
+	 * @ui5-experimental-since 1.77
+	 * @deprecated Since 1.152. Use <code>getResolvedParameters()</code> instead.
+	 * @returns {map} Object containing parameters in format <code>{parameterKey: parameterValue}</code>.
+	 */
+	Card.prototype.getCombinedParameters = function () {
+		return this.getResolvedParameters();
+	};
+
+	/**
+	 * Gets the merged custom settings from the manifest combined with the settings from <code>customSettings</code> property.
+	 * Card manifest values take precedence for individual properties (shallow merge).
+	 *
+	 * <b>Notes</b>
+	 *
+	 * - Use this method when the manifest is ready. Check <code>manifestReady</code> event.
+	 *
+	 * - This method is intended for use by Mobile SDK.
+	 *
+	 * @private
+	 * @ui5-restricted Mobile SDK
+	 * @returns {object} Object containing the merged custom settings. Returns <code>null</code> if the manifest is not ready.
+	 * @since 1.146
+	 */
+	Card.prototype.getCombinedCustomSettings = function () {
+		if (!this._isManifestReady) {
+			Log.error("The manifest is not ready. Consider using the 'manifestReady' event.", "sap.ui.integration.widgets.Card");
+			return null;
+		}
+
+		const oModel = this.getModel("customSettings");
+		if (oModel) {
+			const oData = oModel.getData();
+			return jQuery.extend(true, {}, oData);
+		}
+
+		return {};
+	};
+
+	/**
 	 * Returns a value from the Manifest based on the specified path.
 	 *
 	 * <b>Note</b> Use this method when the manifest is ready. Check <code>manifestReady</code> event.
 	 *
 	 * @public
-	 * @experimental Since 1.77
+	 * @since 1.77
 	 * @param {string} sPath The path to return a value for.
 	 * @returns {any} The value at the specified path.
 	 */
@@ -1463,6 +1765,76 @@ sap.ui.define([
 		}
 
 		return this._oCardManifest.get(sPath);
+	};
+
+	/**
+	 * Returns the context paths that the card depends on.
+	 *
+	 * Scans the <code>sap.card</code> section of the manifest for context model references
+	 * and returns a deduplicated array of the context paths found.
+	 *
+	 * Must be called after the manifest is ready (for example, in the <code>manifestReady</code> event handler).
+	 *
+	 * <b>Limitation:</b> Only context references directly in the manifest are detected.
+	 * Context referenced from inside an extension or component will not be returned.
+	 * If context needs to be used from an extension, assign it to a parameter first.
+	 *
+	 * @public
+	 * @since 1.151
+	 * @returns {string[]} An array of context paths found in the manifest
+	 * (for example, <code>["/sample/currentUser/id", "/sample/supplier/id/value"]</code>).
+	 * Returns an empty array if no context dependencies are found or if the manifest is not ready.
+	 */
+	Card.prototype.getContextDependencies = function () {
+		if (!this._isManifestReady || this.isDestroyed()) {
+			Log.error("The manifest is not ready. Consider using the 'manifestReady' event.", "sap.ui.integration.widgets.Card");
+			return [];
+		}
+
+		const oSapCard = this._oCardManifest.get("/sap.card");
+		const oParams = oSapCard && oSapCard.configuration && oSapCard.configuration.parameters;
+		const aResult = [];
+
+		function findContextPaths(oManifestSection, oExcludeSection) {
+			for (const sKey in oManifestSection) {
+				const vValue = oManifestSection[sKey];
+				if (vValue === oExcludeSection) {
+					continue;
+				}
+				if (typeof vValue === "string" && vValue.indexOf("{context>") > -1) {
+					const aParts = vValue.split("{context>");
+					for (let i = 1; i < aParts.length; i++) {
+						const iPathEnd = aParts[i].indexOf("}");
+						if (iPathEnd <= 0) {
+							continue;
+						}
+						let sPath = aParts[i].substring(0, iPathEnd);
+						if (!sPath.startsWith("/")) {
+							sPath = "/" + sPath;
+						}
+						if (aResult.indexOf(sPath) === -1) {
+							aResult.push(sPath);
+						}
+					}
+				} else if (vValue && typeof vValue === "object") {
+					findContextPaths(vValue, oExcludeSection);
+				}
+			}
+		}
+
+		// Walk sap.card but skip the parameters section (handled separately)
+		findContextPaths(oSapCard, oParams);
+
+		// Walk parameters with ignoreBinding check
+		for (const sKey in oParams) {
+			const oParam = oParams[sKey];
+			if (!oParam || typeof oParam !== "object" || oParam.ignoreBinding === true) {
+				continue;
+			}
+			findContextPaths(oParam);
+		}
+
+		return aResult;
 	};
 
 	/**
@@ -1533,30 +1905,35 @@ sap.ui.define([
 	 * Can be used only after the <code>manifestApplied</code> event is fired.
 	 *
 	 * @public
-	 * @experimental As of version 1.81
+	 * @ui5-experimental-since 1.81
 	 * @param {string} sMessage The message.
-	 * @param {sap.ui.core.MessageType} sType Type of the message.
+	 * @param {sap.ui.integration.CardMessageType} sType Type of the message.
+	 * @param {boolean} bAutoClose Close the message automatically. Default is <code>false</code> for most message types.
+	 * 	It is <code>true</code> for message type <code>Toast</code>.
+	 * 	<b>Note</b> This property has no effect for message type <code>Loading</code>.
 	 */
-	Card.prototype.showMessage = function (sMessage, sType) {
+	Card.prototype.showMessage = function (sMessage, sType, bAutoClose) {
 		var oContent = this.getCardContent();
 
 		if (oContent && oContent.isA("sap.ui.integration.cards.BaseContent")) {
-			oContent.showMessage(sMessage, sType);
+			oContent.showMessage(sMessage, sType, bAutoClose);
 			this._oMessage = {
 				text: sMessage,
-				type: sType
+				type: sType,
+				autoClose: bAutoClose
 			};
 			this.scheduleFireStateChanged();
 		} else {
-			Log.error("'showMessage' cannot be used before the card instance is ready. Consider using the event 'manifestApplied' event.", "sap.ui.integration.widgets.Card");
+			Log.error("'showMessage' cannot be used before the card instance is ready. Consider using the 'manifestApplied' event.", "sap.ui.integration.widgets.Card");
 		}
 	};
 
 	/**
-	 * Hides the message previously shown by showMessage.
+	 * Hides the message previously shown by {@link sap.ui.integration.widgets.Card#showMessage showMessage}.
+	 * Can be used only after the <code>manifestApplied</code> event is fired.
 	 *
 	 * @public
-	 * @experimental As of version 1.117
+	 * @ui5-experimental-since 1.117
 	 */
 	Card.prototype.hideMessage = function () {
 		var oContent = this.getCardContent();
@@ -1566,12 +1943,12 @@ sap.ui.define([
 			this._oMessage = null;
 			this.scheduleFireStateChanged();
 		} else {
-			Log.error("'showMessage' cannot be used before the card instance is ready. Consider using the event 'manifestApplied' event.", "sap.ui.integration.widgets.Card");
+			Log.error("'hideMessage' cannot be used before the card instance is ready. Consider using the 'manifestApplied' event.", "sap.ui.integration.widgets.Card");
 		}
 	};
 
 	/**
-	 * Settings for blocking message that ocurred in a {@link sap.ui.integration.widgets.Card}
+	 * Settings for blocking message that occurred in a {@link sap.ui.integration.widgets.Card}
 	 *
 	 * @typedef {object} sap.ui.integration.BlockingMessageSettings
 	 * @property {sap.ui.integration.CardBlockingMessageType} type Blocking message type
@@ -1579,9 +1956,11 @@ sap.ui.define([
 	 * @property {sap.m.IllustratedMessageSize} [illustrationSize=sap.m.IllustratedMessageSize.Auto] Illustration size
 	 * @property {string} title Title
 	 * @property {string} [description] Description
+	 * @property {string} [imageSrc] Path to a custom image to be shown on the place of the regular illustration. Relative to the card base URL.
 	 * @property {Response} [httpResponse] Response object in case of a network error
+	 * @property {array} [additionalContent] A list of buttons placed below the description as additional content. Experimental since 1.121
 	 * @public
-	 * @experimental As of version 1.114
+	 * @ui5-experimental-since 1.114
 	 */
 
 	/**
@@ -1589,7 +1968,7 @@ sap.ui.define([
 	 * Should be used after the <code>manifestApplied</code> event or after the <code>cardReady</code> lifecycle hook in Component cards and Extensions.
 	 *
 	 * @public
-	 * @experimental As of version 1.114
+	 * @ui5-experimental-since 1.114
 	 * @param {sap.ui.integration.BlockingMessageSettings} oSettings Blocking message settings
 	 */
 	Card.prototype.showBlockingMessage = function (oSettings) {
@@ -1605,7 +1984,7 @@ sap.ui.define([
 	 * Get information about the blocking message in the card.
 	 *
 	 * @public
-	 * @experimental As of version 1.114
+	 * @ui5-experimental-since 1.114
 	 * @returns {sap.ui.integration.BlockingMessageSettings|null} Information about the message or <code>null</code>, if such isn't shown.
 	 */
 	Card.prototype.getBlockingMessage = function () {
@@ -1619,7 +1998,8 @@ sap.ui.define([
 				illustrationType: oContent.getIllustrationType(),
 				illustrationSize: oContent.getIllustrationSize(),
 				title: oContent.getTitle(),
-				description: oContent.getDescription()
+				description: oContent.getDescription(),
+				imageSrc: oContent.getImageSrc()
 			};
 		}
 
@@ -1630,7 +2010,7 @@ sap.ui.define([
 	 * Hide the blocking message that is shown in the card by <code>showBlockingMessage</code> call.
 	 *
 	 * @public
-	 * @experimental As of version 1.114
+	 * @ui5-experimental-since 1.114
 	 */
 	Card.prototype.hideBlockingMessage = function () {
 		var oContent = this.getCardContent();
@@ -1643,9 +2023,8 @@ sap.ui.define([
 	/**
 	 * Gets translated text from the i18n properties files configured for this card.
 	 *
-	 * For more details see {@link module:sap/base/i18n/ResourceBundle#getText}.
+	 * This method uses <code>ResourceBundle.getText()</code>. For more details see {@link module:sap/base/i18n/ResourceBundle#getText}.
 	 *
-	 * @experimental Since 1.83. The API might change.
 	 * @public
 	 * @param {string} sKey Key to retrieve the text for
 	 * @param {string[]} [aArgs] List of parameter values which should replace the placeholders "{<i>n</i>}"
@@ -1653,20 +2032,15 @@ sap.ui.define([
 	 *     whenever <code>aArgs</code> is given, no matter whether the text contains placeholders or not
 	 *     and no matter whether <code>aArgs</code> contains a value for <i>n</i> or not.
 	 * @param {boolean} [bIgnoreKeyFallback=false] If set, <code>undefined</code> is returned instead of the key string, when the key is not found in any bundle or fallback bundle.
-	 * @returns {string} The value belonging to the key, if found; otherwise the key itself or <code>undefined</code> depending on <code>bIgnoreKeyFallback</code>.
+	 * @returns {string|undefined} The value belonging to the key, if found; otherwise, it returns the key itself or <code>undefined</code> depending on <code>bIgnoreKeyFallback</code>.
 	 */
 	Card.prototype.getTranslatedText = function (sKey, aArgs, bIgnoreKeyFallback) {
-		var oModel = this.getModel("i18n"),
-			oBundle;
-
-		if (!oModel) {
-			Log.warning("There are no translations available. Either the i18n configuration is missing or the method is called too early.");
-			return null;
+		if (!this._oActiveRb) {
+			Log.error("'getTranslatedText' cannot be used before the card instance is ready. Consider using the event 'manifestApplied'.", "sap.ui.integration.widgets.Card");
+			return bIgnoreKeyFallback ? undefined : sKey;
 		}
 
-		oBundle = oModel.getResourceBundle();
-
-		return oBundle.getText(sKey, aArgs, bIgnoreKeyFallback);
+		return this._oActiveRb.getText(sKey, aArgs, bIgnoreKeyFallback);
 	};
 
 	/**
@@ -1684,40 +2058,89 @@ sap.ui.define([
 	};
 
 	/**
-	 * Resolves the given URL relatively to the manifest base path.
+	 * Resolves the given URL relative to the manifest base path.
 	 * Absolute paths are not changed.
 	 *
 	 * @example
-	 * oCard.getRuntimeUrl("images/Avatar.png") === "{cardBaseUrl}/images/Avatar.png"
-	 * oCard.getRuntimeUrl("http://www.someurl.com/Avatar.png") === "http://www.someurl.com/Avatar.png"
-	 * oCard.getRuntimeUrl("https://www.someurl.com/Avatar.png") === "https://www.someurl.com/Avatar.png"
+	 * oCard.resolveUrl("images/Avatar.png") === "{cardBaseUrl}/images/Avatar.png"
+	 * oCard.resolveUrl("/images/Avatar.png") === "/images/Avatar.png" (remains relative to host root)
+	 * oCard.resolveUrl("http://www.someurl.com/Avatar.png") === "http://www.someurl.com/Avatar.png"
+	 * oCard.resolveUrl("https://www.someurl.com/Avatar.png") === "https://www.someurl.com/Avatar.png"
 	 *
 	 * @ui5-restricted
 	 * @param {string} sUrl The URL to resolve.
 	 * @returns {string} The resolved URL.
 	 */
-	Card.prototype.getRuntimeUrl = function (sUrl) {
-		var sAppId = this._oCardManifest ? this._oCardManifest.get("/sap.app/id") : null,
-			sAppName,
-			sSanitizedUrl = sUrl && sUrl.trim().replace(/^\//, "");
+	Card.prototype.resolveUrl = function (sUrl) {
+		if (!sUrl) {
+			sUrl = "";
+		}
 
-		if (sAppId === null) {
+		if (!this._oCardManifest) {
 			Log.error("The manifest is not ready so the URL can not be resolved. Consider using the 'manifestReady' event.", "sap.ui.integration.widgets.Card");
 			return null;
 		}
 
-		if (!sAppId ||
-			sUrl.startsWith("http://") ||
+		const sAppId = this._oCardManifest.get("/sap.app/id");
+
+		if (sUrl.startsWith("http://") ||
 			sUrl.startsWith("https://") ||
 			sUrl.startsWith("//")) {
 			return sUrl;
 		}
 
-		sAppName = sAppId.replace(/\./g, "/");
+		if (!sAppId) {
+			Log.error("The manifest property 'sap.app/id' is missing or empty. The URL '" + sUrl + "' cannot be resolved.", "sap.ui.integration.widgets.Card");
+			return sUrl;
+		}
+
+		if (sUrl.startsWith("/")) {
+			// urls which are absolute to the server root are not changed
+			return sUrl;
+		}
+
+		const sSanitizedUrl = sUrl && sUrl.trim().replace(/^\//, "");
+		const sAppName = sAppId.replace(/\./g, "/");
 
 		// do not use sap.ui.require.toUrl(sAppName + "/" + sSanitizedUrl)
 		// because it doesn't work when the sSanitizedUrl starts with ".."
 		return sap.ui.require.toUrl(sAppName) + "/" + sSanitizedUrl;
+	};
+
+	/**
+	 * Resolves the given URL relative to the manifest base path.
+	 * Absolute paths are not changed.
+	 *
+	 * @example
+	 * oCard.getRuntimeUrl("images/Avatar.png") === "{cardBaseUrl}/images/Avatar.png"
+	 * oCard.getRuntimeUrl("/images/Avatar.png") === "/images/Avatar.png" (remains relative to host root)
+	 * oCard.getRuntimeUrl("http://www.someurl.com/Avatar.png") === "http://www.someurl.com/Avatar.png"
+	 * oCard.getRuntimeUrl("https://www.someurl.com/Avatar.png") === "https://www.someurl.com/Avatar.png"
+	 *
+	 * @deprecated As of version 1.146, replaced by {@link sap.ui.integration.widgets.Card#resolveUrl}
+	 * @ui5-restricted
+	 * @param {string} sUrl The URL to resolve.
+	 * @returns {string} The resolved URL.
+	 */
+	Card.prototype.getRuntimeUrl = function (sUrl) {
+		Log.warning("'getRuntimeUrl' is deprecated. Use 'resolveUrl' instead.", "sap.ui.integration.widgets.Card");
+		return this.resolveUrl(sUrl);
+	};
+
+	/**
+	 * Returns the matching value from the query.
+	 *
+	 * size('standard') => true
+	 *
+	 * size({small:2, standard:5, large: 10}) => 5
+	 *
+	 * @private
+	 * @ui5-restricted UPA
+	 * @param {string|object} vQuery The query.
+	 * @returns {*} The result.
+	 */
+	Card.prototype.sizeQuery = function (vQuery) {
+		return this._oDisplayVariants.sizeFormatter(vQuery);
 	};
 
 	/**
@@ -1737,11 +2160,24 @@ sap.ui.define([
 			this._oDataProviderFactory.destroy();
 		}
 
-		this._oDestinations = new Destinations({
-			host: this.getHostInstance(),
-			card: this,
-			manifestConfig: this._oCardManifest.get(MANIFEST_PATHS.DESTINATIONS)
+		try {
+			this._oDestinations = Destinations.create({
+				card: this,
+				mainCard: this.getMainCard(),
+				isPaginationCard: this.getProperty("isPaginationCard")
 		});
+		} catch (oError) {
+			this.getMainCard()._handleError({
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_TITLE"),
+				description: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_DESCRIPTION"),
+				details: " ",
+				originalError: oError
+			});
+
+			return Promise.reject(oError);
+		}
+
 		this._oIconFormatter = new IconFormatter({
 			card: this
 		});
@@ -1772,17 +2208,22 @@ sap.ui.define([
 	 */
 	Card.prototype._applyManifestSettings = function () {
 		this._setParametersModelData();
+		this._setCustomSettingsModelData();
 
 		this._checkMockPreviewMode();
 
 		this._applyModelSizeLimit();
 
-		this._applyServiceManifestSettings();
+		this._applyLoadingDelay();
+		this._applyBadgeManifestSettings();
 		this._applyFilterBarManifestSettings();
 		this._applyDataManifestSettings();
+		this._applyActionManifestSettings();
 		this._applyHeaderManifestSettings();
-		this._applyContentManifestSettings();
+		this._applyPaginatorManifestSettings();
 		this._applyFooterManifestSettings();
+		this._applyContentManifestSettings();
+		this._validateChildCardsManifestSettings();
 
 		this.fireManifestApplied();
 	};
@@ -1797,7 +2238,7 @@ sap.ui.define([
 	Card.prototype._setParametersModelData = function () {
 		var oPredefinedParameters = ParameterMap.getParamsForModel(),
 			oCustomParameters = {},
-			oCombinedParameters = this.getCombinedParameters(),
+			oCombinedParameters = this.getResolvedParameters(),
 			sKey;
 
 		for (sKey in oCombinedParameters) {
@@ -1810,6 +2251,24 @@ sap.ui.define([
 		this.getModel("parameters").setData(merge(oPredefinedParameters, oCustomParameters));
 	};
 
+	/**
+	 * Sets the data for the customSettings model.
+	 * Merges <code>customSettings</code> property with card manifest overrides.
+	 * Card manifest values take precedence for individual properties.
+	 *
+	 * The merge is shallow - card manifest can override individual properties
+	 * while preserving non-overridden properties from <code>customSettings</code> property.
+	 *
+	 * @private
+	 */
+	Card.prototype._setCustomSettingsModelData = function () {
+		const oCustomSettings = this.getProperty("customSettings");
+		const oManifestOverrides = this._oCardManifest.get(MANIFEST_PATHS.CUSTOM_SETTINGS) || {};
+		const oMergedSettings = Object.assign({}, oCustomSettings, oManifestOverrides);
+
+		this.getModel("customSettings").setData(oMergedSettings);
+	};
+
 	Card.prototype._applyDataManifestSettings = function () {
 		var oDataSettings = this._oCardManifest.get(MANIFEST_PATHS.DATA),
 			oModel;
@@ -1820,13 +2279,14 @@ sap.ui.define([
 			return;
 		}
 
-		this.bindObject(BindingResolver.resolveValue(oDataSettings.path || "/", this));
+		this._sBindingPath = oDataSettings.path || "/";
+		this.bindObject(BindingResolver.resolveValue(this._sBindingPath, this));
 
 		if (this._oDataProvider) {
 			this._oDataProvider.destroy();
 		}
 
-		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings, this._oServiceManager);
+		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings);
 
 		if (oDataSettings.name) {
 			oModel = this.getModel(oDataSettings.name);
@@ -1849,6 +2309,10 @@ sap.ui.define([
 				oCardContent.onCardDataChanged();
 			}
 
+			if (this.getCardFooter()) {
+				this.getCardFooter().onDataChanged();
+			}
+
 			this.fireEvent("_dataPassedToContent");
 			this.onDataRequestComplete();
 		};
@@ -1862,7 +2326,7 @@ sap.ui.define([
 
 			this._oDataProvider.attachDataChanged(function (oEvent) {
 				this.fireEvent("_dataReady");
-				oModel.setData(oEvent.getParameter("data"));
+				this._setModelData(oEvent.getParameter("data"), oModel);
 			}.bind(this));
 
 			this._oDataProvider.attachError(function (oEvent) {
@@ -1870,7 +2334,7 @@ sap.ui.define([
 				this.fireEvent("_dataPassedToContent");
 				this._handleError({
 					requestErrorParams: oEvent.getParameters(),
-					requestSettings: this._oDataProvider.getSettings()
+					requestSettings: this._oDataProvider.getResolvedConfiguration()
 				});
 				this.onDataRequestComplete();
 			}.bind(this));
@@ -1882,20 +2346,32 @@ sap.ui.define([
 		}
 	};
 
-	/**
-	 * Register all required services in the ServiceManager based on the card manifest.
-	 *
-	 * @private
-	 */
-	Card.prototype._applyServiceManifestSettings = function () {
-		var oServiceFactoryReferences = this._oCardManifest.get(MANIFEST_PATHS.SERVICES);
-		if (!oServiceFactoryReferences) {
+	Card.prototype._setModelData = function (vData, oModel) {
+		if (this._oPaginator?.isLoadingMore()) {
+			this._oPaginator.setModelData(vData, oModel);
+		} else {
+			oModel.setData(vData);
+		}
+	};
+
+	Card.prototype._applyActionManifestSettings = function () {
+		var oActionsSettings = this._oCardManifest.get(MANIFEST_PATHS.ACTIONS);
+
+		if (!oActionsSettings) {
 			return;
 		}
 
-		if (!this._oServiceManager) {
-			this._oServiceManager = new ServiceManager(oServiceFactoryReferences, this);
-		}
+		var oActions = new CardActions({
+			card: this
+		});
+
+		oActions.attach({
+			enabledPropertyName: "interactive",
+			actions: oActionsSettings,
+			control: this
+		});
+
+		this._oActions = oActions;
 	};
 
 	/**
@@ -1915,6 +2391,20 @@ sap.ui.define([
 	 * @returns {sap.f.cards.IHeader} The header of the card
 	 */
 	Card.prototype.getCardHeader = function () {
+		let oHeader = this.getAggregation("_header");
+
+		if (!oHeader && this.getAssociation("dialogHeader")) {
+			oHeader = Element.getElementById(this.getAssociation("dialogHeader"));
+		}
+
+		return oHeader;
+	};
+
+	/**
+	 * @private
+	 * @returns {sap.f.cards.IHeader} The header of the card.
+	 */
+	Card.prototype._getHeaderAggregation = function () {
 		return this.getAggregation("_header");
 	};
 
@@ -1974,11 +2464,12 @@ sap.ui.define([
 	 * @private
 	 */
 	Card.prototype._applyHeaderManifestSettings = function () {
-		var oPrevHeader = this.getAggregation("_header");
+		var oPrevHeader = this.getCardHeader();
 
 		if (oPrevHeader) {
 			oPrevHeader.setToolbar(null); // ensure that actionsToolbar won't be destroyed
-			this.destroyAggregation("_header");
+			oPrevHeader.destroy();
+			this._bMimicPressAttached = false;
 		}
 
 		var oHeader = this.createHeader();
@@ -2001,6 +2492,10 @@ sap.ui.define([
 				this.fireEvent("_headerReady");
 			}.bind(this));
 		}
+
+		if (this._shouldMimicHeaderAction()) {
+			this._mimicHeaderAction(oHeader);
+		}
 	};
 
 	Card.prototype._applyFilterBarManifestSettings = function () {
@@ -2021,9 +2516,12 @@ sap.ui.define([
 	};
 
 	Card.prototype._applyFooterManifestSettings = function () {
-		var oFooter = this.createFooter();
-
 		this.destroyAggregation("_footer");
+
+		if (this._shouldIgnoreFooter()) {
+			return;
+		}
+		var oFooter = this.createFooter();
 
 		if (oFooter) {
 			this.setAggregation("_footer", oFooter);
@@ -2032,11 +2530,104 @@ sap.ui.define([
 		this.fireEvent("_footerReady");
 	};
 
+	Card.prototype._applyLoadingDelay = function () {
+		const iLoadingDelay = parseInt(this.getManifestEntry("/sap.card/configuration/loadingPlaceholders/delay"));
+		if (!iLoadingDelay){
+			return;
+		}
+		this.getAggregation("_loadingProvider").applyDelay(iLoadingDelay);
+	};
+
+	/**
+	 * Applies badge settings from the manifest.
+	 *
+	 * Creates or destroys manifest badges based on the manifest configuration.
+	 * The manifest can contain an array of badge configurations.
+	 * The visual badge rendering is handled automatically during the card rendering lifecycle.
+	 *
+	 * @private
+	 * @since 1.151
+	 */
+	Card.prototype._applyBadgeManifestSettings = function () {
+		const aBadgeConfigs = this._oCardManifest.get(MANIFEST_PATHS.BADGES);
+
+		this.destroyAggregation("_manifestBadge");
+
+		if (!aBadgeConfigs || aBadgeConfigs.length === 0) {
+			return;
+		}
+
+		aBadgeConfigs.forEach((oBadgeConfig) => {
+			const oNewBadge = new CardBadgeCustomData({
+				value: oBadgeConfig.text ?? "",
+				icon: oBadgeConfig.icon ?? "",
+				state: oBadgeConfig.state ?? IndicationColor.Indication05,
+				visible: oBadgeConfig.visible ?? true,
+				visibilityMode: oBadgeConfig.visibilityMode ?? CardBadgeVisibilityMode.Disappear,
+				announcementText: oBadgeConfig.announcementText ?? ""
+			});
+
+			this.addAggregation("_manifestBadge", oNewBadge);
+		});
+	};
+
+	/**
+	 * Provides manifest-declared badges as additional badge custom data.
+	 * This hook is called by CardBadgeEnabler to include manifest badges
+	 * alongside programmatic badges from the customData aggregation.
+	 *
+	 * @override
+	 * @returns {sap.f.cards.CardBadgeCustomData[]} Manifest-declared badges
+	 * @private
+	 * @since 1.151
+	 */
+	Card.prototype._getAdditionalCardBadges = function () {
+		return this.getAggregation("_manifestBadge") || [];
+	};
+
+	Card.prototype._validateChildCardsManifestSettings = function () {
+		const mChildCards = this._oCardManifest.get(MANIFEST_PATHS.CHILD_CARDS);
+
+		if (!mChildCards) {
+			return;
+		}
+
+		let oAncestor = this;
+		let sMatchingChildManifestUrl;
+
+		while (oAncestor) {
+			for (const { manifest } of Object.values(mChildCards)) {
+				let sAncestorUrl;
+
+				if (typeof oAncestor.getManifest() === "string") {
+					sAncestorUrl = new URL(oAncestor.getManifest(), window.location).href;
+				}
+
+				if (new URL(this.resolveUrl(manifest), window.location).href === sAncestorUrl) {
+					sMatchingChildManifestUrl = manifest;
+					break;
+				}
+			}
+
+			oAncestor =  Element.getElementById(oAncestor.getAssociation("openerReference"));
+		}
+
+		if (sMatchingChildManifestUrl) {
+			const oError = new Error("One of the card's ancestors, or the card itself, is set as its child, which is not allowed. Remove child with manifest '" + sMatchingChildManifestUrl + "' from the child cards configuration.");
+			this._handleError({
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_TITLE"),
+				description: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_DESCRIPTION"),
+				originalError: oError
+			});
+		}
+	};
+
 	/**
 	 * Gets the instance of the <code>host</code> association.
 	 *
 	 * @public
-	 * @experimental Since 1.77
+	 * @since 1.77
 	 * @returns {sap.ui.integration.Host} The host object associated with this card.
 	 */
 	Card.prototype.getHostInstance = function () {
@@ -2045,24 +2636,50 @@ sap.ui.define([
 			return null;
 		}
 
-		return Core.byId(sHost);
+		return Element.getElementById(sHost);
 	};
 
 	/**
-	 * Creates specific type of card content based on sap.card/content part of the manifest
+	 * Generates accessibility texts based on the rendering style of the card.
+	 *
+	 * @private
+	 */
+	Card.prototype._applyAriaTexts = function () {
+		const sCardType = this._oCardManifest.get(MANIFEST_PATHS.TYPE);
+		const bIsTileDisplayVariant = this.isTileDisplayVariant();
+		let sAriaText;
+
+
+		if (sCardType  && !bIsTileDisplayVariant) {
+			sAriaText = this._oIntegrationRb.getText("ARIA_DESCRIPTION_CARD_TYPE_" + sCardType.toUpperCase());
+
+			// @TODO: This adds the same text to the card. The region has an aria-describedby = card type. Group has aria-labelledby with the card type. Leads to duplicate hidden text.
+			// Suggestion for a fix: delete _ariaText and add _describedByCardTypeText to aria-labelled by of the region.
+			this._describedByCardTypeText.setText(sAriaText);
+		} else if (bIsTileDisplayVariant) {
+			sAriaText = this._oIntegrationRb.getText("ARIA_LABELLEDBY_DISPLAY_VARIANT_TILE");
+		} else {
+			sAriaText = this._oRb.getText("ARIA_ROLEDESCRIPTION_CARD");
+		}
+
+		this._ariaText.setText(sAriaText);
+	};
+
+	/**
+	 * Creates specific type of card content based on sap.card/content part of the manifest.
 	 *
 	 * @private
 	 */
 	Card.prototype._applyContentManifestSettings = function () {
 		var sCardType = this._oCardManifest.get(MANIFEST_PATHS.TYPE),
 			oContentManifest = this.getContentManifest(),
-			sAriaText = sCardType + " " + this._oRb.getText("ARIA_ROLEDESCRIPTION_CARD"),
 			oContent;
 
 		this.destroyAggregation("_content");
-		this._ariaText.setText(sAriaText);
 
-		if (!oContentManifest || this.isTileDisplayVariant()) {
+		this._applyAriaTexts();
+
+		if (this._shouldIgnoreContent()) {
 			this.fireEvent("_contentReady");
 			return;
 		}
@@ -2071,22 +2688,48 @@ sap.ui.define([
 			oContent = this.createContent({
 				cardType: sCardType,
 				contentManifest: oContentManifest,
-				serviceManager: this._oServiceManager,
 				dataProviderFactory: this._oDataProviderFactory,
 				iconFormatter: this._oIconFormatter,
-				noDataConfiguration: this._oCardManifest.get(MANIFEST_PATHS.NO_DATA_MESSAGES)
+				noDataConfiguration: this._oCardManifest.get(MANIFEST_PATHS.NO_DATA_MESSAGES),
+				paginator: this._oPaginator,
+				overflowWithShowMore: this.getOverflow() === CardOverflow.ShowMore
 			});
 		} catch (e) {
 			this._handleError({
-				illustrationType: IllustratedMessageType.ErrorScreen,
-				title: this.getTranslatedText("CARD_ERROR_CONFIGURATION_TITLE"),
-				description: this.getTranslatedText("CARD_ERROR_CONFIGURATION_DESCRIPTION"),
-				details: e.message
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_TITLE"),
+				description: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_DESCRIPTION"),
+				details: e.message,
+				originalError: e
 			});
 			return;
 		}
 
 		this._setCardContent(oContent);
+	};
+
+	Card.prototype._applyPaginatorManifestSettings = function () {
+		const oManifestPaginator = this._oCardManifest.get(MANIFEST_PATHS.PAGINATOR);
+
+		if (!oManifestPaginator) {
+			this.fireEvent("_paginatorReady");
+			return;
+		}
+
+		this._oPaginator = Paginator.create({
+			card: this,
+			configuration: oManifestPaginator,
+			paginatorModel: this.getModel("paginator"),
+			active: !!this.getAssociation("openerReference")
+		});
+
+		if (this._oPaginator.getActive()) {
+			this._oPaginator.attachEventOnce("_ready", () => {
+				this.fireEvent("_paginatorReady");
+			});
+		} else {
+			this.fireEvent("_paginatorReady");
+		}
 	};
 
 	/**
@@ -2104,6 +2747,87 @@ sap.ui.define([
 		return aTileVariants.indexOf(this.getDisplayVariant()) > -1;
 	};
 
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {boolean} If the card is rendered as a compactheader variant
+	 */
+	Card.prototype.isCompactHeader = function () {
+		return this.getDisplayVariant() === CardDisplayVariant.CompactHeader;
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {boolean} If the card is rendered as a smallheader variant
+	 */
+	Card.prototype.isSmallHeader = function () {
+		return this.getDisplayVariant() === CardDisplayVariant.SmallHeader;
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {boolean} If the card is rendered as a tile variant
+	 */
+	Card.prototype.isHeaderDisplayVariant = function () {
+		const aHeaderVariants = [
+			CardDisplayVariant.SmallHeader,
+			CardDisplayVariant.StandardHeader,
+			CardDisplayVariant.CompactHeader
+		];
+		return aHeaderVariants.indexOf(this.getDisplayVariant()) > -1;
+	};
+
+	/**
+	 * Checks if this is a Component Card. Manifest must be loaded for that check.
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {boolean} True if this is a Component Card.
+	 */
+	Card.prototype._isComponentCard = function () {
+		const sCardType = this._oCardManifest.get(MANIFEST_PATHS.TYPE);
+
+		return sCardType?.toLowerCase() === "component";
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {string|undefined} The binding path for the card.
+	 */
+	Card.prototype._getDataPath = function () {
+		return this._sBindingPath || "/";
+	};
+
+	/**
+	 * Checks if the content section should be ignored.
+	 * @private
+	 * @returns {boolean} True if the content section should be ignored.
+	 */
+	Card.prototype._shouldIgnoreContent = function () {
+		if (this._isComponentCard()) {
+			return false;
+		}
+
+		const bIsTile = this.isTileDisplayVariant();
+		const bIsHeader = this.isHeaderDisplayVariant();
+		const bHasNoContent = !this._oCardManifest.get(MANIFEST_PATHS.CONTENT);
+
+		return bIsTile || bHasNoContent || bIsHeader;
+	};
+
+	/**
+	 * Checks if the content section should be ignored.
+	 * @private
+	 * @returns {boolean} True if the content section should be ignored.
+	 */
+	Card.prototype._shouldIgnoreFooter = function () {
+		const bIsTile = this.isTileDisplayVariant();
+		const bIsHeader = this.isHeaderDisplayVariant();
+		return bIsTile || bIsHeader;
+	};
+
 	Card.prototype.createHeader = function () {
 		var oManifestHeader = this._oCardManifest.get(MANIFEST_PATHS.HEADER),
 			oHeaderFactory = new HeaderFactory(this);
@@ -2115,22 +2839,30 @@ sap.ui.define([
 		var mFiltersConfig = this._oCardManifest.get(MANIFEST_PATHS.FILTERS),
 			oFactory = new FilterBarFactory(this);
 
-		return oFactory.create(mFiltersConfig, this.getModel("filters"));
+		return oFactory.create(mFiltersConfig, this.getModel("filters"), (oEvent) => {
+			this._fireConfigurationChange({
+				[`/sap.card/configuration/filters/${oEvent.getParameter("key")}/value`]: oEvent.getParameter("value")
+			});
+			this.scheduleFireStateChanged();
+			this.resetPaginator();
+		});
 	};
 
 	Card.prototype.createFooter = function () {
 		var oManifestFooter = this._oCardManifest.get(MANIFEST_PATHS.FOOTER);
 
-		if (!oManifestFooter) {
-			return null;
-		}
-
-		return Footer.create(this, oManifestFooter);
+		return Footer.create({
+			card: this,
+			configuration: oManifestFooter,
+			showCloseButton: this.getProperty("showCloseButton"),
+			detectVisibility: this.getOverflow() === CardOverflow.ShowMore,
+			paginator: this._oPaginator
+		});
 	};
 
 	Card.prototype.getContentManifest = function () {
 		var sCardType = this._oCardManifest.get(MANIFEST_PATHS.TYPE),
-			bIsComponent = sCardType && sCardType.toLowerCase() === "component",
+			bIsComponent = this._isComponentCard(),
 			oContentManifest = this._oCardManifest.get(MANIFEST_PATHS.CONTENT),
 			bHasContent = !!oContentManifest;
 
@@ -2157,6 +2889,7 @@ sap.ui.define([
 
 		return this._oContentFactory.create(mContentConfig);
 	};
+
 
 	/**
 	 * Sets a card content.
@@ -2188,13 +2921,18 @@ sap.ui.define([
 	 * @private
 	 */
 	Card.prototype._handleError = function (mErrorInfo) {
-		var sLogMessage = mErrorInfo.requestErrorParams ? mErrorInfo.requestErrorParams.message : mErrorInfo.description,
-			oContentSection = this._oCardManifest.get(MANIFEST_PATHS.CONTENT),
-			bIsComponentCard = this._oCardManifest.get(MANIFEST_PATHS.TYPE) === "Component",
-			oContent = this.getCardContent(),
-			mMessageSettings;
+		const oExtensionMessage = this._extensionErrorOverride(mErrorInfo);
+		if (oExtensionMessage) {
+			this.showBlockingMessage(oExtensionMessage);
+			return;
+		}
 
-		Log.error(sLogMessage, null, "sap.ui.integration.widgets.Card");
+		const sLogMessage = mErrorInfo.requestErrorParams ? mErrorInfo.requestErrorParams.message : mErrorInfo.title,
+			oContent = this.getCardContent();
+
+		let mMessageSettings;
+
+		Log.error(sLogMessage, mErrorInfo.originalError, "sap.ui.integration.widgets.Card");
 		this.fireEvent("_error", { message: sLogMessage });
 
 		if (mErrorInfo.requestErrorParams) {
@@ -2203,7 +2941,7 @@ sap.ui.define([
 			mMessageSettings = ErrorHandler.configureErrorInfo(mErrorInfo, this);
 		}
 
-		if (!this.isTileDisplayVariant() && (oContentSection || bIsComponentCard)) {
+		if (!this._shouldIgnoreContent()) {
 			if (oContent && oContent.isA("sap.ui.integration.cards.BaseContent")) {
 				this.showBlockingMessage(mMessageSettings);
 			} else { // case where error ocurred during content creation
@@ -2216,23 +2954,33 @@ sap.ui.define([
 		}
 	};
 
+	Card.prototype._extensionErrorOverride = function (mErrorInfo) {
+		const oExtension = this.getAggregation("_extension");
+
+		if (!oExtension || !oExtension.overrideBlockingMessage) {
+			return null;
+		}
+
+		const oResponse = mErrorInfo?.requestErrorParams?.response;
+		return oExtension.overrideBlockingMessage(oResponse);
+	};
+
 	/**
 	 * @ui5-restricted sap.ui.integration
 	 * @private
 	 * @returns {object} The content message if any.
 	 */
 	Card.prototype.getContentMessage = function () {
-		return this._oContentMessage;
+		return this.getCardContent()?.getBlockingMessageStaticConfiguration();
 	};
 
 	/**
 	 * Sets a new value for the <code>dataMode</code> property.
 	 *
-	 * @experimental Since 1.65. API might change.
+	 * @ui5-experimental-since 1.65
 	 * @param {sap.ui.integration.CardDataMode} sMode The mode to set to the Card.
 	 * @returns {this} Pointer to the control instance to allow method chaining.
 	 * @public
-	 * @since 1.65
 	 */
 	Card.prototype.setDataMode = function (sMode) {
 
@@ -2269,7 +3017,7 @@ sap.ui.define([
 	 * }
 	 *
 	 * @public
-	 * @experimental Since 1.73
+	 * @since 1.73
 	 * @returns {Promise<object>} Promise resolves after the designtime configuration is loaded.
 	 */
 	Card.prototype.loadDesigntime = function () {
@@ -2415,6 +3163,14 @@ sap.ui.define([
 	 * @protected
 	 */
 	Card.prototype.getFocusDomRef = function () {
+		if (this.getGridItemRole()) {
+			return this.getDomRef();
+		}
+
+		if (this.isInteractive() && this.getSemanticRole() === SemanticRole.ListItem) {
+			return this.getDomRef();
+		}
+
 		var oHeader = this.getCardHeader();
 
 		if (oHeader && oHeader.getFocusDomRef()) {
@@ -2436,31 +3192,99 @@ sap.ui.define([
 
 		this._setLoadingProviderState(false);
 
-		this._fireContentDataChange();
+		this._fireDataChange();
 	};
 
 	/**
-	 * Performs an HTTP request using the given configuration.
+	 * Settings for card request error.
+	 *
+	 * <b>Note:</b> For backward compatibility, the object can also be accessed as an array
+	 * with the properties in the order - message, response, and responseText.
+	 *
+	 * @typedef {object} sap.ui.integration.CardRequestError
+	 * @property {string} message The error message
+	 * @property {object} response The response object
+	 * @property {string} responseText The response text
+	 * @public
+	 * @ui5-experimental-since 1.139
+	 */
+
+	/**
+	 * Performs an asynchronous network request using the specified request settings,
+	 * enabling dynamic bindings to card configurations, such as CSRF tokens, destinations, and parameters.
+	 * If the request is successful, it returns a Promise that resolves with the response data.
+	 *
+	 * If an error occurs during the request, the Promise will reject with a {@link sap.ui.integration.CardRequestError}.
+	 *
+	 * For more details on card data handling and request settings see [Card Explorer Data Section]{@link https://ui5.sap.com/test-resources/sap/ui/integration/demokit/cardExplorer/webapp/index.html#/learn/features/data}.
 	 *
 	 * @public
-	 * @experimental since 1.79
+	 * @since 1.79
 	 * @param {object} oConfiguration The configuration of the request.
 	 * @param {string} oConfiguration.url The URL of the resource.
 	 * @param {string} [oConfiguration.mode="cors"] The mode of the request. Possible values are "cors", "no-cors", "same-origin".
 	 * @param {string} [oConfiguration.method="GET"] The HTTP method. Possible values are "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", and "HEAD".
-	 * @param {object} [oConfiguration.parameters] The request parameters. If the HTTP method is "POST", "PUT", "PATCH", or "DELETE" the parameters will be put as key/value pairs into the body of the request.
-	 * @param {string} [oConfiguration.dataType="json"] Deprecated. Use the correct Accept headers and correct Content-Type header in the response.
+	 * @param {object|FormData|string} [oConfiguration.parameters] The request parameters to be sent to the server. They are sent as follows:
+	 *<ul>
+	 *	<li>
+	 *		When the HTTP method is "GET" or "HEAD", and parameters are set as:
+	 *		<ul>
+	 *			<li>object - Sent as part of the URL, appended as key/value pairs in the query string</li>
+	 *			<li>FormData - Not sent</li>
+	 *			<li>string - Not sent</li>
+	 *		</ul>
+	 *	</li>
+	 *	<li>
+	 *		When the HTTP method is "POST", "PUT", "PATCH", or "DELETE", the parameters will be sent in the request body, encoded based on the <code>Content-Type</code> header and parameters type:
+	 *		<ul>
+	 *			<li>
+	 *				object - Supports the following encodings, decided based on the Content-Type header of the request:
+	 *				<ul>
+	 *					<li><code>application/x-www-form-urlencoded</code> - Default</li>
+	 *					<li><code>application/json</code></li>
+	 *				</ul>
+	 *			</li>
+	 *			<li>
+	 *				FormData - Encoded as <code>multipart/form-data</code>. The <code>Content-Type</code> header on the request must not be set explicitly.
+	 *				<b>Note:</b> FormData will not be resolved for bindings, destinations and others. It will be sent as it is.
+	 *				Added since version 1.130
+	 *			</li>
+	 *			<li>string - Must be used in combination with <code>Content-Type: text/plain</code>. Will be sent as is. Added since version 1.138</li>
+	 *		</ul>
+	 *	</li>
+	 *</ul>
+	 * @param {string} [oConfiguration.dataType="json"] Deprecated. Use the correct <code>Accept</code> headers and set correct <code>Content-Type</code> header in the response.
 	 * @param {object} [oConfiguration.headers] The HTTP headers of the request.
-	 * @param {boolean} [oConfiguration.withCredentials=false] Indicates whether cross-site requests should be made using credentials.
+	 * @param {boolean} [oConfiguration.withCredentials=false] Indicates whether
+	 * cross-site requests should be made using credentials. Same-origin requests are always made using credentials.
 	 * @returns {Promise<any>} Resolves when the request is successful, rejects otherwise.
 	 */
 	Card.prototype.request = function (oConfiguration) {
-		return this.processDestinations(oConfiguration).then(function (oResult) {
-			return this._oDataProviderFactory
-				.create({ request: oResult })
+		return this.processDestinations(oConfiguration).then((oResult) => {
+			return new Promise((resolve, reject) => {
+				this._oDataProviderFactory
+				.create({ request: oResult },
+					undefined,
+					undefined,
+					true)
 				.setAllowCustomDataType(true)
-				.getData();
-		}.bind(this));
+				.attachDataChanged((e) => { resolve(e.getParameter("data")); })
+				.attachError((e) => {
+					const oResult = [e.getParameter("message"),
+						e.getParameter("response"),
+						e.getParameter("responseText"),
+						e.getParameter("settings")];
+
+					oResult.message = e.getParameter("message");
+					oResult.response = e.getParameter("response");
+					oResult.responseText = e.getParameter("responseText");
+					oResult._requestSettings = e.getParameter("settings");
+
+					reject(oResult);
+				})
+				.triggerDataUpdate();
+			});
+		});
 	};
 
 	/**
@@ -2482,7 +3306,7 @@ sap.ui.define([
 	 * </pre>
 	 *
 	 * @public
-	 * @experimental since 1.84
+	 * @since 1.84
 	 * @param {object} oAction The settings of the action.
 	 * @param {sap.ui.integration.CardActionType} oAction.type The type of the action.
 	 * @param {object} [oAction.parameters] Additional parameters which will be used by the action handler to perform the action.
@@ -2502,7 +3326,6 @@ sap.ui.define([
 	 * <b>Note:</b> Should be used after the <code>stateChanged</code> event is fired.
 	 *
 	 * @private
-	 * @experimental since 1.113
 	 * @deprecated since 1.114
 	 * @returns {boolean} Whether 'No Data' is displayed in the card
 	 */
@@ -2515,7 +3338,6 @@ sap.ui.define([
 	 * Should be used only by component cards, no earlier than the <code>onCardReady</code> lifecycle hook.
 	 *
 	 * @private
-	 * @experimental since 1.113
 	 * @deprecated since 1.114
 	 * @param {object} oSettings 'No Data' settings
 	 * @param {sap.m.IllustratedMessageType} oSettings.type Illustration type
@@ -2575,6 +3397,8 @@ sap.ui.define([
 				formatters: oExtension.getFormatters()
 			};
 		}
+
+		mNamespaces.size = this._sizeFormatterBound;
 
 		return mNamespaces;
 	};
@@ -2714,7 +3538,6 @@ sap.ui.define([
 	};
 
 	Card.prototype._fireContentDataChange = function () {
-		this.fireEvent("_contentDataChange");
 		this._fireDataChange();
 	};
 
@@ -2811,25 +3634,24 @@ sap.ui.define([
 	 */
 	Card.prototype.getContentPageSize = function (oContentConfig) {
 		var vMaxItems,
-			iMaxItems,
-			oFooter = this.getCardFooter();
+			iMaxItems;
 
-		if (oFooter && oFooter.getPaginator()) {
-			return oFooter.getPaginator().getPageSize();
+		if (this._oPaginator?.getActive()) {
+			return this._oPaginator.getPageSize();
 		}
 
 		vMaxItems = BindingResolver.resolveValue(oContentConfig.maxItems, this);
-		if (vMaxItems == null) {
-			return null;
-		}
 
 		iMaxItems = parseInt(vMaxItems);
-		if (isNaN(iMaxItems)) {
-			Log.error("Value for maxItems must be integer.");
-			return null;
+		if (!isNaN(iMaxItems) && iMaxItems) {
+			return iMaxItems;
 		}
 
-		return iMaxItems;
+		if (this._oPaginator) {
+			return this._oPaginator.getPageSize();
+		}
+
+		return null;
 	};
 
 	/**
@@ -2853,8 +3675,7 @@ sap.ui.define([
 	};
 
 	Card.prototype.hasPaginator = function () {
-		var oManifestFooter = this._oCardManifest.get(MANIFEST_PATHS.FOOTER);
-		return oManifestFooter && oManifestFooter.paginator;
+		return !!this._oCardManifest.get(MANIFEST_PATHS.PAGINATOR);
 	};
 
 	/**
@@ -2862,21 +3683,23 @@ sap.ui.define([
 	 * @ui5-restricted sap.ui.integration
 	 */
 	Card.prototype.resetPaginator = function () {
-		if (this.hasPaginator()) {
-			this.getCardFooter().getPaginator().reset();
+		if (this._oPaginator) {
+			this._oPaginator.reset();
 		}
 	};
 
 	/**
-	 * Shows a child card. By default opens in a dialog.
+	 * Displays a child card, opening it in a dialog by default.
+	 *
 	 * @private
 	 * @ui5-restricted
-	 * @param {Object} oParameters The settings for showing the card.
-	 * @param {String|Object} oParameters.manifest Url to a manifest or the manifest itself.
-	 * @param {String} oParameters.baseUrl If manifest is an object - specify the base url to the card.
-	 * @param {Object} oParameters.parameters Parameters to be passed to the new card.
-	 * @param {Object} oParameters.data Data to be passed to the new card.
-	 * @returns {Promise} Promise which resolves with the created card.
+	 * @param {object} oParameters The settings for displaying the card.
+	 * @param {string} oParameters.childCardKey Key of the child card to be shown.
+	 * @param {string|object} oParameters.manifest The URL to a manifest or the manifest object itself. Deprecated since 1.141. Use 'childCardKey' instead.
+	 * @param {string} oParameters.baseUrl If the manifest is an object, specify the base URL for the card.
+	 * @param {object} oParameters.parameters Parameters to be provided to the new card.
+	 * @param {object} oParameters.data Data to be provided to the new card.
+	 * @returns {Promise} A promise that resolves with the created card.
 	 */
 	Card.prototype.showCard = function (oParameters) {
 		var oChildCard = this._createChildCard(oParameters);
@@ -2909,7 +3732,7 @@ sap.ui.define([
 	 * @returns {sap.ui.integration.widgets.Card} The card which opened the current one.
 	 */
 	Card.prototype.getOpener = function () {
-		var oOpener = Core.byId(this.getAssociation("openerReference"));
+		var oOpener = Element.getElementById(this.getAssociation("openerReference"));
 
 		if (!oOpener) {
 			return null;
@@ -2919,25 +3742,39 @@ sap.ui.define([
 	};
 
 	/**
-	 * Creates the child card.
+	 * Creates a child card with the provided parameters.
 	 *
 	 * @private
 	 * @ui5-restricted
-	 * @param {Object} oParameters The parameters for the card.
-	 * @returns {sap.ui.integration.widgets.Card} The result card.
+	 * @param {Object} oParameters The parameters for the card creation.
+	 * @returns {sap.ui.integration.widgets.Card} The newly created card instance.
 	 */
 	Card.prototype._createChildCard = function (oParameters) {
-		var vManifest = oParameters.manifest,
-			sBaseUrl = oParameters.baseUrl,
+		const mChildCards = this._oCardManifest.get(MANIFEST_PATHS.CHILD_CARDS);
+		let vManifest;
+
+		if (oParameters.childCardKey) {
+			vManifest = mChildCards?.[oParameters.childCardKey]?.manifest;
+
+			if (!vManifest) {
+				Log.error("'ShowCard' action cannot find a child card with key '" + oParameters.childCardKey + "'.", null, "sap.ui.integration.widgets.Card");
+			}
+		} else {
+			vManifest = oParameters.manifest;
+		}
+
+		const sBaseUrl = oParameters.baseUrl,
 			oData = oParameters.data,
 			oChildCard = this._createCard({
-				width: oParameters.width,
 				host: this.getHostInstance(),
 				parameters: oParameters.parameters,
-				referenceId: this.getReferenceId()
+				referenceId: this.getReferenceId(),
+				manifestChanges: oParameters.manifestChanges
 			});
 
 		oChildCard.setAssociation("openerReference", this);
+		oChildCard.setProperty("showCloseButton", !!oParameters.showCloseButton);
+		oChildCard.setProperty("isPaginationCard", !!oParameters.isPaginationCard);
 
 		if (oData) {
 			each(oData, function (sModelName, oModelData) {
@@ -2948,13 +3785,13 @@ sap.ui.define([
 		}
 
 		if (typeof vManifest === "string") {
-			oChildCard.setManifest(this.getRuntimeUrl(vManifest));
+			oChildCard.setManifest(this.resolveUrl(vManifest));
 			if (sBaseUrl) {
 				oChildCard.setBaseUrl(sBaseUrl);
 			}
 		} else {
 			oChildCard.setManifest(vManifest);
-			oChildCard.setBaseUrl(sBaseUrl || this.getRuntimeUrl("/"));
+			oChildCard.setBaseUrl(sBaseUrl || this.resolveUrl());
 		}
 
 		return oChildCard;
@@ -2977,7 +3814,7 @@ sap.ui.define([
 	 * @returns {boolean} True if data provider is JSON.
 	 */
 	Card.prototype._isDataProviderJson = function () {
-		return this._oDataProvider && this._oDataProvider.getSettings() && this._oDataProvider.getSettings()["json"];
+		return !!this._oDataProvider?.getConfiguration()?.json;
 	};
 
 	/**
@@ -3002,13 +3839,125 @@ sap.ui.define([
 		});
 
 		if (bHasMissingMockData) {
-			Log.warning("'mockData' configuration is missing, but the card 'previewMode' is 'MockData'. Abstract mode will be used instead.", this);
+			Log.info("'mockData' configuration is missing, but the card 'previewMode' is 'MockData'. Abstract mode will be used instead.", this);
 			this.setProperty("previewMode", CardPreviewMode.Abstract);
-
-			this.attachEventOnce("manifestApplied", function () {
-				this.showMessage(this._oIntegrationRb.getText("CARD_MISSING_PREVIEW_CONFIGURATION"), MessageType.Information);
-			}.bind(this));
 		}
+	};
+
+	Card.prototype._getActualDataMode = function () {
+		var sDataMode = this.getDataMode();
+
+		if (sDataMode === CardDataMode.Auto && this._oCardObserver.isIntersected()) {
+			return CardDataMode.Active;
+		}
+
+		return sDataMode;
+	};
+
+	/**
+	 * Sets the display variant and informs the size model.
+	 * @param {sap.ui.integration.DisplayVariant} sValue The new display variant.
+	 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation.
+	 * @return {sap.ui.integration.widgets.Card} Pointer to the control instance to allow method chaining.
+	 */
+	Card.prototype.setDisplayVariant = function (sValue, bSuppressInvalidate) {
+		this.setProperty("displayVariant", sValue, bSuppressInvalidate);
+		this._oDisplayVariants.updateSizeModel();
+		return this;
+	};
+
+
+	/**
+	 * @override
+	 */
+	Card.prototype.isInteractive = function () {
+		const bIsInteractive = CardBase.prototype.isInteractive.apply(this, arguments);
+
+		return bIsInteractive && this.getProperty("interactive");
+	};
+
+	/**
+	 * @override
+	 */
+	Card.prototype.isMouseInteractionDisabled = function() {
+		return this._shouldMimicHeaderAction();
+	};
+
+	/**
+	 * Checks if the header action must be mimicked by the card.
+	 * @private
+	 * @returns {boolean} Whether the header action should be mimicked.
+	 */
+	Card.prototype._shouldMimicHeaderAction = function () {
+		if (!this._isManifestReady) {
+			return false;
+		}
+
+		const oCardActions = this.getManifestEntry("/sap.card/actions");
+		const oHeaderActions = this.getManifestEntry("/sap.card/header/actions");
+		const bIsListItem = this.isRoleListItem();
+
+		if (bIsListItem && !oCardActions && oHeaderActions)	{
+			return true;
+		}
+
+		return false;
+	};
+
+	/**
+	 * Attaches the press event of the header to the card.
+	 * @private
+	 * @param {Object} oHeader The header.
+	 */
+	Card.prototype._mimicHeaderAction = function (oHeader) {
+		// header must be clickable, but not focusable
+		oHeader.setProperty("focusable", false);
+
+		// card must invalidate to update the mouse interactivity
+		this.invalidate();
+
+		oHeader.addEventDelegate({
+			onAfterRendering: () => {
+				this.setProperty("interactive", oHeader.getInteractive());
+
+				if (!oHeader.getInteractive()) {
+					return;
+				}
+
+				if (!this._bMimicPressAttached) {
+					this.attachPress((oEvent) => {
+						oHeader.firePress({
+							originalEvent: oEvent.getParameter("originalEvent")
+						});
+					});
+					this._bMimicPressAttached = true;
+				}
+			}
+		});
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {boolean} Whether data is ready.
+	 */
+	Card.prototype.isDataReady = function () {
+		return !!this._bDataReady;
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {sap.ui.integration.widgets.Card} The main card of the current card.
+	 */
+	Card.prototype.getMainCard = function () {
+		let oParentCard = Element.getElementById(this.getAssociation("openerReference"));
+
+		while (oParentCard && oParentCard.getAssociation("openerReference")) {
+			oParentCard = Element.getElementById(oParentCard.getAssociation("openerReference"));
+		}
+
+		return oParentCard || this;
 	};
 
 	return Card;

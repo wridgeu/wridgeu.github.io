@@ -1,25 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./InstanceManager',
+	'sap/ui/base/DataType',
+	'sap/ui/core/AnimationMode',
+	'sap/ui/core/ControlBehavior',
 	'sap/ui/core/Popup',
 	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'sap/ui/core/Element',
+	'sap/ui/core/UIArea',
 	'sap/ui/Device',
-	"sap/base/Log",
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration"
+	'sap/base/Log',
+	'sap/ui/thirdparty/jquery'
 ],
-	function(InstanceManager, Popup, coreLibrary, Control, Element, Device, Log, jQuery, Configuration) {
+	function(InstanceManager, DataType, AnimationMode, ControlBehavior, Popup, coreLibrary, Control, Element, UIArea, Device, Log, jQuery) {
 		"use strict";
 
-		// shortcut for sap.ui.core.Dock
-		var Dock = coreLibrary.Dock;
+		var Dock = DataType.getType("sap.ui.core.Popup.Dock");
 
 		// shortcut for sap.ui.core.CSSSize
 		var CSSSize = coreLibrary.CSSSize;
@@ -42,8 +44,8 @@ sap.ui.define([
 		 * sap.m.MessageToast.show("This message should appear in the message toast", {
 		 *     duration: 3000,                  // default
 		 *     width: "15em",                   // default
-		 *     my: "center bottom",             // default
-		 *     at: "center bottom",             // default
+		 *     my: "CenterBottom",             // default
+		 *     at: "CenterBottom",             // default
 		 *     of: window,                      // default
 		 *     offset: "0 0",                   // default
 		 *     collision: "fit fit",            // default
@@ -69,10 +71,12 @@ sap.ui.define([
 		 * <li>You want users to be able to copy some part of the message text. (In this case, show a success {@link sap.m.Dialog Message Dialog}.)</li>
 		 * </ul>
 		 * <h3>Responsive Behavior</h3>
-		 * The message toast has the same behavior on all devices. However, you can adjust the width of the control, for example, for use on a desktop device.
+		 * The message toast has the same behavior on all devices.
+		 * However, you can adjust the width of the control depending on the device you're using, for example desktop.
+		 * Note that the width can be customized up to a maximum of 15rem.
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @namespace
 		 * @public
@@ -95,8 +99,8 @@ sap.ui.define([
 		MessageToast._mSettings = {
 			duration: 3000,
 			width: "15em",
-			my: "center bottom",
-			at: "center bottom",
+			my: "CenterBottom",
+			at: "CenterBottom",
 			of: document.defaultView,
 			offset: "0 0",
 			collision: "fit fit",
@@ -226,7 +230,7 @@ sap.ui.define([
 
 			oMessageToastDomRef.className = CSSCLASS + " " + ENABLESELECTIONCLASS + " " + BELIZECONTRAST + " " + BELIZECONTRASTPLUS;
 
-			if (Configuration.getAccessibility()) {
+			if (ControlBehavior.isAccessibilityEnabled()) {
 				oMessageToastDomRef.setAttribute("role", "alert");
 			}
 
@@ -325,8 +329,8 @@ sap.ui.define([
 		MessageToast._setCloseAnimation = function($MessageToastDomRef, iDuration, fnClose, mSettings) {
 			var sCssTransition = "opacity " + mSettings.animationTimingFunction + " " + mSettings.animationDuration + "ms",
 				sTransitionEnd = "webkitTransitionEnd." + CSSCLASS + " transitionend." + CSSCLASS,
-				sAnimationMode = Configuration.getAnimationMode(),
-				bHasAnimations = sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal;
+				sAnimationMode = ControlBehavior.getAnimationMode(),
+				bHasAnimations = sAnimationMode !== AnimationMode.none && sAnimationMode !== AnimationMode.minimal;
 
 			if (bHasAnimations && mSettings.animationDuration > 0) {
 				$MessageToastDomRef[0].style.webkitTransition = sCssTransition;
@@ -392,8 +396,8 @@ sap.ui.define([
 		 * @param {object} [mOptions] Object which can contain all other options. Not all entries in this object are required. This property is optional.
 		 * @param {int} [mOptions.duration=3000] Time in milliseconds before the close animation starts. Needs to be a finite positive nonzero integer.
 		 * @param {sap.ui.core.CSSSize} [mOptions.width='15em'] The width of the message toast, this value can be provided in %, em, px and all possible CSS measures.
-		 * @param {sap.ui.core.Popup.Dock} [mOptions.my='center bottom'] Specifies which point of the message toast should be aligned (e.g. <code>Dock.LeftTop</code> To use as align point the left top corner of the message toast).
-		 * @param {sap.ui.core.Popup.Dock} [mOptions.at='center bottom'] Specifies the point of the reference element to which the message toast should be aligned (e.g. <code>Dock.RightBottom</code> To position the message toast according to the bottom right corner of the reference element).
+		 * @param {sap.ui.core.Popup.Dock} [mOptions.my='CenterBottom'] Specifies which point of the message toast should be aligned (e.g. <code>Dock.LeftTop</code> To use as align point the left top corner of the message toast).
+		 * @param {sap.ui.core.Popup.Dock} [mOptions.at='CenterBottom'] Specifies the point of the reference element to which the message toast should be aligned (e.g. <code>Dock.RightBottom</code> To position the message toast according to the bottom right corner of the reference element).
 		 * @param {sap.ui.core.Control|Element|jQuery|Window} [mOptions.of=window] Specifies the reference element to which the message toast should be aligned, by default it is aligned to the browser visual viewport.
 		 * @param {string} [mOptions.offset='0 0'] The offset relative to the docking point, specified as a string with space-separated pixel values (e.g. "10 5" to move the message toast 10 pixels to the right and 5 pixels to the bottom).
 		 * @param {string} [mOptions.collision='fit fit'] Specifies how the position of the message toast should be adjusted in case it overflows the screen in some direction. Possible values “fit”, “flip”, “none”, or a pair for horizontal and vertical e.g. "fit flip”, "fit none".
@@ -405,7 +409,14 @@ sap.ui.define([
 		 * @public
 		 */
 		MessageToast.show = function(sMessage, mOptions) {
+			// disable opening of toasts then notoasts is set to true
+			// required for performance measurements
+			if (/sap-ui-xx-no-toasts=true/.test(document.location.search)) {
+				return;
+			}
+
 			var oOpener = Element.closestTo(document.activeElement);
+			var oUI5Area = oOpener && oOpener.getUIArea && oOpener.getUIArea();
 			var oAccSpan;
 			var that = MessageToast,
 				mSettings = jQuery.extend({}, MessageToast._mSettings, { message: sMessage }),
@@ -416,6 +427,12 @@ sap.ui.define([
 				iMouseLeaveTimeoutId;
 
 			MessageToast._mSettings.opener = oOpener;
+
+			// Find the upper-most parent to attach the keyboard shortcut as we need to be
+			// able to open the message no matter where the focus is currently
+			if (!this._oRootNode || (this._oRootNode && oUI5Area && oUI5Area.getRootNode() !== this._oRootNode)) {
+				this._oRootNode = oUI5Area ? oUI5Area.getRootNode() : document.documentElement;
+			}
 
 			mOptions = normalizeOptions(mOptions);
 
@@ -469,7 +486,13 @@ sap.ui.define([
 			oAccSpan.setAttribute("class", "sapMMessageToastHiddenFocusable");
 
 			oPopup.getContent().prepend(oAccSpan);
-			oAccSpan.addEventListener("keydown", handleKbdClose.bind(this));
+
+			if (this._oRootNode) {
+				this._oRootNode.removeEventListener("keydown", that._fnKeyDown.bind(that));
+				this._oRootNode.addEventListener("keydown", that._fnKeyDown.bind(that));
+
+				oAccSpan.addEventListener("keydown", handleKbdClose.bind(this));
+			}
 
 			// opens the popup's content at the position specified via #setPosition
 			oPopup.open();

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.m.Avatar
-sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
-	function (library, encodeCSS) {
+sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", 	"sap/ui/core/IconPool"],
+	function (library, encodeCSS, IconPool) {
 		"use strict";
 
 		// shortcut for sap.m.AvatarSize
@@ -43,16 +43,21 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
 				sCustomDisplaySize = oAvatar.getCustomDisplaySize(),
 				sCustomFontSize = oAvatar.getCustomFontSize(),
 				sSrc = oAvatar._getAvatarSrc(),
+				bIsIconURI = IconPool.isIconURI(sSrc),
+				bHasDetailBox = !!oAvatar.getDetailBox(),
+				bHasBadgeIcon = !!oAvatar.getBadgeIcon(),
 				sAvatarClass = "sapFAvatar",
 				sTooltip = oAvatar.getTooltip_AsString(),
 				aLabelledBy = oAvatar._getAriaLabelledBy(),
 				aDescribedBy = oAvatar.getAriaDescribedBy(),
 				aHasPopup = oAvatar.getAriaHasPopup(),
-				bHasListener = oAvatar.hasListeners("press"),
-				oBadge = bHasListener ?  oAvatar._getBadge() : null,
-				sDefaultTooltip = oAvatar._getDefaultTooltip(),
+				bHasSrc = (!oAvatar._getUseDefaultIcon() && bHasDetailBox) || (!bHasDetailBox),
+				bHideBadge = bHasDetailBox && bIsIconURI && !bHasBadgeIcon,
+				oBadge = bHasSrc && !bHideBadge ?  oAvatar._getBadge() : null,
 				sInitialsLength = sInitials.length,
-				bActive = oAvatar.getActive() && bHasListener;
+				sRole = oAvatar._getRole(),
+				bActive = oAvatar.getActive() && bEnabled && sRole === "button",
+				sAriaLabel = oAvatar._getAriaLabel();
 
 			oRm.openStart("span", oAvatar);
 			oRm.class(sAvatarClass);
@@ -65,17 +70,16 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
 				oRm.class("sapMAvatarPressed");
 			}
 
+			// Set role using the centralized logic from Avatar._getRole()
 			if (bEnabled) {
-				if (bHasListener) {
+				oRm.attr("role", sRole);
+
+				if (sRole === "button") {
 					oRm.class("sapMPointer");
 					oRm.class(sAvatarClass + "Focusable");
-					oRm.attr("role", "button");
 					oRm.attr("tabindex", 0);
-				} else if (oAvatar.getDecorative()) {
-					oRm.attr("role", "presentation");
+				} else if (sRole === "presentation") {
 					oRm.attr("aria-hidden", "true");
-				} else {
-					oRm.attr("role", "img");
 				}
 			} else {
 				oRm.attr("disabled", "disabled");
@@ -89,17 +93,16 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
 				oRm.style("height", sCustomDisplaySize);
 				oRm.style("font-size", sCustomFontSize);
 			}
-			if (sTooltip) {
-				// if tooltip property is set the initials should be overwritten
-				oRm.attr("title", sTooltip);
-				oRm.attr("aria-label", sTooltip);
-			} else if (sInitials) {
-				// default "Avatar" text + initials
-				oRm.attr("aria-label", sDefaultTooltip + " " + sInitials);
-			} else {
-				// no tooltip set nor initials - set only the default "Avatar" text
-				oRm.attr("aria-label", sDefaultTooltip);
+
+			// Set aria-label using the centralized logic from Avatar._getAriaLabel()
+			if (sAriaLabel) {
+				// If tooltip property is set, also set the title attribute
+				if (sTooltip) {
+					oRm.attr("title", sTooltip);
+				}
+				oRm.attr("aria-label", sAriaLabel);
 			}
+
 			// aria-labelledby references
 			if (aLabelledBy && aLabelledBy.length > 0) {
 				oRm.attr("aria-labelledby", aLabelledBy.join(" "));
@@ -114,7 +117,7 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
 			}
 			oRm.openEnd();
 			if (sActualDisplayType === AvatarType.Icon || sImageFallbackType === AvatarType.Icon) {
-				oRm.renderControl(oAvatar._getIcon().addStyleClass(sAvatarClass + "TypeIcon"));
+				oRm.renderControl(oAvatar._getIcon().addStyleClass(sAvatarClass + "TypeIcon").removeStyleClass(sAvatarClass + "HiddenIcon"));
 			} else if ((sActualDisplayType === AvatarType.Initials || sImageFallbackType === AvatarType.Initials) ){
 				if (sInitialsLength === 3) {
 				//we render both icon and avatar, for the case where we have 3 initials set to the avatar and they are overflowing,

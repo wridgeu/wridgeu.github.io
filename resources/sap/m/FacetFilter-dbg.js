@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -12,6 +12,7 @@ sap.ui.define([
 	'sap/ui/core/CustomData',
 	'sap/ui/core/Element',
 	'sap/ui/core/IconPool',
+	"sap/ui/core/Lib",
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/IntervalTrigger',
@@ -39,6 +40,7 @@ sap.ui.define([
 	"sap/m/StandardListItem",
 	"sap/m/CheckBox",
 	"sap/m/Page",
+	"sap/ui/core/library",
 	'sap/ui/core/date/UI5Date',
 	// jQuery Plugin "scrollRightRTL"
 	"sap/ui/dom/jquery/scrollRightRTL",
@@ -54,6 +56,7 @@ sap.ui.define([
 		CustomData,
 		Element,
 		IconPool,
+		Library,
 		ItemNavigation,
 		InvisibleText,
 		IntervalTrigger,
@@ -81,7 +84,8 @@ sap.ui.define([
 		StandardListItem,
 		CheckBox,
 		Page,
-        UI5Date
+		coreLibrary,
+		UI5Date
 	) {
 	"use strict";
 
@@ -107,6 +111,9 @@ sap.ui.define([
 
 	// shortcut for sap.m.FacetFilterType
 	var FacetFilterType = library.FacetFilterType;
+
+	// shortcut for sap.ui.core.TitleLevel
+	var TitleLevel = coreLibrary.TitleLevel;
 
 	var SCROLL_DURATION = 500;
 
@@ -174,7 +181,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IShrinkable
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -399,7 +406,7 @@ sap.ui.define([
 		if (this._displayedList) {
 
 			var oList = this._displayedList;
-			var oSearchField = sap.ui.getCore().byId(oList.getAssociation("search"));
+			var oSearchField = Element.getElementById(oList.getAssociation("search"));
 
 			// Always detach the handler at first regardless of bVal, otherwise multiple calls of this method will add
 			// a separate change handler to the search field.
@@ -430,6 +437,7 @@ sap.ui.define([
 		}
 
 		aLists.forEach(function(oList) {
+			oList.setBusyIndicatorDelay(0);
 			if (!oList.hasListeners("listItemsChange")) {
 				oList.attachEvent("listItemsChange", _listItemsChangeHandler.bind(this));
 			}
@@ -472,6 +480,8 @@ sap.ui.define([
 
 		var oDialog = this._getFacetDialog();
 		var oNavContainer = this._getFacetDialogNavContainer();
+		oDialog.removeAllAriaLabelledBy();
+		oDialog.addAriaLabelledBy(InvisibleText.getStaticId("sap.m", "FACETFILTER_AVAILABLE_FILTER_NAMES"));
 		oDialog.addContent(oNavContainer);
 
 		this.getLists().forEach(function (oList) {
@@ -499,7 +509,7 @@ sap.ui.define([
 		this._addTarget = null;
 		this._aRows = null; //save item level div
 
-		this._bundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._bundle = Library.getResourceBundleFor("sap.m");
 
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 
@@ -533,6 +543,23 @@ sap.ui.define([
 		// This is the reset button shown for Simple type (not the same as the button created for the summary bar)
 		this.setAggregation("resetButton", this._createResetButton());
 
+		// Attach event delegate for click handling
+		this._oFacetPopoverCloseDelegate = {
+			onclick: function(oEvent) {
+				// Only handle clicks for Simple type
+				if (this.getType() !== FacetFilterType.Simple) {
+					return;
+				}
+
+				var oPopover = this.getAggregation("popover");
+				var oPopoverDom = oPopover && oPopover.getDomRef();
+				if (oPopoverDom && !oPopoverDom.contains(oEvent.target)) {
+					this._closePopover();
+				}
+			}
+		};
+		this.addEventDelegate(this._oFacetPopoverCloseDelegate, this);
+
 		// Enable touch support for the carousel
 		if (EventSimulation.touchEventMode === "ON" && !Device.system.phone) {
 			this._enableTouchSupport();
@@ -550,6 +577,10 @@ sap.ui.define([
 		var oCtrl;
 		IntervalTrigger.removeListener(this._checkOverflow, this);
 
+		if (this._oFacetPopoverCloseDelegate) {
+			this.removeEventDelegate(this._oFacetPopoverCloseDelegate);
+		}
+
 		if (this.oItemNavigation) {
 			this.removeDelegate(this.oItemNavigation);
 			this.oItemNavigation.destroy();
@@ -557,7 +588,7 @@ sap.ui.define([
 
 		if (this._aOwnedLabels) {
 			this._aOwnedLabels.forEach(function (sId) {
-				oCtrl = sap.ui.getCore().byId(sId);
+				oCtrl = Element.getElementById(sId);
 				if (oCtrl) {
 					oCtrl.destroy();
 				}
@@ -567,6 +598,11 @@ sap.ui.define([
 
 		if (this._oAllCheckBoxBar) {
 			this._oAllCheckBoxBar = undefined;
+		}
+
+		if (this._oInvisibleTitleElement) {
+			this._oInvisibleTitleElement.destroy();
+			this._oInvisibleTitleElement = null;
 		}
 	};
 
@@ -693,12 +729,12 @@ sap.ui.define([
 			return;
 		}
 
-		oButton = sap.ui.getCore().byId(oEvent.target.id);
+		oButton = Element.getElementById(oEvent.target.id);
 		if (!oButton) {//not a UI5 object
 			return;
 		}
 
-		oList = sap.ui.getCore().byId(oButton.getAssociation("list"));
+		oList = Element.getElementById(oButton.getAssociation("list"));
 		// no deletion on button 'Add', "Reset"
 		if (!oList) {//We allow only buttons with attached list.
 			return;
@@ -1221,10 +1257,12 @@ sap.ui.define([
 		// Don't open if already open, otherwise the popover will display empty.
 		if (!oPopover.isOpen()) {
 
-			var oList = sap.ui.getCore().byId(oControl.getAssociation("list"));
+			var oList = Element.getElementById(oControl.getAssociation("list"));
 			assert(oList, "The facet filter button should be associated with a list.");
 
 			bIsListOpenDefaultPrevented = !oList.fireListOpen({});
+
+			oList.attachUpdateFinished(_listItemsChangeHandler.bind(this));
 
 			this._moveListToDisplayContainer(oList, oPopover);
 			oPopover.openBy(oControl);
@@ -1453,6 +1491,21 @@ sap.ui.define([
 		oNavContainer.addPage(oFacetPage);
 		oNavContainer.setInitialPage(oFacetPage);
 
+		oNavContainer.attachNavigate(function(oEvent) {
+			var oToPage = oEvent.getParameters()["to"],
+				oDialog = this.getAggregation("dialog"),
+				oInvisibleTitleElement = this._getInvisibleTitleElement();
+
+			if (oToPage !== oFacetPage) {
+				oDialog.addAriaLabelledBy(oInvisibleTitleElement.getId());
+				oInvisibleTitleElement.setText(oToPage.getTitle());
+			} else {
+				oDialog.removeAriaLabelledBy(oInvisibleTitleElement.getId());
+				oInvisibleTitleElement.setText("");
+			}
+			oDialog.setInitialFocus(oToPage);
+		}, this);
+
 		oNavContainer.attachAfterNavigate(function(oEvent) {
 
 			// Clean up transient filter items page controls. This must be done here instead of navFromFacetFilterList
@@ -1517,12 +1570,25 @@ sap.ui.define([
 		var oPage = new Page({
 			enableScrolling : true,
 			title : this._bundle.getText("FACETFILTER_TITLE"),
+			titleLevel: TitleLevel.H1,
 			subHeader : new Bar({
 			contentMiddle : oFacetsSearchField
 			}),
 			content : [ oFacetList ]
 		});
 		return oPage;
+	};
+
+	/**
+	 * Creates an invisible text element for the facet filter dialog title.
+	 * @returns {sap.ui.core.InvisibleText} oInvisibleTitleElement
+	 * @private
+	 */
+	FacetFilter.prototype._getInvisibleTitleElement = function() {
+		if (!this._oInvisibleTitleElement) {
+			this._oInvisibleTitleElement = new InvisibleText().toStatic();
+		}
+		return this._oInvisibleTitleElement;
 	};
 
 	/**
@@ -1534,6 +1600,7 @@ sap.ui.define([
 	FacetFilter.prototype._createFilterItemsPage = function() {
 
 		var oPage = new Page({
+			titleLevel: TitleLevel.H1,
 			showNavButton : true,
 			enableScrolling : true,
 			navButtonPress : function(oEvent) {
@@ -1656,8 +1723,7 @@ sap.ui.define([
 				}),
 				// limit the dialog height on desktop and tablet in case there are many filter items (don't
 				// want the dialog height growing according to the number of filter items)
-				contentHeight : "500px",
-				ariaLabelledBy: [InvisibleText.getStaticId("sap.m", "FACETFILTER_AVAILABLE_FILTER_NAMES")]
+				contentHeight : "500px"
 			});
 
 			oDialog.addStyleClass("sapMFFDialog");
@@ -1862,6 +1928,8 @@ sap.ui.define([
 			//oFilterItemsPage.destroyAggregation("content", true);
 
 			oFacetFilterList.fireListOpen({});
+			oFacetFilterList.attachUpdateFinished(_listItemsChangeHandler.bind(this));
+
 			// Add the facet filter list
 			this._moveListToDisplayContainer(oFacetFilterList, oFilterItemsPage);
 

@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./library",
+	"sap/base/i18n/Localization",
 	"sap/ui/core/Control",
 	"sap/ui/core/IconPool",
 	"sap/ui/core/ResizeHandler",
@@ -13,11 +14,10 @@ sap.ui.define([
 	"./NumericContentRenderer",
 	"sap/ui/events/KeyCodes",
 	"sap/base/util/deepEqual",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/Core",
 	"sap/ui/core/Lib",
 	"sap/ui/core/Theming"
-], function (library, Control, IconPool, ResizeHandler, Image, NumericContentRenderer, KeyCodes, deepEqual, Configuration, Core, CoreLib, Theming) {
+], function (library, Localization, Control, IconPool, ResizeHandler, Image, NumericContentRenderer, KeyCodes, deepEqual, Core, CoreLib, Theming) {
 	"use strict";
 
 	var LANG_MAP = { // keys are compared in lowercase
@@ -111,7 +111,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 1.34
 	 *
 	 * @public
@@ -200,7 +200,6 @@ sap.ui.define([
 				/**
 				 * If set to its default value true this property applies the appropriate font style class based on the language. When set to false the font size will always be large
 				 *
-				 * @experimental As of version 1.73 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
 				 * @since 1.73
 				 */
 				"adaptiveFontSize": { type: "boolean", group: "Appearance", defaultValue: true }
@@ -241,7 +240,7 @@ sap.ui.define([
 
 	NumericContent.prototype._getMaxDigitsData = function () {
 		var sFontClass = null,
-			sLang = Configuration.getLanguage().toLowerCase(),
+			sLang = Localization.getLanguage().toLowerCase(),
 			iMaxLength = LANG_MAP[sLang] || 4;
 
 		if (this.getAdaptiveFontSize()) {
@@ -412,19 +411,23 @@ sap.ui.define([
 	};
 
 	NumericContent.prototype.setIndicator = function (sDeviationIndicator) {
-        if (sDeviationIndicator !== DeviationIndicator.None && sDeviationIndicator) {
-        var sSrc = "sap-icon://" + sDeviationIndicator.toLowerCase();
-        if (this._oIndicatorIcon) {
-            this._oIndicatorIcon.setSrc(sSrc);
-        } else {
-            this._oIndicatorIcon = IconPool.createControlByURI({
-                id: this.getId() + "-icon-indicator",
-                size: "0.875rem",
-                src: sSrc
-            }, Image);
-            this._oIndicatorIcon.addStyleClass("sapMNCIndIcon");
-        }
-	}
+		if (sDeviationIndicator && sDeviationIndicator !== DeviationIndicator.None) {
+			var sSrc = "sap-icon://" + sDeviationIndicator.toLowerCase();
+			if (this._oIndicatorIcon) {
+				this._oIndicatorIcon.setSrc(sSrc);
+			} else {
+				this._oIndicatorIcon = IconPool.createControlByURI({
+					id: this.getId() + "-icon-indicator",
+					size: "0.875rem",
+					src: sSrc
+				}, Image);
+				this._oIndicatorIcon.addStyleClass("sapMNCIndIcon");
+			}
+		} else {
+			if (this._oIndicatorIcon) {
+				this._oIndicatorIcon.setSrc(null);
+			}
+		}
 		return this.setProperty("indicator", sDeviationIndicator);
 	};
 
@@ -460,7 +463,6 @@ sap.ui.define([
 	 */
 	NumericContent.prototype.onkeyup = function (oEvent) {
 		if (oEvent.which === KeyCodes.ENTER || oEvent.which === KeyCodes.SPACE) {
-			this.firePress();
 			oEvent.preventDefault();
 		}
 	};
@@ -471,7 +473,8 @@ sap.ui.define([
 	 * @param {sap.ui.base.Event} oEvent which was fired
 	 */
 	NumericContent.prototype.onkeydown = function (oEvent) {
-		if (oEvent.which === KeyCodes.SPACE) {
+		if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
+			this.firePress();
 			oEvent.preventDefault();
 		}
 	};

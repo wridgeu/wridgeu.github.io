@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,10 +24,6 @@ sap.ui.define([
 	NavigationAction.prototype.execute = function () {
 		var oResolvedConfig = this.getResolvedConfig();
 
-		if (oResolvedConfig.service) {
-			return;
-		}
-
 		var oParameters = this.getParameters(),
 			sUrl,
 			sTarget,
@@ -40,7 +36,7 @@ sap.ui.define([
 		}
 
 		sUrl = oResolvedConfig.url || sParametersUrl;
-		sTarget = oResolvedConfig.target || sParametersTarget || "_blank";
+		sTarget = oResolvedConfig.target || sParametersTarget || NavigationAction.DEFAULT_TARGET;
 
 		if (sUrl) {
 			this._openUrl(sUrl, sTarget);
@@ -58,6 +54,15 @@ sap.ui.define([
 	NavigationAction.prototype._openUrl = function (sUrl, sTarget) {
 		openWindow(sUrl, sTarget);
 	};
+
+	/** Static methods */
+
+	/**
+	 * Default target for the navigation action.
+	 * @readonly
+	 * @const {string}
+	 */
+	NavigationAction.DEFAULT_TARGET = "_blank";
 
 	return NavigationAction;
 });

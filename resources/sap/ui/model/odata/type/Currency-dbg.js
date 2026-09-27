@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,9 +12,106 @@ sap.ui.define([
 	"use strict";
 
 	/**
+	 * @typedef {sap.ui.core.format.NumberFormat.FormatOptions} sap.ui.model.odata.type.CurrencyFormatOptions
+	 *
+	 * Format options for the {@link sap.ui.model.odata.type.Currency} type.
+	 *
+	 * @property {boolean} [currencyCode]
+	 *   Defines whether the currency is shown as a code in currency format.
+	 *   The currency symbol is displayed when this option is set to
+	 *   <code>false</code> and a symbol exists for the given currency code.
+	 * @property {"standard"|"accounting"|"sap-standard"|"sap-accounting"} [currencyContext]
+	 *   Can be set to either 'standard'
+	 *   (the default value) or to 'accounting' for an accounting-specific currency display
+	 * @property {int} [decimalPadding]
+	 *   The target length of places after the decimal separator; if the number has fewer decimals than specified in
+	 *   this option, it is padded with whitespaces at the end up to the target length. An additional whitespace
+	 *   character for the decimal separator is added for a number without any decimals.
+	 *   <b>Note:</b> This format option is only allowed if the following conditions apply:
+	 *   <ul>
+	 *     <li>It has a value greater than 0.</li>
+	 *     <li>The <code>oFormatOptions.style</code> format option is <b>not</b> set to <code>"short"</code> or
+	 *         <code>"long"</code>.</li>
+	 *   </ul>
+	 * @property {int} [decimals]
+	 *   The number of decimal digits.
+	 * @property {any} [emptyString]
+	 *   Defines how an empty string is parsed into the amount. With the default value
+	 *   <code>0</code>, the amount becomes <code>0</code> when an empty string is parsed.
+	 * @property {int} [minFractionDigits]
+	 *   Deprecated as of 1.130; this format option does not have
+	 *   an effect on currency formats since decimals can always be determined, either through the given format options,
+	 *   custom currencies, or the CLDR
+	 * @property {boolean} [parseAsString]
+	 *   Whether the amount is parsed to a string; set to <code>false</code> if the amount's
+	 *   underlying type is represented as a <code>number</code>, for example
+	 *   {@link sap.ui.model.odata.type.Int32}
+	 * @property {int} [precision]
+	 *   The maximum number of digits in the formatted representation of a number;
+	 *   if the <code>precision</code> is less than the overall length of the number, its fractional part is truncated
+	 *   through rounding. As the <code>precision</code> only affects the rounding of a number, its integer part can
+	 *   retain more digits than defined by this parameter.
+	 *   <b>Example:</b> With a <code>precision</code> of 2, <code>234.567</code> is formatted to <code>235</code>.
+	 *   <b>Note:</b> The formatted output may differ depending on locale.
+	 * @property {boolean} [preserveDecimals]
+	 *   By default, decimals are preserved unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
+	 * @property {boolean} [showMeasure]
+	 *   Defines whether the currency code or symbol is shown in the formatted string,
+	 *   for example true: "1.00 EUR", false: "1.00" for locale "en"
+	 *   If both <code>showMeasure</code> and <code>showNumber</code> are <code>false</code>, an empty string is
+	 *   returned
+	 * @property {boolean} [showNumber]
+	 *   Defines whether the number is shown as part of the result string,
+	 *   for example 1 EUR for locale "en"
+	 *   <pre><code>NumberFormat.getCurrencyInstance({showNumber: true}).format(1, "EUR"); // "1.00 EUR"</code></pre>
+	 *   <pre><code>NumberFormat.getCurrencyInstance({showNumber: false}).format(1, "EUR"); // "EUR"</code></pre>
+	 *   If both <code>showMeasure</code> and <code>showNumber</code> are <code>false</code>, an empty string is
+	 *   returned
+	 * @property {"short"|"long"|"standard"} [style]
+	 *   The style of format.
+     *   When set to <code>short</code> or <code>long</code>, numbers are formatted into the <code>short</code> form
+	 *   only.
+	 *   When this option is set, the default value of the <code>precision</code> option is set to <code>2</code>.
+	 *   This can be changed by setting either <code>min/maxFractionDigits</code>,
+	 *   <code>decimals</code>, <code>shortDecimals</code>, or the <code>precision</code> option itself.
+	 * @property {boolean} [trailingCurrencyCode]
+	 *   Overrides the global configuration
+	 *   value {@link module:sap/base/i18n/Formatting.getTrailingCurrencyCode Formatting.getTrailingCurrencyCode},
+	 *   which has a default value of <code>true</code>.
+	 *   This is ignored if <code>oFormatOptions.currencyCode</code> is set to <code>false</code>,
+	 *   or if <code>oFormatOptions.pattern</code> is supplied.
+	 * @property {boolean} [unitOptional]
+	 *   Whether the amount is parsed if no currency is entered; defaults to <code>true</code> if
+	 *   neither <code>showMeasure</code> nor <code>showNumber</code> is set to a falsy value,
+	 *   otherwise defaults to <code>false</code>
+	 *
+	 * @public
+	 */
+
+	/**
 	 * Constructor for a <code>Currency</code> composite type.
 	 *
-	 * @param {object} [oFormatOptions]
+	 * @param {sap.ui.model.odata.type.CurrencyFormatOptions} [oFormatOptions={
+	 *     currencyCode: true,
+	 *     currencyContext: "standard",
+	 *     emptyString: 0,
+	 *     groupingBaseSize: 3,
+	 *     groupingEnabled: true,
+	 *     groupingSize: 3,
+	 *     maxFractionDigits: 99,
+	 *     maxIntegerDigits: 99,
+	 *     minFractionDigits: 0,
+	 *     minIntegerDigits: 1,
+	 *     parseAsString: true,
+	 *     preserveDecimals: true,
+	 *     roundingMode: "HALF_AWAY_FROM_ZERO",
+	 *     showMeasure: true,
+	 *     showNumber: true,
+	 *     showScale: true,
+	 *     strictGroupingValidation: false,
+	 *     style: "standard"
+	 *   }]
 	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getCurrencyInstance}.
 	 *   Format options are immutable, that is,
 	 *   they can only be set once on construction. Format options that are not supported or have a
@@ -23,30 +120,20 @@ sap.ui.define([
 	 *   if the corresponding binding supports the feature of ignoring messages, see
 	 *   {@link sap.ui.model.Binding#supportsIgnoreMessages}, and the corresponding binding
 	 *   parameter is not set manually.
-	 * @param {object} [oFormatOptions.customCurrencies]
-	 *   Not supported; the type derives this from its currency customizing part.
-	 * @param {boolean} [oFormatOptions.parseAsString=true]
-	 *   Whether the amount is parsed to a string; set to <code>false</code> if the amount's
-	 *   underlying type is represented as a <code>number</code>, for example
-	 *   {@link sap.ui.model.odata.type.Int32}
-	 * @param {boolean} [oFormatOptions.unitOptional]
-	 *   Whether the amount is parsed if no currency is entered; defaults to <code>true</code> if
-	 *   neither <code>showMeasure</code> nor <code>showNumber</code> is set to a falsy value,
-	 *   otherwise defaults to <code>false</code>
-	 * @param {any} [oFormatOptions.emptyString=0]
-	 *   Defines how an empty string is parsed into the amount. With the default value
-	 *   <code>0</code> the amount becomes <code>0</code> when an empty string is parsed.
-	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
-	 *   By default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
-	 *   "short" or "long"; since 1.89.0
 	 * @param {object} [oConstraints]
 	 *   Only the 'skipDecimalsValidation' constraint is supported. Constraints are immutable,
 	 *   that is, they can only be set once on construction.
 	 * @param {boolean} [oConstraints.skipDecimalsValidation=false]
 	 *   Whether to skip validation of the number of decimals based on the code list customizing;
 	 *   since 1.93.0
-	 * @throws {Error} If called with more parameters than <code>oFormatOptions</code> or if the
-	 *   format option <code>customCurrencies</code> is set
+	 * @throws {Error}
+	 *   If
+	 *   <ul>
+	 *     <li>More parameters than <code>oFormatOptions</code> and <code>oConstraints</code> are given</li>
+	 *     <li>The <code>customCurrencies</code> format option is set</li>
+	 *     <li>Any constraint other than <code>skipDecimalsValidation</code> is set</li>
+	 *     <li>The <code>oFormatOptions.decimalPadding</code> is set but is not allowed</li>
+	 *   </ul>
 	 *
 	 * @alias sap.ui.model.odata.type.Currency
 	 * @author SAP SE
@@ -65,7 +152,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.type.Currency
 	 * @public
 	 * @since 1.63.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 */
 	var Currency = BaseCurrency.extend("sap.ui.model.odata.type.Currency", {
 		constructor : function (oFormatOptions, oConstraints) {
@@ -78,6 +165,29 @@ sap.ui.define([
 	/**
 	 * Formats the given values of the parts of the <code>Currency</code> composite type to the
 	 * given target type.
+	 *
+	 * If CLDR or custom currencies are used and the <code>preserveDecimals</code> format option is set to
+	 * <code>false</code>, the maximal number of decimal places for the numeric part of the
+	 * {@link sap.ui.model.odata.type.Currency} type depends on:
+	 *   <ul>
+	 *     <li>The <code>DecimalPlaces</code> property of the current currency code.
+	 *     <li>The <code>maxFractionDigits</code> format option of the {@link sap.ui.model.odata.type.Currency} type.
+	 *     <li>The <code>scale</code> constraint of the {@link sap.ui.model.odata.type.Decimal} type for the
+	 *       quantity part.
+	 *   </ul>
+	 *   The maximal number of decimal places is determined as follows:
+	 *   <ul>
+	 *     <li>If <code>maxFractionDigits</code> is provided and is less than the current currency code's
+	 *       <code>DecimalPlaces</code>, the <code>maxFractionDigits</code> is used to determine the
+	 *       number of decimal places. Conversely, if <code>DecimalPlaces</code> is less than
+	 *       <code>maxFractionDigits</code>, <code>DecimalPlaces</code> wins.
+	 *     <li>If <code>maxFractionDigits</code> is not provided, the <code>DecimalPlaces</code> of the current currency
+	 *       code is applied, unless it is greater than the <code>scale</code> of the
+	 *       {@link sap.ui.model.odata.type.Decimal} type for the numeric part, in which case <code>scale</code> wins.
+	 *     <li>A <code>scale='variable'</code> is treated as being always greater than the <code>DecimalPlaces</code>
+	 *       of the current currency code. In this case, the <code>DecimalPlaces</code> of the current currency code is
+	 *       applied.
+	 *   </ul>
 	 *
 	 * @param {any[]} aValues
 	 *   Array of part values to be formatted; contains in the following order: amount, currency,
@@ -115,7 +225,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.Currency"}
 	 *   The type's name
 	 *
 	 * @public

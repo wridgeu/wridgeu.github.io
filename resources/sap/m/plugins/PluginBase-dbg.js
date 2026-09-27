@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,10 +20,9 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
-	 * @experimental Since 1.73. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 * @since 1.73
 	 * @alias sap.m.plugins.PluginBase
 	 */
@@ -90,26 +89,58 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	};
 
 	/**
-	 * Returns the first applied plugin for the given control instance and the plugin name.
+	 * Searches a control plugin with a given type in the aggregations of the given <code>Element</code> instance.
+	 * The first plugin that is found is returned.
 	 *
-	 * @param {sap.ui.core.Control} oControl The control instance to check for
-	 * @param {string|function} [vPlugin] The full name or the constructor of the plugin
-	 * @return {undefined|sap.m.plugins.PluginBase} The found plugin instance or <code>undefined</code> if not found
-	 * @public
+	 * @param {sap.ui.core.Element} oElement The <code>Element</code> instance to check for
+	 * @param {string|function} [vPlugin] The full name or the constructor of the plugin name; if nothing is given, <code>PluginBase</code> is used
+	 * @return {sap.ui.core.Element|undefined} The found plugin instance or <code>undefined</code> if not found
+	 * @private
 	 * @static
 	 */
-	PluginBase.getPlugin = function(oControl, vPlugin) {
-		if (vPlugin == undefined) {
-			vPlugin = this.getMetadata().getName();
-		} else if (typeof vPlugin == "function") {
+	PluginBase.getPlugin = function(oElement, vPlugin = PluginBase) {
+		// Keep this function in sync with sap.m.plugins.PluginBase.getPlugin
+		// until the library dependencies are cleaned up and a reuse can happen!
+
+		if (!oElement) {
+			return;
+		}
+
+		if (typeof vPlugin === "function" && vPlugin.getMetadata) {
 			vPlugin = vPlugin.getMetadata().getName();
 		}
 
-		return oControl.getDependents().filter(function(oDependent) {
-			return oDependent.isA(vPlugin);
-		})[0] || oControl.findElements(false, function(oElement) {
-			return oElement.isA(vPlugin);
-		})[0];
+		const fnCheck = function(oElem) {
+			/* TBD Cleanup sap.m and sap.ui.table plugins should be aligned in future.*/
+			return oElem.isA(vPlugin) && (
+					oElem.isA(["sap.m.plugins.PluginBase", "sap.ui.table.plugins.PluginBase"]));
+		};
+
+		return oElement.getDependents().find(fnCheck) || oElement.findElements(false, fnCheck)[0];
+	};
+
+	/**
+	 * Searches a plugin of the corresponding type in the aggregations of the given <code>Element</code> instance.
+	 * The first plugin that is found is returned.
+	 *
+	 * @param {sap.ui.core.Element} oElement The <code>Element</code> instance to check for
+	 * @return {sap.ui.core.Element|undefined} The found plugin instance or <code>undefined</code> if not found
+	 * @public
+	 * @static
+	 */
+	PluginBase.findOn = function(oElement) {
+		return PluginBase.getPlugin(oElement, this);
+	};
+
+	/**
+	 * Returns the first applied plugin with the specified name that is defined in the same context as this plugin.
+	 *
+	 * @param {string} sPlugin The full name of the plugin
+	 * @return {undefined|sap.m.plugins.PluginBase} The found plugin instance or <code>undefined</code> if not found
+	 * @protected
+	 */
+	PluginBase.prototype.getPlugin = function(sPlugin) {
+		return PluginBase.getPlugin(this.getParent(), sPlugin);
 	};
 
 
@@ -159,7 +190,7 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	 */
 	PluginBase.prototype.getConfig = function(sKey, vParam1, vParam2, vParam3, vParam4) {
 		var oControl = this.getControl();
-		if (!oControl) {
+		if (!(oControl instanceof Element)) {
 			return;
 		}
 
@@ -216,25 +247,33 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	PluginBase.prototype.onDeactivate = function(oControl) {};
 
 	/**
+	 * Deactivates the plugin when the plugin is destroyed.
+	 *
+	 * @override
+	 */
+	PluginBase.prototype.exit = function() {
+		Element.prototype.exit.call(this);
+		this._deactivate();
+	};
+
+	/**
 	 * Activates or deactivates the plugin when the parent of the plugin is set.
 	 *
 	 * @override
 	 */
 	PluginBase.prototype.setParent = function() {
 		this._deactivate();
-
 		Element.prototype.setParent.apply(this, arguments);
-
-		if (this.getEnabled()) {
-			this._activate();
-		}
-
+		this._activate();
 		return this;
 	};
 
 	/**
 	 * Activates or deactivates the plugin when the enabled property is set.
 	 *
+	 * @param {boolean} bEnabled Whether the plugin should be active
+	 * @returns {this}
+	 * @public
 	 * @override
 	 */
 	PluginBase.prototype.setEnabled = function(bEnabled) {
@@ -267,7 +306,7 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	 * Internal plugin activation handler
 	 */
 	PluginBase.prototype._activate = function() {
-		if (this._bActive) {
+		if (this._bActive || !this.getEnabled()) {
 			return;
 		}
 
@@ -284,9 +323,9 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 			throw new Error(this + " is not applicable to " + oControl);
 		}
 
+		this._bActive = true;
 		this.getConfig("onActivate", oControl, this);
 		this.onActivate(oControl);
-		this._bActive = true;
 	};
 
 	/**
@@ -297,10 +336,10 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 			return;
 		}
 
-		var oControl = this.getControl();
+		this._bActive = false;
+		const oControl = this.getControl();
 		this.getConfig("onDeactivate", oControl, this);
 		this.onDeactivate(oControl);
-		this._bActive = false;
 	};
 
 	return PluginBase;

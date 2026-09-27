@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,7 +43,6 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/library", "sap/m/Hyphenation
 		oRm.class("sapMTitle");
 		oRm.class("sapMTitleStyle" + oTitle.getTitleStyle());
 		oRm.class(oTitle.getWrapping() ? "sapMTitleWrap" : "sapMTitleNoWrap");
-		oRm.class("sapUiSelectable");
 
 		var sWidth = oTitle.getWidth();
 		if (!sWidth) {
@@ -56,7 +55,7 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/library", "sap/m/Hyphenation
 			oRm.style("text-align", sTextAlign);
 		}
 
-		sTooltip = oAssoTitle && !oTitleContent ? oAssoTitle.getTooltip_AsString() : oTitle.getTooltip_AsString();
+		sTooltip = oTitle._getTooltipText();
 		if (sTooltip) {
 			oRm.attr("title", sTooltip);
 		}
@@ -73,6 +72,7 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/library", "sap/m/Hyphenation
 		oRm.openEnd();
 
 		oRm.openStart("span", oTitle.getId() + "-inner");
+		oRm.class("sapUiSelectable");
 		oRm.attr("dir", sTextDir !== TextDirection.Inherit ? sTextDir.toLowerCase() : "auto");
 		oRm.openEnd();
 		if (oTitleContent) { // render a control added in the titleControl aggregation ...

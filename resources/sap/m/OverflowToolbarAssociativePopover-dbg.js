@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define(['sap/ui/core/Element', './Popover', './OverflowToolbarAssociative
 	 * @extends sap.m.Popover
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -75,7 +75,7 @@ sap.ui.define(['sap/ui/core/Element', './Popover', './OverflowToolbarAssociative
 			oControlObject;
 
 		if (sResult) {
-			oControlObject = Element.registry.get(sResult);
+			oControlObject = Element.getElementById(sResult);
 			if (oControlObject) {
 				this._postProcessControl(oControlObject);
 			}
@@ -174,31 +174,13 @@ sap.ui.define(['sap/ui/core/Element', './Popover', './OverflowToolbarAssociative
 
 
 	/**
-	 * Recalculate the margin offsets so the Popover will never cover the control that opens it.
-	 * Overrides the popovers placement rules only for PlacementType.Top
-	 *
-	 * @param {sap.m.PlacementType} sCalculatedPlacement Calculated placement of the Popover
-	 * @param {object} oPosParams used to calculate actual values for the screen margins, so the Popover will never cover the Opener control or goes outside of the viewport
-	 * @override
-	 * @private
-	 */
-	OverflowToolbarAssociativePopover.prototype._recalculateMargins = function (sCalculatedPlacement, oPosParams) {
-		if (sCalculatedPlacement !== PlacementType.Top){
-			return Popover.prototype._recalculateMargins.apply(this, arguments);
-		}
-
-		oPosParams._fPopoverMarginBottom = oPosParams._fWindowHeight - oPosParams._$parent.offset().top + this._arrowOffset + oPosParams._fPopoverOffsetY;
-		return oPosParams;
-	};
-
-	/**
 	 * Returns the content from the aggregation and association combined
 	 * @returns {(Array.<T>|string|*|!Array)}
 	 * @private
 	 */
 	OverflowToolbarAssociativePopover.prototype._getAllContent = function () {
 		var aAssociatedContent = this.getAssociatedContent().map(function(sId) {
-			return Element.registry.get(sId);
+			return Element.getElementById(sId);
 		});
 
 		if (this.getPlacement() === PlacementType.Top) {

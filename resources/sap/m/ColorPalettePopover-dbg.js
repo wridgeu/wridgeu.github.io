@@ -1,21 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides control sap.ui.unified.ColorPalettePopover
+// Provides control sap.m.ColorPalettePopover
 sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/Device',
+	"sap/ui/core/Lib",
 	'sap/ui/unified/ColorPickerDisplayMode',
 	'./Button',
 	'./ResponsivePopover',
 	'./ColorPalette',
 	'./library'
-], function (
+], function(
 	Control,
 	Device,
+	Library,
 	ColorPickerDisplayMode,
 	Button,
 	ResponsivePopover,
@@ -37,7 +39,7 @@ sap.ui.define([
 		 * A thin wrapper over {@link sap.m.ColorPalette} allowing the latter to be used in a popover.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @public
 		 * @since 1.54
@@ -78,6 +80,12 @@ sap.ui.define([
 							"black"
 						]
 					},
+
+					/**
+					 * The last selected color in the ColorPalette.
+					 * @since 1.122
+					 */
+					selectedColor: { type: "sap.ui.core.CSSColor", defaultValue: null },
 
 					/**
 					 * Indicates if the button for default color selection is available.
@@ -181,7 +189,7 @@ sap.ui.define([
 		});
 
 		// get resource translation bundle;
-		var oLibraryResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oLibraryResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		/**
 		 * Keeps reference to all API properties and/or methods that are about to be forwarded to either a
@@ -191,6 +199,7 @@ sap.ui.define([
 		var FORWARDABLE = {
 			COLOR_PALETTE_PROPS: {
 				colors: "setColors",
+				selectedColor: "setSelectedColor",
 				defaultColor: "_setDefaultColor",
 				showDefaultColorButton: "_setShowDefaultColorButton",
 				showMoreColorsButton: "_setShowMoreColorsButton",
@@ -228,7 +237,7 @@ sap.ui.define([
 		 * On table or desktop devices, the popover is positioned relative to the given <code>oControl</code>
 		 * parameter. On phones, it is shown full screen, the <code>oControl</code> parameter is ignored.
 		 *
-		 * @param {sap.ui.core.Control} oCpntrol
+		 * @param {sap.ui.core.Control} oControl
 		 *    When displayed on a tablet or desktop device, the <code>ColorPalettePopover</code> is positioned
 		 *    relative to this control
 		 * @returns {sap.ui.core.Control}
@@ -297,7 +306,7 @@ sap.ui.define([
 				showCloseButton: false,
 				title: oLibraryResourceBundle.getText("COLOR_PALETTE_TITLE"),
 				content: oColorPalette,
-				afterOpen: oColorPalette._focusFirstElement.bind(oColorPalette)
+				afterOpen: oColorPalette._focusSelectedElement.bind(oColorPalette)
 
 			}).addStyleClass("sapMColorPaletteContainer");
 
@@ -322,12 +331,14 @@ sap.ui.define([
 				oPopover.close();
 			}.bind(this));
 
-			// when color is selected in the ColorPalette, we close the popover and notify the app. developer
+			// when color is selected in the ColorPalette, we close the popover, update the selected color, and notify the app developer
 			oColorPalette.attachEvent("colorSelect", function (oEvent) {
 				this._handleNextOrPreviousUponPaletteClose(oEvent);
 				oPopover.close();
+				const sColor = oEvent.getParameter("value");
+				this.setSelectedColor(sColor);
 				this.fireColorSelect({
-					"value": oEvent.getParameter("value"),
+					"value": sColor,
 					"defaultAction": oEvent.getParameter("defaultAction")
 				});
 			}.bind(this));
@@ -365,6 +376,10 @@ sap.ui.define([
 			oColorPalette._setShowDefaultColorButton(this.getShowDefaultColorButton());
 			oColorPalette._setShowMoreColorsButton(this.getShowMoreColorsButton());
 			oColorPalette._setShowRecentColorsSection(this.getShowRecentColorsSection());
+
+			// Set the private property to indicate this ColorPalette is used in a popover
+			// This enables Home/End key navigation for better accessibility
+			oColorPalette.setProperty("_isInPopover", true);
 
 			return oColorPalette;
 		};

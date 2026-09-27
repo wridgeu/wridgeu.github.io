@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,9 @@ sap.ui.define([
 	'./TabStripItem',
 	'sap/ui/Device',
 	'sap/ui/core/InvisibleText',
-	"sap/ui/core/Element"
-], function(TabStripItem,  Device, InvisibleText, Element) {
+	"sap/ui/core/Element",
+	'sap/ui/core/IconPool' // because oRm.icon is used
+], function(TabStripItem, Device, InvisibleText, Element) {
 	"use strict";
 
 	/**
@@ -61,6 +62,10 @@ sap.ui.define([
 
 		this.renderTouchArea(oRm, oControl);
 		this.endTabStrip(oRm);
+
+		if (Device.system.phone && oControl._bHighZoom) {
+			this.renderPhoneOverflowPanel(oRm, oControl);
+		}
 	};
 
 	/**
@@ -77,7 +82,7 @@ sap.ui.define([
 
 		// On mobile device we render only the selected tab if there is one
 		if (Device.system.phone) {
-			oSelectedItem = Element.registry.get(sSelectedItemId);
+			oSelectedItem = Element.getElementById(sSelectedItemId);
 			oSelectedItem && this.renderItem(oRm, oControl, oSelectedItem, true);
 		} else {
 			aItems.forEach(function (oItem) {
@@ -113,13 +118,15 @@ sap.ui.define([
 			oRm.attr("title", sTooltip);
 		}
 
-		oRm.accessibilityState(oItem, getTabStripItemAccAttributes(oItem, oControl, sap.ui.getCore().byId(oControl.getSelectedItem())));
+		oRm.accessibilityState(oItem, getTabStripItemAccAttributes(oItem, oControl, Element.getElementById(oControl.getSelectedItem())));
 
 		oRm.openEnd();
 
 		// write icon
 		if (oItem.getIcon()) {
-			oRm.renderControl(oItem._getImage());
+			const oImage = oItem._getImage();
+			oImage.setTooltip(oItem.getIconTooltip());
+			oRm.renderControl(oImage);
 		}
 
 		oRm.openStart("div"); // Start texts container
@@ -160,7 +167,6 @@ sap.ui.define([
 	 * @param {string} sItemText item text to be rendered
 	 */
 	TabStripRenderer.renderItemText = function (oRm, sItemText) {
-
 		if (sItemText.length > TabStripItem.DISPLAY_TEXT_MAX_LENGTH) {
 			oRm.text(sItemText.slice(0, TabStripItem.DISPLAY_TEXT_MAX_LENGTH));
 			oRm.text('...');
@@ -196,6 +202,12 @@ sap.ui.define([
 		oRm.openStart("div", oControl);
 		oRm.class("sapMTabStrip");
 		oRm.class("sapContrastPlus");
+		if (Device.system.phone) {
+			oRm.style("width", "100%");
+			if (oControl._bHighZoom) {
+				oRm.class("sapMTSHighZoom");
+			}
+		}
 		oRm.openEnd();
 	};
 
@@ -218,6 +230,12 @@ sap.ui.define([
 	TabStripRenderer.beginTabsContainer = function (oRm, oControl) {
 		oRm.openStart("div", oControl.getId() + "-tabsContainer");
 		oRm.class("sapMTSTabsContainer");
+		if (Device.system.phone && oControl._bHighZoom) {
+			// At ≤320px the select button is replaced by the overflow toggle (2.75rem); CSS rules
+			// that set right based on selectable/addButton classes no longer apply here, so we set
+			// it inline to prevent the tabsContainer from overlapping the toggle button.
+			oRm.style("right", "2.75rem");
+		}
 		oRm.openEnd();
 		oRm.openStart("div", oControl.getId() + "-tabs");
 		oRm.class("sapMTSTabs");
@@ -278,8 +296,106 @@ sap.ui.define([
 		oRm.class("sapMTSTouchArea");
 		oRm.openEnd();
 
-		oRm.renderControl(oControl.getAggregation('_select'));
-		oRm.renderControl(oControl.getAddButton());
+		if (Device.system.phone && oControl._bHighZoom) {
+			// ≤320px: overflow toggle button replaces the select; add button moves to panel footer
+			oRm.renderControl(oControl._getOverflowButton());
+		} else {
+			oRm.renderControl(oControl.getAggregation('_select'));
+			oRm.renderControl(oControl.getAddButton());
+		}
+
+		oRm.close("div");
+	};
+
+	/**
+	 * Renders the phone overflow panel for high-zoom (≤320px) viewport.
+	 * Uses position:fixed so it overlays the page content below the strip.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager
+	 * @param {sap.m.TabStrip} oControl The TabStrip control
+	 */
+	TabStripRenderer.renderPhoneOverflowPanel = function(oRm, oControl) {
+		var sSelectedId = oControl.getSelectedItem();
+
+		oRm.openStart("div", oControl.getId() + "-phoneOverflowPanel");
+		oRm.class("sapMTSPhoneOverflowPanel");
+		if (oControl._bPhoneOverflowOpen) {
+			oRm.class("sapMTSPhoneOverflowPanelOpen");
+		}
+		oRm.openEnd();
+
+		// scrollable list wrapper — fills available height and scrolls when items overflow
+		oRm.openStart("div");
+		oRm.class("sapMTSPhoneOverflowPanelList");
+		oRm.openEnd();
+
+		// item list
+		oControl.getItems().forEach(function(oItem) {
+			var bSelected = sSelectedId && sSelectedId === oItem.getId();
+			oRm.openStart("div");
+			oRm.class("sapMTSPhoneOverflowPanelItem");
+			if (bSelected) {
+				oRm.class("sapMTSPhoneOverflowPanelItemSelected");
+			}
+			oRm.attr("data-item-id", oItem.getId());
+			oRm.attr("role", "option");
+			oRm.attr("tabindex", "0");
+			oRm.openEnd();
+
+			// icon/avatar
+			if (oItem.getIcon()) {
+				oRm.renderControl(oItem._getImage());
+			}
+
+			// texts
+			oRm.openStart("div");
+			oRm.class("sapMTSTexts");
+			oRm.openEnd();
+			oRm.openStart("div");
+			oRm.class(TabStripItem.CSS_CLASS_TEXT);
+			oRm.openEnd();
+			TabStripRenderer.renderItemText(oRm, oItem.getAdditionalText());
+			oRm.close("div");
+			oRm.openStart("div");
+			oRm.class(TabStripItem.CSS_CLASS_LABEL);
+			oRm.openEnd();
+			TabStripRenderer.renderItemText(oRm, oItem.getText());
+			if (oItem.getModified()) {
+				oRm.openStart("span");
+				oRm.class(TabStripItem.CSS_CLASS_MODIFIED_SYMBOL);
+				oRm.attr("aria-hidden", "true");
+				oRm.openEnd();
+				oRm.close("span");
+			}
+			oRm.close("div");
+			oRm.close("div"); // sapMTSTexts
+
+			// close button — rendered as plain HTML so it can appear alongside the shared
+			// _closeButton control that is already rendered in the main .sapMTSTabs area
+			oRm.openStart("div");
+			oRm.class("sapMTSItemCloseBtnCnt");
+			oRm.class("sapMTSPhoneOverflowPanelCloseBtn");
+			oRm.attr("data-close-item-id", oItem.getId());
+			oRm.attr("role", "button");
+			oRm.attr("tabindex", "-1");
+			oRm.attr("aria-hidden", "true");
+			oRm.openEnd();
+			oRm.icon("sap-icon://decline", ["sapUiIcon", "sapUiIconSizeSmall"], { title: null, role: "presentation", "aria-hidden": "true" });
+			oRm.close("div");
+
+			oRm.close("div"); // sapMTSPhoneOverflowPanelItem
+		});
+
+		oRm.close("div"); // sapMTSPhoneOverflowPanelList
+
+		// footer with add button (only when app has showAddNewButton)
+		if (oControl.getAddButton()) {
+			oRm.openStart("div");
+			oRm.class("sapMTSPhoneOverflowPanelFooter");
+			oRm.openEnd();
+			oRm.renderControl(oControl._getOverflowAddButton());
+			oRm.close("div");
+		}
 
 		oRm.close("div");
 	};

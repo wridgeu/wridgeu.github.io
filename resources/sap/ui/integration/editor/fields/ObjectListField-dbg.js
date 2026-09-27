@@ -1,29 +1,31 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/integration/editor/fields/ObjectField",
 	"sap/ui/model/json/JSONModel",
-	"sap/ui/table/Table",
 	"sap/m/CheckBox",
 	"sap/base/util/deepEqual",
 	"sap/base/util/deepClone",
 	"sap/ui/integration/util/Utils",
-	"sap/m/table/columnmenu/Menu"
+	"sap/m/table/columnmenu/Menu",
+	"sap/ui/core/Lib"
 ], function (
 	ObjectField,
 	JSONModel,
-	Table,
 	CheckBox,
 	deepEqual,
 	deepClone,
 	Utils,
-	Menu
+	Menu,
+	Library
 ) {
 	"use strict";
+
+	let Table;
 
 	/**
 	 * @class Object List Field with object list value, such as [{"key": "key1"}, {"key": "key2"}]
@@ -31,9 +33,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.ObjectListField
 	 * @author SAP SE
 	 * @since 1.100.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.100.0
 	 * @ui5-restricted
 	 */
 	var ObjectListField = ObjectField.extend("sap.ui.integration.editor.fields.ObjectListField", {
@@ -42,6 +43,20 @@ sap.ui.define([
 		},
 		renderer: ObjectField.getMetadata().getRenderer()
 	});
+
+	ObjectListField.loadDependencies = function () {
+		return Library.load("sap.ui.table")
+			.then(() => {
+				return new Promise((resolve, reject) => {
+					sap.ui.require([
+						"sap/ui/table/Table"
+					], (_Table) => {
+						Table = _Table;
+						resolve();
+					}, reject);
+				});
+			});
+	};
 
 	ObjectListField.prototype.initVisualization = function (oConfig) {
 		var that = this;
@@ -207,10 +222,12 @@ sap.ui.define([
 		oData.push(oNewObject);
 		oModel.setProperty("/_hasTableAllSelected", false);
 		oModel.setProperty("/_hasTableSelected", false);
+		oModel.setProperty("/_hasNotEditableItemSelected", false);
 		oModel.checkUpdate();
 		that.refreshValue();
 		that._oObjectDetailsPopover.close();
 		that._positionCount++;
+		that.updateTable();
 	};
 
 	ObjectListField.prototype.refreshValue = function () {

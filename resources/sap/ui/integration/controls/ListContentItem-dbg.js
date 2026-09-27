@@ -1,31 +1,33 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/integration/library",
 	"./ListContentItemRenderer",
+	"./ActionsStrip",
 	"sap/ui/integration/controls/ObjectStatus",
 	"sap/m/library",
 	"sap/m/Avatar",
 	"sap/m/AvatarShape",
 	"sap/m/AvatarSize",
 	"sap/m/ListItemBase",
-	"sap/ui/core/Core",
 	"sap/ui/core/library",
 	"sap/ui/integration/util/BindingResolver"
 ], function (
+	Library,
 	library,
 	ListContentItemRenderer,
+	ActionsStrip,
 	ObjectStatus,
 	mLibrary,
 	Avatar,
 	AvatarShape,
 	AvatarSize,
 	ListItemBase,
-	Core,
 	coreLibrary,
 	BindingResolver
 ) {
@@ -33,7 +35,6 @@ sap.ui.define([
 
 	var AttributesLayoutType = library.AttributesLayoutType;
 	var ValueState = coreLibrary.ValueState;
-	var EmptyIndicatorMode = mLibrary.EmptyIndicatorMode;
 	var AvatarImageFitType = mLibrary.AvatarImageFitType;
 
 	/**
@@ -47,7 +48,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -103,6 +104,12 @@ sap.ui.define([
 				iconSize: { type: "sap.m.AvatarSize", defaultValue: AvatarSize.XS },
 
 				/**
+				 * Defines how the image fits in the icon area.
+				 * @since 1.126
+				 */
+				iconFitType: { type: "sap.m.AvatarImageFitType", defaultValue: AvatarImageFitType.Cover },
+
+				/**
 				 * Defines the background color of the icon.
 				 * @since 1.83
 				 */
@@ -114,12 +121,22 @@ sap.ui.define([
 				iconVisible: { type: "boolean", defaultValue: true },
 
 				/**
+				 * Defines whether the info is specified or not.
+				 */
+				hasInfo: { type: "boolean", defaultValue: false },
+
+				/**
 				 * Defines an additional information text.
 				 */
 				info: { type : "string", group: "Misc", defaultValue: null },
 
 				/**
-				 * Defines whether the info should be visible.
+				 * Defines whether the info is active or not.
+				 */
+				infoActive: { type : "boolean", defaultValue: false },
+
+				/**
+				 * Defines whether the info should be visible or not.
 				 * @since 1.115
 				 */
 				infoVisible: {type: "boolean", defaultValue: true },
@@ -133,6 +150,11 @@ sap.ui.define([
 				 * Defines if info state icon should be shown.
 				 */
 				showInfoStateIcon: { type: "boolean", defaultValue: false },
+
+				/**
+				 * Defines if info state is inverted.
+				 */
+				infoStateInverted: { type: "boolean", defaultValue: false },
 
 				/**
 				 * Defines the custom info status icon that should be shown.
@@ -160,23 +182,27 @@ sap.ui.define([
 				 * Defines the inner object status control.
 				 */
 				_objectStatus: { type: "sap.m.ObjectStatus", multiple: false, visibility: "hidden" }
+			},
+			events: {
+				infoPress: {}
 			}
 		},
 		renderer: ListContentItemRenderer
 	});
 
-	ListContentItem.getPlaceholderInfo  = function (oResolvedConfigItem) {
+	ListContentItem.getPlaceholderInfo = function (oResolvedConfigItem, oContent) {
 		const aVisibleAttributes = oResolvedConfigItem?.attributes?.filter(function (oAttribute) {
 			return oAttribute.hasOwnProperty("visible") ? oAttribute.visible : true;
 		});
 
 		const bVisibleIcon = oResolvedConfigItem?.icon?.hasOwnProperty("visible") ? oResolvedConfigItem?.icon.visible : !!oResolvedConfigItem?.icon;
+		const bHasVisibleActionsStrip = oResolvedConfigItem?.actionsStrip ? ActionsStrip.hasVisibleTemplateItems(oResolvedConfigItem.actionsStrip, oContent) : false;
 
 		return {
 			hasIcon: bVisibleIcon,
 			attributesLength: aVisibleAttributes ? aVisibleAttributes.length : 0,
 			hasChart: !!oResolvedConfigItem?.chart,
-			hasActionsStrip: !!(oResolvedConfigItem?.actionsStrip?.length > 0),
+			hasActionsStrip: bHasVisibleActionsStrip,
 			hasDescription: !!oResolvedConfigItem?.description
 		};
 	};
@@ -184,7 +210,7 @@ sap.ui.define([
 	ListContentItem.getLinesCount = function (oConfiguration, oContent) {
 		let iLines = 1; // at least 1 line for the mandatory title
 		const oResolvedConfig = BindingResolver.resolveValue(oConfiguration, oContent);
-		const oPlaceholderInfo = ListContentItem.getPlaceholderInfo(oResolvedConfig);
+		const oPlaceholderInfo = ListContentItem.getPlaceholderInfo(oResolvedConfig, oContent);
 
 		const bDescriptionVisible = oResolvedConfig.description?.hasOwnProperty("visible") ? oResolvedConfig.description?.visible : true;
 		if (oResolvedConfig.description && bDescriptionVisible) {
@@ -254,7 +280,9 @@ sap.ui.define([
 			sDescription = this.getDescription(),
 			aOutput = [],
 			sInfo = this.getInfo(),
-			oMBundle = Core.getLibraryResourceBundle("sap.m");
+			oMBundle = Library.getResourceBundleFor("sap.m"),
+			aAttributes = this._getVisibleAttributes(),
+			oChart = this.getMicrochart()?.getChart();
 
 		if (sTitle) {
 			aOutput.push(sTitle);
@@ -272,6 +300,16 @@ sap.ui.define([
 			aOutput.push(oMBundle.getText("LIST_ITEM_STATE_" + sInfoState.toUpperCase()));
 		}
 
+		if (aAttributes.length > 0 ) {
+			aAttributes.forEach(function(oAttribute) {
+				aOutput.push(oAttribute.getAccessibilityInfo().description);
+			});
+		}
+
+		if (oChart) {
+			aOutput.push(oChart.getTooltip_AsString());
+		}
+
 		return aOutput.join(" . ").trim();
 	};
 
@@ -279,9 +317,7 @@ sap.ui.define([
 		var oAvatar = this.getAggregation("_avatar");
 
 		if (!oAvatar) {
-			oAvatar = new Avatar({
-				imageFitType: AvatarImageFitType.Contain
-			}).addStyleClass("sapFCardIcon");
+			oAvatar = new Avatar().addStyleClass("sapFCardIcon");
 			this.setAggregation("_avatar", oAvatar);
 		}
 
@@ -291,7 +327,8 @@ sap.ui.define([
 			.setTooltip(this.getIconAlt())
 			.setInitials(this.getIconInitials())
 			.setBackgroundColor(this.getIconBackgroundColor())
-			.setVisible(this.getIconVisible());
+			.setVisible(this.getIconVisible())
+			.setImageFitType(this.getIconFitType());
 
 		return oAvatar;
 	};
@@ -300,7 +337,9 @@ sap.ui.define([
 		var oObjectStatus = this.getAggregation("_objectStatus");
 
 		if (!oObjectStatus) {
-			oObjectStatus = new ObjectStatus();
+			oObjectStatus = new ObjectStatus({
+				press: this.fireInfoPress.bind(this)
+			});
 			this.setAggregation("_objectStatus", oObjectStatus);
 		}
 
@@ -308,8 +347,9 @@ sap.ui.define([
 			.setText(this.getInfo())
 			.setState(this.getInfoState())
 			.setShowStateIcon(this.getShowInfoStateIcon())
-			.setIcon(this.getCustomInfoStatusIcon())
-			.setEmptyIndicatorMode(EmptyIndicatorMode.On);
+			.setCustomIcon(this.getCustomInfoStatusIcon())
+			.setInverted(this.getInfoStateInverted())
+			.setActive(this.getInfoActive());
 
 		return oObjectStatus;
 	};

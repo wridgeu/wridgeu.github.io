@@ -1,18 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseAction",
-	"sap/m/Dialog",
-	"sap/ui/core/Core",
-	// jQuery Plugin "firstFocusableDomRef", "lastFocusableDomRef"
-	"sap/ui/dom/jquery/Focusable"
+	"sap/base/Log",
+	"sap/ui/integration/util/openCardDialog",
+	"sap/ui/integration/util/CardMerger",
+	"sap/ui/core/Element"
 ], function (
 	BaseAction,
-	Dialog,
-	Core
+	Log,
+	openCardDialog,
+	CardMerger,
+	Element
 ) {
 	"use strict";
 
@@ -27,89 +29,43 @@ sap.ui.define([
 	 */
 	ShowCardAction.prototype.execute = function () {
 		var oParameters = this.getParameters() || {},
+			oModifiedParameters =  { ...oParameters },
 			oParentCard = this.getCardInstance(),
-			oHost = oParentCard.getHostInstance(),
-			oChildCard;
+			oHost = oParentCard.getHostInstance();
 
-		if (oParameters._cardId) {
-			oChildCard = Core.byId(oParameters._cardId);
-		} else {
-			oChildCard = oParentCard._createChildCard(oParameters);
+		if (oParameters.manifest) {
+			Log.warning(
+				"'ShowCard' action uses deprecated 'manifest' property. Use 'childCardKey' instead. It must refer to a child card registered in sap.card/configuration/childCards.",
+				null,
+				"sap.ui.integration.widgets.Card"
+			);
+		}
+
+		if (oParameters.childCardKey) {
+			const aOwnManifestChanges = oParentCard.getManifestEntry(`/sap.card/configuration/childCards/${oParameters.childCardKey}/_manifestChanges`);
+			const aParentManifestChanges = oParentCard.getManifestChanges();
+
+			if (aOwnManifestChanges) {
+				oModifiedParameters.manifestChanges = aOwnManifestChanges;
+			} else {
+				oModifiedParameters.manifestChanges = CardMerger.extractChildCardChanges(aParentManifestChanges, oParameters.childCardKey);
+			}
 		}
 
 		if (oHost && oHost.onShowCard) {
+			let oChildCard;
+
+			if (oParameters._cardId) {
+				oChildCard = Element.getElementById(oParameters._cardId);
+			} else {
+				oChildCard = oParentCard._createChildCard(oModifiedParameters);
+			}
+
 			oHost.onShowCard(oChildCard, oParameters);
 			return;
 		}
 
-		this._openDialog(oChildCard, oParentCard);
-	};
-
-	/**
-	 * Opens the dialog
-	 *
-	 * @private
-	 * @param {sap.ui.integration.widgets.Card} oChildCard The child card.
-	 * @param {sap.ui.integration.widgets.Card} oParentCard The opener card.
-	 */
-	ShowCardAction.prototype._openDialog = function (oChildCard, oParentCard) {
-		const oDialog = new Dialog({
-				content: [
-					oChildCard
-				],
-				showHeader: false,
-				ariaLabelledBy: oChildCard.getId(),
-				escapeHandler: function (oPromise) {
-					oChildCard.hide();
-					oPromise.resolve();
-				},
-				resizable: this.getParameters().resizable
-			});
-
-		const oDelegate = {
-			onmousedown: (e) => {
-				if (e.target.classList.contains("sapMDialogResizeHandler")) {
-					oChildCard.setHeight("100%");
-					oDialog.setContentHeight(oDialog.getDomRef("cont").offsetHeight + "px");
-					oDialog.setVerticalScrolling(false);
-					oDialog.removeEventDelegate(oDelegate);
-				}
-			}
-		};
-
-		oDialog.addStyleClass("sapUiIntCardDialog");
-		oDialog.addEventDelegate(oDelegate);
-		oDialog.attachAfterClose(() => {
-			oDialog.destroy();
-		});
-
-		oParentCard.addDependent(oDialog);
-
-		oChildCard.startManifestProcessing();
-		oChildCard.attachManifestApplied(function () {
-			oDialog.open();
-		});
-		oChildCard.attachEvent("_ready", function () {
-			setTimeout(function () {
-				this._setFocus(oChildCard, oDialog);
-			}.bind(this), 0); // wait for loading animation to stop
-		}.bind(this));
-	};
-
-	ShowCardAction.prototype._setFocus = function (oCard, oDialog) {
-		var oFilters = oCard.getAggregation("_filter"),
-			oContent = oCard.getAggregation("_content"),
-			oFooter = oCard.getAggregation("_footer"),
-			oFirstFocusable;
-
-		oFirstFocusable = oFilters && oFilters.$().firstFocusableDomRef()
-			|| oContent && oContent.$().firstFocusableDomRef()
-			|| oFooter && oFooter.$().firstFocusableDomRef();
-
-		if (oFirstFocusable) {
-			oDialog.setInitialFocus(oFirstFocusable.id);
-			oFirstFocusable.focus();
-		}
+		openCardDialog(oParentCard, oModifiedParameters);
 	};
 
 	return ShowCardAction;

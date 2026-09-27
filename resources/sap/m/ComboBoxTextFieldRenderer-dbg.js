@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -33,9 +33,9 @@ sap.ui.define([
 		 */
 		ComboBoxTextFieldRenderer.writeInnerAttributes = function(oRm, oControl) {
 			oRm.attr("role", "combobox");
-			oRm.attr("aria-haspopup", "listbox");
+			oRm.attr("aria-haspopup", "dialog");
 			oRm.attr("aria-autocomplete", "both");
-			oRm.attr("aria-expanded", "false");
+			oRm.attr("aria-expanded", oControl.isOpen && oControl.isOpen() ? "true" : "false");
 			oRm.attr("autocomplete", "off");
 			oRm.attr("autocorrect", "off");
 			oRm.attr("autocapitalize", "off");
@@ -68,8 +68,8 @@ sap.ui.define([
 		 */
 		ComboBoxTextFieldRenderer.writeIcons = function (oRm, aIcons) {
 			oRm.openStart("div")
-				.attr("tabindex", "-1")
 				.attr("aria-hidden", "true")
+				.attr("tabindex", "-1")
 				.class("sapMInputBaseIconContainer")
 				.openEnd();
 			aIcons.forEach(oRm.renderControl, oRm);

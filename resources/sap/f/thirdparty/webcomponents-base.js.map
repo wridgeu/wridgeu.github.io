@@ -1,0 +1,1 @@
+{"version":3,"file":"webcomponents-base.js","names":["sap","ui","define","webcomponentsBase","ManagedStyles","Icons","PackageModule"],"sources":["webcomponents-base-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CAAC,uCAAwC,iCAAkC,0BAA2B,SAAWC,EAAmBC,EAAeC,GAAS,aAIzK,OAAOF,EAAkBG,aAEzB","ignoreList":[]}

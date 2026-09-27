@@ -1,24 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-    "sap/ui/core/Control",
-    "sap/ui/core/Shortcut",
-    "sap/f/library",
-    "sap/f/DynamicPage",
-    "sap/f/DynamicPageTitle",
-    "sap/f/DynamicPageHeader",
-    "sap/m/OverflowToolbar",
-    "sap/m/ActionSheet",
-    "./SemanticTitle",
-    "./SemanticFooter",
-    "./SemanticShareMenu",
-    "./SemanticConfiguration",
-    "./SemanticPageRenderer"
+	"sap/ui/core/Control",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Shortcut",
+	"sap/f/library",
+	"sap/f/DynamicPage",
+	"sap/f/DynamicPageTitle",
+	"sap/f/DynamicPageHeader",
+	"sap/m/OverflowToolbar",
+	"sap/m/ActionSheet",
+	"./SemanticTitle",
+	"./SemanticFooter",
+	"./SemanticShareMenu",
+	"./SemanticConfiguration",
+	"./SemanticPageRenderer"
 ], function(
-    Control,
+	Control,
+	Library,
 	Shortcut,
 	library,
 	DynamicPage,
@@ -99,7 +101,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	*
 	* @author SAP SE
-	* @version 1.120.0
+	* @version 1.152.0
 	*
 	* @constructor
 	* @public
@@ -588,7 +590,7 @@ sap.ui.define([
 				customShareActions: {type: "sap.m.Button", multiple: true},
 
 				/**
-				 * Accessible landmark settings to be applied to the containers of the <code>sap.f.SemanticPage</code> control.
+				 * Accessible landmark settings to be applied to the containers of the <code>sap.f.semantic.SemanticPage</code> control.
 				 *
 				 * If not set, no landmarks will be written.
 				 *
@@ -1078,8 +1080,8 @@ sap.ui.define([
 				header: this._getHeader(),
 				footer: this._getFooter()
 			}),
-			sAriaRoleDescription = sap.ui.getCore()
-				.getLibraryResourceBundle("sap.f")
+			sAriaRoleDescription = Library
+				.getResourceBundleFor("sap.f")
 				.getText(SemanticPage.ARIA_ROLE_DESCRIPTION);
 
 		oDynamicPage._setAriaRoleDescription(sAriaRoleDescription);
@@ -1228,7 +1230,7 @@ sap.ui.define([
 	};
 
 	/**
-	* Opens the <code>sap.m.ActionSheet</code> container of <code>sap.m.SemanticShareMenu</code>.
+	* Opens the <code>sap.m.ActionSheet</code> container of <code>sap.f.semantic.SemanticShareMenu</code>.
 	*
 	* @private
 	*/

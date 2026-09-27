@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,7 +32,6 @@ sap.ui.define([
 	"sap/base/util/each",
 	"sap/base/util/deepExtend",
 	"sap/ui/events/F6Navigation",
-	"sap/ui/events/isMouseEventDelayed",
 	"sap/ui/base/EventProvider",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/thirdparty/jqueryui/jquery-ui-position",
@@ -64,7 +63,6 @@ sap.ui.define([
 	each,
 	deepExtend,
 	F6Navigation,
-	isMouseEventDelayed,
 	EventProvider,
 	jQuery
 	//jquery-ui-position
@@ -368,7 +366,15 @@ sap.ui.define([
 			},
 
 			events : {
+				/**
+				 * Fired when the popup has completely opened (after any animation).
+				 * @since 1.2
+				 */
 				"opened" : {},
+				/**
+				 * Fired when the popup has completely closed (after any animation).
+				 * @since 1.2
+				 */
 				"closed" : {}
 			}
 		}
@@ -410,94 +416,109 @@ sap.ui.define([
 	Popup.Dock = {
 
 		/**
+		 * Docks the popup at the begin of the reference element, at the top.
 		 * @public
 		 * @type {string}
 		 */
-		BeginTop      : "begin top",
+		BeginTop      : "BeginTop",
 
 		/**
+		 * Docks the popup at the begin of the reference element, vertically centered.
 		 * @public
 		 * @type {string}
 		 */
-		BeginCenter   : "begin center",
+		BeginCenter   : "BeginCenter",
 
 		/**
+		 * Docks the popup at the begin of the reference element, at the bottom.
 		 * @public
 		 * @type {string}
 		 */
-		BeginBottom   : "begin bottom",
+		BeginBottom   : "BeginBottom",
 
 		/**
+		 * Docks the popup at the left side of the reference element, at the top.
 		 * @public
 		 * @type {string}
 		 */
-		LeftTop      : "left top",
+		LeftTop      : "LeftTop",
 
 		/**
+		 * Docks the popup at the left side of the reference element, vertically centered.
 		 * @public
 		 * @type {string}
 		 */
-		LeftCenter   : "left center",
+		LeftCenter   : "LeftCenter",
 
 		/**
+		 * Docks the popup at the left side of the reference element, at the bottom.
 		 * @public
 		 * @type {string}
 		 */
-		LeftBottom   : "left bottom",
+		LeftBottom   : "LeftBottom",
 
 		/**
+		 * Docks the popup horizontally centered to the reference element, at the top.
 		 * @public
 		 * @type {string}
 		 */
-		CenterTop    : "center top",
+		CenterTop    : "CenterTop",
 
 		/**
+		 * Docks the popup horizontally and vertically centered to the reference element.
 		 * @public
 		 * @type {string}
 		 */
-		CenterCenter : "center center",
+		CenterCenter : "CenterCenter",
 
 		/**
+		 * Docks the popup horizontally centered to the reference element, at the bottom.
 		 * @public
 		 * @type {string}
 		 */
-		CenterBottom : "center bottom",
+		CenterBottom : "CenterBottom",
 
 		/**
+		 * Docks the popup at the right side of the reference element, at the top.
 		 * @public
 		 * @type {string}
 		 */
-		RightTop     : "right top",
+		RightTop     : "RightTop",
 
 		/**
+		 * Docks the popup at the right side of the reference element, vertically centered.
 		 * @public
 		 * @type {string}
 		 */
-		RightCenter  : "right center",
+		RightCenter  : "RightCenter",
 
 		/**
+		 * Docks the popup at the right side of the reference element, at the bottom.
 		 * @public
 		 * @type {string}
 		 */
-		RightBottom  : "right bottom",
+		RightBottom  : "RightBottom",
 
 		/**
+		 * Docks the popup at the end of the reference element, at the top.
 		 * @public
 		 * @type {string}
 		 */
-		EndTop     : "end top",
+		EndTop     : "EndTop",
 
 		/**
+		 * Docks the popup at the end of the reference element, vertically centered.
 		 * @public
 		 * @type {string}
 		 */
-		EndCenter  : "end center",
+		EndCenter  : "EndCenter",
 
 		/**
+		 * Docks the popup at the end of the reference element, at the bottom.
 		 * @public
 		 * @type {string}
 		 */
-		EndBottom  : "end bottom"
+		EndBottom  : "EndBottom"
 	};
 
 	DataType.registerEnum("sap.ui.core.Popup.Dock", Popup.Dock);
@@ -532,209 +553,70 @@ sap.ui.define([
 	 */
 	Popup.prototype.preventBrowserFocus = Device.support.touch && !Device.system.combi;
 
-	//****************************************************
-	// Layer et al.
-	//****************************************************
+	var iLastZIndex = 0;
+	// TODO: Implement Number.SAFE_MAX_INTEGER (Math.pow(2, 53) -1) when ECMAScript 6 is mostly supported
+	var iMaxInteger = Math.pow(2, 32) - 1;
 
 	/**
-	 * This constructor of the Popup.Layer  class
+	 * Set an initial z-index that should be used by all Popup so all Popups start at least
+	 * with the set z-index.
+	 * If the given z-index is lower than any current available z-index the highest z-index will be used.
 	 *
-	 * @class
-	 * @private
-	 * @alias sap.ui.core.Popup.Layer
-	*/
-	var Layer = BaseObject.extend("sap.ui.core.Popup.Layer", {
-		constructor: function() {
-			BaseObject.call(this);
-			var sDomString = this.getDomString();
-			this._$Ref = jQuery(sDomString).appendTo(StaticArea.getDomRef());
-		}
-	});
-
-	/**
-	 * Initializes the popup layer by adding z-index and visibility to the popup layer
-	 * and insert the popup directly after the given <code>oRef</code> element
-	 *
-	 * @param {jQuery} oRef The element as a jQuery object
-	 * @param {int} iZIndex The z-index value
-	 * @private
+	 * @param {number} iInitialZIndex is the initial z-index
+	 * @public
+	 * @since 1.30.0
 	 */
-	Layer.prototype.init = function(oRef, iZIndex) {
-		this._$Ref.css({
-			"visibility" : "visible",
-			"z-index" : iZIndex
-		});
-		this.update(oRef, iZIndex);
-		this._$Ref.insertAfter(oRef).show();
-	};
-
-	/**
-	 * Update the popup layer with the given <code>iZIndex</code> on the given <code>oRef</code> element
-	 *
-	 * @param {jQuery} oRef The element as a jQuery object
-	 * @param {int} iZIndex The z-index value
-	 * @protected
-	 */
-	Layer.prototype.update = function(/** jQuery */oRef, iZIndex){
-		if (oRef.length) {
-			var oRect = oRef.rect();
-			this._$Ref.css({
-				"left" : oRect.left,
-				"top" : oRect.top
-			});
-
-			if (oRef.css("right") != "auto" && oRef.css("right") != "inherit") {
-				this._$Ref.css({
-					"right" : oRef.css("right"),
-					"width" : "auto"
-				});
-			} else {
-				this._$Ref.css({
-					"width" : oRect.width,
-					"right" : "auto"
-				});
-			}
-			if (oRef.css("bottom") != "auto" && oRef.css("bottom") != "inherit") {
-				this._$Ref.css({
-					"bottom" : oRef.css("bottom"),
-					"height" : "auto"
-				});
-			} else {
-				this._$Ref.css({
-					"height" : oRect.height,
-					"bottom" : "auto"
-				});
-			}
-
-			if (typeof (iZIndex) === "number") {
-				this._$Ref.css("z-index", iZIndex);
-			}
+	Popup.setInitialZIndex = function(iInitialZIndex){
+		if (iInitialZIndex >= iMaxInteger) {
+			throw new Error("Z-index can't be higher than Number.MAX_SAFE_INTEGER");
 		}
+
+		iLastZIndex = Math.max(iInitialZIndex, this.getLastZIndex());
 	};
 
 	/**
-	 * Resets the popup layer by hidding and assigning to the static area
+	 * Returns the last z-index that has been handed out. does not increase the internal z-index counter.
 	 *
-	 * @private
+	 * @returns {number} The z-index value
+	 * @public
 	 */
-	Layer.prototype.reset = function(){
-		if (this._$Ref.length) {
-			this._$Ref[0].style.display = "none";
-			this._$Ref[0].style.visibility = "hidden";
-
-			this._$Ref.appendTo(StaticArea.getDomRef());
-		}
+	Popup.getLastZIndex = function(){
+		return iLastZIndex;
 	};
 
 	/**
-	 * Must be overwritten by sub class.
+	 * Returns the last z-index that has been handed out. does not increase the internal z-index counter.
 	 *
-	 * @abstract
-	 * @returns {string} The DOM string
+	 * @returns {number} Th z-index value
+	 * @public
 	 */
-	Layer.prototype.getDomString = function(){
-		Log.error("sap.ui.core.Popup.Layer: getDomString function must be overwritten!");
-
-		return "";
+	Popup.prototype.getLastZIndex = function(){
+		return Popup.getLastZIndex();
 	};
 
-	// End of Layer
-
-	//****************************************************
-	// ShieldLayer et al.
-	//****************************************************
-
 	/**
-	* @class
-	* @private
-	* @alias sap.ui.core.Popup.ShieldLayer
-	*/
-	var ShieldLayer = Layer.extend("sap.ui.core.Popup.ShieldLayer", {
-		constructor: function() {
-			Layer.apply(this);
+	 * Returns the next available z-index on top of the existing/previous popups. Each call increases the internal z-index counter and the returned z-index.
+	 *
+	 * @returns {number} the next z-index on top of the Popup stack
+	 * @public
+	 */
+	Popup.getNextZIndex = function(){
+		iLastZIndex += 10;
+		if (iLastZIndex >= iMaxInteger) {
+			throw new Error("Z-index can't be higher than Number.MAX_SAFE_INTEGER");
 		}
-	});
-
-	ShieldLayer.prototype.getDomString = function(){
-		return "<div class=\"sapUiPopupShield\" id=\"sap-ui-shieldlayer-" + uid() + "\"></div>";
+		return iLastZIndex;
 	};
 
 	/**
-	* Facility for reuse of created shield layers.
-	* @type sap.ui.base.ObjectPool
-	* @private
-	*/
-	Popup.prototype.oShieldLayerPool = new ObjectPool(ShieldLayer);
-	//End of ShieldLayer
-
-	// Begin of Popup-Stacking facilities
-	(function() {
-		var iLastZIndex = 0;
-		// TODO: Implement Number.SAFE_MAX_INTEGER (Math.pow(2, 53) -1) when ECMAScript 6 is mostly supported
-		var iMaxInteger = Math.pow(2, 32) - 1;
-
-		/**
-		 * Set an initial z-index that should be used by all Popup so all Popups start at least
-		 * with the set z-index.
-		 * If the given z-index is lower than any current available z-index the highest z-index will be used.
-		 *
-		 * @param {number} iInitialZIndex is the initial z-index
-		 * @public
-		 * @since 1.30.0
-		 */
-		Popup.setInitialZIndex = function(iInitialZIndex){
-			if (iInitialZIndex >= iMaxInteger) {
-				throw new Error("Z-index can't be higher than Number.MAX_SAFE_INTEGER");
-			}
-
-			iLastZIndex = Math.max(iInitialZIndex, this.getLastZIndex());
-		};
-
-		/**
-		 * Returns the last z-index that has been handed out. does not increase the internal z-index counter.
-		 *
-		 * @returns {number} The z-index value
-		 * @public
-		 */
-		Popup.getLastZIndex = function(){
-			return iLastZIndex;
-		};
-
-		/**
-		 * Returns the last z-index that has been handed out. does not increase the internal z-index counter.
-		 *
-		 * @returns {number} Th z-index value
-		 * @public
-		 */
-		Popup.prototype.getLastZIndex = function(){
-			return Popup.getLastZIndex();
-		};
-
-		/**
-		 * Returns the next available z-index on top of the existing/previous popups. Each call increases the internal z-index counter and the returned z-index.
-		 *
-		 * @returns {number} the next z-index on top of the Popup stack
-		 * @public
-		 */
-		Popup.getNextZIndex = function(){
-			iLastZIndex += 10;
-			if (iLastZIndex >= iMaxInteger) {
-				throw new Error("Z-index can't be higher than Number.MAX_SAFE_INTEGER");
-			}
-			return iLastZIndex;
-		};
-
-		/**
-		 * Returns the next available z-index on top of the existing/previous popups. Each call increases the internal z-index counter and the returned z-index.
-		 *
-		 * @returns {number} the next z-index on top of the Popup stack
-		 * @public
-		 */
-		Popup.prototype.getNextZIndex = function(){
-			return Popup.getNextZIndex();
-		};
-	}());
-	// End of Popup-Stacking facilities
+	 * Returns the next available z-index on top of the existing/previous popups. Each call increases the internal z-index counter and the returned z-index.
+	 *
+	 * @returns {number} the next z-index on top of the Popup stack
+	 * @public
+	 */
+	Popup.prototype.getNextZIndex = function(){
+		return Popup.getNextZIndex();
+	};
 
 	/**
 	 * This function compares two different objects (created via jQuery(DOM-ref).rect()).
@@ -776,7 +658,7 @@ sap.ui.define([
 	 *
 	 * If the Popup's OpenState is different from "CLOSED" (i.e. if the Popup is already open, opening or closing), the call is ignored.
 	 *
-	 * @param {int} [iDuration=jQuery.fx.speed.fast] animation duration in milliseconds. For <code>iDuration</code> == 0 the opening happens synchronously without animation.
+	 * @param {int} [iDuration=200] animation duration in milliseconds. For <code>iDuration</code> == 0 the opening happens synchronously without animation.
 	 * @param {sap.ui.core.Popup.Dock} [my=sap.ui.core.Popup.Dock.CenterCenter] the popup content's reference position for docking
 	 * @param {sap.ui.core.Popup.Dock} [at=sap.ui.core.Popup.Dock.CenterCenter] the "of" element's reference point for docking to
 	 * @param {string | sap.ui.core.Element | Element | jQuery | jQuery.Event} [of=document] specifies the reference element to which the given content should dock to
@@ -888,6 +770,13 @@ sap.ui.define([
 		}
 
 		var $Ref = this._$(true);
+		$Ref.addClass("sapUiPopupInitial");
+		$Ref.css({
+			"position" : "absolute",
+			"display": this._getCSSDisplayType(),
+			"visibility": "visible",
+			"opacity": "" // reset the opacity style
+		});
 
 		var iRealDuration = "fast";
 		if ((iDuration === 0) || (iDuration > 0)) {
@@ -916,10 +805,6 @@ sap.ui.define([
 		this._iZIndex = this._iZIndex === this.getLastZIndex() ? this._iZIndex : this.getNextZIndex();
 
 		var oStaticArea = StaticArea.getDomRef();
-		$Ref.css({
-			"position" : "absolute",
-			"visibility" : "hidden"
-		});
 
 		if (!($Ref[0].parentNode == oStaticArea)) { // do not move in DOM if not required - otherwise this destroys e.g. the RichTextEditor
 			$Ref.appendTo(oStaticArea);
@@ -936,13 +821,6 @@ sap.ui.define([
 		// and show the popup content
 		$Ref.toggleClass("sapUiShd", this._bShadow);
 
-		var oDomRef = $Ref[0];
-
-		if (oDomRef) {
-			oDomRef.style.display = "none";
-			oDomRef.style.visibility = "visible";
-		}
-
 		var bNoAnimation = iRealDuration == 0;
 
 		this._duringOpen(!bNoAnimation);
@@ -952,8 +830,12 @@ sap.ui.define([
 		} else if (this._animations.open) { // if custom animation is defined, call it
 			this._animations.open.call(null, $Ref, iRealDuration, this._opened.bind(this));
 		} else { // otherwise play the default animation
-			$Ref.fadeIn(iRealDuration, this._opened.bind(this));
+			$Ref.fadeTo(iRealDuration, 1, this._opened.bind(this));
 		}
+	};
+
+	Popup.prototype._getCSSDisplayType = function () {
+		return this.oContent?._getCSSDisplayType?.() || "block";
 	};
 
 	Popup.prototype._getDomRefToFocus = function() {
@@ -997,8 +879,39 @@ sap.ui.define([
 		this.bOpen = true;
 
 		var $Ref = this._$(/* bForceReRender */false, /* bGetOnly */true);
-		if ($Ref[0] && $Ref[0].style) {
-			$Ref[0].style.display = "block";
+		$Ref.removeClass("sapUiPopupInitial");
+
+		this._activateFocusHandle();
+
+		this._$(false, true).on("keydown", this._F6NavigationHandler);
+
+		// set and register listener of 'followOf' (given via Popup.open()) only when
+		// the popup has been opened already. Otherwise checking the opener's positio
+		// starts to early
+		if (this.getFollowOf()) {
+			Popup.DockTrigger.addListener(Popup.checkDocking, this);
+		}
+
+		this.eOpenState = OpenState.OPEN;
+
+		// notify that opening has completed
+		this.fireOpened();
+	};
+
+	/**
+	 * This function is called before or during the Popup opens. Here the registration
+	 * of events and delegates takes place and the corresponding flags for the Popup are set.
+	 *
+	 * @param {boolean} bOpenAnimated Determines if the opening has animation
+	 *
+	 * @private
+	 */
+	Popup.prototype._duringOpen = function(bOpenAnimated) {
+		Popup._clearSelection();
+		this._setupUserSelection();
+
+		if (this._bModal) {
+			this._showBlockLayer();
 		}
 
 		// in modal and auto-close case the focus needs to be in the popup; provide this generic implementation as helper, but users can change the focus in the "opened" event handler
@@ -1022,103 +935,12 @@ sap.ui.define([
 			}
 		}
 
-		this.eOpenState = OpenState.OPEN;
-
-		// set and register listener of 'followOf' (given via Popup.open()) only when
-		// the popup has been opened already. Otherwise checking the opener's positio
-		// starts to early
-		if (this.getFollowOf()) {
-			Popup.DockTrigger.addListener(Popup.checkDocking, this);
-		}
-
-		// notify that opening has completed
-		this.fireOpened();
-	};
-
-	/**
-	 * This function is called before or during the Popup opens. Here the registration
-	 * of events and delegates takes place and the corresponding flags for the Popup are set.
-	 *
-	 * @param {boolean} bOpenAnimated Determines if the opening has animation
-	 *
-	 * @private
-	 */
-	Popup.prototype._duringOpen = function(bOpenAnimated) {
-		var $Ref = this._$(/* bForceReRender */false, /* bGetOnly */true),
-			oStaticArea = StaticArea.getDomRef(),
-			oFirstFocusableInStaticArea = document.getElementById(oStaticArea.id + "-firstfe");
-
-		Popup._clearSelection();
-		this._setupUserSelection();
-
-		// shield layer is needed for mobile devices whose browser fires the mouse
-		// events with delay after touch events to prevent the delayed mouse events
-		// from reaching the dom element in popup while it's being open.
-		if (isMouseEventDelayed()) {
-			if (this._oTopShieldLayer) {
-				// very extreme case where the same popop is opened and closed again
-				// before the 500ms timed out. Reuse the same shield layer and clear
-				// the timeout
-				clearTimeout(this._iTopShieldRemoveTimer);
-				this._iTopShieldRemoveTimer = null;
-			} else {
-				this._oTopShieldLayer = this.oShieldLayerPool.borrowObject($Ref, this._iZIndex + 1);
-			}
-
-			// hide the shield layer after the delayed mouse events are fired.
-			this._iTopShieldRemoveTimer = setTimeout(function(){
-				this.oShieldLayerPool.returnObject(this._oTopShieldLayer);
-				this._oTopShieldLayer = null;
-				this._iTopShieldRemoveTimer = null;
-			}.bind(this), 500);
-		}
-
-		if (this._bModal) {
-			this._showBlockLayer();
-		}
-
-		// When it runs on a mobile device, the focus doesn't need to be set into the popup area immediately after opening
-		// the popup. It even causes some rendering problem in iOS safari when the focus is set here.
-		if (!this.touchEnabled
-			// When the open process is animated, the focus should be moved out of the previous focused element during the
-			// opening animation. Otherwise, it's not needed to shift the focus because the focus will be set into the popup
-			// in the same call stack in function "_opened"
-			&& bOpenAnimated
-			// some application or test create the static UIArea div by itself and therefore the first focusable element
-			// is not available
-			&& oFirstFocusableInStaticArea
-			// Some popup scenarios requires the blur of the previous focused element should be done
-			// at the end of this open method to first show the block layer which changes the top most displayed popup
-			&& this._shouldGetFocusAfterOpen()
-			// when the current active element is in a popup, it's not blurred at this position because the focus isn't
-			// set to the new popup yet and blurring in the previous popup will mess up the modal or autoclose in the
-			// previous popup
-			&& !this.isInPopup(document.activeElement)
-			// If the focus needs to be set into the popup and it's different than the current document active element
-			// (the focus may stay with the current active element when the initial focus id is set), the current active
-			// element is blurred here to prevent it from getting further events during the opening animation of the
-			// popup
-			&& this._getDomRefToFocus() !== document.activeElement) {
-
-			/* actively move the focus to the static UI area to blur the previous focused element after popup is open.
-			 The focus will be moved into the popup once the popup opening animation is finished
-			 */
-			/* In safari no scrolling happens when focus() is called on DOM elements with height: 0px.
-			 In firefox and chrome no scrolling has to be forced with preventScroll: true in this scenario.
-			*/
-			oFirstFocusableInStaticArea.focus({preventScroll: true});
-		}
-
 		// add Delegate to hosted content for handling of events (e.g. onfocusin)
 		if (this.oContent instanceof Element) {
 			this.oContent.addDelegate(this);
 		}
 
 		this.bOpen = true;
-
-		this._activateFocusHandle();
-
-		this._$(false, true).on("keydown", this._F6NavigationHandler);
 	};
 
 	Popup.prototype._shouldGetFocusAfterOpen = function() {
@@ -1164,6 +986,28 @@ sap.ui.define([
 			});
 		}
 
+		if (!bContains && this._aExtraContent) {
+			bContains = this._aExtraContent.some(({ref}) => {
+				if (ref instanceof Element) {
+					ref = ref.getDomRef();
+				}
+
+				if (!ref) {
+					return false;
+				}
+
+				const aDomAreas = [ref];
+
+				if (ref.shadowRoot) {
+					aDomAreas.push(ref.shadowRoot);
+				}
+
+				return aDomAreas.some((oDomArea) => {
+					return oDomArea.contains?.(oDomRef);
+				});
+			});
+		}
+
 		if (!bContains) {
 			oPopupExtraContentSelectorSet.forEach(function(sSelector) {
 				bContains = bContains || jQuery(oDomRef).closest(sSelector).length > 0;
@@ -1197,6 +1041,14 @@ sap.ui.define([
 			var oDomRef = this._$().get(0);
 			if (oDomRef) {
 				bContains = this._contains(oEvent.target);
+
+				let oTarget = oEvent.target;
+
+				// also check the shadow dom active element in case the event target has a shadow dom attached
+				while (!bContains && oTarget.shadowRoot && oTarget.shadowRoot.activeElement) {
+					bContains = this._contains(oTarget.shadowRoot.activeElement);
+					oTarget = oTarget.shadowRoot.activeElement;
+				}
 
 				Log.debug("focus event on " + oEvent.target.id + ", contains: " + bContains);
 
@@ -1293,7 +1145,7 @@ sap.ui.define([
 	 * If the Popup is in the process of being opened and closed with an animation duration, the animation will be chained, but this functionality is dangerous,
 	 * may lead to inconsistent behavior and is thus not recommended and may even be removed.
 	 *
-	 * @param {int} [iDuration=jQuery.fx.speed.fast] Animation duration in milliseconds. For <code>iDuration</code> == 0 the closing happens synchronously without animation.
+	 * @param {int} [iDuration=200] Animation duration in milliseconds. For <code>iDuration</code> == 0 the closing happens synchronously without animation.
 	 * @public
 	 */
 	Popup.prototype.close = function(iDuration) {
@@ -1335,7 +1187,11 @@ sap.ui.define([
 				//Fix for RTE in PopUp
 				oEventBus.publish("sap.ui","__beforePopupClose", { domNode : this._$().get(0) });
 				var oStatic = StaticArea.getUIArea();
-				oStatic.removeContent(oStatic.indexOfContent(this.oContent), true);
+
+				const iIndex = oStatic.indexOfContent(this.oContent);
+				if (iIndex >= 0) {
+					oStatic.removeContent(iIndex, true);
+				}
 			} else if (this._bUIAreaPatched) { // if the getUIArea function is patched, delete it
 				delete this.oContent.getUIArea;
 			}
@@ -1358,27 +1214,6 @@ sap.ui.define([
 		// unsubscribe the event listeners from EventBus
 		if (this._bEventBusEventsRegistered) {
 			this._unregisterEventBusEvents();
-		}
-
-		// shield layer is needed for mobile devices whose browser fires the mouse events with delay after touch events
-		//  to prevent the delayed mouse events from reaching the underneath DOM element.
-		if (isMouseEventDelayed()) {
-			if (this._oBottomShieldLayer) {
-
-				// very extreme case where the same popop is opened and closed again before the 500ms timed out.
-				// reuse the same shield layer and clear the timeout
-				clearTimeout(this._iBottomShieldRemoveTimer);
-				this._iBottomShieldRemoveTimer = null;
-			} else {
-				this._oBottomShieldLayer = this.oShieldLayerPool.borrowObject($Ref, this._iZIndex - 3);
-			}
-
-			// hide the shield layer after the delayed mouse events are fired.
-			this._iBottomShieldRemoveTimer = setTimeout(function(){
-				this.oShieldLayerPool.returnObject(this._oBottomShieldLayer);
-				this._oBottomShieldLayer = null;
-				this._iBottomShieldRemoveTimer = null;
-			}.bind(this), 500);
 		}
 
 		// Check if this instance is a child Popup. If true de-register this from
@@ -1632,17 +1467,61 @@ sap.ui.define([
 	};
 
 
-	Popup.prototype._createPosition = function(my, at, of, offset, collision, within) {
-		// check if new jQuery-UI (>1.9) offset is used
-		var bNewOffset = false;
-		if (my && (my.indexOf("+") >= 0 || my.indexOf("-") >= 0)) {
-			bNewOffset = true;
-			if (offset && offset != "0 0") {
-				Log.warning("offset used in my and in offset, the offset value will be ignored", "sap.ui.core.Popup", "setPosition");
+	function convertDockEnum(sValue) {
+		const rFormat = /^([A-Z][a-z]+){2}$/;
+
+		if (rFormat.test(sValue)) {
+			return sValue.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+		} else {
+			return sValue;
+		}
+	}
+
+	function createPositionParam(oPosition) {
+		if (!jQuery.ui.version) {
+			// only jquery-ui-position.js loaded, not jquery-ui-core.js, so no version info available
+			if (Popup._bNewOffset == null) {
+				// check whether the jQuery UI version is new (no more offset parameter) or not
+				Popup._bNewOffset = true;
+				var $Div = jQuery(document.createElement("div"));
+				$Div.position({
+					of: window,
+					using: function(position, data) {
+						// the data parameter to the using callback was introduced together with the replacement for 'offset'
+						Popup._bNewOffset = (data !== undefined);
+					}
+				});
 			}
-			offset = null;
 		}
 
+		const oPositionParam = Object.assign({}, oPosition);
+
+		if (typeof oPositionParam.my === "string") {
+			oPositionParam.my = convertDockEnum(oPositionParam.my);
+		}
+
+		if (typeof oPositionParam.at === "string") {
+			oPositionParam.at = convertDockEnum(oPositionParam.at);
+		}
+
+		if (Popup._bNewOffset || Version(jQuery.ui.version).compareTo("1.8.23") > 0) {
+			if (oPositionParam.offset && oPositionParam.offset != "0 0") {
+				// convert offset to my
+				const aMy = oPositionParam.my.split(" ");
+				const aOffset = oPositionParam.offset.split(" ");
+				var aSign = [parseInt(aOffset[0]) < 0 ? "" : "+", parseInt(aOffset[1]) < 0 ? "" : "+"]; // no "-" sign because already in number of offset
+
+				oPositionParam.my = aMy[0] + aSign[0] + aOffset[0] + " " + aMy[1] + aSign[1] + aOffset[1];
+				delete oPositionParam.offset;
+			}
+		}
+
+		return oPositionParam;
+	}
+
+
+	Popup.prototype._createPosition = function(my, at, of, offset, collision, within) {
+		// check if new jQuery-UI (>1.9) offset is used
 		var oPosition = extend({}, this._oDefaultPosition, {
 			my: my || this._oDefaultPosition.my, // to use default my if empty string
 			at: at || this._oDefaultPosition.at, // to use default at if empty string
@@ -1657,63 +1536,7 @@ sap.ui.define([
 
 		this._bOwnWithin = !!within;
 
-		if ( !jQuery.ui.version) {
-			// only jquery-ui-position.js loaded, not jquery-ui-core.js, so no version info available
-			if ( Popup._bNewOffset == null ) {
-				// check whether the jQuery UI version is new (no more offset parameter) or not
-				Popup._bNewOffset = true;
-				var $Div = jQuery(document.createElement("div"));
-				$Div.position({
-					of: window,
-					using: function(position, data) {
-						// the data parameter to the using callback was introduced together with the replacement for 'offset'
-						Popup._bNewOffset = (data !== undefined);
-					}
-				});
-			}
-		}
-
-		var aMy = [];
-		var aOffset = [];
-
-		if ( Popup._bNewOffset || Version(jQuery.ui.version).compareTo("1.8.23") > 0) {
-			if (offset && offset != "0 0") {
-				// convert offset to my
-				aMy = oPosition.my.split(" ");
-				aOffset = offset.split(" ");
-				var aSign = [parseInt(aOffset[0]) < 0 ? "" : "+", parseInt(aOffset[1]) < 0 ? "" : "+"]; // no "-" sign because already in numer of offset
-
-				oPosition.my = aMy[0] + aSign[0] + aOffset[0] + " " + aMy[1] + aSign[1] + aOffset[1];
-				oPosition.offset = null;
-			}
-		} else if (bNewOffset) {
-			// new offset used with old jQuery version -> convert into offset property
-			aMy = oPosition.my.split(" ");
-			aOffset = ["",""];
-			var iIndex = aMy[0].indexOf("+");
-			if (iIndex < 0) {
-				iIndex = aMy[0].indexOf("-");
-			}
-			if (iIndex >= 0) {
-				aOffset[0] = aMy[0].slice(iIndex);
-				aMy[0] = aMy[0].slice(0, iIndex);
-			}
-
-			iIndex = aMy[1].indexOf("+");
-			if (iIndex < 0) {
-				iIndex = aMy[1].indexOf("-");
-			}
-			if (iIndex >= 0) {
-				aOffset[1] = aMy[1].slice(iIndex);
-				aMy[1] = aMy[1].slice(0, iIndex);
-			}
-
-			oPosition.my = aMy[0] + " " + aMy[1];
-			oPosition.offset = aOffset[0] + " " + aOffset[1];
-		}
-
 		return oPosition;
-
 	};
 
 	Popup.prototype._getPositionOffset = function() {
@@ -1756,18 +1579,21 @@ sap.ui.define([
 		var bRtl = Localization.getRTL();
 		var $Ref = this._$();
 
+		// convert the oPosition to the jquery format
+		const oPositionParam = createPositionParam(oPosition);
+
 		if ($Ref.length) {
-			var oAt = oPosition.at;
+			var oAt = oPositionParam.at;
 			var oDomRef = $Ref.get(0);
 
 			if (typeof (oAt) === "string") {
-				oDomRef.style.display = "block";
+				oDomRef.style.display = this._getCSSDisplayType();
 
 				// reset the 'left' and 'right' position CSS to avoid changing the DOM size by setting both 'left' and 'right'.
 				oDomRef.style.left = "";
 				oDomRef.style.right = "";
-				$Ref.position(this._resolveReference(this._convertPositionRTL(oPosition, bRtl))); // must be visible, so browsers can calculate its offset!
-				this._fixPositioning(oPosition, bRtl);
+				$Ref.position(this._resolveReference(this._convertPositionRTL(oPositionParam, bRtl))); // must be visible, so browsers can calculate its offset!
+				this._fixPositioning(oPositionParam, bRtl);
 			} else if (CSSSize.isValid(oAt.left) && CSSSize.isValid(oAt.top)) {
 				$Ref.css({
 					"left" : oAt.left,
@@ -1796,7 +1622,7 @@ sap.ui.define([
 
 			// remember given position for later redraws
 			this._oLastPosition = oPosition;
-			this._oLastOfRect = this._calcOfRect(oPosition.of);
+			this._oLastOfRect = this._calcOfRect(oPositionParam.of);
 		}
 	};
 
@@ -2173,7 +1999,8 @@ sap.ui.define([
 				this.addChildPopup(sId);
 
 				oExtraContentRef = {
-					id: sId
+					id: sId,
+					ref: oExtraContent
 				};
 
 				if (oExtraContent instanceof Element) {
@@ -2228,8 +2055,8 @@ sap.ui.define([
 	 * Null values and values < 0 are ignored.
 	 * A duration of 0 means no animation.
 	 *
-	 * @param {int} [iOpenDuration=jQuery.fx.speed.fast] in milliseconds
-	 * @param {int} [iCloseDuration=jQuery.fx.speed.fast] in milliseconds
+	 * @param {int} [iOpenDuration=200] in milliseconds
+	 * @param {int} [iCloseDuration=200] in milliseconds
 	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
@@ -2842,6 +2669,12 @@ sap.ui.define([
 				FocusHandler.removeFocusInfoExtender(this._extendFocusInfo, this);
 			}
 
+			// remove custom css classes if available
+			const aCurrentCustomClasses = this._sModalCSSClass?.split(" ") ?? [];
+			aCurrentCustomClasses.forEach((sModalCSSClass) => {
+				oBlockLayerDomRef.classList.remove(sModalCSSClass);
+			});
+
 			// if there are more z-indices this means there are more dialogs stacked
 			// up. So redisplay the block layer (with new z-index) under the new
 			// current dialog which should be displayed.
@@ -2852,6 +2685,12 @@ sap.ui.define([
 				oLastPopupInfo = Popup.blStack[Popup.blStack.length - 1];
 				// set the block layer z-index to the last z-index in the stack and show it
 				oBlockLayerDomRef.style.zIndex = oLastPopupInfo.zIndex;
+
+				// restore custom css classes if available
+				const aModalCSSClasses = oLastPopupInfo.popup._sModalCSSClass?.split(" ") ?? [];
+				aModalCSSClasses.forEach((sModalCSSClass) => {
+					oBlockLayerDomRef.classList.add(sModalCSSClass);
+				});
 
 				oBlockLayerDomRef.style.visibility = "visible";
 				oBlockLayerDomRef.style.display = "block";
@@ -2880,7 +2719,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Popup.prototype._isFocusInsidePopup = function () {
-		var oDomRef = this._$(false).get(0);
+		var oDomRef = this._$(false /* force rerendering */, true /* get only*/).get(0);
 
 		if (oDomRef && oDomRef.contains(document.activeElement)) {
 			return true;
@@ -2895,12 +2734,12 @@ sap.ui.define([
 	Popup.DockTrigger = IntervalTrigger;
 
 	Popup.checkDocking = function(){
-		if (this.getOpenState() === OpenState.OPEN) {
+		if (this.getOpenState() === OpenState.OPEN || this.getOpenState() === OpenState.OPENING) {
 			var oCurrentOfRef = this._getOfDom(this._oLastPosition.of),
 				oCurrentOfRect;
 
 			if (oCurrentOfRef) {
-				if ((oCurrentOfRef === window) || (oCurrentOfRef === window.document) || document.documentElement.contains(oCurrentOfRef)) {
+				if ((oCurrentOfRef === window) || (oCurrentOfRef === window.document) || document.documentElement.contains(oCurrentOfRef) || oCurrentOfRef.getRootNode() instanceof ShadowRoot) {
 					// When the current Of reference is window or window.document or it's contained in the DOM tree,
 					// The client bounding rect can be calculated
 					oCurrentOfRect = jQuery(oCurrentOfRef).rect();
@@ -2945,7 +2784,7 @@ sap.ui.define([
 			 */
 			if (this._oLastOfRect) {
 				if (!fnRectEqual(this._oLastOfRect, oCurrentOfRect)) {
-					if (this._followOfHandler) {
+					if (this._followOfHandler && this.getOpenState() === OpenState.OPEN) {
 						// provide the last position additionally if the call back needs it also
 						// e.g. the Callout needs it => create deep copy of old positioning object
 						var oLastPositionCopy = deepExtend({}, this._oLastPosition),
@@ -2968,7 +2807,7 @@ sap.ui.define([
 	//****************************************************
 
 	/**
-	 * Delegate function for handling of touchstart event on sap.ui.core.Elements as content
+	 * Delegate function for handling of touchstart event on sap.ui.core.Element as content
 	 *
 	 * This is a fix for preventing the Popup A from getting higher z-index than popup B when popup B is opened within popup A.
 	 *
@@ -2986,7 +2825,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Delegate function for handling of mousedown event on sap.ui.core.Elements as content
+	 * Delegate function for handling of mousedown event on sap.ui.core.Element as content
 	 *
 	 * @param {jQuery.Event} oEvent The event
 	 * @param {boolean} bSupressChecking Determines if the retrieved event was fired by another event with that no further checking is needed
@@ -3376,6 +3215,14 @@ sap.ui.define([
 			// mark the external content as not longer forced user selectable
 			Popup._markExternalContentAsNotUserSelectable(false);
 		}
+	};
+
+	/**
+	 * @private
+	 * @ui-restricted sap.m.Popover
+	 */
+	Popup.prototype.isTopmost = function() {
+		return this._iZIndex === Popup.getLastZIndex();
 	};
 
 	/**

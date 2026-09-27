@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,25 +19,59 @@ sap.ui.define([
 
 	var rBatch = /\/\$batch($|\?)/,
 		rContentId = /(?:^|\r\n)Content-Id\s*:\s*(\S+)/i,
+		rContentIdReference = / \$([^ ?\/]+)/,
+		rEndsWithJSON = /\.json$/i,
+		rEndsWithXML = /\.xml$/i,
 		rHeaderLine = /^(.*)?:\s*(.*)$/,
 		sJson = "application/json;charset=UTF-8;IEEE754Compatible=true",
 		mMessageForPath = {}, // a cache for files, see useFakeServer
 		sMimeHeaders = "\r\nContent-Type: application/http\r\n"
 			+ "Content-Transfer-Encoding: binary\r\n",
 		rMultipartHeader = /^Content-Type:\s*multipart\/mixed;\s*boundary=/i,
-		oUriParameters = new URLSearchParams(window.location.search),
-		sAutoRespondAfter = oUriParameters.get("autoRespondAfter"),
-		sRealOData = oUriParameters.get("realOData"),
+		oURLSearchParams = new URLSearchParams(window.location.search),
+		sAutoRespondAfter = oURLSearchParams.get("autoRespondAfter"),
+		sRealOData = oURLSearchParams.get("realOData"),
 		rRequestKey = /^(\S+) (\S+)$/,
 		rRequestLine = /^(GET|DELETE|MERGE|PATCH|POST) (\S+) HTTP\/1\.1$/,
 		mData = {},
 		rODataHeaders = /^(OData-Version|DataServiceVersion)$/,
 		bRealOData = sRealOData === "true" || sRealOData === "direct",
 		fnOnRequest = null,
+		rNonReadableChars = /[ "[\]{}]/g,
+		rNonReadableEscaped = /%(20|22|5B|5D|7B|7D)/gi,
+		rMethod = /^\w+ /,
+		rResourcesAndOptionalCacheBusterToken = /(^|\/)resources\/(~[-a-zA-Z0-9_.]*~\/)?/,
 		TestUtils;
 
 	if (bRealOData) {
-		document.title = document.title + " (real OData)";
+		document.title += " (real OData)";
+	}
+
+	/**
+	 * Builds a server-absolute path from a path relative to test-resources and strips off the cache
+	 * buster token.
+	 *
+	 * @param {string} sPath - The relative path
+	 * @returns {string} - The resulting server-absolute path
+	 */
+	function absolutePath(sPath) {
+		return sap.ui.require.toUrl(sPath)
+			.replace(rResourcesAndOptionalCacheBusterToken, "$1test-resources/") + "/";
+	}
+
+	/**
+	 * Gets the content type from the given resource name.
+	 * @param {string} sName The resource name
+	 * @returns {string} The content type
+	 */
+	function contentType(sName) {
+		if (rEndsWithXML.test(sName)) {
+			return "application/xml";
+		}
+		if (rEndsWithJSON.test(sName)) {
+			return sJson;
+		}
+		return "application/x-octet-stream";
 	}
 
 	/**
@@ -109,8 +143,8 @@ sap.ui.define([
 		try {
 			deeplyContains(oActual, oExpected, "/");
 			QUnit.assert.pushResult({
-				result: bExpectSuccess,
-				actual:oActual,
+				result : bExpectSuccess,
+				actual : oActual,
 				expected : oExpected,
 				message : sMessage
 			});
@@ -181,7 +215,7 @@ sap.ui.define([
 		 * @see sap.ui.model.odata.v4.lib._Helper.createRequestMethod
 		 * @ui5-restricted sap.ui.model.odata.v4
 		 */
-		checkGetAndRequest: function (oTestContext, oTestee, assert, sMethodName, aArguments,
+		checkGetAndRequest : function (oTestContext, oTestee, assert, sMethodName, aArguments,
 				bThrow) {
 			var oExpectation,
 				sGetMethodName = sMethodName.replace("fetch", "get"),
@@ -258,6 +292,34 @@ sap.ui.define([
 		},
 
 		/**
+		 * Fixes a human readable URL by percent-encoding space, double quotes, square brackets, and
+		 * curly brackets.
+		 *
+		 * @param {string} sUrl - The human readable URL
+		 * @return {string} The fixed URL
+		 *
+		 * @see #.makeUrlReadable
+		 */
+		encodeReadableUrl : function (sUrl) {
+			return sUrl.replaceAll(rNonReadableChars,
+				(s) => `%${s.charCodeAt(0).toString(16).padStart(2, "0").toUpperCase()}`);
+		},
+
+		/**
+		 * Makes a URL better readable for humans by replacing the percent-encoding for space,
+		 * double quotes, square brackets and curly brackets.
+		 *
+		 * @param {string} sUrl - The URL
+		 * @return {string} The human readable URL
+		 *
+		 * @see #.encodeReadableUrl
+		 */
+		makeUrlReadable : function (sUrl) {
+			return sUrl.replaceAll(rNonReadableEscaped,
+				(_s, n) => String.fromCharCode(Number.parseInt(n, 16)));
+		},
+
+		/**
 		 * Companion to <code>QUnit.notDeepEqual</code> and {@link #deepContains}.
 		 *
 		 * @param {object} oActual
@@ -275,6 +337,56 @@ sap.ui.define([
 		},
 
 		/**
+		 * Gets a Promise that resolves if all sources have been loaded asynchronously.
+		 * The <code>message</code> property of the response object is set with the source's content
+		 * and the <code>source</code> property is deleted from the response object.
+		 *
+		 * @param {map} mFixture
+		 *   The fixture for {@link sap.ui.test.TestUtils.useFakeServer}; it is modified during the
+		 *   call
+		 * @param {object[]} [aRegExps]
+		 *   The regular expression array for {@link sap.ui.test.TestUtils.useFakeServer}; it is
+		 *   modified during the call
+		 * @param {string} [sBase="sap/ui/core/qunit/odata/v4/data"]
+		 *   The base path for {@link sap.ui.test.TestUtils.useFakeServer}
+		 * @returns {Promise}
+		 *   A Promise that resolves with <code>undefined</code> when all sources are loaded;
+		 *   rejects with an error if at least one source cannot be loaded
+		 *
+		 * @public
+		 */
+		requestAllSources : function (mFixture, aRegExps, sBase) {
+			sBase = absolutePath(sBase || "sap/ui/core/qunit/odata/v4/data");
+			const mSource2Promise = new Map();
+
+			function addResponse(vResponse) {
+				if (Array.isArray(vResponse)) {
+					vResponse.forEach(addResponse);
+				} else if (vResponse.source) {
+					let oPromise = mSource2Promise.get(vResponse.source);
+					if (!oPromise) {
+						oPromise = fetch(sBase + vResponse.source)
+							.then((oResponse) => oResponse.text());
+						mSource2Promise.set(vResponse.source, oPromise);
+					}
+					oPromise.then((sMessage) => {
+						vResponse.message = sMessage;
+						vResponse.headers ??= {};
+						vResponse.headers["Content-Type"] ||= contentType(vResponse.source);
+						delete vResponse.source;
+					}, () => { /* Caller is responsible for error handling, see Promise.all */ });
+				}
+			}
+
+			Object.values(mFixture).forEach(addResponse);
+			aRegExps?.forEach((oRegExpFixture) => {
+				addResponse(oRegExpFixture.response);
+			});
+
+			return Promise.all(Array.from(mSource2Promise.values())).then(() => {});
+		},
+
+		/**
 		 * Activates a sinon fake server in the given sandbox. The fake server responds to those
 		 * requests given in the fixture, and to all DELETE, MERGE, PATCH, and POST requests
 		 * regardless of the path. It is automatically restored when the sandbox is restored.
@@ -282,12 +394,12 @@ sap.ui.define([
 		 * The function uses <a href="http://sinonjs.org/docs/">Sinon.js</a> and expects that it
 		 * has been loaded.
 		 *
-		 * POST requests ending on "/$batch" are handled automatically. They are expected to be
-		 * multipart-mime requests where each part is a DELETE, GET, PATCH, MERGE, or POST request.
-		 * The response has a multipart-mime message containing responses to these inner requests.
-		 * If an inner request is not a DELETE, a MERGE, a PATCH, or a POST, and it is not found in
-		 * the fixture, or its message is not JSON, it is responded with an error code.
-		 * The batch itself is always responded with code 200.
+		 * POST requests ending on "/$batch" are handled automatically, unless a matching fixture is
+		 * given. They are expected to be multipart-mime requests where each part is a DELETE, GET,
+		 * PATCH, MERGE, or POST request. The response has a multipart-mime message containing
+		 * responses to these inner requests. If an inner request is not a DELETE, a MERGE, a PATCH,
+		 * or a POST, and it is not found in the fixture, or its message is not JSON, it is
+		 * responded with an error code. The batch itself is always responded with code 200.
 		 *
 		 * "$batch" requests with an OData change set are supported, too. For each request in the
 		 * change set a response is searched in the fixture. As long as all responses are success
@@ -314,8 +426,9 @@ sap.ui.define([
 		 *   Example: <code>"sap/ui/core/qunit/model"</code>
 		 * @param {map} mFixture
 		 *   The fixture. Each key represents a method and a URL to respond to, in the form
-		 *   "METHOD URL". The method "GET" may be omitted. The value is an array or single response
-		 *   object that may have the following properties:
+		 *   "METHOD URL". The method "GET" may be omitted. Spaces, double quotes, square brackets,
+		 *   and curly brackets inside the URL are percent-encoded automatically. The value is an
+		 *   array or single response object that may have the following properties:
 		 *   <ul>
 		 *     <li> {number} <code>code</code>: The response code (<code>200</code> if not given)
 		 *     <li> {map} <code>headers</code>: A map of headers to set in the response
@@ -333,19 +446,22 @@ sap.ui.define([
 		 *       extension unless specified. This has precedence over <code>message</code>.
 		 *   </ul>
 		 * @param {object[]} [aRegExps]
-		 *    An array containing regular expressions in the regExp property and the corresponding
-		 *    response(s) objects in the response property. If no match for a request was found in
-		 *    the normal fixture, the regular expressions are checked. The response object looks
-		 *    exactly the same as in the fixture and may additionally contain a method
-		 *    <code>buildResponse(aMatch, oResponse, oRequest)</code> which gets passed the match
-		 *    object, the response, and the request in order to allow modification of the response
-		 *   before sending.
+		 *   An array containing regular expressions in the regExp property and the corresponding
+		 *   response(s) objects in the response property. If no match for a request was found in
+		 *   the normal fixture, the regular expressions are checked. The response object looks
+		 *   exactly the same as in the fixture and may additionally contain a method
+		 *   <code>buildResponse(aMatch, oResponse, oRequest, sReferencedMessage)</code> which gets
+		 *   passed the match object, the response, the request, and optionally the referenced
+		 *   response message in case of Content-ID referencing in order to allow modification of
+		 *   the response before sending. If there are two matching regular expressions for a
+		 *   $metadata requests, the first one is used.
 		 * @param {string} [sServiceUrl]
 		 *   The service URL which determines a prefix for all requests the fake server responds to;
 		 *   it responds with an error for requests not given in the fixture, except DELETE, MERGE,
 		 *   PATCH, or POST. A missing URL is ignored.
 		 * @param {boolean} [bStrict]
 		 *   Whether responses are created from the given fixture only, without defaults per method.
+		 *   It does not prevent the automatic handling of <code>$batch</code>.
 		 * @returns {object}
 		 *   The SinonJS fake server instance
 		 *
@@ -369,7 +485,7 @@ sap.ui.define([
 					mODataHeaders = getODataHeaders(oRequest);
 
 				if (fnOnRequest) {
-					fnOnRequest(oRequest.requestBody);
+					fnOnRequest(oRequest.requestBody, oRequest.method + " " + oRequest.url);
 				}
 
 				oRequest.respond(200,
@@ -394,8 +510,7 @@ sap.ui.define([
 
 				if (oFixtureResponse.source) {
 					oResponse.message = readMessage(sBase + oFixtureResponse.source);
-					oResponse.headers["Content-Type"] = oResponse.headers["Content-Type"]
-						|| contentType(oFixtureResponse.source);
+					oResponse.headers["Content-Type"] ||= contentType(oFixtureResponse.source);
 				} else if (typeof oFixtureResponse.message === "object") {
 					oResponse.headers["Content-Type"] = sJson;
 					oResponse.message = JSON.stringify(oFixtureResponse.message);
@@ -419,9 +534,13 @@ sap.ui.define([
 
 				for (sUrl in mFixture) {
 					oFixtureResponse = mFixture[sUrl];
-					if (!sUrl.includes(" ")) {
-						sUrl = "GET " + sUrl;
+					let sMethod = "GET ";
+					const aMatch = rMethod.exec(sUrl);
+					if (aMatch) {
+						sMethod = aMatch[0];
+						sUrl = sUrl.slice(sMethod.length);
 					}
+					sUrl = sMethod + TestUtils.encodeReadableUrl(sUrl);
 					if (Array.isArray(oFixtureResponse)) {
 						mUrls[sUrl] = oFixtureResponse.map(buildResponse);
 					} else {
@@ -431,26 +550,28 @@ sap.ui.define([
 				return mUrls;
 			}
 
-			// calculates the content type from the given resource name
-			function contentType(sName) {
-				if (/\.xml$/.test(sName)) {
-					return "application/xml";
-				}
-				if (/\.json$/.test(sName)) {
-					return sJson;
-				}
-				return "application/x-octet-stream";
-			}
-
-			// Logs and returns a response for the given error
-			function error(iCode, oRequest, sMessage) {
-				Log.error(oRequest.requestLine || oRequest.method + " " + oRequest.url, sMessage,
+			/*
+			 * Logs and returns a response for the given error.
+			 * @param {number} iCode - The response code
+			 * @param {object} oRequest - The request object
+			 * @param {string|Error} vMessage - The error
+			 * @param {string} [vMessage.target] - The error target
+			 * @returns {object} The reponse object
+			 */
+			function error(iCode, oRequest, vMessage) {
+				Log.error(oRequest.method + " " + TestUtils.makeUrlReadable(oRequest.url), vMessage,
 					"sap.ui.test.TestUtils");
 
 				return {
 					code : iCode,
-					headers : {"Content-Type" : "text/plain"},
-					message : sMessage
+					headers : {"Content-Type" : sJson},
+					message : JSON.stringify({
+						error : {
+							code : "TestUtils",
+							message : vMessage instanceof Error ? vMessage.message : vMessage,
+							target : vMessage instanceof Error ? vMessage.target : undefined
+						}
+					})
 				};
 			}
 
@@ -516,7 +637,7 @@ sap.ui.define([
 
 				if (mUrlToResponses[sRequestLine]) {
 					return {
-						responses: mUrlToResponses[sRequestLine]
+						responses : mUrlToResponses[sRequestLine]
 					};
 				}
 
@@ -527,12 +648,18 @@ sap.ui.define([
 				aMatches = [];
 				aMatchingResponses = aRegexpResponses.filter(function (oResponse) {
 					var aMatch = sRequestLine.match(oResponse.regExp);
+
 					if (aMatch) {
 						aMatches.push(aMatch);
 					}
 					return aMatch;
 				});
 
+				if (aMatchingResponses.length === 2 && sUrl.includes("/$metadata")) {
+					// if there are two matches for a $metadata request, the first one wins
+					aMatches.pop();
+					aMatchingResponses.pop();
+				}
 				if (aMatchingResponses.length > 1) {
 					Log.warning("Multiple matches found for " + sRequestLine, undefined,
 						"sap.ui.test.TestUtils");
@@ -565,37 +692,49 @@ sap.ui.define([
 
 			/*
 			 * Determines the matching response for the request. Returns an error response if no
-			 * match was found.
+			 * match was found, unless <code>bTry</code> was given.
 			 *
 			 * @param {object} oRequest The Sinon request object
 			 * @param {string} [sContentId] The content ID
+			 * @param {boolean} [bTry]
+			 *   Whether to do nothing and return <code>undefined</code> if no fixture matches; also
+			 *   prevents defaulting for non-GET requests
+			 * @param {object} [mContentId2Response]
+			 *   A map which refers a content ID to a response message while processing a batch
+			 * @returns {object|undefined} The response object or <code>undefined</code>
 			 */
-			function getResponseFromFixture(oRequest, sContentId) {
+			function getResponseFromFixture(oRequest, sContentId, bTry, mContentId2Response) {
 				var iAlternative,
 					oMatch = getMatchingResponse(oRequest.method, oRequest.url),
 					oResponse,
 					aResponses = oMatch && oMatch.responses;
 
-				aResponses = (aResponses || []).filter(function (oResponse) {
-					if (typeof oResponse.ifMatch === "function") {
-						return oResponse.ifMatch(oRequest);
+				aResponses = (aResponses || []).filter(function (oResponse0) {
+					if (typeof oResponse0.ifMatch === "function") {
+						return oResponse0.ifMatch(oRequest);
 					}
-					return !oResponse.ifMatch || oResponse.ifMatch.test(oRequest.requestBody);
+					return !oResponse0.ifMatch || oResponse0.ifMatch.test(oRequest.requestBody);
 				});
 				if (aResponses.length) {
 					oResponse = aResponses[0];
 					if (typeof oResponse.buildResponse === "function") {
 						oResponse = merge({}, oResponse);
 						try {
-							oResponse.buildResponse(oMatch.match, oResponse, oRequest);
+							const aMatches = rContentIdReference.exec(oRequest.requestLine);
+							let sReferencedMessage;
+							if (aMatches) {
+								sReferencedMessage = mContentId2Response[aMatches[1]];
+							}
+							oResponse.buildResponse(oMatch.match, oResponse, oRequest,
+								sReferencedMessage);
 						} catch (oError) {
-							oResponse = error(500, oRequest, oError.stack);
+							oResponse = error(500, oRequest, oError);
 						}
 					}
 					if (oMatch.responses.length > 1) {
 						iAlternative = oMatch.responses.indexOf(oResponse);
 					}
-				} else if (!bStrict) {
+				} else if (!bStrict && !bTry) {
 					switch (oRequest.method) {
 						case "HEAD":
 							oResponse = {code : 200};
@@ -618,19 +757,28 @@ sap.ui.define([
 					}
 				}
 				if (oResponse) {
-					Log.info(oRequest.method + " " + oRequest.url
-						+ (iAlternative !== undefined
+					const sRequestLine = oRequest.method
+						+ " " + TestUtils.makeUrlReadable(oRequest.url);
+					Log.info(sRequestLine + (iAlternative !== undefined
 							? ", alternative (ifMatch) #" + iAlternative
 							: ""),
 						// Note: JSON.stringify(oRequest.requestHeaders) outputs too much for now
-						'{"If-Match":' + JSON.stringify(oRequest.requestHeaders["If-Match"]) + '}',
+						'{"If-Match":' + JSON.stringify(oRequest.requestHeaders["If-Match"]) + "}",
 						"sap.ui.test.TestUtils");
+					if (oResponse.message) {
+						Log.debug(sRequestLine, oResponse.message, "sap.ui.test.TestUtils");
+					}
+				} else if (bTry) {
+					return undefined;
 				} else {
 					oResponse = error(404, oRequest, "No mock data found");
 				}
 				oResponse.headers = jQuery.extend({}, getODataHeaders(oRequest), oResponse.headers);
 				if (sContentId && oResponse.code < 300) {
 					oResponse.contentId = sContentId;
+					if (mContentId2Response) {
+						mContentId2Response[sContentId] = oResponse.message;
+					}
 				}
 				return oResponse;
 			}
@@ -640,14 +788,13 @@ sap.ui.define([
 			 *
 			 * @param {string} sServiceBase The service base URL
 			 * @param {string} sBody The body
+			 * @param {object} [oBatch] allows to keep state while processing a batch
 			 * @returns {object} An object with the properties boundary and parts
 			 */
-			function multipart(sServiceBase, sBody) {
-				var sBoundary;
-
+			function multipart(sServiceBase, sBody, oBatch = {}) {
 				// skip preamble consisting of whitespace (as sent by datajs)
 				sBody = sBody.replace(/^\s+/, "");
-				sBoundary = firstLine(sBody);
+				const sBoundary = firstLine(sBody);
 				return {
 					boundary : firstLine(sBody).slice(2),
 					parts : sBody.split(sBoundary).slice(1, -1).map(function (sRequestPart) {
@@ -657,7 +804,7 @@ sap.ui.define([
 						sFirstLine = firstLine(sRequestPart);
 						if (rMultipartHeader.test(sFirstLine)) {
 							oMultipart = multipart(sServiceBase,
-								sRequestPart.slice(sFirstLine.length + 4));
+								sRequestPart.slice(sFirstLine.length + 4), oBatch);
 							aFailures = oMultipart.parts.filter(function (oPart) {
 								return oPart.code >= 300;
 							});
@@ -666,7 +813,7 @@ sap.ui.define([
 						iRequestStart = sRequestPart.indexOf("\r\n\r\n") + 4;
 						oRequest = parseRequest(sServiceBase, sRequestPart.slice(iRequestStart));
 						aMatch = rContentId.exec(sRequestPart.slice(0, iRequestStart));
-						return getResponseFromFixture(oRequest, aMatch && aMatch[1]);
+						return getResponseFromFixture(oRequest, aMatch && aMatch[1], false, oBatch);
 					})
 				};
 			}
@@ -687,9 +834,9 @@ sap.ui.define([
 					oRequest.method = aMatches[1];
 					oRequest.url = sServiceBase + aMatches[2];
 					aLines.forEach(function (sLine) {
-						var aMatches = rHeaderLine.exec(sLine);
-						if (aMatches) {
-							oRequest.requestHeaders[aMatches[1]] = aMatches[2];
+						const aMatches0 = rHeaderLine.exec(sLine);
+						if (aMatches0) {
+							oRequest.requestHeaders[aMatches0[1]] = aMatches0[2];
 						}
 					});
 				}
@@ -699,8 +846,11 @@ sap.ui.define([
 			// POST handler which recognizes a $batch
 			function post(oRequest) {
 				var sUrl = oRequest.url;
+
 				if (rBatch.test(sUrl)) {
-					batch(sUrl.slice(0, sUrl.indexOf("/$batch") + 1), oRequest);
+					if (!respondFromFixture(oRequest, true)) {
+						batch(sUrl.slice(0, sUrl.indexOf("/$batch") + 1), oRequest);
+					}
 				} else {
 					respondFromFixture(oRequest);
 				}
@@ -733,14 +883,21 @@ sap.ui.define([
 			 * Searches the response in the fixture and responds.
 			 *
 			 * @param {object} oRequest The Sinon request object
+			 * @param {boolean} [bTry]
+			 *   Whether to do nothing and return <code>false</code> if no fixture matches
+			 * @returns {boolean} Whether the request was processed
 			 */
-			function respondFromFixture(oRequest) {
-				var oResponse = getResponseFromFixture(oRequest);
+			function respondFromFixture(oRequest, bTry) {
+				var oResponse = getResponseFromFixture(oRequest, undefined, bTry);
 
+				if (!oResponse) {
+					return false;
+				}
 				if (fnOnRequest) {
-					fnOnRequest(oRequest.requestBody);
+					fnOnRequest(oRequest.requestBody, oRequest.method + " " + oRequest.url);
 				}
 				oRequest.respond(oResponse.code, oResponse.headers, oResponse.message);
+				return true;
 			}
 
 			function setupServer() {
@@ -790,7 +947,6 @@ sap.ui.define([
 				// Set up a filter so that other requests (e.g. from jQuery.sap.require) go through.
 				// This filter fetches all DELETE, all POST (incl. $batch) and the selected GET
 				// requests.
-				sinon.xhr.supportsCORS = jQuery.support.cors;
 				sinon.FakeXMLHttpRequest.useFilters = true;
 				sinon.FakeXMLHttpRequest.addFilter(function (sMethod, sUrl) {
 					var bOurs = getMatchingResponse(sMethod, sUrl)
@@ -808,8 +964,7 @@ sap.ui.define([
 			}
 
 			// ensure to always search the fake data in test-resources, remove cache buster token
-			sBase = sap.ui.require.toUrl(sBase)
-				.replace(/(^|\/)resources\/(~[-a-zA-Z0-9_.]*~\/)?/, "$1test-resources/") + "/";
+			sBase = absolutePath(sBase);
 			return setupServer();
 		},
 
@@ -871,10 +1026,10 @@ sap.ui.define([
 			}
 
 			try {
-				var fnGetBundle = Library.prototype._loadResourceBundle;
+				const fnGetBundle = Library.prototype._loadResourceBundle;
+				oSandbox.stub(Library.prototype, "_loadResourceBundle").callsFake(function () {
+					var oResourceBundle = fnGetBundle.apply(this, [arguments[0], /*sync*/true]);
 
-				oSandbox.stub(Library.prototype, "_loadResourceBundle").callsFake(function() {
-					var oResourceBundle = fnGetBundle.apply(this, [arguments[0], true /* sync */]);
 					return {
 						getText : function (sKey, aArgs) {
 							var sResult = sKey,
@@ -923,12 +1078,13 @@ sap.ui.define([
 		},
 
 		/**
-		 * Sets a callback function which is called when the fake server responds with a fake
-		 * request. The function will be called with the request body as first parameter.
+		 * Sets a listener function which is called when the fake server responds. The function will
+		 * be called with the request body as first parameter and the request HTTP verb plus request
+		 * URL as second parameter e.g. "GET /foo/bar".
 		 *
 		 * Pass <code>null</code> to remove the listener.
 		 *
-		 * @param {function(string)} [fnCallback] - The function
+		 * @param {function(string, string)} [fnCallback] - The listener function
 		 *
 		 * @ui5-restricted sap.ui.model.odata.v4
 		 */
@@ -943,7 +1099,7 @@ sap.ui.define([
 		 *   some absolute path
 		 * @returns {string}
 		 *   <code>sAbsolutePath</code>
-		 * @deprecated since 1.93.0
+		 * @deprecated As of version 1.93.0
 		 *   This function adjusted the path for the Maven/Java environment. Use a reverse proxy
 		 *   that forwards this path accordingly.
 		 */
@@ -1065,7 +1221,7 @@ sap.ui.define([
 		 *   a Sinon sandbox as created using <code>sinon.sandbox.create()</code>
 		 * @return {object} Returns the spy
 		 */
-		spyFetch : function(oSandbox) {
+		spyFetch : function (oSandbox) {
 			var spy = oSandbox.spy(XMLHttpRequest.prototype, "open");
 
 			/**
@@ -1073,7 +1229,7 @@ sap.ui.define([
 			 * @param  {number} iCall The 'nth' call
 			 * @return {string} Returns the request URL
 			 */
-			spy.calledWithUrl = function(iCall) {
+			spy.calledWithUrl = function (iCall) {
 				return spy.getCall(iCall).args[1];
 			};
 

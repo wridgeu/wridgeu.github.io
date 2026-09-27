@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer'], function(Renderer, InputBaseRenderer) {
+sap.ui.define(["sap/ui/core/Lib", 'sap/ui/core/Renderer', './InputBaseRenderer'], function(Library, Renderer, InputBaseRenderer) {
 	"use strict";
 
 	/**
@@ -23,23 +23,22 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer'], function(Renderer
 	 * @returns {Object}
 	 */
 	MaskInputRenderer.getAccessibilityState = function (oControl) {
-		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+		var oResourceBundle = Library.getResourceBundleFor("sap.m"),
 			sCustomRole = oResourceBundle.getText("MASKINPUT_ROLE_DESCRIPTION"),
 			mAccessibilityState = InputBaseRenderer.getAccessibilityState.apply(this, arguments);
 
 		mAccessibilityState["roledescription"] = sCustomRole;
 
-		return mAccessibilityState;
-	};
-
-	MaskInputRenderer.getLabelledByAnnouncement = function(oControl) {
-		var sMask = oControl.getMask();
-
-		if (sMask && sMask.length) {
-			return oControl.getPlaceholder() || "";
+		if (oControl.getValueStateLinksForAcc().length) {
+			const sInvisibleMessageid = oControl.getValueStateLinksShortcutsId();
+			const sExisting = mAccessibilityState["describedby"] && mAccessibilityState["describedby"].value;
+			mAccessibilityState["describedby"] = {
+				value: sExisting ? sExisting + " " + sInvisibleMessageid : sInvisibleMessageid,
+				append: true
+			};
 		}
 
-		return InputBaseRenderer.getLabelledByAnnouncement.apply(this, arguments);
+		return mAccessibilityState;
 	};
 
 	return MaskInputRenderer;

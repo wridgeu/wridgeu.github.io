@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,12 +9,12 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	'sap/ui/base/EventProvider',
 	'sap/ui/core/Element',
 	'sap/ui/core/Rendering',
-	'sap/ui/core/UIArea',
+	'sap/ui/core/UIAreaRegistry',
 	'./Highlighter',
 	"sap/ui/dom/getOwnerWindow",
 	"sap/base/Log"
 ],
-	function(EventProvider, Element, Rendering, UIArea, Highlighter, getOwnerWindow, Log) {
+	function(EventProvider, Element, Rendering, UIAreaRegistry, Highlighter, getOwnerWindow, Log) {
 	"use strict";
 
 
@@ -34,7 +34,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	 * @class Control Tree used for the Debug Environment
 	 * @extends sap.ui.base.EventProvider
 	 * @author Martin Schaus, Frank Weigel
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @alias sap.ui.debug.ControlTree
 	 * @private
 	 */
@@ -102,8 +102,8 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	ControlTree.prototype.render = function() {
 		var oDomRef = this.oParentDomRef;
 		var oUIArea = null,
-			oUIAreas = UIArea.registry.all();
-		oDomRef.innerHTML = "";
+			oUIAreas = UIAreaRegistry.all();
+		oDomRef.replaceChildren();
 		for (var i in oUIAreas) {
 			var oUIArea = oUIAreas[i],
 				oDomNode = this.createTreeNodeDomRef(oUIArea.getId(),0,"UIArea", this.sTestResourcePath + "sap/ui/core/images/controls/sap.ui.core.UIArea.gif");
@@ -362,7 +362,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	ControlTree.prototype.getTargetDomRef = function(oTreeNodeDomRef) {
 		var sType = oTreeNodeDomRef.getAttribute("sap-type"),
 			sId = oTreeNodeDomRef.getAttribute("sap-id"),
-			oSomething = sType === "UIArea" ? UIArea.registry.get(sId) : Element.getElementById(sId);
+			oSomething = sType === "UIArea" ? UIAreaRegistry.get(sId) : Element.getElementById(sId);
 
 		while (oSomething instanceof Element) {
 			var oDomRef = oSomething.getDomRef();
@@ -372,7 +372,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 			oSomething = oSomething.getParent();
 		}
 
-		if ( oSomething instanceof UIArea ) {
+		if ( oSomething.isA && oSomething.isA("sap.ui.core.UIArea") ) {
 			return oSomething.getRootNode();
 		}
 	};

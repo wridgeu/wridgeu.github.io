@@ -1,15 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.f.SearchManager.
-sap.ui.define(['sap/ui/core/Element', 'sap/ui/base/ManagedObjectObserver', './shellBar/Search'],
-	function (Element, ManagedObjectObserver, Search) {
+sap.ui.define(['sap/ui/core/Element', 'sap/ui/base/ManagedObjectObserver', './shellBar/Search', "sap/ui/core/Lib"],
+	function(Element, ManagedObjectObserver, Search, Library) {
 		"use strict";
 
-		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		/**
 		 * Constructor for a new <code>SearchManager</code>.
@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/core/Element', 'sap/ui/base/ManagedObjectObserver', './sh
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public

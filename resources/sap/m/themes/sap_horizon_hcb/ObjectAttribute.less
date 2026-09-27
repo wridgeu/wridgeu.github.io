@@ -5,6 +5,15 @@
 
 @_sap_m_ObjectAttribute_ListTextShadowColor: none;
 
+.sapMObjectAttributeActive.sapMLnkLargeReactiveArea {
+	.sapMObjectAttributeTitle,
+	.sapMObjectAttributeColon,
+	.sapMObjectAttributeText,
+	.sapMObjectAttributeText > .sapMLnk {
+		line-height: 1.5rem;
+	}
+}
+
 .sapMListTbl .sapMObjectAttributeActive .sapMText,
 .sapMObjectAttributeActive .sapMText,
 .sapMObjectAttributeActive .sapMObjectAttributeText {
@@ -15,16 +24,28 @@
 	position: relative;
 }
 
-.sapMObjectAttributeActive .sapMObjectAttributeText:focus::after {
+html.sap-desktop .sapMObjectAttributeActive .sapMObjectAttributeText:focus::after {
 	pointer-events: none;
 	display: block;
-	content: "";
+	content: '';
 	position: absolute;
 	top: 2px;
 	left: 1px;
 	bottom: 2px;
 	right: 1px;
-	outline: 2px dotted @sapUiContentFocusColor;
+	outline: 2px dotted var(--sapContent_FocusColor);
+}
+
+.sapMObjectAttributeActive .sapMObjectAttributeText:focus-visible::after {
+	pointer-events: none;
+	display: block;
+	content: '';
+	position: absolute;
+	top: 2px;
+	left: 1px;
+	bottom: 2px;
+	right: 1px;
+	outline: 2px dotted var(--sapContent_FocusColor);
 }
 
 .sapMObjectAttributeActive .sapMObjectAttributeText:active,
@@ -38,9 +59,10 @@
 
 .sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText:active,
 .sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText:hover,
-.sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText:focus {
+html.sap-desktop .sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText:focus,
+.sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText:focus-visible {
 	text-decoration: underline;
-	color: @sapUiLinkHoverColor;
+	color: var(--sapLink_Hover_Color);
 }
 
 /*=========================================== */
@@ -49,11 +71,13 @@
 
 .sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:active,
 .sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:hover,
-.sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:focus {
+html.sap-desktop .sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:focus,
+.sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:focus-visible {
 	text-decoration: underline;
 }
 
-.sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:focus:hover {
+html.sap-desktop .sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:focus,
+.sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:focus-visible:hover {
 	text-decoration: none;
 }
 

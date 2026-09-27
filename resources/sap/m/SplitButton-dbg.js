@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,6 +12,7 @@ sap.ui.define([
 	'./ButtonRenderer',
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'./SplitButtonRenderer',
 	"sap/ui/events/KeyCodes"
@@ -23,10 +24,11 @@ function(
 	ButtonRenderer,
 	EnabledPropagator,
 	IconPool,
+	Library,
 	coreLibrary,
 	SplitButtonRenderer,
 	KeyCodes
-	) {
+) {
 		"use strict";
 
 		// shortcut for sap.ui.core.TextDirection
@@ -46,7 +48,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @private
@@ -153,14 +155,24 @@ function(
 
 			$textButtonRef.attr("tabindex", "-1");
 			$arrowButtonRef.attr("tabindex", "-1");
-			$textButtonRef.removeAttr("title");
-			$arrowButtonRef.removeAttr("title");
+			if (this.getTooltip()) {
+				$textButtonRef.removeAttr("title");
+			}
 			$textButtonRef.removeAttr("aria-describedby");
 			$arrowButtonRef.removeAttr("aria-describedby");
 		};
 
 		SplitButton.prototype._handleAction = function(oEvent) {
+			const oOriginalEvent = oEvent.getParameter("originalEvent");
+			const sPressedButtonCode = oOriginalEvent?.keyCode;
+			const bArrowKeyPress = sPressedButtonCode === KeyCodes?.ARROW_DOWN || sPressedButtonCode === KeyCodes?.ARROW_UP;
+			const bOpenByArrowKeyPress = bArrowKeyPress && !oOriginalEvent?.ctrlKey && (oOriginalEvent?.altKey || oOriginalEvent?.metaKey);
+
 			if (oEvent.getSource().hasStyleClass("sapMSBArrow")) {
+				if (bArrowKeyPress && !bOpenByArrowKeyPress) {
+					return;
+				}
+
 				this.fireArrowPress({
 					keyboard: oEvent.getParameter("keyboard")
 				});
@@ -217,7 +229,7 @@ function(
 					id: this.getId() + "-arrowButton",
 					icon: "sap-icon://slim-arrow-down",
 					press: this._handleAction.bind(this),
-					tooltip: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("SPLIT_BUTTON_ARROW_TOOLTIP"),
+					tooltip: Library.getResourceBundleFor("sap.m").getText("SPLIT_BUTTON_ARROW_TOOLTIP"),
 					ariaHasPopup: coreLibrary.aria.HasPopup.Menu
 				}).addStyleClass("sapMSBArrow");
 				this.setAggregation("_arrowButton", oCtrl);
@@ -259,6 +271,10 @@ function(
 			return sText.charAt(0).toUpperCase() + sText.slice(1);
 		}
 
+		SplitButton.prototype._fireKeyboardArrowPress = function(oEvent) {
+			this._getArrowButton().firePress(oEvent);
+		};
+
 		SplitButton.prototype.onkeydown = function(oEvent) {
 			if (oEvent.which === KeyCodes.SPACE) {
 				oEvent.preventDefault();
@@ -272,24 +288,49 @@ function(
 		};
 
 		SplitButton.prototype.onsapup = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress({keyboard: true, originalEvent: oEvent.originalEvent});
 		};
 
 		SplitButton.prototype.onsapdown = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress({keyboard: true, originalEvent: oEvent.originalEvent});
 		};
 
 		SplitButton.prototype.onsapupmodifiers = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress({keyboard: true, originalEvent: oEvent.originalEvent});
 		};
 
 		SplitButton.prototype.onsapdownmodifiers = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress({keyboard: true, originalEvent: oEvent.originalEvent});
+			oEvent.stopImmediatePropagation();
 		};
 
 		//F4
 		SplitButton.prototype.onsapshow = function(oEvent) {
-			this._getArrowButton().firePress();
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			this._getArrowButton().firePress({keyboard: true, originalEvent: oEvent.originalEvent});
 			oEvent.preventDefault();
 		};
 

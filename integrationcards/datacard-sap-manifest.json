@@ -8,18 +8,11 @@
 			"version": "1.0.0"
 		},
 		"tags": {
-			"keywords": [
-                "SAP",
-                "UI5",
-                "Framework",
-                "Environment",
-                "Solutions",
-                "Cloud"
-			]
+			"keywords": ["SAP", "UI5", "Framework", "Environment", "Solutions", "Cloud"]
 		}
 	},
 	"sap.ui": {
-		"deviceTypes":{
+		"deviceTypes": {
 			"desktop": true,
 			"phone": true,
 			"tablet": true
@@ -31,7 +24,7 @@
 		"header": {
 			"title": "SAP",
 			"icon": {
-                "shape": "Square",
+				"shape": "Square",
 				"src": "../resources/img/webp/sap_logo_gui.webp"
 			}
 		},
@@ -43,21 +36,21 @@
 						"Description": "ERP, EWM, TM, SolMan",
 						"Icon": "../resources/img/webp/forklift.webp",
 						"Initials": "SAP",
-                        "Alt": "SAP Systems"
+						"Alt": "SAP Systems"
 					},
 					{
 						"Name": "SAP- OpenUI5",
 						"Description": "UI5, OData, WebC, Fiori",
-                        "Icon": "../resources/img/svg/blue_ui5.svg",
+						"Icon": "../resources/img/svg/blue_ui5.svg",
 						"Initials": "UI",
-                        "Alt": "SAP UI Framework"
+						"Alt": "SAP UI Framework"
 					},
 					{
 						"Name": "Cloud (&on-prem)",
 						"Description": "RAP, CAP, CDS",
 						"Icon": "../resources/img/svg/sap_cap.svg",
 						"Initials": "CL",
-                        "Alt": "SAP Cloud"
+						"Alt": "SAP Cloud"
 					}
 				]
 			},

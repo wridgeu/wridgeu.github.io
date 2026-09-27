@@ -1,11 +1,15 @@
 /* eslint-disable max-nested-callbacks */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/base/Log"], function(Log) {
+sap.ui.define([
+	"sap/ui/fl/changeHandler/Base"
+], function(
+	ChangeHandlerBase
+) {
 	"use strict";
 
 	/**
@@ -13,8 +17,9 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 	 *
 	 * @alias sap.m.changeHandler.MoveTableColumns
 	 * @author SAP SE
-	 * @version 1.120.0
-	 * @experimental Since 1.48
+	 * @version 1.152.0
+	 * @private
+	 * @since 1.48.0
 	 */
 	var MoveTableColumns = {};
 
@@ -31,13 +36,11 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 			.then(function(aCells) {
 				// ColumnListItem and GroupHeaderListItem are only allowed for the tables items aggregation.
 				if (!aCells) {
-					Log.warning("Aggregation cells to move not found");
-					return Promise.reject();
+					return ChangeHandlerBase.markAsNotApplicable("Aggregation cells to move not found", true);
 				}
 
 				if (iSourceIndex < 0 || iSourceIndex >= aCells.length) {
-					Log.warning("Move cells in table item called with invalid index: " + iSourceIndex);
-					return Promise.reject();
+					return ChangeHandlerBase.markAsNotApplicable("Move cells in table item called with invalid index: " + iSourceIndex, true);
 				}
 
 				var oMovedCell = aCells[iSourceIndex];
@@ -47,14 +50,14 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 			});
 	}
 
-	function fnMoveColumns(oModifier, oView, oTable, iSourceIndex, iTargetIndex) {
+	function fnMoveColumns(oModifier, oView, oTable, iSourceIndex, iTargetIndex, oTemplate) {
 		return Promise.resolve()
 			.then(oModifier.getAggregation.bind(oModifier, oTable, ITEMS_AGGREGATION_NAME))
 			.then(function(aItems) {
 				return aItems.reduce(function(oPreviousPromise, oItem) {
 					return oPreviousPromise
 						.then(function() {
-							if (oModifier.getControlType(oItem) !== "sap.m.GroupHeaderListItem") {
+							if (oTemplate !== oItem && oModifier.getControlType(oItem) !== "sap.m.GroupHeaderListItem") {
 								return fnSwitchCells(oModifier, oView, oItem, iSourceIndex, iTargetIndex);
 							}
 							return undefined;
@@ -92,8 +95,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 			.then(function(aRetrievedColumns){
 				aColumns = aRetrievedColumns;
 				if (oTargetSource !== oTable) {
-					Log.warning("Moving columns between different tables is not yet supported.");
-					return Promise.reject(false);
+					return ChangeHandlerBase.markAsNotApplicable("Moving columns between different tables is not yet supported", true);
 				}
 				// Fetch the information about the movedElements together with the source and target index.
 				return oChangeContent.movedElements.reduce(function (oPreviousPromise, mMovedElement) {
@@ -107,8 +109,10 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 							oMovedElement = oModifier.bySelector(mMovedElement.selector, oAppComponent, oView);
 							if (!oMovedElement) {
 								sMovedElementId = mMovedElement.selector && mMovedElement.selector.id;
-								Log.warning("The table column with id: '" + sMovedElementId + "' stored in the change is not found and the move operation cannot be applied");
-								return Promise.reject();
+								return ChangeHandlerBase.markAsNotApplicable(
+									"The column with id: '" + sMovedElementId + "' stored in the change is not found and the move operation cannot be applied",
+									true
+								);
 							}
 							iCurrentIndexInAggregation = aColumns.indexOf(oMovedElement);
 							iStoredSourceIndexInChange = mMovedElement.sourceIndex;
@@ -137,7 +141,9 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 						.then(function(oTemplate) {
 							if (oTemplate) {
 								return fnSwitchCells(oModifier, oView, oTemplate, iSourceIndex, iTargetIndex)
-									.then(oModifier.updateAggregation.bind(oModifier, oTable, ITEMS_AGGREGATION_NAME));
+									.then(function() {
+										return fnMoveColumns(oModifier, oView, oTable, iSourceIndex, iTargetIndex, oTemplate);
+									});
 							} else {
 								return fnMoveColumns(oModifier, oView, oTable, iSourceIndex, iTargetIndex);
 							}
@@ -207,27 +213,27 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 	 * @param {sap.ui.fl.Change} oChange Change object to be completed
 	 * @param {object} mSpecificChangeInfo Determines the attributes <code>source</code>, <code>target</code> and <code>movedElements</code> which are included in the change
 	 * @param {object} mPropertyBag Map of properties
-	 * @param {sap.ui.core.UiComponent} mPropertyBag.appComponent Component in which the change should be applied
+	 * @param {sap.ui.core.UIComponent} mPropertyBag.appComponent Component in which the change should be applied
 	 * @public
 	 */
 	MoveTableColumns.completeChangeContent = function (oChange, mSpecificChangeInfo, mPropertyBag) {
-		var oModifier = mPropertyBag.modifier;
-		var oAppComponent = mPropertyBag.appComponent;
-		var oSourceControl = oModifier.bySelector(mSpecificChangeInfo.source.id, oAppComponent);
-		var oTargetControl = oModifier.bySelector(mSpecificChangeInfo.target.id, oAppComponent);
-		var mAdditionalSourceInfo = {
-			aggregation: mSpecificChangeInfo.source.aggregation,
+		const oModifier = mPropertyBag.modifier;
+		const oAppComponent = mPropertyBag.appComponent;
+		const oSourceControl = oModifier.bySelector(mSpecificChangeInfo.content.source.id, oAppComponent);
+		const oTargetControl = oModifier.bySelector(mSpecificChangeInfo.content.target.id, oAppComponent);
+		const mAdditionalSourceInfo = {
+			aggregation: mSpecificChangeInfo.content.source.aggregation,
 			type: oModifier.getControlType(oSourceControl)
 		};
-		var	mAdditionalTargetInfo = {
-			aggregation: mSpecificChangeInfo.target.aggregation,
+		const mAdditionalTargetInfo = {
+			aggregation: mSpecificChangeInfo.content.target.aggregation,
 			type: oModifier.getControlType(oTargetControl)
 		};
 
 		// We need to add the information about the movedElements together with the source and target index
-		var oContent = {movedElements: []};
-		mSpecificChangeInfo.movedElements.forEach(function (mElement) {
-			var oElement = mElement.element || oModifier.bySelector(mElement.id, oAppComponent);
+		const oContent = {movedElements: []};
+		mSpecificChangeInfo.content.movedElements.forEach(function (mElement) {
+			const oElement = mElement.element || oModifier.bySelector(mElement.id, oAppComponent);
 
 			oContent.movedElements.push({
 				selector: oModifier.getSelector(oElement, oAppComponent),
@@ -237,9 +243,9 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		});
 
 		oChange.setContent(oContent);
-		oChange.addDependentControl(mSpecificChangeInfo.source.id, SOURCE_ALIAS, mPropertyBag, mAdditionalSourceInfo);
-		oChange.addDependentControl(mSpecificChangeInfo.target.id, TARGET_ALIAS, mPropertyBag, mAdditionalTargetInfo);
-		oChange.addDependentControl(mSpecificChangeInfo.movedElements.map(function (element) {
+		oChange.addDependentControl(mSpecificChangeInfo.content.source.id, SOURCE_ALIAS, mPropertyBag, mAdditionalSourceInfo);
+		oChange.addDependentControl(mSpecificChangeInfo.content.target.id, TARGET_ALIAS, mPropertyBag, mAdditionalTargetInfo);
+		oChange.addDependentControl(mSpecificChangeInfo.content.movedElements.map(function (element) {
 			return element.id;
 		}), MOVED_ELEMENTS_ALIAS, mPropertyBag);
 	};

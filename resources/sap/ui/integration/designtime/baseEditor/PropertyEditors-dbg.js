@@ -1,10 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
 	"sap/ui/integration/designtime/baseEditor/util/findClosestInstance",
 	"sap/ui/integration/designtime/baseEditor/util/createPromise",
 	"sap/ui/integration/designtime/baseEditor/util/isTemplate",
@@ -16,8 +17,9 @@ sap.ui.define([
 	"sap/ui/core/Fragment",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/base/ManagedObjectObserver"
-], function (
+], function(
 	Control,
+	Element,
 	findClosestInstance,
 	createPromise,
 	isTemplate,
@@ -67,9 +69,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.PropertyEditors
 	 * @author SAP SE
 	 * @since 1.73.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.73.0
 	 * @ui5-restricted
 	 */
 	var PropertyEditors = Control.extend("sap.ui.integration.designtime.baseEditor.PropertyEditors", {
@@ -323,11 +324,14 @@ sap.ui.define([
 			}
 		},
 
-		renderer: function (oRm, oControl) {
-			oRm.openStart("div", oControl);
-			oRm.openEnd();
-			oRm.renderControl(oControl.getContent());
-			oRm.close("div");
+		renderer: {
+			apiVersion: 2,
+			render: function (oRm, oControl) {
+				oRm.openStart("div", oControl);
+				oRm.openEnd();
+				oRm.renderControl(oControl.getContent());
+				oRm.close("div");
+			}
 		}
 	});
 
@@ -397,7 +401,7 @@ sap.ui.define([
 	};
 
 	PropertyEditors.prototype.getEditor = function () {
-		return sap.ui.getCore().byId(this.getAssociation("editor"));
+		return Element.getElementById(this.getAssociation("editor"));
 	};
 
 	PropertyEditors.prototype.setConfig = function (mConfig) {
@@ -435,7 +439,7 @@ sap.ui.define([
 
 	PropertyEditors.prototype.setEditor = function (vEditor) {
 		var oPreviousEditor = this.getEditor();
-		var oEditor = typeof vEditor === "string" ? sap.ui.getCore().byId(vEditor) : vEditor;
+		var oEditor = typeof vEditor === "string" ? Element.getElementById(vEditor) : vEditor;
 		if (oPreviousEditor !== oEditor) {
 			this.setAssociation("editor", vEditor);
 			var oEditor = this.getEditor();
@@ -448,7 +452,7 @@ sap.ui.define([
 
 	PropertyEditors.prototype._removePropertyEditors = function () {
 		var aPropertyEditors = this.removeAllAssociation("propertyEditors").map(function (sPropertyEditorId) {
-			return sap.ui.getCore().byId(sPropertyEditorId);
+			return Element.getElementById(sPropertyEditorId);
 		});
 
 		this._iExpectedWrapperCount = 0;
@@ -778,7 +782,7 @@ sap.ui.define([
 
 	PropertyEditors.prototype._getPropertyEditors = function () {
 		var aPropertyEditors = (this.getAssociation("propertyEditors") || []).map(function (sId) {
-			return sap.ui.getCore().byId(sId);
+			return Element.getElementById(sId);
 		});
 
 		return aPropertyEditors.length && aPropertyEditors || null; // returning null when empty array — backwards compatibility

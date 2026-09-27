@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -19,7 +19,6 @@ sap.ui.define([
 	*                                   When <code>true</code> is returned, then object will be escaped.
 	* @returns {Array} Array of arguments with escaped object literals
 	* @function
-	* @experimental
 	* @private
 	*/
 	return function (oArguments, fnValidator) {

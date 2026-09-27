@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./library",
 	"sap/ui/core/Control",
+	"sap/ui/core/Lib",
 	"sap/ui/core/Popup",
-	"sap/ui/core/Core",
 	"sap/m/IllustratedMessage",
 	"sap/m/IllustratedMessageType",
 	"sap/m/IllustratedMessageSize",
@@ -21,12 +21,13 @@ sap.ui.define([
 	"./LightBoxRenderer",
 	"sap/m/BusyIndicator",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/dom/units/Rem"
+	"sap/ui/dom/units/Rem",
+	"sap/ui/dom/jquery/Focusable"
 ], function (
 	library,
 	Control,
+	Library,
 	Popup,
-	Core,
 	IllustratedMessage,
 	IllustratedMessageType,
 	IllustratedMessageSize,
@@ -96,7 +97,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -164,11 +165,12 @@ sap.ui.define([
 		this._iWidth = 0; //to be calculated later
 		this._iHeight = 0; //to be calculated later
 		this._isRendering = true;
+		this._bRestoreFocusAfterRendering = false;
 
 		this._iResizeListenerId = null;
 		this._$lightBox = null;
 
-		this._oRB = Core.getLibraryResourceBundle("sap.m");
+		this._oRB = Library.getResourceBundleFor("sap.m");
 
 		// create an ARIA announcement for enlarged image
 		this.setAggregation("_invisiblePopupText", new InvisibleText());
@@ -184,6 +186,8 @@ sap.ui.define([
 			oNativeImage = oImageContent._getNativeImage(),
 			sImageSrc = oImageContent.getImageSrc(),
 			sState = oImageContent._getImageState(),
+			sErrorMessageTitle = this._oRB.getText("LIGHTBOX_IMAGE_ERROR"),
+			sErrorMessageSubtitle = this._oRB.getText("LIGHTBOX_IMAGE_ERROR_DETAILS"),
 			sInvisiblePopupText = this._oRB.getText("LIGHTBOX_ARIA_ENLARGED", [oImageContent.getTitle(), oImageContent.getSubtitle()]);
 
 		this._createErrorControls();
@@ -215,6 +219,7 @@ sap.ui.define([
 			case LightBoxLoadingStates.Error:
 			case LightBoxLoadingStates.TimeOutError:
 				clearTimeout(this._iTimeoutId);
+				sInvisiblePopupText += ". " + sErrorMessageTitle + " " + sErrorMessageSubtitle;
 				break;
 			default:
 				break;
@@ -236,10 +241,22 @@ sap.ui.define([
 		this._isRendering = false;
 		this._$lightBox = this.$();
 
+		// when we have error message on desktop, but the viewport is small or we have big zoom (for example 200%)
+		const isLightBoxIsHigherThanTheViewPort = this.getDomRef().scrollHeight > window.innerHeight;
+
 		if (!this._iResizeListenerId) {
 			this._fnResizeListener = this._onResize.bind(this);
 			Device.resize.attachHandler(this._fnResizeListener);
 			this._iResizeListenerId = ResizeHandler.register(this, this._fnResizeListener);
+		}
+
+		if (isLightBoxIsHigherThanTheViewPort) {
+			this.getAggregation("_errorMessage").setIllustrationSize(IllustratedMessageSize.Auto);
+		}
+
+		if (this._bRestoreFocusAfterRendering && this.isOpen()) {
+			this._setInitialFocus();
+			this._bRestoreFocusAfterRendering = false;
 		}
 	};
 
@@ -398,6 +415,7 @@ sap.ui.define([
 
 		if (sNewState !== LightBoxLoadingStates.Loading && !this._isRendering) {
 			this.invalidate();
+			this._bRestoreFocusAfterRendering = true;
 		}
 	};
 
@@ -419,11 +437,29 @@ sap.ui.define([
 	 * @private
 	 */
 	LightBox.prototype._fnPopupOpened = function() {
+		this._setInitialFocus();
+
 		this._onResize();
 
 		jQuery("#sap-ui-blocklayer-popup").on("click", function() {
 			this.close();
 		}.bind(this));
+	};
+
+	/**
+	 * Sets initial focus on the first focusable element, preferring the close button if available.
+	 *
+	 * @private
+	 */
+	LightBox.prototype._setInitialFocus = function() {
+		const oCloseButton = this.getAggregation("_closeButton");
+		const oFocusableElement = oCloseButton && oCloseButton.getDomRef();
+
+		if (oFocusableElement) {
+			oCloseButton.focus();
+		} else {
+			this.$().firstFocusableDomRef()?.focus();
+		}
 	};
 
 	/**
@@ -703,10 +739,39 @@ sap.ui.define([
 	LightBox.prototype.onsapescape = function (oEvent) {
 		var sOpenState = this._oPopup.getOpenState();
 
-		if (sOpenState !== OpenState.CLOSED || sOpenState !== OpenState.CLOSING) {
+		if (sOpenState !== OpenState.CLOSED && sOpenState !== OpenState.CLOSING) {
 			this.close();
 			//event should not trigger any further actions
 			oEvent.stopPropagation();
+		}
+	};
+
+	/**
+	 * Event handler for the focus event.
+	 * Ensures focus stays trapped within the LightBox (modal behavior).
+	 * If it occurs on the invisible element at the beginning of the LightBox, the focus is set on the last focusable element of the LightBox, and vice versa.
+	 * @param {jQuery.Event} oEvent The event object
+	 * @private
+	 */
+	LightBox.prototype.onfocusin = function (oEvent) {
+		const oSourceDomRef = oEvent.target;
+
+		if (oSourceDomRef.id === this.getId() + "-firstfe") {
+			const oLastFocusableDomRef = this.$().lastFocusableDomRef();
+
+			if (oLastFocusableDomRef) {
+				oLastFocusableDomRef.focus();
+			}
+
+			return;
+		}
+
+		if (oSourceDomRef.id === this.getId() + "-lastfe") {
+			const oFirstFocusableDomRef = this.$().firstFocusableDomRef();
+
+			if (oFirstFocusableDomRef) {
+				oFirstFocusableDomRef.focus();
+			}
 		}
 	};
 

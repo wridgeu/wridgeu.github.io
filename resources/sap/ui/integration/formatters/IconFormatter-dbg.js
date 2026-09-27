@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/base/ManagedObject",
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/core/IconPool"
-], function (ManagedObject, Core, IconPool) {
+], function (ManagedObject, Element, IconPool) {
 	"use strict";
 
 	/**
@@ -41,10 +41,10 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @param {string} sUrl The URL to format.
-	 * @returns {string|Promise} The formatted URL or a Promise which resolves with the formatted url.
+	 * @returns {string} The formatted URL.
 	 */
 	IconFormatter.prototype.formatSrc = function (sUrl) {
-		if (!sUrl) {
+		if (!sUrl || !sUrl.trim()) {
 			return sUrl;
 		}
 
@@ -52,19 +52,24 @@ sap.ui.define([
 			return IconFormatter.SRC_FOR_HIDDEN_ICON;
 		}
 
+		if (sUrl === "sap-icon://") {
+			return "";
+		}
+
 		if (sUrl.startsWith("data:") || IconPool.isIconURI(sUrl)) {
 			return sUrl;
 		}
 
-		return this._format(sUrl);
-	};
+		if (!sUrl.includes("/") && !sUrl.includes(".") && !sUrl.startsWith("http")) {
+			return "";
+		}
 
-	IconFormatter.prototype._format = function (sUrl) {
-		return this._getCardInstance().getRuntimeUrl(sUrl);
+		const oCard = this._getCardInstance();
+		return oCard.resolveUrl(sUrl);
 	};
 
 	IconFormatter.prototype._getCardInstance = function () {
-		return Core.byId(this.getCard());
+		return Element.getElementById(this.getCard());
 	};
 
 	return IconFormatter;

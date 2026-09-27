@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,9 +14,99 @@ sap.ui.define([
 	"use strict";
 
 	/**
+	 * @typedef {sap.ui.core.format.NumberFormat.FormatOptions} sap.ui.model.odata.type.UnitFormatOptions
+	 *
+	 * Format options for the {@link sap.ui.model.odata.type.Unit}.
+	 *
+	 * @property {int} [decimals]
+	 *   The number of decimals to be used for formatting the numerical value of the unit composite type; if none of the
+	 *   format options <code>maxFractionDigits</code>, <code>minFractionDigits</code> or <code>decimals</code> are
+	 *   given, the following defaults apply:
+	 *   <ul>
+	 *      <li> <b>0</b> if the numerical value is of an OData integer type, i.e. {@link sap.ui.model.odata.type.Int}
+	 *        or {@link sap.ui.model.odata.type.Int64} </li>
+	 *      <li> the <b>scale constraint of the numerical value's type</b> if this type is
+	 *        {@link sap.ui.model.odata.type.Decimal} and the scale is not "variable" </li>
+	 *      <li> <b>3</b> otherwise </li>
+	 *   </ul>
+	 * @property {int} [decimalPadding]
+	 *   The target length of places after the decimal separator; if the number has fewer decimals than specified in
+	 *   this option, it is padded with whitespaces at the end up to the target length. An additional whitespace
+	 *   character for the decimal separator is added for a number without any decimals.
+	 *   <b>Note:</b> This format option is only allowed if the following conditions apply:
+	 *   <ul>
+	 *     <li>It has a value greater than 0</li>
+	 *     <li>The <code>oFormatOptions.style</code> format option is <b>not</b> set to <code>"short"</code> or
+	 *         <code>"long"</code></li>
+	 *   </ul>
+	 * @property {null|number|string} [emptyString]
+	 *   Defines how an empty string is parsed into the measure. With the default value
+	 *   <code>0</code> the measure becomes <code>0</code> when an empty string is parsed.
+	 * @property {int} [minFractionDigits]
+	 *   The minimal number of decimal digits.
+	 * @property {boolean} [parseAsString]
+	 *   Whether the measure is parsed to a string; set to <code>false</code> if the measure's
+	 *   underlying type is represented as a <code>number</code>, for example
+	 *   {@link sap.ui.model.odata.type.Int32}
+	 * @property {int} [precision]
+	 *   The maximum number of digits in the formatted representation of a number;
+	 *   if the <code>precision</code> is less than the overall length of the number, its fractional part is truncated
+	 *   through rounding. As the <code>precision</code> only affects the rounding of a number, its integer part can
+	 *   retain more digits than defined by this parameter.
+	 *   <b>Example:</b> With a <code>precision</code> of 2, <code>234.567</code> is formatted to <code>235</code>.
+	 *   <b>Note:</b> The formatted output may differ depending on locale.
+	 * @property {boolean} [preserveDecimals]
+	 *   By default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
+	 * @property {boolean} [showMeasure]
+	 *   Defines whether the unit of measure is shown in the formatted string, for example 1 day for locale "en"
+	 *   <pre><code>NumberFormat.getUnitInstance({showMeasure: true})
+	 *     .format(1, "duration-day"); // "1 day"</code></pre>
+	 *   <pre><code>NumberFormat.getUnitInstance({showMeasure: false})
+	 *     .format(1, "duration-day"); // "1"</code></pre>
+	 *   If both <code>showMeasure</code> and <code>showNumber</code> are set to false, an empty string is returned.
+	 * @property {boolean} [showNumber]
+	 *   Defines whether the number is shown as part of the formatted string, for example 1 day for locale "en"
+	 *   <pre><code>NumberFormat.getUnitInstance({showNumber: true})
+	 *     .format(1, "duration-day"); // "1 day"</code></pre>
+	 *   <pre><code>NumberFormat.getUnitInstance({showNumber: false})
+	 *     .format(1, "duration-day"); // "day"</code></pre>
+	 *   If both <code>showMeasure</code> and <code>showNumber</code> are false, an empty string is returned
+	 * @property {"short"|"long"|"standard"} [style]
+	 *   The style of format.
+	 *   When set to <code>short</code> or <code>long</code>, numbers are formatted into compact forms.
+	 *   When this option is set, the default value of the <code>precision</code> option is set to <code>2</code>.
+	 *   This can be changed by setting either <code>min/maxFractionDigits</code>,
+	 *   <code>decimals</code>, <code>shortDecimals</code>, or the <code>precision</code> option itself.
+	 * @property {boolean} [unitOptional]
+	 *   Whether the measure is parsed if no unit is entered; defaults to <code>true</code> if
+	 *   neither <code>showMeasure</code> nor <code>showNumber</code> is set to a falsy value,
+	 *   otherwise defaults to <code>false</code>
+	 *
+	 * @public
+	 */
+
+	/**
 	 * Constructor for a <code>Unit</code> composite type.
 	 *
-	 * @param {object} [oFormatOptions]
+	 * @param {sap.ui.model.odata.type.UnitFormatOptions} [oFormatOptions={
+	 *     emptyString: 0,
+	 *     groupingBaseSize: 3,
+	 *     groupingEnabled: true,
+	 *     groupingSize: 3,
+	 *     maxFractionDigits: 99,
+	 *     maxIntegerDigits: 99,
+	 *     minFractionDigits: 0,
+	 *     minIntegerDigits: 1,
+	 *     parseAsString: true,
+	 *     preserveDecimals: true,
+	 *     roundingMode: "HALF_AWAY_FROM_ZERO",
+	 *     showMeasure: true,
+	 *     showNumber: true,
+	 *     showScale: true,
+	 *     strictGroupingValidation: false,
+	 *     style: "standard"
+	 *   }]
 	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getUnitInstance}.
 	 *   Format options are immutable, that is, they can only be set once on construction. Format
 	 *   options that are not supported or have a different default are listed below. If the format
@@ -24,22 +114,6 @@ sap.ui.define([
 	 *   of measure are not propagated to the control if the corresponding binding supports the
 	 *   feature of ignoring messages, see {@link sap.ui.model.Binding#supportsIgnoreMessages}, and
 	 *   the corresponding binding parameter is not set manually.
-	 * @param {object} [oFormatOptions.customUnits]
-	 *   Not supported; the type derives this from its unit customizing part.
-	 * @param {boolean} [oFormatOptions.parseAsString=true]
-	 *   Whether the measure is parsed to a string; set to <code>false</code> if the measure's
-	 *   underlying type is represented as a <code>number</code>, for example
-	 *   {@link sap.ui.model.odata.type.Int32}
-	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
-	 *   By default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
-	 *   "short" or "long"; since 1.89.0
-	 * @param {boolean} [oFormatOptions.unitOptional]
-	 *   Whether the measure is parsed if no unit is entered; defaults to <code>true</code> if
-	 *   neither <code>showMeasure</code> nor <code>showNumber</code> is set to a falsy value,
-	 *   otherwise defaults to <code>false</code>
-	 * @param {any} [oFormatOptions.emptyString=0]
-	 *   Defines how an empty string is parsed into the measure. With the default value
-	 *   <code>0</code> the measure becomes <code>0</code> when an empty string is parsed.
 	 * @param {object} [oConstraints]
 	 *   Only the 'skipDecimalsValidation' constraint is supported. Constraints are immutable,
 	 *   that is, they can only be set once on construction.
@@ -47,8 +121,14 @@ sap.ui.define([
 	 *   Whether to skip validation of the number of decimals based on the code list customizing;
 	 *   since 1.93.0
 	 * @param {string[]} [aDynamicFormatOptionNames] Not supported
-	 * @throws {Error} If called with more parameters than <code>oFormatOptions</code> or if the
-	 *   format option <code>customUnits</code> is set
+	 * @throws {Error}
+	 *   If
+	 *   <ul>
+	 *     <li>More parameters than <code>oFormatOptions</code> and <code>oConstraints</code> are given</li>
+	 *     <li>The <code>customUnits</code> format option is set</li>
+	 *     <li>Any constraint other than <code>skipDecimalsValidation</code> is set</li>
+	 *     <li>The <code>oFormatOptions.decimalPadding</code> is set but is not allowed</li>
+	 *   </ul>
 	 *
 	 * @alias sap.ui.model.odata.type.Unit
 	 * @author SAP SE
@@ -66,7 +146,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.type.Unit
 	 * @public
 	 * @since 1.63.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 */
 	var Unit = BaseUnit.extend("sap.ui.model.odata.type.Unit", {
 		constructor : function (oFormatOptions, oConstraints, aDynamicFormatOptionNames) {
@@ -79,6 +159,29 @@ sap.ui.define([
 	/**
 	 * Formats the given values of the parts of the <code>Unit</code> composite type to the given
 	 * target type.
+	 *
+	 * If CLDR or custom units are used and the <code>preserveDecimals</code> format option is set to
+	 * <code>false</code>, the maximal number of decimal places for the numeric part of the
+	 * {@link sap.ui.model.odata.type.Unit} type depends on:
+	 *   <ul>
+	 *     <li>The <code>DecimalPlaces</code> property of the current unit code.
+	 *     <li>The <code>maxFractionDigits</code> format option of the {@link sap.ui.model.odata.type.Unit} type.
+	 *     <li>The <code>scale</code> constraint of the {@link sap.ui.model.odata.type.Decimal} type for the
+	 *       quantity part.
+	 *   </ul>
+	 *   The maximal number of decimal places is determined as follows:
+	 *   <ul>
+	 *     <li>If <code>maxFractionDigits</code> is provided and is less than the current unit code's
+	 *       <code>DecimalPlaces</code>, the <code>maxFractionDigits</code> is used to determine the
+	 *       number of decimal places. Conversely, if <code>DecimalPlaces</code> is less than
+	 *       <code>maxFractionDigits</code>, <code>DecimalPlaces</code> wins.
+	 *     <li>If <code>maxFractionDigits</code> is not provided, the <code>DecimalPlaces</code> of the current unit
+	 *       code is applied, unless it is greater than the <code>scale</code> of the
+	 *       {@link sap.ui.model.odata.type.Decimal} type for the numeric part, in which case <code>scale</code> wins.
+	 *     <li>A <code>scale='variable'</code> is treated as being always greater than the <code>DecimalPlaces</code>
+	 *       of the current unit code. In this case, the <code>DecimalPlaces</code> of the current unit code is
+	 *       applied.
+	 *   </ul>
 	 *
 	 * @param {any[]} aValues
 	 *   Array of part values to be formatted; contains in the following order: measure, unit,
@@ -116,7 +219,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.Unit"}
 	 *   The type's name
 	 *
 	 * @public

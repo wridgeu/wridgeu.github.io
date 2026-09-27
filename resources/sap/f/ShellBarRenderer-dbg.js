@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,6 +39,7 @@ function() {
 					.class("sapFShellBarTitleHidden")
 					.attr("role", "heading")
 					.attr("aria-level", "1")
+					.attr("aria-hidden", "true")
 					.openEnd();
 
 				oRm.text(sTitle).close("div");
@@ -50,10 +51,10 @@ function() {
 				oControl._aLeftControls.forEach(oRm.renderControl, oRm);
 
 				oRm.close("div");
-
 			}
-			if (oControl._oCopilot) {
-				oRm.renderControl(oControl._oCopilot);
+
+			if (oControl._oManagedSearch && oControl.sCurrentRange === "ExtraLargeDesktop") {
+				oRm.renderControl(oControl._oManagedSearch);
 			}
 
 			if (oControl._aRightControls && oControl._aRightControls.length) {

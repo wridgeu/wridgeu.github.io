@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -10,13 +10,13 @@ sap.ui.define([
 	"use strict";
 
 	// shortcut for sap.ui.unified.CalendarAppointmentRoundWidth
-	var CalendarAppointmentRoundWidth = library.CalendarAppointmentRoundWidth;
+	const CalendarAppointmentRoundWidth = library.CalendarAppointmentRoundWidth;
 
 	/**
 	 * PlanningCalendar renderer.
 	 * @namespace
 	 */
-	var PlanningCalendarRenderer = {
+	const PlanningCalendarRenderer = {
 		apiVersion: 2
 	};
 
@@ -28,9 +28,10 @@ sap.ui.define([
 	 */
 	PlanningCalendarRenderer.render = function(oRm, oPC){
 
-		var sId = oPC.getId();
-		var sTooltip = oPC.getTooltip_AsString();
-		var oHeader = oPC._getHeader();
+		const sId = oPC.getId();
+		const sTooltip = oPC.getTooltip_AsString();
+		const oHeader = oPC._getHeader();
+		const sTitleId = oHeader.getTitle().getId();
 
 		oRm.openStart("div", oPC);
 		oRm.class("sapMPlanCal");
@@ -38,7 +39,7 @@ sap.ui.define([
 			role: "region",
 			roledescription: oPC._oRB.getText("PLANNINGCALENDAR"),
 			labelledby: {
-				value: oHeader.getId() + "-Title",
+				value: sTitleId,
 				append: true
 			}
 		});
@@ -70,12 +71,12 @@ sap.ui.define([
 			oRm.attr('title', sTooltip);
 		}
 
-		var sWidth = oPC.getWidth();
+		const sWidth = oPC.getWidth();
 		if (sWidth) {
 			oRm.style("width", sWidth);
 		}
 
-		var sHeight = oPC.getHeight();
+		const sHeight = oPC.getHeight();
 		if (sHeight) {
 			oRm.style("height", sHeight);
 		}
@@ -85,10 +86,10 @@ sap.ui.define([
 
 		oRm.renderControl(oHeader);
 
-		var oTable = oPC.getAggregation("table");
+		const oTable = oPC.getAggregation("table");
 		oRm.renderControl(oTable);
 
-		var sAriaText = oPC._oRB.getText("PLANNINGCALENDAR");
+		let sAriaText = oPC._oRB.getText("PLANNINGCALENDAR");
 		oRm.openStart("span", sId + "-Descr");
 		oRm.class("sapUiInvisibleText");
 		oRm.openEnd(); //span

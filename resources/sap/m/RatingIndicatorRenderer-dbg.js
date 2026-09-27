@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(
-	["sap/ui/core/IconPool", "sap/ui/Device", "sap/ui/core/Core", "sap/ui/core/Configuration"],
-	function(IconPool, Device, Core, Configuration) {
+	["sap/ui/core/IconPool", "sap/ui/Device", "sap/ui/core/Theming", "sap/ui/core/Lib"],
+	function(IconPool, Device, Theming, Library) {
 		"use strict";
 
 		/* =========================================================== */
@@ -23,13 +23,13 @@ sap.ui.define(
 			sIconSizeMeasure = "px";
 
 		// shortcut for library resource bundle
-		var oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+		var oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		/**
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.n.RatingIndicator} oControl an object representation of the control that should be rendered
+		 * @param {sap.m.RatingIndicator} oControl an object representation of the control that should be rendered
 		 */
 		RatingIndicatorRenderer.render = function(oRm, oControl) {
 			var that = this;
@@ -52,8 +52,7 @@ sap.ui.define(
 
 			oRm.style("width", this._iWidth + "px");
 			oRm.style("font-size", this._iHeight + "px");
-			oRm.style("height", ++this._iHeight + "px"); 		// We add 1 additional pixel to avoid the icon issue in the Horizon theme
-			oRm.style("line-height", ++this._iHeight + "px");	// which is rendered bigger than its font size ang gets cut off
+			oRm.style("line-height", ++this._iHeight + "px");
 
 
 			if (bEnabled && !bDisplayOnly) {
@@ -74,7 +73,10 @@ sap.ui.define(
 			}
 
 			oRm.class("sapMRI");
-			oRm.class("sapUiRatingIndicator" + oControl._getIconSizeLabel(this._fIconSize));
+
+			if (oControl.getIconSize()) {
+				oRm.class("sapUiRatingIndicator" + oControl._getIconSizeLabel(this._fIconSize));
+			}
 
 			if (oControl._isRequired()) {
 				oRm.attr("aria-description", oResourceBundle.getText("ELEMENT_REQUIRED"));
@@ -194,47 +196,25 @@ sap.ui.define(
 		};
 
 		RatingIndicatorRenderer.renderIcon = function(iconType, oRm, oControl, iValue) {
-			var sIconURI = this.getIconURI(iconType, oControl),
-				sTagName = this.getIconTag(sIconURI),
-				bIsIconURI = IconPool.isIconURI(sIconURI),
+			var sIconURI = this.getIconURI(iconType, oControl, iValue),
 				sSize = this._fIconSize + sIconSizeMeasure;
-
-			if (sTagName === "img") {
-				oRm.voidStart(sTagName);
-			} else {
-				oRm.openStart(sTagName);
-			}
 
 			if (iconType === "UNSELECTED" && !oControl.getEditable()) {
 				iconType = "READONLY";
 			}
 
-			oRm.class("sapUiIcon");
-			oRm.class(this.getIconClass(iconType));
+			const aClasses = [this.getIconClass(iconType)];
 
 			if (iValue >= Math.ceil(oControl.getValue())) {
-				oRm.class("sapMRIunratedIcon");
+				aClasses.push("sapMRIunratedIcon");
 			}
 
-			oRm.style("width", sSize);
-			oRm.style("height", sSize);
-			oRm.style("line-height", sSize);
-			oRm.style("font-size", sSize);
-
-			if (!bIsIconURI) {
-				oRm.attr("src", sIconURI);
-			}
-
-			if (sTagName === "img") {
-				oRm.voidEnd();
-			} else {
-				oRm.openEnd();
-
-				if (bIsIconURI) {
-					oRm.text(IconPool.getIconInfo(sIconURI).content);
-				}
-				oRm.close(sTagName);
-			}
+			oRm.icon(sIconURI, aClasses, {}, {
+				width: sSize,
+				height: sSize,
+				"line-height": sSize,
+				"font-size": sSize
+			});
 		};
 
 		RatingIndicatorRenderer.getIconClass = function(iconType) {
@@ -250,12 +230,18 @@ sap.ui.define(
 			}
 		};
 
-		RatingIndicatorRenderer.getIconURI = function(sState, oControl) {
+		RatingIndicatorRenderer.getIconURI = function(sState, oControl, iValue) {
+			var bIsHalfRatedIcon = isHalfRatedIcon(oControl, iValue);
+
 			if (
-				Configuration
+				Theming
 					.getTheme() === "sap_hcb"
 			) {
 				if (sState === "UNSELECTED" && (oControl.getEnabled() && !oControl.getDisplayOnly())) {
+					return IconPool.getIconURI("unfavorite");
+				}
+
+				if (sState === "UNSELECTED" && bIsHalfRatedIcon) {
 					return IconPool.getIconURI("unfavorite");
 				}
 
@@ -268,13 +254,25 @@ sap.ui.define(
 				case "UNSELECTED":
 					if (oControl.getEditable() && !oControl.getDisplayOnly() && oControl.getEnabled()) {
 						return oControl.getIconUnselected() || IconPool.getIconURI("unfavorite");
+					} else if (bIsHalfRatedIcon) {
+						return oControl.getIconUnselected() || IconPool.getIconURI("unfavorite");
 					} else {
 						return oControl.getIconUnselected() || IconPool.getIconURI("favorite");
 					}
 				case "HOVERED":
 					return oControl.getIconHovered() || IconPool.getIconURI("favorite");
+				default:
+					return IconPool.getIconURI("favorite");
 			}
 		};
+
+		function isHalfRatedIcon(oControl, iValue) {
+			if (typeof iValue !== "number") {
+				return false;
+			}
+			var fValue = oControl._roundValueToVisualMode(oControl.getValue());
+			return (fValue * 2) % 2 === 1 && iValue === Math.floor(fValue);
+		}
 
 		RatingIndicatorRenderer.getIconTag = function(sIconURI) {
 			if (IconPool.isIconURI(sIconURI)) {

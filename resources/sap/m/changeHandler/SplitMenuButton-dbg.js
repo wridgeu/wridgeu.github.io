@@ -1,7 +1,7 @@
 /* eslint-disable max-nested-callbacks */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,8 +20,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.m.changeHandler.SplitMenuButton
 	 * @author SAP SE
-	 * @version 1.120.0
-	 * @experimental Since 1.48
+	 * @version 1.152.0
 	 */
 	var SplitMenuButton = {};
 
@@ -146,10 +145,8 @@ sap.ui.define([
 							});
 						})
 						.then(function(){
-							return oModifier.attachEvent(
-								oButton,
+							oButton.attachEvent(
 								"press",
-								"sap.m.changeHandler.SplitMenuButton.pressHandler",
 								{
 									selector: oModifier.getSelector(oMenuItem, oAppComponent),
 									appComponentId: oAppComponent.getId(),
@@ -157,8 +154,6 @@ sap.ui.define([
 								},
 								SplitMenuButton.pressHandler
 							);
-						})
-						.then(function(){
 							return oModifier.insertAggregation(oParent, sParentAggregation, oButton, iAggregationIndex + iIndex, oView);
 						});
 				}, Promise.resolve());
@@ -227,21 +222,21 @@ sap.ui.define([
 	 * @public
 	 */
 	SplitMenuButton.completeChangeContent = function(oChange, oSpecificChangeInfo, mPropertyBag) {
-		var oModifier = mPropertyBag.modifier;
-		var oAppComponent = mPropertyBag.appComponent;
+		const oModifier = mPropertyBag.modifier;
+		const oAppComponent = mPropertyBag.appComponent;
 
-		if (!oSpecificChangeInfo.newElementIds) {
-			throw new Error("Split of MenuButton cannot be applied : oSpecificChangeInfo.newElementIds attribute required");
+		if (!oSpecificChangeInfo.content?.newElementIds) {
+			throw new Error("Split of MenuButton cannot be applied : oSpecificChangeInfo.content.newElementIds attribute required");
 		}
 
-		if (!oSpecificChangeInfo.sourceControlId) {
-			throw new Error("Split of MenuButton cannot be applied : oSpecificChangeInfo.sourceControlId attribute required");
+		if (!oSpecificChangeInfo.content.sourceControlId) {
+			throw new Error("Split of MenuButton cannot be applied : oSpecificChangeInfo.content.sourceControlId attribute required");
 		}
 
-		oChange.addDependentControl(oSpecificChangeInfo.sourceControlId, SOURCE_CONTROL, mPropertyBag);
-		var oContent = {};
-		oContent.sourceSelector = oModifier.getSelector(oSpecificChangeInfo.sourceControlId, oAppComponent);
-		oContent.newElementIds = oSpecificChangeInfo.newElementIds.map(function (sElementId) {
+		oChange.addDependentControl(oSpecificChangeInfo.content.sourceControlId, SOURCE_CONTROL, mPropertyBag);
+		const oContent = {};
+		oContent.sourceSelector = oModifier.getSelector(oSpecificChangeInfo.content.sourceControlId, oAppComponent);
+		oContent.newElementIds = oSpecificChangeInfo.content.newElementIds.map(function (sElementId) {
 			return oModifier.getSelector(sElementId, oAppComponent);
 		});
 		oChange.setContent(oContent);
@@ -257,7 +252,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.Control} mParameters.menu
 	 */
 	SplitMenuButton.pressHandler = function (oEvent, mParameters) {
-		var oMenuItem = JsControlTreeModifier.bySelector(mParameters.selector, Component.get(mParameters.appComponentId));
+		var oMenuItem = JsControlTreeModifier.bySelector(mParameters.selector, Component.getComponentById(mParameters.appComponentId));
 		oMenuItem.firePress();
 
 		mParameters.menu.fireItemSelected({ item: oMenuItem });

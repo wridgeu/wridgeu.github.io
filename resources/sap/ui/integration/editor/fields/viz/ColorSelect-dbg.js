@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -21,9 +21,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.viz.ColorSelect
 	 * @author SAP SE
 	 * @since 1.84.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.84.0
 	 * @ui5-restricted
 	 */
 	var ColorSelect = VizBase.extend("sap.ui.integration.editor.fields.viz.ColorSelect", {
@@ -107,7 +106,6 @@ sap.ui.define([
 		}
 	}
 	setEnumColors();
-	Core.attachThemeChanged(setEnumColors);
 
 	var oCurrentInstance,
 		oColorPalette = new ColorPalettePopover("oColorPalettePopoverFull", {
@@ -130,6 +128,13 @@ sap.ui.define([
 			}.bind(this)
 		});
 		this._colorValue = "transparent";
+	};
+
+	/**
+	 * attach theme changes
+	 */
+	ColorSelect.prototype.onThemeChanged = function () {
+		setEnumColors();
 	};
 
 	// add style class to the render manager
@@ -162,9 +167,8 @@ sap.ui.define([
 	};
 
 	ColorSelect.prototype.setEnumValue = function (sValue) {
-		this.setProperty("enumValue", sValue, true);
+		this.setProperty("enumValue", sValue);
 		this._colorValue = mEnumColors[this.getColorEnum()][sValue];
-		this.rerender();
 	};
 
 	// bind propeties to this._oControl

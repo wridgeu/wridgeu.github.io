@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -25,6 +25,19 @@ sap.ui.define([
 	"use strict";
 
 	/**
+	 * Workaround for ticket DINC0196232
+	 * @param {string} sString The string to test.
+	 * @returns {boolean} True if size formatter is used
+	 */
+	function containsSizeFormatter(sString) {
+		if (typeof sString !== "string") {
+			return false;
+		}
+
+		return /\Wsize\(/.test(sString);
+	}
+
+	/**
 	 * Matches cards placeholders like "{{parameters.param1}}". It checks for two opening braces and two closing braces.
 	 * Does not match the framework's binding syntax: "{= ${url}}".
 	 *
@@ -42,7 +55,7 @@ sap.ui.define([
 	 * Helper class for working with bindings.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.BindingHelper
@@ -55,6 +68,7 @@ sap.ui.define([
 	var mFormatters = {
 		date: DateTimeFormatter.date,
 		dateTime: DateTimeFormatter.dateTime,
+		dateTimeWithTimezone: DateTimeFormatter.dateTimeWithTimezone,
 		currency: NumberFormatter.currency,
 		"float": NumberFormatter.float,
 		integer: NumberFormatter.integer,
@@ -79,7 +93,7 @@ sap.ui.define([
 	BindingHelper.extractBindingInfo = function (vValue, mLocalBindingNamespaces) {
 		vValue = BindingHelper.escapeCardPlaceholders(vValue);
 
-		return BindingParser.complexParser(
+		let vResult = BindingParser.complexParser(
 			vValue,
 			undefined, // oContext
 			true, // bUnescape - when set to 'true' expressions that don't contain bindings are also resolved, else they are treated as strings (needed to resolve expression binding)
@@ -88,6 +102,27 @@ sap.ui.define([
 			undefined, // bPreferContext
 			extend({}, BindingHelper.mLocals, mLocalBindingNamespaces) // mLocals - functions which will be used in expression binding
 		);
+
+		// Workaround for ticket DINC0196232
+		// 'true' should be true, 'false' -> false, '42' should be 42
+		if (containsSizeFormatter(vValue)) {
+			const vOriginalResult = vResult;
+
+			if (vOriginalResult === "true") {
+				vResult = true;
+			} else if (vOriginalResult === "false") {
+				vResult = false;
+			} else if (vOriginalResult === "null") {
+				vResult = null;
+			} else if (vOriginalResult === "undefined") {
+				vResult = undefined;
+			} else if (!Number.isNaN(Number(vOriginalResult))) {
+				vResult = Number(vOriginalResult);
+			}
+		}
+		// End of workaround
+
+		return vResult;
 	};
 
 	/**
@@ -123,6 +158,12 @@ sap.ui.define([
 
 		if (typeof vItem === "string") {
 			var oBindingInfo = BindingHelper.extractBindingInfo(vItem, mLocalBindingNamespaces);
+
+			// Workaround for ticket DINC0196232
+			if (containsSizeFormatter(vItem)) {
+				return oBindingInfo;
+			}
+			// End of workaround
 
 			return BindingHelper.escapeParametersAndDataSources(oBindingInfo || vItem);
 		}
@@ -199,7 +240,13 @@ sap.ui.define([
 	};
 
 	BindingHelper.isAbsolutePath = function (sPath) {
-		return sPath.startsWith("/");
+		const aParts = sPath.split(">");
+
+		if (aParts.length > 1) {
+			return aParts[1].startsWith("/");
+		}
+
+		return aParts[0].startsWith("/");
 	};
 
 	/**
@@ -216,8 +263,8 @@ sap.ui.define([
 		if (BindingHelper.isBindingInfo(vItem)) {
 			var oBindingInfoClone = extend({}, vItem);
 
-			if (oBindingInfoClone.path && !this.isAbsolutePath(oBindingInfoClone.path)) {
-				oBindingInfoClone.path = sPath + "/" + oBindingInfoClone.path;
+			if (oBindingInfoClone.path) {
+				oBindingInfoClone.path = BindingHelper.prependPath(oBindingInfoClone.path, sPath);
 			}
 
 			if (oBindingInfoClone.parts) {
@@ -246,6 +293,34 @@ sap.ui.define([
 		}
 
 		return vItem;
+	};
+
+	/**
+	 * Prepends path with root path, depending on the model name.
+	 * @param {string} sPath The path to prepend.
+	 * @param {string} sRootPath The root path to prepend to the given path.
+	 * @returns {string} The full path with the root path prepended.
+	 */
+	BindingHelper.prependPath = function (sPath, sRootPath) {
+		if (typeof sPath !== "string") {
+			return sPath;
+		}
+
+		const sModelName = BindingHelper.getModelName(sPath);
+		let sFullPath = sPath;
+
+		if (sPath === "" || BindingHelper.getModelName(sRootPath) === sModelName && !BindingHelper.isAbsolutePath(sPath)) {
+			let sPathErasedModelName = sPath;
+
+			if (sModelName) {
+				sPathErasedModelName = sPath.replace(new RegExp("^" + sModelName + ">"), "");
+			}
+
+			const _sRootPath = sRootPath.endsWith("/") ? sRootPath : sRootPath + "/";
+			sFullPath = _sRootPath + sPathErasedModelName;
+		}
+
+		return sFullPath;
 	};
 
 	/**
@@ -298,6 +373,89 @@ sap.ui.define([
 		}
 
 		return oObj.hasOwnProperty("path") || (oObj.hasOwnProperty("parts") && (oObj.hasOwnProperty("formatter") || oObj.hasOwnProperty("binding")));
+	};
+
+	/**
+	 * Detects the malformed binding info shape produced by <code>BindingParser.complexParser</code>
+	 * when it misreads a stringified-JSON leaf as a composite binding: a <code>{parts, formatter}</code>
+	 * wrapper whose parts lack <code>path</code>, <code>parts</code>, and <code>value</code>.
+	 *
+	 * Returns false for anything that is not a binding info, so plain data with a <code>parts</code>
+	 * array is never flagged.
+	 *
+	 * @param {*} vValue Any resolved value.
+	 * @returns {boolean} True if <code>vValue</code> is a binding info and at least one part is malformed.
+	 */
+	BindingHelper.isMalformedBindingInfo = function (vValue) {
+		if (!BindingHelper.isBindingInfo(vValue) || !Array.isArray(vValue.parts)) {
+			return false;
+		}
+
+		return vValue.parts.some(function (oPart) {
+			if (!oPart || typeof oPart !== "object") {
+				return true;
+			}
+			return typeof oPart.path !== "string"
+				&& !Array.isArray(oPart.parts)
+				&& typeof oPart.value === "undefined";
+		});
+	};
+
+	/**
+	 * Walks <code>vValue</code> and returns the path of the first malformed binding info, or null.
+	 *
+	 * The path is informational (for an error message), not a strict JSON Pointer:
+	 * keys containing <code>/</code> or <code>~</code> are not RFC 6901 escaped.
+	 *
+	 * @param {*} vValue Any resolved value.
+	 * @param {string} [sPath=""] Internal path accumulator.
+	 * @returns {string|null} Path of the first malformed binding info, or null.
+	 */
+	BindingHelper.findMalformedBindingInfoPath = function (vValue, sPath = "") {
+		if (BindingHelper.isMalformedBindingInfo(vValue)) {
+			return sPath || "/";
+		}
+
+		if (Array.isArray(vValue)) {
+			for (let iIndex = 0; iIndex < vValue.length; iIndex++) {
+				const sFoundInArray = BindingHelper.findMalformedBindingInfoPath(vValue[iIndex], sPath + "/" + iIndex);
+				if (sFoundInArray) {
+					return sFoundInArray;
+				}
+			}
+			return null;
+		}
+
+		if (vValue && typeof vValue === "object") {
+			const aKeys = Object.keys(vValue);
+			for (let iIndex = 0; iIndex < aKeys.length; iIndex++) {
+				const sKey = aKeys[iIndex];
+				// skip the parts array of a legitimate binding info
+				if (sKey === "parts" && BindingHelper.isBindingInfo(vValue)) {
+					continue;
+				}
+				const sFoundInObject = BindingHelper.findMalformedBindingInfoPath(vValue[sKey], sPath + "/" + sKey);
+				if (sFoundInObject) {
+					return sFoundInObject;
+				}
+			}
+		}
+
+		return null;
+	};
+
+	BindingHelper.getModelName = function (sPath) {
+		if (typeof sPath !== "string") {
+			return undefined;
+		}
+
+		const aParts = sPath.split(">");
+
+		if (aParts.length > 1) {
+			return aParts[0].trim();
+		}
+
+		return undefined;
 	};
 
 	return BindingHelper;

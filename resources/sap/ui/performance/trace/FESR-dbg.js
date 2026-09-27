@@ -1,21 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
  /*global WeakMap */
 
 sap.ui.define([
-	'sap/ui/thirdparty/URI',
+	"sap/base/config",
 	'sap/ui/Device',
 	'sap/ui/performance/trace/Passport',
 	'sap/ui/performance/trace/Interaction',
+	'sap/ui/performance/FetchInterceptor',
 	'sap/ui/performance/XHRInterceptor',
 	'sap/ui/performance/BeaconRequest',
+	'sap/ui/util/isCrossOriginURL',
 	'sap/base/util/Version'
-], function (URI, Device, Passport, Interaction, XHRInterceptor, BeaconRequest, Version) {
+], function (BaseConfig, Device, Passport, Interaction, FetchInterceptor, XHRInterceptor, BeaconRequest, isCrossOriginURL, Version) {
 	"use strict";
+
+	const sIntegrationEnvironment = BaseConfig.get({
+		name: "sapUiFesrEnv",
+		type: BaseConfig.Type.String,
+		external: true
+	});
 
 	// activation by meta tag or url parameter as fallback
 	var bFesrActive = false,
@@ -23,9 +31,8 @@ sap.ui.define([
 		oBeaconRequest,
 		iBeaconTimeoutID,
 		ROOT_ID = Passport.getRootId(), // static per session
-		HOST = window.location.host, // static per session
 		CLIENT_OS = Device.os.name + "_" + Device.os.version,
-		CLIENT_MODEL = Device.browser.name + "_" + Device.browser.version,
+		CLIENT_MODEL = `${Device.browser.reportingName}_${Device.browser.version}${sIntegrationEnvironment ? ":" + sIntegrationEnvironment : ""}`,
 		CLIENT_DEVICE = setClientDevice(),
 		sAppVersion = "", // shortened app version with fesr delimiter e.g. "@1.7.1"
 		sAppVersionFull = "", // full app version e.g. 1.7.1-SNAPSHOT
@@ -56,16 +63,10 @@ sap.ui.define([
 		return oDate.toISOString().replace(/[^\d]/g, '');
 	}
 
-	function isCORSRequest(sUrl) {
-		var sHost = new URI(sUrl).host();
-		// url is relative or with same host
-		return sHost && sHost !== HOST;
-	}
-
-	function passportHeaderOverride() {
+	function passportHeaderOverride(sUrl, fnUpdateHeader) {
 
 		// only use Passport for non CORS requests
-		if (!isCORSRequest(arguments[1])) {
+		if (!isCrossOriginURL(sUrl)) {
 
 			// use the first request of an interaction as FESR TransactionID
 			if (!sFESRTransactionId) {
@@ -81,7 +82,7 @@ sap.ui.define([
 			);
 
 			// set passport with Root Context ID, Transaction ID, Component Info, Action
-			this.setRequestHeader("SAP-PASSPORT", sPassportHeader);
+			fnUpdateHeader("SAP-PASSPORT", sPassportHeader);
 			wmPassportHeader.set(this, sPassportHeader);
 		}
 	}
@@ -90,18 +91,15 @@ sap.ui.define([
 	 * Sends the FESR header when using the piggyback aproach
 	 * @private
 	 */
-	function fesrHeaderOverride() {
+	function fesrHeaderOverride(sUrl, fnUpdateHeader) {
 
 		// only use FESR for non CORS requests
-		if (!isCORSRequest(arguments[1])) {
-
-			if (sFESR && sFESRopt) {
-				this.setRequestHeader("SAP-Perf-FESRec", sFESR);
-				this.setRequestHeader("SAP-Perf-FESRec-opt", sFESRopt);
-				sFESR = null;
-				sFESRopt = null;
-				sFESRTransactionId = Passport.getTransactionId();
-			}
+		if (!isCrossOriginURL(sUrl) && sFESR && sFESRopt) {
+			fnUpdateHeader("SAP-Perf-FESRec", sFESR);
+			fnUpdateHeader("SAP-Perf-FESRec-opt", sFESRopt);
+			sFESR = null;
+			sFESRopt = null;
+			sFESRTransactionId = Passport.getTransactionId();
 		}
 	}
 
@@ -142,7 +140,7 @@ sap.ui.define([
 			formatInt(oInteraction.busyDuration, 4), // extension_1 - busy duration
 			formatInt(oFESRHandle.interactionType || 0, 4), // extension_2 - type of interaction: 0 = not implemented, 1 = app start, 2 = follow up step, 3 = unknown
 			format(CLIENT_DEVICE, 1), // extension_3 - client device
-			"", // extension_4
+			formatInt(oInteraction.legacyDuration, 10), // extension_4
 			format(formatInteractionStartTimestamp(oInteraction.start), 20), // extension_5 - interaction start time
 			format(oFESRHandle.appNameLong, 70, true) // application_name with 70 characters, trimmed from left
 		].join(",");
@@ -204,6 +202,9 @@ sap.ui.define([
 
 	function onInteractionFinished(oFinishedInteraction) {
 		if (oFinishedInteraction) {
+			// add root context ID to Interaction;
+			oFinishedInteraction.rootId = Passport.getRootId();
+
 			var sStepName = oFinishedInteraction.semanticStepName ? oFinishedInteraction.semanticStepName : oFinishedInteraction.trigger + "_" + oFinishedInteraction.event;
 			var oFESRHandle = FESR.onBeforeCreated({
 				stepName: sStepName,
@@ -290,32 +291,69 @@ sap.ui.define([
 	/**
 	 * @param {boolean} bActive State of the FESR header creation
 	 * @param {string} [sUrl] beacon url
+	 * @returns {Promise} Resolves when FESR is active
 	 * @private
 	 * @ui5-restricted sap.ui.core
 	 */
-	FESR.setActive = function (bActive, sUrl) {
+	FESR.setActive = async function (bActive, sUrl) {
 		if (bActive && !bFesrActive) {
 			oBeaconRequest = sUrl ? BeaconRequest.isSupported() && new BeaconRequest({url: sUrl}) : null;
 			sBeaconURL = sUrl;
 			bFesrActive = true;
+			await Interaction.setActive(true);
+			// activate passport after Interaction is ready to make the XHRInterceptor work properly. The Interceptor needs a pending interaction to work.
 			Passport.setActive(true);
-			Interaction.setActive(true);
-			XHRInterceptor.register("PASSPORT_HEADER", "open", passportHeaderOverride);
+			XHRInterceptor.register("PASSPORT_HEADER", "open", function() {
+				passportHeaderOverride.call(this, arguments[1], (sHeaderName, sValue) => {
+					this.setRequestHeader(sHeaderName, sValue);
+				});
+			});
+			FetchInterceptor.register("PASSPORT_HEADER", {
+				onRequest(oRequest) {
+					passportHeaderOverride.call(oRequest, oRequest.url, (sHeaderName, sValue) => {
+						oRequest.headers.append(sHeaderName, sValue);
+					});
+				}
+			});
 			if (!oBeaconRequest) {
-				XHRInterceptor.register("FESR", "open" , fesrHeaderOverride);
+				XHRInterceptor.register("FESR", "open" , function() {
+					fesrHeaderOverride(arguments[1], (sHeaderName, sValue) => {
+						this.setRequestHeader(sHeaderName, sValue);
+					});
+				});
+				FetchInterceptor.register("FESR", {
+					onRequest(oRequest) {
+						fesrHeaderOverride(oRequest.url, (sHeaderName, sValue) => {
+							oRequest.headers.append(sHeaderName, sValue);
+						});
+					}
+				});
 			}
-			Interaction.onInteractionStarted = onInteractionStarted;
-			Interaction.onInteractionFinished = onInteractionFinished;
-			Interaction.passportHeader = wmPassportHeader;
+			Interaction.setFESR(FESR);
+			await Device.os.getPlatformInfo().then((platform) => {
+				CLIENT_OS = `${platform.name}_${platform.version}`;
+			});
 		} else if (!bActive && bFesrActive) {
 			bFesrActive = false;
-			Interaction.setActive(false);
+			await Interaction.setActive(false);
 			XHRInterceptor.unregister("FESR", "open");
+			FetchInterceptor.unregister("FESR", "onRequest");
 			// passport stays active so far
 			if (XHRInterceptor.isRegistered("PASSPORT_HEADER", "open")) {
 				XHRInterceptor.register("PASSPORT_HEADER", "open", function() {
-					// set passport with Root Context ID, Transaction ID for Trace
-					this.setRequestHeader("SAP-PASSPORT", Passport.header(Passport.traceFlags(), ROOT_ID, Passport.getTransactionId()));
+					if (!isCrossOriginURL(arguments[1])) {
+						// set passport with Root Context ID, Transaction ID for Trace
+						this.setRequestHeader("SAP-PASSPORT", Passport.header(Passport.traceFlags(), ROOT_ID, Passport.getTransactionId()));
+					}
+				});
+			}
+			if (FetchInterceptor.isRegistered("PASSPORT_HEADER", "onRequest")) {
+				FetchInterceptor.register("PASSPORT_HEADER", {
+					onRequest(oRequest) {
+						if (!isCrossOriginURL(oRequest.url)) {
+							oRequest.headers.append("SAP-PASSPORT", Passport.header(Passport.traceFlags(), ROOT_ID, Passport.getTransactionId()));
+						}
+					}
 				});
 			}
 			if (oBeaconRequest) {
@@ -325,8 +363,7 @@ sap.ui.define([
 				oBeaconRequest = null;
 				sBeaconURL = null;
 			}
-			Interaction.onInteractionFinished = null;
-			Interaction.onInteractionStarted = null;
+			Interaction.setFESR(null);
 		}
 	};
 
@@ -361,6 +398,10 @@ sap.ui.define([
 			interactionType: oFESRHandle.interactionType
 		};
 	};
+
+	FESR.onInteractionStarted = onInteractionStarted;
+	FESR.onInteractionFinished = onInteractionFinished;
+	FESR.passportHeader = wmPassportHeader;
 
 	return FESR;
 });

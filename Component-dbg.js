@@ -1,5 +1,3 @@
-"use strict";
-
 sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sap/ui/core/ComponentSupport", "sap/ui/core/date/Gregorian"], function (UIComponent, Device, __deviceModelCreator, sap_ui_core_ComponentSupport, sap_ui_core_date_Gregorian) {
   "use strict";
 
@@ -27,6 +25,13 @@ sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/Device", "./model/models", "sa
       // set the device model
       this.setModel(deviceModelCreator(), "device");
     },
+    /**
+     * This method can be called to determine whether the sapUiSizeCompact or sapUiSizeCozy
+     * design mode class should be set, which influences the size appearance of some controls.
+     *
+     * @public
+     * @return {string} css class, either 'sapUiSizeCompact' or 'sapUiSizeCozy' - or an empty string if no css class should be set
+     */
     getContentDensityClass: function _getContentDensityClass() {
       if (this._contentDensityClass === undefined) {
         // check whether FLP has already set the content density class; do nothing in this case

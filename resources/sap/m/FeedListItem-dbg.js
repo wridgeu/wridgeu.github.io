@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,8 +17,9 @@ sap.ui.define([
 	"sap/m/AvatarShape",
 	"sap/m/AvatarSize",
 	"sap/ui/util/openWindow",
-	"sap/ui/core/Configuration",
-	"sap/ui/core/Lib"
+	"sap/ui/core/Lib",
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Element"
 ],
 function(
 	ListItemBase,
@@ -33,8 +34,9 @@ function(
 	AvatarShape,
 	AvatarSize,
 	openWindow,
-	Configuration,
-	CoreLib
+	CoreLib,
+	InvisibleText,
+	Element
 	) {
 	"use strict";
 
@@ -56,11 +58,12 @@ function(
 	 * @class
 	 * The control provides a set of properties for text, sender information, time stamp.
 	 * Beginning with release 1.23 the new feature expand / collapse was introduced, which uses the property maxCharacters.
-	 * Beginning with release 1.44, sap.m.FormattedText was introduced which allows html formatted text to be displayed
+	 * Beginning with release 1.44, sap.m.FormattedText was introduced which allows html formatted text to be displayed.
+	 * The <code>actions</code> aggregation must contain instances of {@link sap.m.FeedListItemAction} in order to display them in a menu.
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -178,16 +181,14 @@ function(
 				/**
 				 * The expand and collapse feature is set by default and uses 300 characters on mobile devices and 500 characters on desktops as limits. Based on these values, the text of the FeedListItem is collapsed once text reaches these limits. In this case, only the specified number of characters is displayed. By clicking on the text link More, the entire text can be displayed. The text link Less collapses the text. The application is able to set the value to its needs.
 				 */
-				maxCharacters: {type: "int", group: "Behavior", defaultValue: null}
-			},
-			defaultAggregation: "actions",
-			aggregations: {
+				maxCharacters: {type: "int", group: "Behavior", defaultValue: null},
 
 				/**
-				 * Contains {@link sap.m.FeedListItemAction elements} that are displayed in the action sheet.
-				 * @since 1.52.0
+				 * Disables rendering of the <code>style</code> attribute in the <code>FormattedText</code>.
 				 */
-				actions: {type: "sap.m.FeedListItemAction", multiple: true},
+				disableStyleAttribute : {type : "boolean", group : "Appearance", defaultValue : false}
+			},
+			aggregations: {
 
 				/**
 				 * Hidden aggregation which contains the text value
@@ -197,7 +198,7 @@ function(
 				/**
 				 * Hidden aggregation that contains the actions.
 				 */
-				_actionSheet: {type: "sap.m.ActionSheet", multiple: false, visibility: "hidden"},
+				_menu: {type: "sap.m.Menu", multiple: false, visibility: "hidden"},
 
 				/**
 				 * Hidden aggregation that displays the action button.
@@ -265,6 +266,7 @@ function(
 	 */
 	FeedListItem._sTextShowMore = FeedListItem._oRb.getText("TEXT_SHOW_MORE");
 	FeedListItem._sTextShowLess = FeedListItem._oRb.getText("TEXT_SHOW_LESS");
+	FeedListItem._sTextListItem = FeedListItem._oRb.getText("LIST_ITEM");
 
 	FeedListItem.prototype.init = function() {
 		ListItemBase.prototype.init.apply(this);
@@ -275,6 +277,19 @@ function(
 			icon: "sap-icon://overflow",
 			press: [ this._onActionButtonPress, this ]
 		}), true);
+		//Setting invisible text
+		this._oInvisibleText = new InvisibleText();
+		this._oInvisibleText.toStatic();
+		this._oInvisibleText.setText(FeedListItem._sTextListItem);
+		this.addAssociation("ariaLabelledBy", this._oInvisibleText, true);
+	};
+
+	FeedListItem.prototype.validateAggregation = function(sAggregationName, vObject) {
+		var oResult = ListItemBase.prototype.validateAggregation.apply(this, arguments);
+		if (oResult && sAggregationName === "actions" && !vObject.isA("sap.m.FeedListItemAction")) {
+			throw new Error(vObject + " is not a valid action aggregation of " + this + ". The actions aggregation in this control only supports sap.m.FeedListItemAction.");
+		}
+		return oResult;
 	};
 
 	/**
@@ -282,65 +297,41 @@ function(
 	 * @private
 	 */
 	FeedListItem.prototype._onActionButtonPress = function () {
-		sap.ui.require(["sap/m/ActionSheet"], this._openActionSheet.bind(this));
+		sap.ui.require(["sap/m/Menu", "sap/m/MenuItem"], this._openMenu.bind(this));
 	};
 
 	/**
 	 *
-	 * @param {function} ActionSheet The constructor function of sap.m.ActionSheet
+	 * @param {function} Menu The constructor function of sap.m.Menu
+	 * @param {function} MenuItem The constructor function of sap.m.MenuItem
 	 * @private
 	 */
-	FeedListItem.prototype._openActionSheet = function(ActionSheet) {
-		var oActionSheet = this.getAggregation("_actionSheet");
+	FeedListItem.prototype._openMenu = function(Menu, MenuItem) {
+		var oMenu = this.getAggregation("_menu");
 		var aActions = this.getActions();
 		var oAction;
 
-		if (!(oActionSheet && oActionSheet instanceof ActionSheet)) {
-			oActionSheet = new ActionSheet({
-				id: this.getId() + "-actionSheet",
-				beforeOpen: [ this._onBeforeOpenActionSheet, this ]
+		if (!(oMenu && oMenu instanceof Menu)) {
+			oMenu = new Menu({
+				id: this.getId() + "-actionMenu"
 			});
-			this.setAggregation("_actionSheet", oActionSheet, true);
+			this.setAggregation("_menu", oMenu, true);
 		}
 
-		oActionSheet.destroyAggregation("buttons", true);
+		oMenu.destroyItems();
 		for (var i = 0; i < aActions.length; i++) {
 			oAction = aActions[i];
-			oActionSheet.addButton(new Button({
+			oMenu.addItem(new MenuItem({
 				icon: oAction.getIcon(),
 				text: oAction.getText(),
 				visible: oAction.getVisible(),
 				enabled: oAction.getEnabled(),
+				key: oAction.getKey(),
 				press: oAction.firePress.bind(oAction, { "item": this })
 			}));
 		}
 
-		oActionSheet.openBy(this.getAggregation("_actionButton"));
-	};
-
-	/**
-	 * Sets the contrast class on the ActionSheet's Popover based on the current theme.
-	 *
-	 * @param {sap.ui.base.Event} event The 'beforeOpen' event
-	 * @private
-	 */
-	FeedListItem.prototype._onBeforeOpenActionSheet = function(event) {
-		var oActionSheetPopover, sTheme;
-
-		// On phone there is no need to overstyle the ActionSheet's Popover with a contrast class
-		if (Device.system.phone) {
-			return;
-		}
-
-		sTheme = Configuration.getTheme();
-		oActionSheetPopover = event.getSource().getParent();
-		oActionSheetPopover.removeStyleClass("sapContrast sapContrastPlus");
-
-		if (sTheme === "sap_belize") {
-			oActionSheetPopover.addStyleClass("sapContrast");
-		} else if (sTheme === "sap_belize_plus") {
-			oActionSheetPopover.addStyleClass("sapContrastPlus");
-		}
+		oMenu.openBy(this.getAggregation("_actionButton"));
 	};
 
 	FeedListItem.prototype.invalidate = function() {
@@ -359,6 +350,7 @@ function(
 		this.$("realtext").find('a[target="_blank"]').off("click");
 
 		var oFormattedText = this.getAggregation("_text");
+		oFormattedText.setProperty("disableStyleAttribute", this.getDisableStyleAttribute(), true);
 		oFormattedText.setProperty("convertLinksToAnchorTags", this.getConvertLinksToAnchorTags(), true);
 		oFormattedText.setProperty("convertedLinksDefaultTarget", this.getConvertedLinksDefaultTarget(), true);
 		if (this.getConvertLinksToAnchorTags() === LinkConversion.None) {
@@ -395,6 +387,9 @@ function(
 		// destroy link control if initialized
 		if (this._oLinkControl) {
 			this._oLinkControl.destroy();
+		}
+		if (this._oInvisibleText){
+			this._oInvisibleText.destroy();
 		}
 		if (this.oAvatar) {
 			this.oAvatar.destroy();
@@ -440,14 +435,14 @@ function(
 	 */
 	FeedListItem.prototype.onfocusin = function(oEvent) {
 		//Added for calculating List Count.
-        var oItem = oEvent.srcControl ,
-            oItemDomRef = oItem.getDomRef(),
-            mPosition = this.getParent().getAccessbilityPosition(oItem);
+		var oItem = oEvent.srcControl ,
+			oItemDomRef = oItem.getDomRef(),
+			mPosition = this.getParent().getAccessbilityPosition(oItem);
 
-        if ( oItem instanceof FeedListItem ) {
-            oItemDomRef.setAttribute("aria-posinset", mPosition.posInset);
-            oItemDomRef.setAttribute("aria-setsize", mPosition.setSize);
-        }
+		if ( oItem instanceof FeedListItem ) {
+			oItemDomRef.setAttribute("aria-posinset", mPosition.posinset);
+			oItemDomRef.setAttribute("aria-setsize", mPosition.setsize);
+		}
 	};
 
 	/**
@@ -467,12 +462,12 @@ function(
 		src: sIconSrc,
 		displayShape: this.getIconDisplayShape(),
 		initials: this.getIconInitials(),
-		displaySize: this.getIconSize(),
-		ariaLabelledBy: this.getSender()
+		displaySize: this.getIconSize()
 		});
 
 		var that = this;
 		if (this.getIconActive()) {
+			this.oAvatar.removeStyleClass("sapMFeedListItemImageInactive");
 			this.oAvatar.addStyleClass("sapMFeedListItemImage");
 			if (!this.oAvatar.hasListeners("press")) {//Check if the press event is already associated with the avatarControl then block adding the event again.
 				this.oAvatar.attachPress(function() {
@@ -483,6 +478,7 @@ function(
 				});
 			}
 		} else {
+			this.oAvatar.removeStyleClass("sapMFeedListItemImage");
 			this.oAvatar.addStyleClass("sapMFeedListItemImageInactive");
 		}
 

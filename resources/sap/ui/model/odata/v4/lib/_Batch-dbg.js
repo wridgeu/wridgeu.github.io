@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,7 @@ sap.ui.define([
 	"use strict";
 
 	var mAllowedChangeSetMethods = {POST : true, PUT : true, PATCH : true, DELETE : true},
-		rContentIdReference = /^\$\d+/,
+		rContentIdReference = /^\$-?(\d+)/,
 		rHeaderParameter = /(\S*?)=(?:"(.+)"|(\S+))/;
 
 	/**
@@ -292,9 +292,16 @@ sap.ui.define([
 				}
 
 				if (iChangeSetIndex !== undefined && sUrl[0] === "$") {
-					// adjust URL if it starts with a Content-ID reference by adding the change set
-					// index
-					sUrl = sUrl.replace(rContentIdReference, "$&." + iChangeSetIndex);
+					const aMatches = rContentIdReference.exec(sUrl);
+					if (aMatches) {
+						// adjust URL if it starts with a Content-ID reference by adding the
+						// change set index
+						const vReferencedRequestIndex = sUrl.startsWith("$-")
+							? (iRequestIndex - parseInt(aMatches[1])) // reference previous request
+							: aMatches[1];
+						sUrl = sUrl.replace(aMatches[0],
+							"$" + vReferencedRequestIndex + "." + iChangeSetIndex);
+					}
 				}
 
 				aRequestBody = aRequestBody.concat(

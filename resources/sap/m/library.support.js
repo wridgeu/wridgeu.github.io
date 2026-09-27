@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -16,6 +16,7 @@ sap.ui.define([
 	"./rules/Dialog.support",
 	"./rules/FacetFilter.support",
 	"./rules/IconTabBar.support",
+	"./rules/IllustratedMessage.support",
 	"./rules/Image.support",
 	"./rules/Input.support",
 	"./rules/Link.support",
@@ -44,6 +45,7 @@ sap.ui.define([
 		DialogSupport,
 		FacetFilterSupport,
 		IconTabBarSupport,
+		IllustratedMessage,
 		ImageSupport,
 		InputSupport,
 		LinkSupport,
@@ -76,6 +78,7 @@ sap.ui.define([
 			DialogSupport,
 			FacetFilterSupport,
 			IconTabBarSupport,
+			IllustratedMessage,
 			ImageSupport,
 			InputSupport,
 			LinkSupport,

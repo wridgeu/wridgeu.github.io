@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.m.ExpandableText
 sap.ui.define([
-	'sap/ui/core/Core',
+	"sap/ui/core/Lib",
 	'sap/ui/core/Renderer',
 	'sap/ui/core/library',
 	'sap/m/HyphenationSupport',
 	'./library'
 ], function(
-	Core,
+	Library,
 	Renderer,
 	coreLibrary,
 	HyphenationSupport,
@@ -26,11 +26,11 @@ sap.ui.define([
 	// shortcut for sap.ui.core.TextDirection
 	var WrappingType = mobileLibrary.WrappingType;
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = mobileLibrary.EmptyIndicatorMode;
 
 	// shortcut for library resource bundle
-	var oRb = Core.getLibraryResourceBundle("sap.m");
+	var oRb = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Text renderer.
@@ -64,7 +64,6 @@ sap.ui.define([
 		// start writing HTML
 		oRm.openStart("div", oText);
 		oRm.class("sapMExText");
-		oRm.class("sapUiSelectable");
 
 		if (sWrappingType !== WrappingType.Hyphenated) {
 			// no space text must break
@@ -98,6 +97,7 @@ sap.ui.define([
 
 		oRm.openStart("span", oText.getId() + "-string");
 		oRm.class("sapMExTextString");
+		oRm.class("sapUiSelectable");
 		oRm.openEnd();
 
 		ExpandableTextRenderer.renderText(oRm, oText);

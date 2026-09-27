@@ -1,7 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./StandardListItemRenderer","sap/ui/core/Renderer"],function(e,r){"use strict";var t=r.extend(e);t.apiVersion=2;t.renderTitle=function(r,t){if(t.getActiveTitle()){r.renderControl(t.getLink());r.renderControl(t.getLinkAriaDescribedBy())}else{e.renderTitle.apply(this,arguments)}};return t},true);
+sap.ui.define(["./StandardListItemRenderer","sap/ui/core/Renderer"],function(e,t){"use strict";var r=t.extend(e);r.apiVersion=2;r.renderTitle=function(t,r){if(r.getActiveTitle()){t.renderControl(r.getLink());t.renderControl(r.getLinkAriaDescribedBy())}else{e.renderTitle.apply(this,arguments)}};r.getAriaDescribedBy=function(t){var r=e.getAriaDescribedBy.apply(this,arguments);var i=t.getValueStateAriaDescribedBy();if(i){r=r?r+" "+i.getId():i.getId()}return r};r.renderLIContent=function(t,r){e.renderLIContent.apply(this,arguments);var i=r.getValueStateAriaDescribedBy();if(i){t.renderControl(i)}};r.renderTitleWrapper=function(e,t){var r=t.getTitle(),i=t.getDescription(),n=t.getInfo(),a=t.getWrapping(),s=t.getActiveTitle(),d=!r&&n;e.openStart("div");if(!d&&i){e.class("sapMSLITitle")}else{e.class("sapMSLITitleOnly")}e.openEnd();if(a&&!s){this.renderWrapping(e,t,"title");if(n&&!i){this.renderInfo(e,t)}}else{this.renderTitle(e,t)}e.close("div");if(n&&!i&&!a&&!d){this.renderInfo(e,t)}};return r},true);
 //# sourceMappingURL=MessageListItemRenderer.js.map

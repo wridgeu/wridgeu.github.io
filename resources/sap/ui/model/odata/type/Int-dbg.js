@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
 	"sap/base/util/extend",
+	"sap/ui/core/Lib",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/type/ODataType"
-], function (Log, extend, NumberFormat, FormatException, ParseException, ValidateException,
-		ODataType) {
+], function(Log, extend, Library, NumberFormat, FormatException, ParseException, ValidateException, ODataType) {
 	"use strict";
 
 	/**
@@ -27,7 +27,7 @@ sap.ui.define([
 	 *   the message
 	 */
 	function getText(sKey, aParams) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText(sKey, aParams);
+		return Library.getResourceBundleFor("sap.ui.core").getText(sKey, aParams);
 	}
 
 	/**
@@ -54,29 +54,60 @@ sap.ui.define([
 	}
 
 	/**
+	 * @typedef {sap.ui.core.format.NumberFormat.IntegerFormatOptions} sap.ui.model.odata.type.IntTypeFormatOptions
+	 *
+	 * The format options of the {@link sap.ui.model.odata.type.Int Int} based OData types.
+	 *
+	 * @property {boolean} [parseEmptyValueToZero]
+	 *   Whether the empty string and <code>null</code> are parsed to <code>0</code> if the <code>nullable</code>
+	 *   constraint is set to <code>false</code>; see {@link #parseValue parseValue}; since 1.115.0
+	 *
+	 * @public
+	 */
+
+	/**
 	 * Constructor for a new <code>Int</code>.
 	 *
-	 * @class This is an abstract base class for integer-based
-	 * <a href="http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
-	 * OData primitive types</a> like <code>Edm.Int16</code> or <code>Edm.Int32</code>.
+	 * @class This is an abstract base class for integer-based OData primitive types like
+	 * <code>Edm.Int16</code> or <code>Edm.Int32</code>, see
+	 * <a
+	 * href="https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338">
+	 * type definitions for OData V4.01</a> or
+	 * <a
+	 * href="https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
+	 * type definitions for OData V2</a>.
 	 *
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @abstract
 	 * @alias sap.ui.model.odata.type.Int
-	 * @param {object} [oFormatOptions]
+	 * @param {sap.ui.model.odata.type.IntTypeFormatOptions} [oFormatOptions={
+	 *     emptyString: NaN,
+	 *     groupingBaseSize: 3,
+	 *     groupingEnabled: false,
+	 *     groupingSize: 3,
+	 *     maxFractionDigits: 0,
+	 *     maxIntegerDigits: 99,
+	 *     minFractionDigits: 0,
+	 *     minIntegerDigits: 1,
+	 *     parseAsString: false,
+	 *     parseEmptyValueToZero: false,
+	 *     preserveDecimals: false,
+	 *     roundingMode: "TOWARDS_ZERO",
+	 *     showScale: true,
+	 *     strictGroupingValidation: false,
+	 *     style: "standard"
+	 *   }]
 	 *   type-specific format options; see subtypes
-	 * @param {boolean} [oFormatOptions.parseEmptyValueToZero=false]
-	 *   Whether the empty string and <code>null</code> are parsed to <code>0</code> if the <code>nullable</code>
-	 *   constraint is set to <code>false</code>; see {@link #parseValue parseValue}; since 1.115.0
 	 * @param {object} [oConstraints]
 	 *   constraints; {@link #validateValue validateValue} throws an error if any constraint is
 	 *   violated
 	 * @param {boolean|string} [oConstraints.nullable=true]
 	 *   if <code>true</code>, the value <code>null</code> is accepted
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> format option is provided
 	 * @public
 	 * @since 1.27.0
 	 */

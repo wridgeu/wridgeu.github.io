@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -9,7 +9,7 @@ sap.ui.define([
 	"sap/m/Input",
 	"sap/m/MultiInput",
 	"sap/m/Token",
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/integration/util/BindingHelper",
 	"sap/ui/core/ListItem",
 	"sap/base/util/ObjectPath",
@@ -22,14 +22,15 @@ sap.ui.define([
 	"sap/m/CustomListItem",
 	"sap/m/VBox",
 	"sap/ui/core/CustomData",
-	"sap/ui/model/Sorter"
+	"sap/ui/model/Sorter",
+	"sap/ui/integration/editor/Constants"
 ], function (
 	Control,
 	Text,
 	Input,
 	MultiInput,
 	Token,
-	Core,
+	Element,
 	BindingHelper,
 	ListItem,
 	ObjectPath,
@@ -42,7 +43,8 @@ sap.ui.define([
 	CustomListItem,
 	VBox,
 	CustomData,
-	Sorter
+	Sorter,
+	Constants
 ) {
 	"use strict";
 
@@ -54,10 +56,9 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.BaseField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
 	 * @ui5-restricted
-	 * @experimental since 1.83.0
 	 */
 	var BaseField = Control.extend("sap.ui.integration.editor.fields.BaseField", {
 		metadata: {
@@ -120,10 +121,12 @@ sap.ui.define([
 				afterInit: {},
 				/**
 				 * Fired when validation failed.
-				 * @experimental since 1.105
-				 * Disclaimer: this event is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
 				 */
-				validateFailed: {}
+				validateFailed: {},
+				/**
+				 * Fired when settings panel opened.
+				 */
+				settingsPanelOpened: {}
 			}
 		},
 		renderer: {
@@ -178,18 +181,18 @@ sap.ui.define([
 
 	BaseField.prototype.init = function () {
 		this._readyPromise = new Promise(function (resolve) {
-			this._fieldResolver = resolve;
+			this._fnFieldResolver = resolve;
 		}.bind(this));
 	};
 
 	BaseField.prototype.getMessagestrip = function () {
 		var sMessageStripId = this.getAssociation("_messageStrip");
-		return Core.byId(sMessageStripId);
+		return Element.getElementById(sMessageStripId);
 	};
 
 	BaseField.prototype.getMessageIcon = function () {
 		var sMessageIconId = this.getAssociation("_messageIcon");
-		return Core.byId(sMessageIconId);
+		return Element.getElementById(sMessageIconId);
 	};
 
 	BaseField.prototype._removeValidationMessage = function () {
@@ -246,7 +249,7 @@ sap.ui.define([
 		var that = this;
 		var oConfig = that.getConfiguration();
 		var sTranslationPath = "/texts";
-		var oData = this._settingsModel.getData();
+		var oData = this._oSettingsModel.getData();
 		if (!oData || !oData.texts) {
 			return;
 		}
@@ -259,9 +262,9 @@ sap.ui.define([
 				}
 				if (deepEqual(oTexts, {})) {
 					delete oData.texts;
-					this._settingsModel.setData(oData);
+					this._oSettingsModel.setData(oData);
 				} else {
-					this._settingsModel.setProperty(sTranslationPath, oTexts);
+					this._oSettingsModel.setProperty(sTranslationPath, oTexts);
 				}
 			}
 		} else {
@@ -294,23 +297,24 @@ sap.ui.define([
 			doValidation = true;
 		}
 		if (oConfig.validations && Array.isArray(oConfig.validations) && doValidation) {
+			delete oConfig.validateCheck;
 			for (var i = 0; i < oConfig.validations.length; i++) {
 				var oValidate = this._handleValidation(oConfig.validations[i], value);
 				if (typeof oValidate === "boolean" && !oValidate) {
 					this.fireValidateFailed();
-					return false;
+					oConfig.validateCheck = "failed";
+					return;
 				} else if (typeof oValidate.then === "function") {
 					oValidate.then(function(bResult) {
 						if (!bResult) {
 							this.fireValidateFailed();
-							return false;
+							oConfig.validateCheck = "failed";
 						}
 					}.bind(this));
 				}
 			}
 			this._hideValueState();
 		}
-		return true;
 	};
 
 	BaseField.prototype._requestData = function (oRequest) {
@@ -400,7 +404,7 @@ sap.ui.define([
 	};
 
 	BaseField.prototype._applyMessage = function () {
-		var oIcon = Core.byId(this.getAssociation("_messageIcon"));
+		var oIcon = Element.getElementById(this.getAssociation("_messageIcon"));
 		if (this.getAssociation("_messageIcon") && oIcon) {
 			var oIconDomRef = oIcon.getDomRef();
 			if (oIconDomRef) {
@@ -537,7 +541,7 @@ sap.ui.define([
 				}
 				oMessageStrip.getDomRef().style.width = width + "px";
 			};
-			oMessageStrip.rerender();
+			oMessageStrip.invalidate();
 		}
 	};
 
@@ -560,7 +564,7 @@ sap.ui.define([
 
 	BaseField.prototype.initEditor = function (oConfig) {
 		var oControl;
-		this._settingsModel = this.getModel("currentSettings");
+		this._oSettingsModel = this.getModel("currentSettings");
 		this.initVisualization && this.initVisualization(oConfig);
 		if (this._visualization.editor) {
 			oControl = this._visualization.editor;
@@ -647,7 +651,7 @@ sap.ui.define([
 					this._triggerValidation(value);
 				}.bind(this));
 			}*/
-			var oBinding = this._settingsModel.bindProperty("value", this.getBindingContext("currentSettings"));
+			var oBinding = this._oSettingsModel.bindProperty("value", this.getBindingContext("currentSettings"));
 			oBinding.attachChange(function () {
 				this._triggerValidation(oConfig.value);
 			}.bind(this));
@@ -655,9 +659,9 @@ sap.ui.define([
 		}
 		//default is true, Card editor needs set to false for translation and page admin mode if needed
 		var sMode = this.getMode();
-		oConfig.allowSettings = oConfig.allowSettings || oConfig.allowSettings !== false && sMode === "admin";
+		oConfig.allowSettings = oConfig.allowSettings || oConfig.allowSettings !== false && sMode === Constants.EDITOR_MODE.ADMIN;
 		oConfig.allowDynamicValues = oConfig.allowDynamicValues || oConfig.allowDynamicValues !== false;
-		oConfig._changeDynamicValues = oConfig.visible && oConfig.editable && (oConfig.allowDynamicValues || oConfig.allowSettings) && sMode !== "translation";
+		oConfig._changeDynamicValues = oConfig.visible && oConfig.editable && (oConfig.allowDynamicValues || oConfig.allowSettings) && sMode !== Constants.EDITOR_MODE.TRANSLATION;
 		if (oConfig._changeDynamicValues) {
 			this._getDynamicField();
 		}
@@ -754,12 +758,12 @@ sap.ui.define([
 	BaseField.prototype._setCurrentProperty = function (sProperty, vValue) {
 		//avoid fire binding changes in the model
 		if (this._getCurrentProperty(sProperty) !== vValue) {
-			this._settingsModel.setProperty(sProperty, vValue, this.getBindingContext("currentSettings"));
+			this._oSettingsModel.setProperty(sProperty, vValue, this.getBindingContext("currentSettings"));
 		}
 	};
 
 	BaseField.prototype._getCurrentProperty = function (sProperty) {
-		return this._settingsModel.getProperty(sProperty, this.getBindingContext("currentSettings"));
+		return this._oSettingsModel.getProperty(sProperty, this.getBindingContext("currentSettings"));
 	};
 
 	BaseField.prototype._applySettings = function (oData) {
@@ -812,8 +816,8 @@ sap.ui.define([
 		} else {
 			this._showDynamicField();
 		}
-		this._fieldResolver && this._fieldResolver();
-		this._fieldResolver = null;
+		this._fnFieldResolver && this._fnFieldResolver();
+		this._fnFieldResolver = null;
 	};
 
 	BaseField.prototype._cancelSettings = function () {
@@ -863,6 +867,26 @@ sap.ui.define([
 		return oItem;
 	};
 
+	// add model name into binding
+	// before:
+	//   {
+	//		"text": "{text}",
+	//		"key": "{key}"
+	//   }
+	// after:
+	//   {
+	//		"text": "{model>text}",
+	//		"key": "{model>key}"
+	//   }
+	BaseField.prototype.addModelPrefix = function (oConfig, sModelName) {
+		for (var key in oConfig) {
+			var sValue = oConfig[key];
+			sValue = "{" + sModelName + ">" + sValue.substring(1);
+			oConfig[key] = sValue;
+		}
+		return oConfig;
+	};
+
 	BaseField.prototype.getPopoverPlacement = function (oControl) {
 		var sPlacement = "Right";
 		var iX = oControl.getDomRef().getBoundingClientRect().x;
@@ -875,11 +899,9 @@ sap.ui.define([
 
 	BaseField.prototype.buildTranslationsList = function (sId) {
 		return new List(sId + "", {
-			growing: true, // required to enable Extended Change Detection (ECD)
-			growingThreshold: 60,
 			items: {
 				path: "languages>/translatedLanguages",
-				key: "key", // ECD
+				key: "key",
 				template: new CustomListItem({
 					content: [
 						new VBox({
@@ -889,7 +911,9 @@ sap.ui.define([
 								}),
 								new Input({
 									value: "{languages>value}",
-									editable: "{languages>editable}"
+									editable: "{languages>editable}",
+									valueState: "{= ${languages>updated} === true ? 'Information' : 'None' }",
+									showValueStateMessage: false
 								})
 							]
 						})
@@ -902,36 +926,19 @@ sap.ui.define([
 					]
 				}),
 				sorter: [new Sorter({
-					path: 'status',
-					descending: true,
-					group: true
+					path: 'updated',
+					descending: true
 				})]
 			}
 		});
 	};
 
 	BaseField.prototype.buildTranslationsModel = function (oTranslatedValues) {
-		var that = this;
-		var oResourceBundle = that.getResourceBundle();
 		var oTranslatonsModel = new JSONModel(oTranslatedValues);
 		oTranslatonsModel.attachPropertyChange(function(oEvent) {
 			var oContext = oEvent.getParameter("context");
-			var oLanguageChanged = oTranslatonsModel.getProperty(oContext.getPath());
-			var sStatusStr = oResourceBundle.getText("EDITOR_FIELD_TRANSLATION_LIST_POPOVER_LISTITEM_GROUP_NOTUPDATED");
-			if (oLanguageChanged.value !== oLanguageChanged.originValue) {
-				sStatusStr = oResourceBundle.getText("EDITOR_FIELD_TRANSLATION_LIST_POPOVER_LISTITEM_GROUP_UPDATED");
-			}
-			var bIsUpdated = false;
-			var oData = oTranslatonsModel.getData();
-			for (var i = 0; i < oData.translatedLanguages.length; i++) {
-				var oLanguage = oData.translatedLanguages[i];
-				if (oLanguage.value !== oLanguage.originValue) {
-					bIsUpdated = true;
-					break;
-				}
-			}
-			oTranslatonsModel.setProperty(oContext.getPath("status"), sStatusStr, null, /*async:*/true);
-			oTranslatonsModel.setProperty("/isUpdated", bIsUpdated, null, /*async:*/true);
+			oTranslatonsModel.setProperty(oContext.getPath("updated"), true);
+			oTranslatonsModel.setProperty("/isUpdated", true);
 		});
 		return oTranslatonsModel;
 	};

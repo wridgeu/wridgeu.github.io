@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -8,14 +8,14 @@
 sap.ui.define([
 	"sap/base/util/each",
 	"sap/base/util/isEmptyObject",
+	"sap/ui/core/Lib",
 	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/SimpleType",
 	"sap/ui/model/ValidateException"
-], function(each, isEmptyObject, UI5Date, DateFormat, FormatException, ParseException, SimpleType,
-		ValidateException) {
+], function(each, isEmptyObject, Library, UI5Date, DateFormat, FormatException, ParseException, SimpleType, ValidateException) {
 	"use strict";
 
 	/**
@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.DateFormat.getDateInstance DateFormat}.
@@ -83,8 +83,9 @@ sap.ui.define([
 				}
 				oResult = this.oOutputFormat.parse(oValue);
 				if (!oResult) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
-					throw new ParseException(oBundle.getText(this.sName + ".Invalid"));
+					oBundle = Library.getResourceBundleFor("sap.ui.core");
+					throw new ParseException(oBundle.getText("Enter" + this.getName(),
+						[this.oOutputFormat.format(this.oOutputFormat.getSampleValue()[0])]));
 				}
 				if (this.oInputFormat) {
 					if (this.oFormatOptions.source.pattern == "timestamp") {
@@ -101,7 +102,7 @@ sap.ui.define([
 
 	Date1.prototype.validateValue = function(oValue) {
 		if (this.oConstraints) {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
+			var oBundle = Library.getResourceBundleFor("sap.ui.core"),
 				aViolatedConstraints = [],
 				aMessages = [],
 				oInputFormat = this.oInputFormat,
@@ -216,16 +217,27 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns a language-dependent placeholder text such as "e.g. <sample value>" where <sample value> is formatted
-	 * using this type.
+	 * Returns a language-dependent placeholder text for this type.
+	 * The <code>oMinimum</code> and <code>oMaximum</code> parameters are supported since 1.150.
 	 *
+	 * If given, a sample date within [<code>oMinimum</code>, <code>oMaximum</code>] is used.
+	 * If not given, <code>oConstraints.minimum</code>/<code>oConstraints.maximum</code> are used
+	 * as fallback.
+	 *
+	 * @param {module:sap/ui/core/date/UI5Date} [oMinimum] The minimum date
+	 * @param {module:sap/ui/core/date/UI5Date} [oMaximum] The maximum date
 	 * @returns {string|undefined}
 	 *   The language-dependent placeholder text or <code>undefined</code> if the type does not offer a placeholder
+	 * @throws {Error}
+	 *   If <code>oMinimum</code> or <code>oMaximum</code> is given but does not match the corresponding constraint
 	 *
 	 * @public
 	 */
-	Date1.prototype.getPlaceholderText = function () {
-		return this.oOutputFormat.getPlaceholderText();
+	Date1.prototype.getPlaceholderText = function (oMinimum, oMaximum) {
+		const oMin = DateFormat.resolveDate(this.oConstraints.minimum, oMinimum, this.oInputFormat);
+		const oMax = DateFormat.resolveDate(this.oConstraints.maximum, oMaximum, this.oInputFormat);
+
+		return this.oOutputFormat.getPlaceholderText(oMin, oMax);
 	};
 
 	return Date1;

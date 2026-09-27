@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.List.
-sap.ui.define(["./library", "./ListBase", "./ListRenderer"],
-	function(library, ListBase, ListRenderer) {
+sap.ui.define(["./library", "./ListBase", "./ListRenderer", "sap/ui/core/Lib", "sap/ui/core/InvisibleText"],
+	function(library, ListBase, ListRenderer, Library, InvisibleText) {
 	"use strict";
 
 
@@ -30,7 +30,7 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer"],
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -54,6 +54,21 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer"],
 		renderer: ListRenderer
 	});
 
+	List.prototype.exit = function() {
+		ListBase.prototype.exit.call(this);
+		if (this._oInvisibleGroupText) {
+			this._oInvisibleGroupText.destroy();
+			this._oInvisibleGroupText = null;
+		}
+	};
+
+	List.prototype._getInvisibleGroupText = function() {
+		if (!this._oInvisibleGroupText) {
+			this._oInvisibleGroupText = new InvisibleText().toStatic();
+		}
+		return this._oInvisibleGroupText;
+	};
+
 	List.prototype.getAriaRole = function() {
 		return this._sAriaRole || "list";
 	};
@@ -74,6 +89,66 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer"],
 	 */
 	List.prototype.applyAriaRole = function(sRole) {
 		this._sAriaRole = sRole;
+	};
+
+	List.prototype._sAriaRoleDescriptionKey = "LIST_ROLE_DESCRIPTION";
+
+	/**
+	 * Applies the aria role description with the given text key to the control.
+	 *
+	 * <b>Note:</b>
+	 * <ul>
+	 * <li>This method must be called before the control renders.</li>
+	 * <li>The description is only applied when the role is 'list'.</li>
+	 * </ul>
+	 *
+	 * @param {string} [sTextKey] aria role description text key
+	 * @private
+	 * @ui5-restricted sap.m.upload.UploadSet, sap.ui.mdc.chart.SelectionButton
+	 * @since 1.120
+	 */
+	List.prototype.applyAriaRoleDescription = function(sTextKey) {
+		this._sAriaRoleDescriptionKey = sTextKey;
+	};
+
+	/**
+	 * Sets whether the group header focus should be skipped when the role <code>listbox</code> is used.
+	 *
+	 * @param {boolean} bSkip Whether the group header focus is skipped
+	 * @private
+	 * @ui5-restricted sap.m
+	 * @since 1.152
+	 */
+	List.prototype.setSkipGroupHeaderFocus = function(bSkip) {
+		this._bSkipGroupHeaderFocus = bSkip;
+	};
+
+	/**
+	 * Returns whether the group header focus is skipped. Only active for role <code>listbox</code>.
+	 *
+	 * @returns {boolean} Whether the group header focus is skipped
+	 * @private
+	 */
+	List.prototype.getSkipGroupHeaderFocus = function() {
+		return !!this._bSkipGroupHeaderFocus && this.getAriaRole() === "listbox";
+	};
+
+	List.prototype._hasNestedGrouping = function() {
+		return this.getAriaRole() === "list";
+	};
+
+	List.prototype._updateInvisibleGroupText = function() {
+		const bUpdateGroupDescription = this._hasNestedGrouping() || this.getSkipGroupHeaderFocus();
+
+		if (this.isGrouped() && bUpdateGroupDescription) {
+			const oInvisibleText = this._getInvisibleGroupText();
+			const sBundleKey = this._hasNestedGrouping() ? "LIST_ROLE_LIST_GROUP_DESCRIPTION" : "LIST_ROLE_LISTBOX_GROUP_DESCRIPTION",
+				iGroupCount = this.getItems().filter((oItem) => oItem.isGroupHeader()).length,
+				aValues = this._hasNestedGrouping() ? [iGroupCount, this.getSize()] : [iGroupCount];
+
+			oInvisibleText.setText(Library.getResourceBundleFor("sap.m").getText(sBundleKey, aValues));
+			this.getNavigationRoot()?.setAttribute("aria-describedby", oInvisibleText.getId());
+		}
 	};
 
 	return List;

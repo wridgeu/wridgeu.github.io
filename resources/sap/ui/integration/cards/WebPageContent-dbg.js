@@ -1,25 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/m/IllustratedMessageType",
 	"./BaseContent",
 	"./WebPageContentRenderer",
-	"sap/ui/core/Core",
-	"sap/ui/integration/util/BindingHelper"
+	"sap/ui/util/isCrossOriginURL",
+	"sap/m/IllustratedMessageType",
+	"sap/ui/integration/util/BindingHelper",
+	"sap/ui/core/Lib"
 ], function (
-	IllustratedMessageType,
 	BaseContent,
 	WebPageContentRenderer,
-	Core,
-	BindingHelper
+	isCrossOriginURL,
+	IllustratedMessageType,
+	BindingHelper,
+	Library
 ) {
 	"use strict";
 
 	var FRAME_LOADED = "_frameLoaded";
 	var LOAD_TIMEOUT = 15 * 1000; // wait maximum 15s for the frame to load
+	const oResourceBundle = Library.getResourceBundleFor("sap.ui.integration");
 
 	/**
 	 * Constructor for a new <code>WebPageContent</code>.
@@ -33,10 +36,10 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
-	 * @experimental
+	 * @private
 	 * @since 1.90
 	 * @alias sap.ui.integration.cards.WebPageContent
 	 */
@@ -58,7 +61,6 @@ sap.ui.define([
 				 */
 				src: {
 					type: "sap.ui.core.URI",
-					defaultValue: "",
 					bindable: true
 				},
 
@@ -68,6 +70,36 @@ sap.ui.define([
 				sandbox: {
 					type: "string",
 					defaultValue: "",
+					bindable: true
+				},
+
+				/**
+				 * Allow attribute of the iframe. No features are available by default
+				 *
+				 * Note: <code>allow</code> with value <code>fullscreen</code> is not supported for Safari and Firefox.
+				 * For browser support specifics @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy/fullscreen
+				*/
+				allow: {
+					type: "string",
+					bindable: true
+				},
+
+				/**
+				 * AllowFullscreen attribute of the iframe.
+				 */
+				allowFullscreen: {
+					type: "boolean",
+					defaultValue: false,
+					bindable: true
+				},
+
+				/**
+				 * If set to <code>true</code>, the <code>sandbox</code> attribute will not be added
+				 * Note: Omitting the <code>sandbox</code> attribute opens a security vulnerability and must be done with great caution and only if the content of the iframe page is fully trusted.
+				 */
+				omitSandbox: {
+					type: "boolean",
+					defaultValue: false,
 					bindable: true
 				}
 			},
@@ -81,6 +113,10 @@ sap.ui.define([
 
 		this._onFrameLoadedBound = this._onFrameLoaded.bind(this);
 		this._sPrevSrc = this.getSrc();
+
+		this.attachEventOnce("_dataReady", () => {
+			this._bDataReady = true;
+		});
 	};
 
 	WebPageContent.prototype.exit = function () {
@@ -94,8 +130,19 @@ sap.ui.define([
 	WebPageContent.prototype.onBeforeRendering = function () {
 		BaseContent.prototype.onBeforeRendering.apply(this, arguments);
 
-		if (this.getDomRef()) {
+		if (this.getDomRef("frame")) {
 			this.getDomRef("frame").removeEventListener("load", this._onFrameLoadedBound);
+		}
+
+		const sCurrSrc = this.getSrc();
+
+		if (this._isDataReady() && sCurrSrc !== undefined && this._sPrevSrc !== sCurrSrc) {
+			this._sPrevSrc = sCurrSrc;
+
+			if (this._checkSrc()) {
+				this._bSrcChecked = true;
+				this._raceFrameLoad();
+			}
 		}
 	};
 
@@ -104,7 +151,6 @@ sap.ui.define([
 
 		if (this.getDomRef("frame")) {
 			this.getDomRef("frame").addEventListener("load", this._onFrameLoadedBound);
-			this._checkSrc();
 		}
 	};
 
@@ -112,66 +158,64 @@ sap.ui.define([
 	 * @override
 	 */
 	WebPageContent.prototype.applyConfiguration = function () {
-		var oConfiguration = this.getParsedConfiguration();
-
-		//workaround until actions refactor
-		this.fireEvent("_actionContentReady"); // todo
+		const oConfiguration = this.getParsedConfiguration();
 
 		if (!oConfiguration) {
 			return;
 		}
 
-		var oSrcBinding = BindingHelper.formattedProperty(oConfiguration.src, function (sValue) {
-			return this._oIconFormatter.formatSrc(sValue);
-		}.bind(this));
+		this.applySettings({
+			src: BindingHelper.formattedProperty(oConfiguration.src, (sValue) => this._oIconFormatter.formatSrc(sValue) ),
+			sandbox: oConfiguration.sandbox,
+			minHeight: oConfiguration.minHeight,
+			allow: oConfiguration.allow,
+			allowFullscreen: oConfiguration.allowFullscreen || oConfiguration.allowfullscreen,
+			omitSandbox: oConfiguration.omitSandbox
+		});
+	};
 
-		if (oSrcBinding) {
-			this.bindSrc(oSrcBinding);
+	/**
+	 * @override
+	 */
+	WebPageContent.prototype._supportsOverflow = function () {
+		return false;
+	};
+
+	WebPageContent.prototype._isDataReady = function () {
+		if (!this.getCardInstance()) {
+			return this._bDataReady;
 		}
 
-		if (typeof oConfiguration.sandbox === "object") {
-			this.bindSandbox(BindingHelper.reuse(oConfiguration.sandbox));
-		} else {
-			this.setSandbox(oConfiguration.sandbox);
-		}
-
-		if (typeof oConfiguration.minHeight === "object") {
-			this.bindMinHeight(BindingHelper.reuse(oConfiguration.minHeight));
-		} else {
-			this.setMinHeight(oConfiguration.minHeight);
-		}
+		return this._bDataReady && this.getCardInstance().isDataReady();
 	};
 
 	WebPageContent.prototype._checkSrc = function () {
-		var oCard = this.getCardInstance(),
+		const oCard = this.getCardInstance(),
 			sCurrSrc = this.getSrc();
 
 		if (!oCard) {
-			return;
+			return false;
 		}
 
-		if (sCurrSrc === "") {
+		if (!sCurrSrc) {
 			this.handleError({
-				illustrationType: IllustratedMessageType.ErrorScreen,
-				title: oCard.getTranslatedText("CARD_WEB_PAGE_EMPTY_URL_ERROR"),
-				description: oCard.getTranslatedText("CARD_ERROR_CONFIGURATION_DESCRIPTION")
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_WEB_PAGE_EMPTY_URL_ERROR"),
+				description: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_DESCRIPTION")
 			});
-			return;
+			return false;
 		}
 
-		if (!sCurrSrc.startsWith("https://")) {
+		if (isCrossOriginURL(sCurrSrc) && !sCurrSrc.startsWith("https")) {
 			this.handleError({
-				illustrationType: IllustratedMessageType.ErrorScreen,
-				title: oCard.getTranslatedText("CARD_WEB_PAGE_HTTPS_URL_ERROR"),
-				description: oCard.getTranslatedText("CARD_ERROR_REQUEST_ACCESS_DENIED_DESCRIPTION")
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_WEB_PAGE_HTTPS_URL_ERROR"),
+				description: oResourceBundle.getText("CARD_ERROR_REQUEST_ACCESS_DENIED_DESCRIPTION")
 			});
-			return;
+			return false;
 		}
 
-		if (this._sPrevSrc !== sCurrSrc) {
-			this._raceFrameLoad();
-			this._sPrevSrc = sCurrSrc;
-		}
+		return true;
 	};
 
 	/**
@@ -180,13 +224,18 @@ sap.ui.define([
 	WebPageContent.prototype._raceFrameLoad = function () {
 		this.awaitEvent(FRAME_LOADED);
 
+		if (this._iLoadTimeout) {
+			clearTimeout(this._iLoadTimeout);
+		}
+
 		this._iLoadTimeout = setTimeout(function () {
-			var iSeconds = LOAD_TIMEOUT / 1000,
-				oCard = this.getCardInstance();
+			this.fireEvent(FRAME_LOADED);
+
+			var iSeconds = LOAD_TIMEOUT / 1000;
 
 			this.handleError({
-				illustrationType: IllustratedMessageType.ReloadScreen,
-				title: oCard.getTranslatedText("CARD_WEB_PAGE_TIMEOUT_ERROR", [iSeconds]),
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_WEB_PAGE_TIMEOUT_ERROR", [iSeconds]),
 				details: "Failed to load '" + this.getSrc() + "' after " + iSeconds + " seconds."
 			});
 		}.bind(this), LOAD_TIMEOUT);

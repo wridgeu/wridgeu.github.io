@@ -1,13 +1,30 @@
-/* ====================================================== */
-/* CSS for control sap.ui.integration.cards/ObjectContent */
-/* Base theme                                             */
-/* ====================================================== */
+/* ======================================================= */
+/* CSS for control sap.ui.integration.cards/ObjectContent  */
+/* Base theme                                              */
+/* ======================================================= */
 
 .sapFCardObjectContent {
-	padding: 1rem;
+	&:not(.sapUiIntCardContentWithBlockingMessage) {
+		padding: 1rem;
+	}
+
+	&.sapUiIntCardContentWithBlockingMessage {
+		/* when we have blocking message we don't need the 1 rem padding, but need bigger min-height than the default (inline) one of 3rem */
+		min-height: 5rem !important;
+	}
+
+	&.sapFCardObjectContentWithOverlay {
+
+		.sapMFlexBox.sapUiIntImgWithOverlayLayout,
+		.sapMFlexBox.sapFCardObjectGroup:has( > .sapUiIntImageWithOverlay:only-child ),
+		 > .sapMFlexBox,
+		.sapUiIntImageWithOverlay:only-child {
+			height: 100%;
+		}
+	}
 }
 
-.sapUiIntCardWithFooter .sapFCardObjectContent {
+.sapUiIntCardWithFooter:not(.sapUiIntCardFooterInvisible) .sapFCardObjectContent {
 	padding-bottom: 0;
 }
 
@@ -19,6 +36,20 @@
 
 	> .sapFCardObjectItemLabel {
 		margin-top: 1rem;
+	}
+
+	.sapUiAFLayoutItem > .sapFCardObjectItemPairContainer > .sapFCardObjectItemLabel,
+	.sapUiAFLayoutItem > .sapMHBox  {
+		margin-top: 1rem;
+	}
+
+	.sapUiAFLayoutItem > .sapFCardObjectItemPairContainer {
+		margin-right: 0.5rem;
+	}
+
+	// we don't know which item will be last on the row, so we remove the margin from the container
+	> .sapUiAFLayout {
+		margin-right: -0.5rem;
 	}
 
 	&:not(.sapFCardObjectGroupLastInColumn) {
@@ -38,13 +69,21 @@
 		}
 	}
 
-	// Don't add margin top to the value if it's the first element in the group (not labeled)
+	/* Don't add margin top to the value if it's the first element in the group (not labeled) */
 	.sapFCardObjectItemValue:not(:first-child) {
+		margin-top: 0.375rem;
+	}
+
+	.sapUiSizeCompact & .sapFCardObjectItemValue:not(:first-child) {
 		margin-top: 0.25rem;
 	}
 
 	.sapFCardObjectItemPairContainer {
-		min-width: 0; // prevent overflow of the flex container
+		min-width: 0; /* prevent overflow of the flex container */
+	}
+
+	.sapFCardObjectItemValueEntries {
+		gap: 0.25rem;
 	}
 
 	.sapFCardObjectItemAvatar {
@@ -52,33 +91,41 @@
 		flex-shrink: 0;
 	}
 
-	// Rating Indicator
+	/* Rating Indicator */
 	.sapMRI {
 		margin-bottom: 0;
 	}
 
-	// Image
-
-	> .sapMImg.sapFCardObjectImage {
+	/* Image */
+	> .sapFCardObjectImage:not(:first-child) {
 		margin-top: 1rem;
 	}
 
+	.sapUiIntImageWithOverlay.sapFCardObjectImageFullWidth:first-child,
 	.sapMImg.sapFCardObjectImageFullWidth:first-child {
 		top: -16px;
 		margin-top: 0;
+		height: ~"calc(100% + 16px)";
 	}
 
+	.sapUiIntImageWithOverlay.sapFCardObjectImageFullWidth:last-child,
 	.sapMImg.sapFCardObjectImageFullWidth:last-child {
 		margin-bottom: -16px;
 	}
 
+	.sapUiIntImageWithOverlay.sapFCardObjectImageFullWidth:only-child,
 	.sapMImg.sapFCardObjectImageFullWidth:only-child {
 		margin-bottom: -32px;
 	}
 
+	.sapUiIntImageWithOverlay.sapFCardObjectImageFullWidth,
 	.sapMImg.sapFCardObjectImageFullWidth {
-		width: calc(100% + 32px);
+		width: ~"calc(100% + 32px)";
 		left: -16px;
+	}
+
+	.sapFCardObjectImage {
+		position: relative;
 	}
 }
 
@@ -87,41 +134,45 @@
 }
 
 .sapFCard .sapFCardContent {
+
 	.sapFCardObjectContent .sapUiAFLayout .sapUiAFLayoutItem.sapFCardInvisibleContent {
 		display: none;
 	}
 }
 
-// Removing top space of NumericIndicators
+/* Removing top space of NumericIndicators */
 .sapUiIntOCNumericIndicators {
-	// size L
+
+	/* size L */
 	&:not(.sapMTileSmallPhone) {
-		// number
+
+		/* number */
 		.sapMNCValue >:first-child {
 			padding-top: 0;
 			height: 2.5rem;
 			line-height: 2rem;
 		}
 
-		// trend and unit
+		/* trend and unit */
 		.sapMNCValue :nth-child(2) {
 			padding-top: 0;
 			height: 2rem;
 		}
 	}
 
-	// size S
+	/* size S */
 	&.sapMTileSmallPhone {
+
 		.sapMNC {
 			width: auto;
 		}
 
-		// number
+		/* number */
 		.sapMNCValue :first-child {
 			padding-top: 0.25rem;
 		}
 
-		// trend and unit
+		/* trend and unit */
 		.sapMNCValue .sapMNCIndScale {
 			padding-top: 0px;
 
@@ -134,7 +185,7 @@
 }
 
 .sapUiIntOCNumericIndicators .sapUiIntOCNumericIndicatorsDetails {
-	color: @sapUiTileTextColor;
+	color: var(--sapTile_TextColor);
 	height: 1rem;
 }
 

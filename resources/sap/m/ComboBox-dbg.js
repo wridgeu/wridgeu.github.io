@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	'./List',
 	'./library',
 	'sap/ui/Device',
+	"sap/ui/core/Element",
 	'sap/ui/core/Item',
 	'./ComboBoxRenderer',
 	"sap/ui/dom/containsOrEquals",
@@ -22,7 +23,6 @@ sap.ui.define([
 	"sap/m/inputUtils/selectionRange",
 	"sap/m/inputUtils/calculateSelectionStart",
 	"sap/ui/events/KeyCodes",
-	"sap/ui/core/Core",
 	"sap/base/Log"
 ],
 	function(
@@ -31,6 +31,7 @@ sap.ui.define([
 		List,
 		library,
 		Device,
+		Element,
 		Item,
 		ComboBoxRenderer,
 		containsOrEquals,
@@ -43,7 +44,6 @@ sap.ui.define([
 		selectionRange,
 		calculateSelectionStart,
 		KeyCodes,
-		core,
 		Log
 	) {
 		"use strict";
@@ -106,7 +106,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -354,7 +354,7 @@ sap.ui.define([
 			this._setPropertyProtected("selectedItemId", (vItem instanceof Item) ? vItem.getId() : vItem, true);
 
 			if (typeof vItem === "string") {
-				vItem = core.byId(vItem);
+				vItem = Element.getElementById(vItem);
 			}
 
 			if (oList) {
@@ -477,6 +477,7 @@ sap.ui.define([
 		ComboBox.prototype.onBeforeRendering = function() {
 			ComboBoxBase.prototype.onBeforeRendering.apply(this, arguments);
 			var aItems = this.getItems();
+			var oClearIcon = this.getShowClearIcon() ? this._getClearIcon() : this._oClearIcon;
 
 			if (this.getRecreateItems()) {
 				ListHelpers.fillList(aItems, this._getList(), this._mapItemToListItem.bind(this));
@@ -497,11 +498,16 @@ sap.ui.define([
 				this.setValue(sValue);
 			}
 
-			if (this.getShowClearIcon()) {
-				this._getClearIcon().setVisible(this.shouldShowClearIcon());
-			} else if (this._oClearIcon) {
-				this._getClearIcon().setVisible(false);
+			if (!oClearIcon) {
+				return;
 			}
+
+			if (this.shouldShowClearIcon()) {
+				oClearIcon.removeStyleClass("sapMComboBoxBaseHideClearIcon");
+				return;
+			}
+
+			oClearIcon.addStyleClass("sapMComboBoxBaseHideClearIcon");
 		};
 
 		/**
@@ -535,10 +541,16 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.onBeforeRenderingDropdown = function() {
 			var oPopover = this.getPicker(),
-				sWidth = (this.$().outerWidth() / parseFloat(library.BaseFontSize)) + "rem";
+				sWidth = (this.$().outerWidth() / parseFloat(library.BaseFontSize)) + "rem",
+				sMaxHeight = this.getMaxPickerHeight();
 
 			if (oPopover) {
 				oPopover.setContentMinWidth(sWidth);
+
+				// Forward maxPickerHeight to popover
+				if (sMaxHeight) {
+					oPopover.setMaxHeight(sMaxHeight);
+				}
 			}
 		};
 
@@ -647,10 +659,6 @@ sap.ui.define([
 				this.setSelectable(oItem, oItem.getEnabled());
 			}
 
-			if (oItem.isA("sap.ui.core.SeparatorItem")) {
-				oListItem.addAriaLabelledBy(this._getGroupHeaderInvisibleText().getId());
-			}
-
 			oListItem.addStyleClass(this.getRenderer().CSS_CLASS_COMBOBOXBASE + "NonInteractiveItem");
 
 			return oListItem;
@@ -753,7 +761,9 @@ sap.ui.define([
 				this.setSelection(null);
 			}
 
-			if (!bEmptyValue && oControl && oControl._bDoTypeAhead) {
+			const bExactMatch = aCommonStartsWithItems.some((item) => item.getText() === sValue);
+
+			if (!bEmptyValue && oControl && (oControl._bDoTypeAhead || bExactMatch)) {
 				this.handleTypeAhead(oControl, aVisibleItems, sValue);
 			} else if (!bEmptyValue && aCommonStartsWithItems[0] && sValue === aCommonStartsWithItems[0].getText()) {
 				this.setSelection(aCommonStartsWithItems[0]);
@@ -767,6 +777,15 @@ sap.ui.define([
 				});
 
 				oListItem = ListHelpers.getListItem(this.getSelectedItem());
+			}
+
+			const sSelectedItemText = this.getSelectedItem()?.getText();
+			const slastInputValue = this.getLastValue();
+
+			if (sValue.toLowerCase() === sSelectedItemText?.toLowerCase()) {
+				this.setValue(sSelectedItemText);
+				sValue = sSelectedItemText;
+				this.setLastValue(slastInputValue);
 			}
 
 			this._sInputValueBeforeOpen = sValue;
@@ -931,6 +950,10 @@ sap.ui.define([
 
 			this.closeValueStateMessage();
 
+			if (this.bOpenedByKeyboardOrButton) {
+				this._announceExpanded();
+			}
+
 			// if there is a selected item, scroll and show the list
 			fnSelectedItemOnViewPort.call(this, true);
 
@@ -1063,7 +1086,9 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.onsapenter = function(oEvent) {
 			var oControl = oEvent.srcControl,
-				oItem = oControl.getSelectedItem();
+				oItem = oControl.getSelectedItem(),
+				oSuggestionPopover = oControl._getSuggestionsPopover(),
+				oFocusedItem = oSuggestionPopover && oSuggestionPopover.getFocusedListItem();
 
 			if (oItem && this.getFilterSecondaryValues()) {
 				oControl.updateDomValue(oItem.getText());
@@ -1073,6 +1098,11 @@ sap.ui.define([
 
 			// in case of a non-editable or disabled combo box, the selection cannot be modified
 			if (!oControl.getEnabled() || !oControl.getEditable()) {
+				return;
+			}
+
+			// prevent closing of popover, when Enter is pressed on a group header
+			if (oFocusedItem && oFocusedItem.isA("sap.m.GroupHeaderListItem")) {
 				return;
 			}
 
@@ -1119,7 +1149,7 @@ sap.ui.define([
 					this.handleInlineListNavigation(sName);
 				} else {
 					var oSuggestionsPopover = this._getSuggestionsPopover();
-					oSuggestionsPopover && oSuggestionsPopover.handleListNavigation(this, oEvent, sName);
+					oSuggestionsPopover && oSuggestionsPopover.handleListNavigation(this, oEvent, !!this.getSelectedItem());
 				}
 
 				// mark the event for components that needs to know if the event was handled
@@ -1201,7 +1231,6 @@ sap.ui.define([
 				this.updateDomValue(sTypedValue);
 				this.fireSelectionChange({ selectedItem: null });
 
-				this._getGroupHeaderInvisibleText().setText(this._oRb.getText("LIST_ITEM_GROUP_HEADER") + " " + oItem.getText());
 				return;
 			}
 
@@ -1296,11 +1325,39 @@ sap.ui.define([
 		* @param {jQuery.Event} oEvent The event object.
 		*/
 		ComboBox.prototype.ontap = function(oEvent) {
-			if (!this.getEnabled()) {
+			// in case of a non-editable or disabled combo box, the picker popup cannot be opened
+			if (!this.getEnabled() || !this.getEditable()) {
 				return;
 			}
 
+			if (!this.isMobileDevice()) {
+				this.openValueStateMessage();
+			}
+
+			// if the picker is a dialog (phone), tapping the field opens the dialog
+			if (this.isPickerDialog() && this.getOpenArea().contains(oEvent.target)) {
+				this.open();
+			}
+
 			this.updateFocusOnClose();
+		};
+
+		/**
+		 * Gets the trigger element of the control's picker popup.
+		 *
+		 * When the picker is a dialog (on phone), the whole control acts as the trigger area,
+		 * so that tapping anywhere on the field opens the dialog. Otherwise, the arrow icon
+		 * is used as the trigger element.
+		 *
+		 * @returns {HTMLElement | null} The element that is used as trigger to open the control's picker popup.
+		 * @private
+		 */
+		ComboBox.prototype.getOpenArea = function() {
+			if (this.isPickerDialog()) {
+				return this.getDomRef();
+			}
+
+			return ComboBoxBase.prototype.getOpenArea.apply(this, arguments);
 		};
 
 
@@ -1402,7 +1459,7 @@ sap.ui.define([
 			}
 
 			bTablet = this.isPlatformTablet();
-			oRelatedControl = core.byId(oEvent.relatedControlId);
+			oRelatedControl = Element.getElementById(oEvent.relatedControlId);
 			oFocusDomRef = oRelatedControl && oRelatedControl.getFocusDomRef();
 
 			if (containsOrEquals(oPicker.getFocusDomRef(), oFocusDomRef) && !bTablet && !(this._getSuggestionsPopover().getValueStateActiveState())) {
@@ -1577,9 +1634,10 @@ sap.ui.define([
 			ComboBoxBase.prototype.open.call(this);
 
 			var oSelectedItem = ListHelpers.getListItem(this.getSelectedItem());
+			const oSuggestionPopover = this._getSuggestionsPopover();
 
-			if (!this._bInputFired) {
-				this._getSuggestionsPopover() && this._getSuggestionsPopover().updateFocus(this, oSelectedItem);
+			if (!this._bInputFired && oSuggestionPopover) {
+				oSuggestionPopover.updateFocus(this, oSelectedItem);
 			}
 
 			this._bInputFired = false;
@@ -1654,7 +1712,7 @@ sap.ui.define([
 		 *
 		 * Default value is <code>null</code>.
 		 *
-		 * @param {string | sap.ui.core.Item | null} vItem New value for the <code>selectedItem</code> association.
+		 * @param {sap.ui.core.ID | sap.ui.core.Item | null} vItem New value for the <code>selectedItem</code> association.
 		 * If an ID of a <code>sap.ui.core.Item</code> is given, the item with this ID becomes the
 		 * <code>selectedItem</code> association.
 		 * Alternatively, a <code>sap.ui.core.Item</code> instance may be given or <code>null</code> to clear
@@ -1667,7 +1725,7 @@ sap.ui.define([
 
 			if (typeof vItem === "string") {
 				this.setAssociation("selectedItem", vItem, true);
-				vItem = core.byId(vItem);
+				vItem = Element.getElementById(vItem);
 			}
 
 			if (!(vItem instanceof Item) && vItem !== null) {
@@ -1802,7 +1860,7 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.getSelectedItem = function() {
 			var vSelectedItem = this.getAssociation("selectedItem");
-			return (vSelectedItem === null) ? null : core.byId(vSelectedItem) || null;
+			return (vSelectedItem === null) ? null : Element.getElementById(vSelectedItem) || null;
 		};
 
 		/**
@@ -1910,21 +1968,6 @@ sap.ui.define([
 			this.loadItems(fnLoadItemsListener);
 		};
 
-		/**
-		 * Gets <code>sap.m.FormattedText</code> aggregation based on its current parent.
-		 * If the SuggestionPopover is open that is the <code>sap.m.ValueStateHeader</code>, otherwise is the InputBase itself.
-		 *
-		 * @private
-		 * @returns {sap.m.FormattedText} Aggregation used for value state message that can contain links.
-		 * @since 1.78
-		 */
-		ComboBox.prototype._getFormattedValueStateText = function() {
-			if (this.isOpen()) {
-				return this._getSuggestionsPopover()._getValueStateHeader().getFormattedText();
-			} else {
-				return ComboBoxTextField.prototype.getFormattedValueStateText.call(this);
-			}
-		};
 
 		/**
 		 * Handles the clear icon press.
@@ -1965,7 +2008,7 @@ sap.ui.define([
 		 * @returns {boolean} If it is an interactive Control
 		 *
 		 * @private
-		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 		 */
 		ComboBox.prototype._getToolbarInteractive = function () {
 			return true;

@@ -5,13 +5,40 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.120.0"
+      "version": "1.152.0"
     },
     "title": "SAPUI5 library with Fiori controls.",
     "description": "SAPUI5 library with Fiori controls.",
     "ach": "CA-UI5-CTR",
     "resources": "resources.json",
-    "offline": true
+    "offline": true,
+    "openSourceComponents": [
+      {
+        "name": "ui5-web-components",
+        "packagedWithMySelf": true,
+        "version": "2.24.2"
+      },
+      {
+        "name": "ui5-web-components-fiori",
+        "packagedWithMySelf": true,
+        "version": "2.24.2"
+      },
+      {
+        "name": "ui5-web-components-icons",
+        "packagedWithMySelf": true,
+        "version": "2.24.2"
+      },
+      {
+        "name": "ui5-web-components-icons-business-suite",
+        "packagedWithMySelf": true,
+        "version": "2.24.2"
+      },
+      {
+        "name": "ui5-web-components-icons-tnt",
+        "packagedWithMySelf": true,
+        "version": "2.24.2"
+      }
+    ]
   },
   "sap.ui": {
     "technology": "UI5",
@@ -22,16 +49,16 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.120",
+      "minUI5Version": "1.152",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.120.0"
+          "minVersion": "1.152.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.120.0"
+          "minVersion": "1.152.0"
         },
         "sap.m": {
-          "minVersion": "1.120.0"
+          "minVersion": "1.152.0"
         }
       }
     },
@@ -43,6 +70,7 @@
           "ar",
           "bg",
           "ca",
+          "cnr",
           "cs",
           "cy",
           "da",
@@ -82,6 +110,7 @@
           "sh",
           "sk",
           "sl",
+          "sr",
           "sv",
           "th",
           "tr",
@@ -103,6 +132,7 @@
           "sap.f.CalendarInCard",
           "sap.f.Card",
           "sap.f.GridContainer",
+          "sap.f.HeroBanner",
           "sap.f.DynamicPage",
           "sap.f.DynamicPageHeader",
           "sap.f.DynamicPageTitle",
@@ -122,6 +152,10 @@
           "sap.f.DynamicPageAccessibleLandmarkInfo",
           "sap.f.GridContainerItemLayoutData",
           "sap.f.FlexibleColumnLayoutAccessibleLandmarkInfo",
+          "sap.f.FlexibleColumnLayoutData",
+          "sap.f.FlexibleColumnLayoutDataForDesktop",
+          "sap.f.FlexibleColumnLayoutDataForTablet",
+          "sap.f.cards.CardBadgeCustomData",
           "sap.f.semantic.AddAction",
           "sap.f.semantic.CloseAction",
           "sap.f.semantic.CopyAction",
@@ -155,13 +189,21 @@
           "sap.f.AvatarType",
           "sap.f.AvatarColor",
           "sap.f.AvatarGroupType",
+          "sap.f.CardBadgeVisibilityMode",
+          "sap.f.cards.SemanticRole",
           "sap.f.cards.HeaderPosition",
           "sap.f.cards.NumericHeaderSideIndicatorsAlignment",
+          "sap.f.DynamicPageMediaRange",
           "sap.f.DynamicPageTitleArea",
           "sap.f.DynamicPageTitleShrinkRatio",
           "sap.f.IllustratedMessageSize",
           "sap.f.IllustratedMessageType",
-          "sap.f.LayoutType"
+          "sap.f.LayoutType",
+          "sap.f.SidePanelPosition",
+          "sap.f.NavigationDirection",
+          "sap.f.HeroBannerActionsPlacement",
+          "sap.f.HeroBannerColumnsRatio",
+          "sap.f.HeroBannerHeaderBlockPlacement"
         ],
         "interfaces": [
           "sap.f.cards.IHeader",

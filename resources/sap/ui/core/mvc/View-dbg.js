@@ -1,41 +1,48 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.mvc.View.
 sap.ui.define([
 	"sap/base/assert",
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/base/util/extend",
 	"sap/base/util/isEmptyObject",
 	"sap/base/util/merge",
 	"sap/ui/base/ManagedObject",
+	"sap/ui/base/OwnStatics",
 	"sap/ui/core/Control",
 	"sap/ui/base/DesignTime",
 	"sap/ui/core/Element",
 	"./Controller",
 	"./ViewRenderer",
 	"./ViewType",
+	"./_ViewFactory",
 	"./XMLProcessingMode"
 ], function(
 		assert,
+		future,
 		Log,
 		extend,
 		isEmptyObject,
 		merge,
 		ManagedObject,
+		OwnStatics,
 		Control,
 		DesignTime,
 		Element,
 		Controller,
 		ViewRenderer,
 		ViewType,
+		_ViewFactory,
 		XMLProcessingMode
 	) {
 	"use strict";
 
+	const { getCurrentOwnerId, runWithPreprocessors } = OwnStatics.get(ManagedObject);
 
 	/**
 	 * @namespace
@@ -131,18 +138,22 @@ sap.ui.define([
 	 *
 	 *
 	 * <h3>Other Methods</h3>
-	 * Besides <code>createContent</code>, there are two other methods that a view can implement:
-	 * Method {@link #getControllerName getControllerName} defines the name of the controller that should
+	 * Besides <code>createContent</code>, there are other methods that a view can implement:
+	 * <ul>
+	 * <li>Method {@link #getControllerName getControllerName} defines the name of the controller that should
 	 * be instantiated and used for the view. The name must be in class name notation (dot notation),
 	 * without the <code>".controller"</code> suffix. The suffix will be added by the framework when
-	 * loading the module containing the controller.
-	 *
-	 * {@link #getAutoPrefixId getAutoPrefixId} defines whether the IDs of controls created during
+	 * loading the module containing the controller.</li>
+	 * <li>Method {@link #getControllerModuleName getControllerModuleName} defines the module name of the controller that
+	 * should be loaded for the view. Unlike <code>getControllerName</code>, the name must be in <code>sap.ui.define/sap.ui.require</code>
+	 * syntax (slash-separated name without '.js' suffix).</li>
+	 * <li>{@link #getAutoPrefixId getAutoPrefixId} defines whether the IDs of controls created during
 	 * the execution of <code>createContent</code> will be prefixed with the ID of the view automatically.
-	 * The default implementation of this method returns <code>false</code>.
+	 * The default implementation of this method returns <code>false</code>.</li>
+	 * </ul>
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.View
@@ -287,11 +298,9 @@ sap.ui.define([
 
 	/**
 	 * Global map of preprocessors with view types and source types as keys,
-	 * e.g. _mPreprocessors[sViewType][sSourceType]
-	 *
-	 * @private
+	 * e.g. mPreprocessors[sViewType][sSourceType]
 	 */
-	View._mPreprocessors = {};
+	const mPreprocessors = {};
 
 	/**
 	 * align object structure to internal preprocessor format to be able to store internal settings without conflicts
@@ -319,6 +328,7 @@ sap.ui.define([
 	 * @param {boolean} bAsync Whether processing is async or not
 	 * @return {object} oPreprocessorImpl
 	 * @private
+	 * @ui5-transform-hint replace-param bAsync true
 	 */
 	function initPreprocessor(oPreprocessor, bAsync) {
 		var oPreprocessorImpl;
@@ -364,8 +374,8 @@ sap.ui.define([
 			i, l, oOnDemandPreprocessor, aPreprocessors = [];
 
 		//clone static preprocessor settings
-		if (View._mPreprocessors[sViewType] && View._mPreprocessors[sViewType][sType]) {
-			aGlobalPreprocessors = View._mPreprocessors[sViewType][sType].map(function(oProcessor) {
+		if (mPreprocessors[sViewType] && mPreprocessors[sViewType][sType]) {
+			aGlobalPreprocessors = mPreprocessors[sViewType][sType].map(function(oProcessor) {
 				return Object.assign({}, oProcessor);
 			});
 		}
@@ -434,6 +444,7 @@ sap.ui.define([
 	 * @returns {Promise|undefined} A promise for asynchronous or undefined for synchronous controllers
 	 * @throws {Error}
 	 * @private
+	 * @ui5-transform-hint replace-param mSettings.async true
 	 */
 	var createAndConnectController = function(oThis, mSettings) {
 		var bAsync = mSettings.async;
@@ -447,10 +458,11 @@ sap.ui.define([
 			var oController = mSettings.controller,
 				sName = oController && typeof oController.getMetadata === "function" && oController.getMetadata().getName();
 
-			if (!oController && oThis.getControllerName) {
+			if (!oController) {
 				oThis.bControllerIsViewManaged = true;
+
 				// get optional default controller name
-				var defaultController = oThis.getControllerName();
+				let defaultController = oThis._getControllerModuleName() || oThis._getControllerName();
 				if (defaultController) {
 					// check for controller replacement
 					var Component = sap.ui.require("sap/ui/core/Component");
@@ -470,10 +482,10 @@ sap.ui.define([
 						oController = sap.ui.controller(defaultController, true, false, oThis.sId); // legacy-relevant: Sync path
 					}
 				}
-			} else if (oController) {
+			} else {
 				oThis.bControllerIsViewManaged = false;
 				// if passed controller is not extended yet we need to do it.
-				var sOwnerId = ManagedObject._sOwnerId;
+				var sOwnerId = getCurrentOwnerId();
 				if (!oController._isExtended()) {
 					oController = Controller.applyExtensions(oController, sName, sOwnerId, oThis.sId, bAsync);
 				} else if (bAsync) {
@@ -483,9 +495,6 @@ sap.ui.define([
 
 			if (oController) {
 				if (bAsync) {
-					if (!oThis.oAsyncState) {
-						throw new Error("The view " + oThis.sViewName + " runs in sync mode and therefore cannot use async controller extensions!");
-					}
 					return oController.then(connectToView);
 				} else {
 					connectToView(oController);
@@ -508,6 +517,7 @@ sap.ui.define([
 	* @param {object.string} mSettings.viewName view name
 	* @param {object.boolean} [mSettings.async] set the view to load a view resource asynchronously
 	* @private
+	* @ui5-transform-hint replace-param mSettings.async true
 	*/
 	View.prototype._initCompositeSupport = function(mSettings) {
 
@@ -561,7 +571,7 @@ sap.ui.define([
 							// only 'visible' property can be customized
 							for (var sProperty in oCustomSetting) {
 								if (sProperty !== "visible") {
-									Log.warning("Customizing: custom value for property '" + sProperty + "' of control '" + sId + "' in View '" + that.sViewName + "' ignored: only the 'visible' property can be customized.");
+									future.warningThrows(`Customizing: property '${sProperty}' of control '${sId}' in View '${that.sViewName}' cannot be customized, only 'visible' can.`, { suffix: "Property will be ignored" });
 									delete oCustomSetting[sProperty];
 								}
 							}
@@ -573,6 +583,10 @@ sap.ui.define([
 			}
 		}
 
+		/**
+		 * @private
+		 * @ui5-transform-hint replace-param bAsync true
+		 */
 		var fnPropagateOwner = function(fnCallback, bAsync) {
 			assert(typeof fnCallback === "function", "fn must be a function");
 			var oOwnerComponent = Component && Component.getOwnerComponentFor(that);
@@ -653,6 +667,14 @@ sap.ui.define([
 		return this.oController;
 	};
 
+	View.prototype._getControllerName = function(){
+		return this.getControllerName?.();
+	};
+
+	View.prototype._getControllerModuleName = function(){
+		return this.getControllerModuleName?.();
+	};
+
 	/**
 	 * Returns an element by its ID in the context of this view.
 	 *
@@ -678,7 +700,7 @@ sap.ui.define([
 	 */
 	View.prototype.createId = function(sId) {
 		if (!this.isPrefixedId(sId)) {
-			// views have 2 dashes as separator, components 3 and controls/elements 1
+			// views have 2 hyphens as separator, components 3 and controls/elements 1
 			sId = this.getId() + "--" + sId;
 		}
 		return sId;
@@ -772,8 +794,11 @@ sap.ui.define([
 	 * @param {string[]} [aLocalIds] Array of local IDs within the cloned hierarchy (internally used)
 	 * @returns {this} Reference to the newly created clone
 	 * @public
+	 * @deprecated As of version 1.120, please call the corresponding View factory instead, e.g. {@link sap.ui.core.mvc.XMLView.create}
 	 */
 	View.prototype.clone = function(sIdSuffix, aLocalIds) {
+		future.errorThrows("Cloning a View and/or using a View as a binding template is deprecated. Please call the corresponding View factory instead, e.g. XMLView.create()");
+
 		var mSettings = {}, sKey, oClone;
 		//Clone properties (only those with non-default value)
 		for (sKey in this.mProperties  && !(this.isBound && this.isBound(sKey))) {
@@ -836,6 +861,7 @@ sap.ui.define([
 				sync: !!bSync
 			};
 		}
+		/** @deprecated since 1.120.0 */
 		if (View._supportInfo) {
 			this.oPreprocessorInfo._supportInfo = View._supportInfo;
 		}
@@ -854,6 +880,7 @@ sap.ui.define([
 	 * @returns {Promise|object|string|Element}
 	 *   a promise resolving with the processed source or an error | the source when bSync=true
 	 * @protected
+	 * @ui5-transform-hint replace-param bSync false
 	 */
 	View.prototype.runPreprocessor = function(sType, vSource, bSync) {
 
@@ -894,16 +921,16 @@ sap.ui.define([
 	};
 
 	function initGlobalPreprocessorsRegistry(sType, sViewType) {
-		if (!View._mPreprocessors[sViewType]) {
-			View._mPreprocessors[sViewType] = {};
+		if (!mPreprocessors[sViewType]) {
+			mPreprocessors[sViewType] = {};
 		}
-		if (!View._mPreprocessors[sViewType][sType]) {
-			View._mPreprocessors[sViewType][sType] = [];
+		if (!mPreprocessors[sViewType][sType]) {
+			mPreprocessors[sViewType][sType] = [];
 		}
 	}
 
 	function onDemandPreprocessorExists(sViewType, sType) {
-		return View._mPreprocessors[sViewType][sType].some(function(oPreprocessor) {
+		return mPreprocessors[sViewType][sType].some(function(oPreprocessor) {
 			return !!oPreprocessor._onDemand;
 		});
 	}
@@ -933,13 +960,13 @@ sap.ui.define([
 	 * @param {string} sViewType
 	 * 		type of the calling view, e.g. <code>XML</code>
 	 * @param {boolean} bSyncSupport
-	 * 		declares if the vPreprocessor ensures safe sync processing. This means the preprocessor will be executed
+	 *		Deprecated as of version 1.145, because this parameter is only applicable to sync views and is no longer used.
+	 * 		Declares if the vPreprocessor ensures safe sync processing. This means the preprocessor will be executed
 	 * 		also for sync views. Please be aware that any kind of async processing (like Promises, XHR, etc) may
 	 * 		break the view initialization and lead to unexpected results.
 	 * @param {boolean} [bOnDemand]
 	 * 		on-demand preprocessor which enables developers to quickly activate the preprocessor for a view,
-	 * 		by setting <code>preprocessors : { xml }</code>, for example. This should be false except for very special
-	 * 		cases. There can only be one on-demand preprocessor per content type.
+	 * 		by setting <code>preprocessors : { xml }</code>, for example. There can only be one on-demand preprocessor per content type.
 	 * @param {object} [mSettings]
 	 * 		optional configuration for preprocessor
 	 */
@@ -953,10 +980,10 @@ sap.ui.define([
 		if (vPreprocessor) {
 			initGlobalPreprocessorsRegistry(sType, sViewType);
 			if (bOnDemand && onDemandPreprocessorExists(sViewType, sType)) {
-				Log.error("Registration for \"" + sType + "\" failed, only one on-demand-preprocessor allowed", this.getMetadata().getName());
+				future.errorThrows(`${this.getMetadata().getName()}: Registration for "${sType}" failed, only one on-demand-preprocessor allowed`);
 				return;
 			}
-			View._mPreprocessors[sViewType][sType].push({
+			mPreprocessors[sViewType][sType].push({
 				preprocessor: vPreprocessor,
 				_onDemand: bOnDemand,
 				_syncSupport: bSyncSupport,
@@ -965,7 +992,7 @@ sap.ui.define([
 			Log.debug("Registered " + (bOnDemand ? "on-demand-" : "") + "preprocessor for \"" + sType + "\"" +
 			(bSyncSupport ? " with syncSupport" : ""), this.getMetadata().getName());
 		} else {
-			Log.error("Registration for \"" + sType + "\" failed, no preprocessor specified",  this.getMetadata().getName());
+			future.errorThrows(`${this.getMetadata().getName()}: Registration for "${sType}" failed, no preprocessor specified`);
 		}
 	};
 
@@ -988,6 +1015,18 @@ sap.ui.define([
 	 * @return {string} the name of the controller
 	 * @public
 	 * @name sap.ui.core.mvc.View#getControllerName
+	 * @function
+	 */
+
+	/**
+	 * An optional method that views can implement to return the controller's module name in <code>sap.ui.define/sap.ui.require</code>
+	 * syntax (slash-separated name without '.js' suffix).
+	 * If no controller instance is provided at the time of View instantiation AND this method exists, the View attempts to load and
+	 * instantiate the controller and to connect it to itself.
+	 *
+	 * @return {string} Name of the module name from which to load the view definition.
+	 * @public
+	 * @name sap.ui.core.mvc.View#getControllerModuleName
 	 * @function
 	 */
 
@@ -1069,23 +1108,27 @@ sap.ui.define([
 		// This is required as the viewFactory is called async
 		var Component = sap.ui.require("sap/ui/core/Component");
 		var oOwnerComponent;
-		if (Component && ManagedObject._sOwnerId) {
-			oOwnerComponent = Component.get(ManagedObject._sOwnerId);
+		if (Component && getCurrentOwnerId()) {
+			oOwnerComponent = Component.getComponentById(getCurrentOwnerId());
 		}
 
 		function createView() {
-			return viewFactory(mParameters.id, mParameters, mParameters.type).loaded();
+			return _ViewFactory.create(mParameters.id, mParameters, mParameters.type).loaded();
 		}
 
 		return new Promise(function(resolve, reject) {
-			 var sViewClass = getViewClassName(mParameters);
+			 var sViewClass = _ViewFactory.getViewClassName(mParameters);
 			 sap.ui.require([sViewClass], function(ViewClass){
 				 resolve(ViewClass);
 			 }, reject);
 		})
 		.then(function(ViewClass) {
-			// Activate the asynchronous processing for XMLViews
+			/**
+			 * @deprecated because the 'Sequential' Mode is used by default and it's the only mode that will be supported
+			 * in the next major release
+			 */
 			if (ViewClass.getMetadata().isA("sap.ui.core.mvc.XMLView")) {
+				// Activate the asynchronous processing for XMLViews
 				mParameters.processingMode = XMLProcessingMode.Sequential;
 			}
 
@@ -1096,18 +1139,6 @@ sap.ui.define([
 			}
 		});
 	};
-
-	/**
-	 * Used to bypass the public APIs returning a Promise.
-	 * Some internal use-cases need the View instance synchronously instead of the wrapping Promises
-	 * of the [...]View.create() factories: e.g. root-view creation in sap/ui/core/UIComponent
-	 * Internally, the views might still be loaded and processed asynchronously.
-	 * @private
-	 * @ui5-restricted sap.ui.core
-	 * @see {sap.ui.view}
-	 * @function
-	 */
-	View._create = viewFactory;
 
 	/**
 	 * Creates a view of the given type, name and with the given ID.
@@ -1169,137 +1200,8 @@ sap.ui.define([
 				};
 			}
 		);
-		return viewFactory(sId, vView, sType);
+		return _ViewFactory.create(sId, vView, sType);
 	};
-
-	/**
-	 * The old sap.ui.view implementation
-	 *
-	 * @param {string} sId id of the newly created view, only allowed for instance creation
-	 * @param {string|object} [vView] the view name or view configuration object
-	 * @param {sap.ui.core.mvc.ViewType} [sType] Specifies what kind of view will be instantiated. All valid
-	 * view types are listed in the enumeration {@link sap.ui.core.mvc.ViewType}
-	 * @returns {sap.ui.core.mvc.View} the created view instance
-	 * @private
-	 */
-	function viewFactory(sId, vView, sType) {
-		var view = null, oView = {};
-
-		// if the id is a configuration object or a string
-		// and the vView is not defined we shift the parameters
-		if (typeof sId === "object" ||
-				typeof sId === "string" && vView === undefined) {
-			vView = sId;
-			sId = undefined;
-		}
-
-		// prepare the parameters
-		if (vView) {
-			if (typeof vView === "string") {
-				oView.viewName = vView;
-			} else {
-				oView = vView;
-			}
-		}
-
-		// can be removed when generic type checking for special settings is introduced
-		assert(!oView.async || typeof oView.async === "boolean", "sap.ui.view factory: Special setting async has to be of the type 'boolean'!");
-
-		// apply the id if defined
-		if (sId) {
-			oView.id = sId;
-		}
-
-		// apply the type defined in specialized factory functions
-		if (sType) {
-			oView.type = sType;
-		}
-
-		if (oView.type === ViewType.XML && oView.async) {
-			// the processingMode might be already set by the asnychronous View.create factory
-			// "SequentialLegacy" is only used if the sap.ui.view factory with async=true was called
-			oView.processingMode = oView.processingMode || XMLProcessingMode.SequentialLegacy;
-		}
-
-
-
-		// view replacement
-		// get current owner component
-		var Component = sap.ui.require("sap/ui/core/Component");
-
-		if (Component && ManagedObject._sOwnerId) {
-			var customViewConfig = Component.getCustomizing(ManagedObject._sOwnerId, {
-				type: "sap.ui.viewReplacements",
-				name: oView.viewName
-			});
-			if (customViewConfig) {
-				// make sure that "async=true" will not be overriden
-				delete customViewConfig.async;
-
-				Log.info("Customizing: View replacement for view '" + oView.viewName + "' found and applied: " + customViewConfig.viewName + " (type: " + customViewConfig.type + ")");
-				extend(oView, customViewConfig);
-			} else {
-				Log.debug("Customizing: no View replacement found for view '" + oView.viewName + "'.");
-			}
-		}
-
-		var sViewClass = getViewClassName(oView);
-		view = createView(sViewClass, oView);
-		return view;
-	}
-
-	function getViewClassName(oViewSettings) {
-		var sViewClass = View._getModuleName(oViewSettings);
-
-		// view creation
-		if (sViewClass) {
-			if (oViewSettings.type) {
-				Log.error("When using the view factory, the 'type' setting must be omitted for typed views. When embedding typed views in XML, don't use the <JSView> tag, use the <View> tag instead.");
-			}
-			return sViewClass;
-		}
-		if (!oViewSettings.type) {
-			throw new Error("No view type specified.");
-		}
-
-		if (oViewSettings.type === ViewType.XML) {
-			return 'sap/ui/core/mvc/XMLView';
-		}
-
-		/**
-		 * The different ViewTypes have been deprecated with different UI5 versions.
-		 * Please see the public "sap/ui/core/mvc/ViewType" enum for the specific versions.
-		 * @deprecated
-		 */
-		if (oViewSettings.type === ViewType.JS) {
-			sViewClass = 'sap/ui/core/mvc/JSView';
-		} else if (oViewSettings.type === ViewType.JSON) {
-			sViewClass = 'sap/ui/core/mvc/JSONView';
-		} else if (oViewSettings.type === ViewType.HTML) {
-			sViewClass = 'sap/ui/core/mvc/HTMLView';
-		} else if (oViewSettings.type === ViewType.Template) {
-			sViewClass = 'sap/ui/core/mvc/TemplateView';
-		}
-
-		// unknown view type
-		if (!sViewClass) {
-			throw new Error("Unknown view type " + oViewSettings.type + " specified.");
-		}
-
-		return sViewClass;
-	}
-
-	function createView(sViewClass, oViewSettings) {
-		var ViewClass = sap.ui.require(sViewClass);
-		if (!ViewClass) {
-			ViewClass = sap.ui.requireSync(sViewClass);// legacy-relevant: sync fallback for missing dependency
-			if (oViewSettings.async) {
-				//not supported
-				Log.warning("sap.ui.view was called without requiring the according view class.");
-			}
-		}
-		return new ViewClass(oViewSettings);
-	}
 
 	/**
 	 * Returns a Promise representing the state of the view initialization.
@@ -1309,7 +1211,6 @@ sap.ui.define([
 	 *
 	 * @since 1.30
 	 * @public
-	 * @deprecated since 1.66: Use {@link sap.ui.core.mvc.View.create View.create} instead
 	 * @return {Promise<sap.ui.core.mvc.View>} resolves with the complete view instance, rejects with any thrown error
 	 */
 	View.prototype.loaded = function() {
@@ -1322,28 +1223,12 @@ sap.ui.define([
 	};
 
 	/**
-	 * Extract module name from viewName property.
-	 *
-	 * @param {object} mSettings Settings as given to the view factory
-	 * @returns {string|undefined} Name of the module (in sap.ui.define syntax) from which to load the view definition.
-	 * @private
-	 */
-	View._getModuleName = function(mSettings) {
-		var sModuleName;
-		if (mSettings.viewName && mSettings.viewName.startsWith("module:")) {
-			sModuleName = mSettings.viewName.slice("module:".length);
-		}
-		return sModuleName;
-	};
-
-	/**
 	 * Interface for Preprocessor implementations that can be hooked in the view life cycle.
 	 *
 	 * There are two possibilities to use the preprocessor. It can be either passed to the view via the mSettings.preprocessors object
 	 * where it is the executed only for this instance, or by the registerPreprocessor method of the view type. Currently this is
 	 * available only for XMLViews (as of version 1.30).
 	 *
-	 * @see sap.ui.view
 	 * @see sap.ui.core.mvc.View.registerPreprocessor (the method is available specialized for view types, so use the following)
 	 * @see sap.ui.core.mvc.XMLView.registerPreprocessor
 	 *
@@ -1414,6 +1299,7 @@ sap.ui.define([
 	 * can construct the complete UI in this method, or only return the root control and create the remainder of the UI
 	 * lazily later on.
 	 *
+	 * @param {sap.ui.core.mvc.Controller} oController The controller of the view
 	 * @returns {sap.ui.core.Control|sap.ui.core.Control[]|Promise<sap.ui.core.Control|sap.ui.core.Control[]>} A control or array of controls representing the view user interface or a Promise resolving with a control or an array of controls.
 	 * @public
 	 * @name sap.ui.core.mvc.View#createContent
@@ -1448,7 +1334,7 @@ sap.ui.define([
 			settings: this._fnSettingsPreprocessor
 		};
 
-		return ManagedObject.runWithPreprocessors(function() {
+		return runWithPreprocessors(function() {
 			var vContent = this.createContent(oController);
 			if (mSettings.async) {
 				vContent = Promise.resolve(vContent);
@@ -1467,6 +1353,10 @@ sap.ui.define([
 		}.bind(this), mPreprocessorSettings);
 	};
 
+	/**
+	 * @private
+	 * @ui5-transform-hint replace-param mSettings.async true
+	 */
 	View.prototype.initViewSettings = function(mSettings) {
 		// check if renderer exists, otherwise default it
 		if (!this.getMetadata()._oRenderer) {
@@ -1482,6 +1372,50 @@ sap.ui.define([
 		}
 	};
 
-	return View;
+	OwnStatics.set(View, {
+		/**
+		 * Retrieves all registered preprocessors for a given view and preprocessor type.
+		 *
+		 * @param {string} sViewType - The view type
+		 * @param {string} sType - The preprocessor type
+		 * @returns {Array<object>} An array of matching preprocessor entries. Returns an empty array if none are registered.
+		 * @private
+		 */
+		_getPreprocessors: function(sViewType, sType) {
+			if (!mPreprocessors[sViewType]) {
+				return [];
+			}
+			return mPreprocessors[sViewType][sType] || [];
+		},
+		/**
+		 * Removes a specific preprocessor from the registry based on its characteristics.
+		 *
+		 * The preprocessor is matched by reference and optional flags (`_onDemand` and `_syncSupport`).
+		 *
+		 * @param {string} sViewType - The view type from which to remove the preprocessor.
+		 * @param {string} sType - The preprocessor type.
+		 * @param {object} oPreprocessor - The preprocessor function or object to remove.
+		 * @param {boolean} [bOnDemand] - Whether the preprocessor was registered as on-demand.
+		 * @param {boolean} [bSyncSupport] - Whether the preprocessor supports synchronous execution.
+		 * @returns {object|null} The removed preprocessor entry if found and removed, otherwise `null`.
+		 * @private
+		 */
+		_removePreprocessor: function(sViewType, sType, oPreprocessor, bOnDemand, bSyncSupport) {
+			if (mPreprocessors[sViewType] && mPreprocessors[sViewType][sType]) {
+				const aPreprocessors = mPreprocessors[sViewType][sType];
+				const iIndex = aPreprocessors.findIndex((oEntry) => {
+					return !!oEntry._onDemand === !!bOnDemand
+						&& !!oEntry._syncSupport === !!bSyncSupport
+						&& oEntry.preprocessor === oPreprocessor;
+				});
+				if (iIndex >= 0) {
+					return aPreprocessors.splice(iIndex, 1)[0];
+				}
+			}
 
+			return null;
+		}
+	});
+
+	return View;
 });

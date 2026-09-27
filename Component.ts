@@ -40,10 +40,7 @@ export default class Component extends UIComponent {
 	public getContentDensityClass(): string {
 		if (this._contentDensityClass === undefined) {
 			// check whether FLP has already set the content density class; do nothing in this case
-			if (
-				document.body.classList.contains("sapUiSizeCozy") ||
-				document.body.classList.contains("sapUiSizeCompact")
-			) {
+			if (document.body.classList.contains("sapUiSizeCozy") || document.body.classList.contains("sapUiSizeCompact")) {
 				this._contentDensityClass = "";
 			} else if (!Device.support.touch) {
 				// apply "compact" mode if touch is not supported

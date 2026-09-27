@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./BaseContentRenderer"], function (BaseContentRenderer) {
+sap.ui.define(["./BaseListContentRenderer"], function (BaseListContentRenderer) {
 	"use strict";
 
 	/**
@@ -12,7 +12,7 @@ sap.ui.define(["./BaseContentRenderer"], function (BaseContentRenderer) {
 	 * @author SAP SE
 	 * @namespace
 	 */
-	var TimelineContentRenderer = BaseContentRenderer.extend("sap.ui.integration.cards.TimelineContentRenderer", {
+	var TimelineContentRenderer = BaseListContentRenderer.extend("sap.ui.integration.cards.TimelineContentRenderer", {
 		apiVersion: 2
 	});
 

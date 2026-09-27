@@ -1,20 +1,40 @@
-/******************************************************************
-	Style of the RTA Overlays - Horizon Theme
-*******************************************************************/
-@_sap_ui_rta_Overlay_ShellBG: transparent;
-@_sap_ui_rta_Overlay_PlaceholderBG: lighten(saturate(@sapUiShellBackground, 15%), 2%); // #fafbfc
-@_sap_ui_rta_Overlay_BorderRadius: @sapUiButtonBorderCornerRadius; // 0.5rem
-@_sap_ui_rta_Overlay_HoverBG: fade(@sapUiSelected, 5%); // rgba(0, 112, 242, 0.05)
-@_sap_ui_rta_Overlay_PersButtonBG: @sapUiSelected; //#0070f2
-@_sap_ui_rta_Overlay_PersButtonBorder: @sapUiShellBackground; // #f5f6f7
-@_sap_ui_rta_Overlay_PersButtonIcon: @sapUiShellBackground; // #f5f6f7
+/* =================================== */
+/* CSS for control sap.ui.rta/Overlay  */
+/* Morning Horizon theme               */
+/* =================================== */
+
+@_sap_ui_rta_Overlay_PlaceholderBackgroundColor: var(--sapList_SelectionBackgroundColor);
 
 .sapUiRta {
-	&:not(.sapUiRtaVisualizationMode) {
-		.sapUiRtaOverlayHover:after {
-			border-radius: @_sap_ui_rta_Overlay_BorderRadius;
-			border: none;
-			background: @_sap_ui_rta_Overlay_HoverBG;
+
+	.sapUiDtOverlayDropZone {
+
+		> .sapUiDtOverlayChildren {
+
+			> .sapUiRtaOverlayPlaceholder {
+				background: @_sap_ui_rta_Overlay_PlaceholderBackgroundColor;
+
+				/* no "focus" border */
+				&:focus {
+
+					&::before {
+						content: none;
+					}
+				}
+
+				/* all descendants */
+				* {
+					background: @_sap_ui_rta_Overlay_PlaceholderBackgroundColor;
+
+					/* no "focus" border */
+					&:focus {
+
+						&::before {
+							content: none;
+						}
+					}
+				}
+			}
 		}
 	}
 }

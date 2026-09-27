@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 * @extends sap.ui.base.EventProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.message.MessageProcessor
@@ -52,7 +52,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	/**
 	 * Map of event names, that are provided by the MessageProcessor.
 	 */
-	MessageProcessor.M_EVENTS = {
+	const M_EVENTS = {
 		/**
 		 * MessageChange should be fired when the MessageProcessor provides message changes
 		 *
@@ -71,9 +71,9 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 * @param {sap.ui.base.Event} oEvent
 	 * @param {sap.ui.base.EventProvider} oEvent.getSource
 	 * @param {object} oEvent.getParameters
-	 * @param {sap.ui.core.message.Message} oEvent.getParameters.oldMessages
+	 * @param {Array<sap.ui.core.message.Message>} oEvent.getParameters.oldMessages
 	 *            Messages already existing before the <code>messageChange</code> event was fired.
-	 * @param {sap.ui.core.message.Message} oEvent.getParameters.newMessages
+	 * @param {Array<sap.ui.core.message.Message>} oEvent.getParameters.newMessages
 	 *            New messages added by the trigger of the <code>messageChange</code> event.
 	 * @public
 	 */
@@ -98,7 +98,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 * @public
 	 */
 	MessageProcessor.prototype.attachMessageChange = function(oData, fnFunction, oListener) {
-		this.attachEvent("messageChange", oData, fnFunction, oListener);
+		this.attachEvent(M_EVENTS.messageChange, oData, fnFunction, oListener);
 		return this;
 	};
 
@@ -116,7 +116,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 * @public
 	 */
 	MessageProcessor.prototype.detachMessageChange = function(fnFunction, oListener) {
-		this.detachEvent("messageChange", fnFunction, oListener);
+		this.detachEvent(M_EVENTS.messageChange, fnFunction, oListener);
 		return this;
 	};
 
@@ -125,9 +125,9 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 *
 	 * @param {object} mParameters
 	 *            Parameters to pass along with the event
-	 * @param {sap.ui.core.message.Message} mParameters.oldMessages
+	 * @param {Array<sap.ui.core.message.Message>} mParameters.oldMessages
 	 *            Messages already existing before the <code>messageChange</code> event was fired.
-	 * @param {sap.ui.core.message.Message} mParameters.newMessages
+	 * @param {Array<sap.ui.core.message.Message>} mParameters.newMessages
 	 *            New messages added by the trigger of the <code>messageChange</code> event.
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -139,12 +139,12 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 		if (Messaging) {
 			Messaging.registerMessageProcessor(this);
 			Messaging.updateMessages(mParameters.oldMessages, mParameters.newMessages);
-			this.fireEvent("messageChange", mParameters);
+			this.fireEvent(M_EVENTS.messageChange, mParameters);
 		} else  {
 			sap.ui.require(["sap/ui/core/Messaging"], function(Messaging)  {
 				Messaging.registerMessageProcessor(this);
 				Messaging.updateMessages(mParameters.oldMessages, mParameters.newMessages);
-				this.fireEvent("messageChange", mParameters);
+				this.fireEvent(M_EVENTS.messageChange, mParameters);
 			}.bind(this));
 		}
 		return this;

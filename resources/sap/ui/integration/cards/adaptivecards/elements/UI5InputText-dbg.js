@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -19,7 +19,7 @@ sap.ui.define([
 	 * <code>ui5-input</code> or <code>ui5-textarea<code> UI5 web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
 	 * @since 1.74
@@ -38,7 +38,7 @@ sap.ui.define([
 	UI5InputText.prototype.internalRender = function () {
 		//when this.isMultiline is true, we have to render an ui5-textarea instead of ui5-input
 		if (this.isMultiline) {
-			var oTextArea = document.createElement("ui5-textarea");
+			var oTextArea = document.createElement("ui5-textarea-ac");
 			oTextArea.id = this.id;
 			oTextArea.placeholder = this.placeholder || "";
 			oTextArea.value = this.defaultValue || "";
@@ -51,7 +51,7 @@ sap.ui.define([
 			}.bind(this));
 			return oTextArea;
 		}
-		var oInput = document.createElement("ui5-input");
+		var oInput = document.createElement("ui5-input-ac");
 		switch (this.style) {
 			case 1:
 				oInput.type = "Tel";
@@ -84,7 +84,7 @@ sap.ui.define([
 
 	UI5InputText.prototype.showValidationErrorMessage = function () {
 		if (this.renderedInputControlElement) {
-			this.renderedInputControlElement.valueState = "Error";
+			this.renderedInputControlElement.valueState = "Negative";
 		}
 	};
 

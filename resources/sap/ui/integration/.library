@@ -4,9 +4,9 @@
   <name>sap.ui.integration</name>
   <vendor>SAP SE</vendor>
   <copyright>OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.120.0</version>
+  <version>1.152.0</version>
 
   <documentation>SAPUI5 library with integration-related controls.</documentation>
 
@@ -53,10 +53,10 @@
 
     <!-- Thirdparty references -->
     <thirdparty xmlns="http://www.sap.com/ui5/buildext/thirdparty">
-        <lib name="ui5-web-components" displayName="UI5 Web Components" npmName="@ui5/webcomponents" version="1.7.0" homepage="https://sap.github.io/ui5-webcomponents/" id="73554900106100099957">
-            <license url="https://github.com/SAP/ui5-webcomponents/blob/master/LICENSE.txt" type="Apache-2.0"></license>
+        <lib name="ui5-web-components" displayName="UI5 Web Components" npmName="@ui5/webcomponents" version="2.15.0" homepage="https://ui5.github.io/webcomponents/" id="73555000106100326641">
+            <license url="https://github.com/UI5/webcomponents/blob/-/LICENSE.txt" type="Apache-2.0"></license>
             <copyright>SAP</copyright>
-            <pattern>sap/ui/integration/thirdparty/webcomponents/*</pattern>
+            <pattern>sap/ui/integration/thirdparty/webcomponents/**</pattern>
         </lib>
         <lib name="adaptive-cards" displayName="Adaptive Cards" npmName="adaptivecards" version="2.9.0" hash="25bec245bd5ff88c614d0fe126601390" homepage="https://adaptivecards.io/" id="73555000106100067533">
             <license url="https://github.com/microsoft/AdaptiveCards/blob/master/LICENSE" type="MIT"></license>
@@ -74,7 +74,7 @@
             <copyright>Microsoft</copyright>
             <pattern>sap/ui/integration/thirdparty/adaptive-expressions.js</pattern>
         </lib>
-        <lib name="markdown-it" displayName="Markdown-it" npmName="markdown-it" version="12.3.2" hash="fb4306ba1f8f41a66d39cc7545d879fb" homepage="https://github.com/markdown-it/markdown-it" id="73554900106100093551">
+        <lib name="markdown-it" displayName="Markdown-it" npmName="markdown-it" version="14.1.0" hash="b66544bef980a49fcfd3d5233fcaeaca" homepage="https://github.com/markdown-it/markdown-it" id="73554900106100113285">
             <license url="https://github.com/markdown-it/markdown-it/blob/master/LICENSE" type="MIT"></license>
             <copyright>2014 Vitaly Puzrin, Alex Kocharin</copyright>
             <pattern>sap/ui/integration/thirdparty/markdown-it.js</pattern>

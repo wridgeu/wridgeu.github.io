@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -82,14 +82,32 @@ sap.ui.define([
 		}
 
 		// Add inline styles
+		const sGap = oFlexBox.getGap(),
+			sRowGap = oFlexBox.getRowGap(),
+			sColumnGap = oFlexBox.getColumnGap();
+
 		oRm.style("height", oFlexBox.getHeight());
 		oRm.style("width", oFlexBox.getWidth());
+
+		if (sGap) {
+			oRm.style("gap", sGap);
+		}
+
+		if (sRowGap) {
+			oRm.style("row-gap", sRowGap);
+		}
+
+		if (sColumnGap) {
+			oRm.style("column-gap", sColumnGap);
+		}
 
 		// Add tooltip
 		var sTooltip = oFlexBox.getTooltip_AsString();
 		if (sTooltip) {
 			oRm.attr("title", sTooltip);
 		}
+
+		this.enhanceRootTag(oRm, oFlexBox);
 
 		// Close opening tag
 		oRm.openEnd();
@@ -193,6 +211,21 @@ sap.ui.define([
 			oItem.addStyleClass(sClass);
 		}
 	};
+
+	/**
+	 * Enhances the root tag of the FlexBox control with additional attributes, styles, or classes.
+	 *
+	 * This method can be used by subclasses of FlexBoxRenderer to add custom attributes, inline styles,
+	 * or CSS classes to the root HTML element of the FlexBox control. It is called during the rendering
+	 * process after all standard FlexBox attributes, styles, and classes have been added to the root tag,
+	 * but before the opening tag is closed. This ensures that any custom enhancements are applied without
+	 * interfering with the core FlexBox styling and layout logic.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRM The RenderManager instance.
+	 * @param {sap.m.FlexBox} oFlexBox The FlexBox control instance for which the root tag is being enhanced.
+	 * @protected
+	 */
+	FlexBoxRenderer.enhanceRootTag = function(oRM, oFlexBox) {};
 
 	return FlexBoxRenderer;
 

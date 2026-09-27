@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,9 +8,10 @@
 sap.ui.define([
 	"../ElementMetadata",
 	"./WebComponentRenderer",
-	"sap/base/strings/camelize"
+	"sap/base/strings/camelize",
+	"sap/base/strings/hyphenate"
 ],
-function(ElementMetadata, WebComponentRenderer, camelize) {
+function(ElementMetadata, WebComponentRenderer, camelize, hyphenate) {
 	"use strict";
 
 	var MAPPING_TYPES = ["property", "style", "textContent", "slot", "none"];
@@ -23,9 +24,8 @@ function(ElementMetadata, WebComponentRenderer, camelize) {
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.120.0
-	 * @since 1.118.0
-	 * @experimental Since 1.118.0 The API might change. It is not intended for productive usage yet!
+	 * @version 1.152.0
+	 * @since 1.138.0
 	 * @alias sap.ui.core.webc.WebComponentMetadata
 	 * @extends sap.ui.core.ElementMetadata
 	 * @public
@@ -54,7 +54,9 @@ function(ElementMetadata, WebComponentRenderer, camelize) {
 		} else if (typeof info.mapping === "object") {
 			this._sMapping = fnValidateType(info.mapping.type);
 			this._sMapTo = info.mapping.to;
+			this._sSlotName = info.mapping.slotName;
 			this._fnMappingFormatter = info.mapping.formatter;
+			this._fnMappingParser = info.mapping.parser;
 		}
 	};
 	WebComponentProperty.prototype = Object.create(OriginalProperty.prototype);
@@ -81,11 +83,25 @@ function(ElementMetadata, WebComponentRenderer, camelize) {
 			this._sMapping = "property"; // Associations map only to properties, no matter what is set, it's always "property" mapping
 			this._sMapTo = info.mapping.to; // The property, to which the association is related
 			this._fnMappingFormatter = info.mapping.formatter;
+			this._fnMappingParser = info.mapping.parser;
 		}
 	};
 	WebComponentAssociation.prototype = Object.create(OriginalAssociation.prototype);
 	WebComponentAssociation.prototype.constructor = WebComponentAssociation;
 	WebComponentMetadata.prototype.metaFactoryAssociation = WebComponentAssociation;
+
+	// Enrich event factory
+	var OriginalEvent = ElementMetadata.prototype.metaFactoryEvent;
+	var WebComponentEvent = function(oClass, name, info) {
+		OriginalEvent.apply(this, arguments);
+		if (info.mapping) {
+			this._sMapTo = info.mapping.to;
+		}
+		this._sCustomEventName = this._sMapTo ? this._sMapTo : hyphenate(name); // Create the custom event name from the mapping or the event name itself (then hyphenated)
+	};
+	WebComponentEvent.prototype = Object.create(OriginalEvent.prototype);
+	WebComponentEvent.prototype.constructor = WebComponentEvent;
+	WebComponentMetadata.prototype.metaFactoryEvent = WebComponentEvent;
 
 	WebComponentMetadata.prototype.applySettings = function(oClassInfo) {
 		var oStaticInfo = oClassInfo.metadata;
@@ -188,8 +204,8 @@ function(ElementMetadata, WebComponentRenderer, camelize) {
 
 	/**
 	 * Returns a map, containing all properties of a certain mapping type
-	 * @param sMapping
-	 * @returns {Object}
+	 * @param {string} sMapping mapping type
+	 * @returns {Object} map of all properties of a certain mapping type
 	 */
 	WebComponentMetadata.prototype.getPropertiesByMapping = function(sMapping) {
 		var mFiltered = {};
@@ -218,7 +234,7 @@ function(ElementMetadata, WebComponentRenderer, camelize) {
 
 	/**
 	 * Returns a map of all associations that control properties (have mapping to properties)
-	 * returns {Object}
+	 * @returns {Object} map of all associations having mappings
 	 */
 	WebComponentMetadata.prototype.getAssociationsWithMapping = function() {
 		var mFiltered = {};
@@ -228,6 +244,26 @@ function(ElementMetadata, WebComponentRenderer, camelize) {
 				var oAssocData = mAssociations[sAssocName];
 				if (oAssocData._sMapping) {
 					mFiltered[sAssocName] = oAssocData;
+				}
+			}
+		}
+
+		return mFiltered;
+	};
+
+	/**
+	 * Returns a map of all events that are custom events (have mapping to a custom event)
+	 * @param {string} [sCustomEventName] if provided, only returns the event with this name
+	 * @returns {Object} map of custom events, where the key is the event name and the value is the event metadata object
+	 */
+	WebComponentMetadata.prototype.getCustomEvents = function(sCustomEventName) {
+		var mFiltered = {};
+		var mEvents = this.getAllEvents();
+		for (var sEventName in mEvents) {
+			var oEventObj = mEvents[sEventName];
+			if (oEventObj._sCustomEventName) {
+				if (!sCustomEventName || oEventObj._sCustomEventName === sCustomEventName) {
+					mFiltered[sEventName] = oEventObj;
 				}
 			}
 		}

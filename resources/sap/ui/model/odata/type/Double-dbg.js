@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/type/ODataType"
-], function (Log, NumberFormat, FormatException, ParseException, ValidateException, ODataType) {
+], function(Log, Library, NumberFormat, FormatException, ParseException, ValidateException, ODataType) {
 	"use strict";
 
 	/**
@@ -21,7 +22,7 @@ sap.ui.define([
 	 *   the locale-dependent error message
 	 */
 	function getErrorMessage() {
-		return sap.ui.getCore().getLibraryResourceBundle().getText("EnterNumber");
+		return Library.getResourceBundleFor("sap.ui.core").getText("EnterNumber");
 	}
 
 	/**
@@ -61,11 +62,28 @@ sap.ui.define([
 	}
 
 	/**
+	 * @typedef {sap.ui.core.format.NumberFormat.FloatFormatOptions} sap.ui.model.odata.type.FloatTypeFormatOptions
+	 *
+	 * The format options of the OData floating point number types, {@link sap.ui.model.odata.type.Double} and
+	 * {@link sap.ui.model.odata.type.Single}.
+	 *
+	 * @property {boolean} [parseEmptyValueToZero]
+	 *   Whether the empty string and <code>null</code> are parsed to <code>0</code> if the <code>nullable</code>
+	 *   constraint is set to <code>false</code>; see {@link #parseValue parseValue}; since 1.115.0
+	 *
+	 * @public
+	 */
+
+	/**
 	 * Constructor for a primitive type <code>Edm.Double</code>.
 	 *
-	 * @class This class represents the OData primitive type <a
-	 * href="http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
-	 * <code>Edm.Double</code></a>.
+	 * @class This class represents the OData primitive type <code>Edm.Double</code>, see
+	 * <a
+	 * href="https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338">
+	 * type definition for OData V4.01</a> or
+	 * <a
+	 * href="https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
+	 * type definition for OData V2</a>.
 	 *
 	 * In both {@link sap.ui.model.odata.v2.ODataModel} and {@link sap.ui.model.odata.v4.ODataModel}
 	 * this type is represented as a <code>number</code>.
@@ -73,23 +91,33 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @alias sap.ui.model.odata.type.Double
-	 * @param {object} [oFormatOptions]
+	 * @param {sap.ui.model.odata.type.FloatTypeFormatOptions} [oFormatOptions={
+	 *     emptyString: NaN,
+	 *     groupingBaseSize: 3,
+	 *     groupingEnabled: true,
+	 *     groupingSize: 3,
+	 *     maxFractionDigits: 99,
+	 *     maxIntegerDigits: 99,
+	 *     minFractionDigits: 0,
+	 *     minIntegerDigits: 1,
+	 *     parseAsString: false,
+	 *     parseEmptyValueToZero: false,
+	 *     preserveDecimals: true,
+	 *     roundingMode: "HALF_AWAY_FROM_ZERO",
+	 *     showScale: true,
+	 *     strictGroupingValidation: false,
+	 *     style: "standard"
+	 *   }]
 	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getFloatInstance}.
-	 *   In contrast to NumberFormat <code>groupingEnabled</code> defaults to <code>true</code>.
-	 * @param {boolean} [oFormatOptions.parseEmptyValueToZero=false]
-	 *   Whether the empty string and <code>null</code> are parsed to <code>0</code> if the <code>nullable</code>
-	 *   constraint is set to <code>false</code>; see {@link #parseValue parseValue}; since 1.115.0
-	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
-	 *   by default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
-	 *   "short" or "long"; since 1.89.0
 	 * @param {object} [oConstraints]
 	 *   constraints; {@link #validateValue validateValue} throws an error if any constraint is
 	 *   violated
 	 * @param {boolean|string} [oConstraints.nullable=true]
 	 *   if <code>true</code>, the value <code>null</code> is accepted
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> is set but is not allowed
 	 *
 	 * @public
 	 * @since 1.27.0
@@ -259,7 +287,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.Double"}
 	 *   the type's name
 	 * @public
 	 */

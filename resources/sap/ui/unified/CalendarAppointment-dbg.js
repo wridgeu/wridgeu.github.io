@@ -1,35 +1,40 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.CalendarAppointment.
 sap.ui.define([
 	'./DateTypeRange',
+	"sap/base/i18n/Formatting",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Locale",
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/format/NumberFormat',
-	'sap/ui/core/format/TimezoneUtil',
-	'sap/ui/core/Core',
 	'./calendar/CalendarUtils',
 	'./library',
 	"sap/base/Log",
-	"sap/ui/core/Configuration",
-	"sap/ui/core/date/UI5Date"
+	"sap/ui/core/date/UI5Date",
+	"sap/ui/core/library"
 ],
 	function(
 		DateTypeRange,
+		Formatting,
+		Library,
+		Locale,
 		DateFormat,
 		NumberFormat,
-		TimezoneUtil,
-		Core,
 		CalendarUtils,
 		library,
 		Log,
-		Configuration,
-		UI5Date
-		) {
+		UI5Date,
+		coreLibrary
+	) {
 	"use strict";
+
+	// shortcut for sap.ui.core.aria.HasPopup
+	const AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * Constructor for a new <code>CalendarAppointment</code>.
@@ -43,7 +48,7 @@ sap.ui.define([
 	 *
 	 * Applications could inherit from this element to add own fields.
 	 * @extends sap.ui.unified.DateTypeRange
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -98,7 +103,21 @@ sap.ui.define([
 			 * This property will work only with full hex color with pound symbol, e.g.: #FF0000.
 			 * @since 1.46.0
 			 */
-			color: {type : "sap.ui.core.CSSColor", group : "Appearance", defaultValue : null}
+			color: {type : "sap.ui.core.CSSColor", group : "Appearance", defaultValue : null},
+
+			/**
+			 * Specifies the value of the <code>aria-haspopup</code> attribute
+			 *
+			 * If the value is <code>None</code>, the attribute will not be rendered. Otherwise it will be rendered with the selected value.
+			 *
+			 * NOTE: Use this property only when an <code>sap.ui.unified.CalendarAppointment</code> instance is active and related to a popover/popup.
+			 * The value needs to be equal to the main/root role of the popup - e.g. dialog,
+			 * menu or list (examples: if you have dialog -> dialog, if you have menu -> menu; if you have list -> list; if you have dialog containing a list -> dialog).
+			 * Do not use it, if you open a standard sap.m.Dialog, MessageBox or other type of modal dialogs.
+			 *
+			 * @since 1.150.0
+			 */
+			ariaHasPopup: { type: "sap.ui.core.aria.HasPopup", group: "Accessibility", defaultValue: AriaHasPopup.None }
 		},
 		aggregations: {
 			/**
@@ -115,10 +134,20 @@ sap.ui.define([
 			 * and may lead to unpredictable results.</li>
 			 * </ul>
 			 *
+			 * <b>Note:</b> When using the <code>customContent</code> aggregation, it is the application developer's responsibility
+			 * to add appropriate labels to the <code>ariaLabelledBy</code> association to provide accessible information about this
+			 * appointment as the standard properties (<code>title</code>, <code>text</code>, <code>description</code>, and <code>icon</code>)
+			 * are ignored, which means screen readers will have no information about the appointment unless proper ARIA labeling is implemented.
+			 *
 			 * @since 1.93.0
-			 * @experimental Since 1.93, providing only limited functionality. Also, the API might be changed in the future.
 			 */
 			customContent: { type: "sap.ui.core.Control", multiple: true }
+		},
+		associations : {
+			/**
+			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledBy).
+			 */
+			ariaLabelledBy: {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
 		}
 	}});
 
@@ -145,21 +174,22 @@ sap.ui.define([
 	 * @returns {object} An object with a start and end fields, which represent how the appointment intersects with the given date
 	 * @private
 	 */
-	CalendarAppointment.prototype._getDateRangeIntersectionText = function (oCurrentlyDisplayedDate) {
+	CalendarAppointment.prototype._getDateRangeIntersectionText = function (oCurrentlyDisplayedDate, bUse12HourFormat) {
 		var oStartDate = this.getStartDate(),
 			oEndDate = this.getEndDate() ? this.getEndDate() : UI5Date.getInstance(864000000000000), //in case of emergency call this number
+			sPattern = bUse12HourFormat ? "h:mm a" : "HH:mm",
 			sFirstLineText,
 			sSecondLineText,
 			oCurrentDayStart = UI5Date.getInstance(oCurrentlyDisplayedDate.getFullYear(), oCurrentlyDisplayedDate.getMonth(), oCurrentlyDisplayedDate.getDate(), 0, 0, 0),
 			oNextDayStart = UI5Date.getInstance(oCurrentDayStart.getFullYear(), oCurrentDayStart.getMonth(), oCurrentDayStart.getDate() + 1),
-			oTimeFormat = DateFormat.getTimeInstance({pattern: "HH:mm"}),
-			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			oTimeFormat = DateFormat.getTimeInstance({pattern: sPattern}),
+			oResourceBundle = Library.getResourceBundleFor("sap.m"),
 			oHourFormat = NumberFormat.getUnitInstance({
 				allowedUnits: ["duration-hour"]
-			}, Configuration.getFormatSettings().getFormatLocale()),
+			}, new Locale(Formatting.getLanguageTag())),
 			oMinuteFormat = NumberFormat.getUnitInstance({
 				allowedUnits: ["duration-minute"]
-			}, Configuration.getFormatSettings().getFormatLocale()),
+			}, new Locale(Formatting.getLanguageTag())),
 			iHour, iMinute, sHour, sMinute;
 
 		//have no intersection with the given day
@@ -251,11 +281,15 @@ sap.ui.define([
 	 * @private
 	 */
 	CalendarAppointment.prototype._getCSSColorForBackground = function(sHex) {
+		if (sHex.length === 4) {
+			// normalize shortened hex values (#abc -> #aabbcc) in order to work properly with them
+			sHex = '#' + sHex.charAt(1) + sHex.charAt(1) + sHex.charAt(2) + sHex.charAt(2) + sHex.charAt(3) + sHex.charAt(3);
+		}
 		return "rgba(" + [
 				parseInt(sHex.substr(1, 2), 16), // Red
 				parseInt(sHex.substr(3, 2), 16), // Green
 				parseInt(sHex.substr(5, 2), 16) // Blue
-			].join(",") + ", 0.2)";
+			].join(", ") + ", 0.2)";
 	};
 
 	CalendarAppointment.prototype._setAppointmentPartSuffix = function (sSuffix) {

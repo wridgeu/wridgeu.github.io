@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	"sap/base/util/each",
 	"sap/base/util/isPlainObject",
 	"sap/base/util/isEmptyObject",
+	"sap/base/util/merge",
 	"sap/base/Log",
 	"./ParameterMap",
 	"sap/ui/integration/util/CardMerger"
@@ -25,6 +26,7 @@ sap.ui.define([
 	each,
 	isPlainObject,
 	isEmptyObject,
+	merge,
 	Log,
 	ParameterMap,
 	CardMerger
@@ -66,7 +68,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -95,7 +97,8 @@ sap.ui.define([
 				if (sBaseUrl) {
 					mOptions.baseUrl = sBaseUrl;
 				} else {
-					Log.error("If baseUrl is not provided when the manifest is an object, the relative resources cannot be loaded.", "sap.ui.integration.widgets.Card");
+					mOptions.baseUrl = "/";
+					Log.info("Property baseUrl is not provided and manifest URL is unknown. Relative resources may not be loaded correctly.", "sap.ui.integration.widgets.Card");
 				}
 
 				this._registerManifestModulePath(oManifestJson, sBaseUrl || "/");
@@ -123,10 +126,23 @@ sap.ui.define([
 	};
 
 	/**
-	 * @returns {Object} A copy of the Manifest JSON.
+	 * @returns {object} A copy of the manifest JSON.
 	 */
 	Manifest.prototype.getJson = function () {
 		return this._unfreeze(this.oJson);
+	};
+
+	/**
+	 * @returns {object} JSON, from which any unprocessable parts have been erased.
+	 */
+	Manifest.prototype.getProcessableJson = function () {
+		const oValue = deepExtend({}, this._oManifest.getRawJson());
+
+		if (oValue["sap.card"]?.type === "AdaptiveCard") {
+			delete oValue["sap.card"].content;
+		}
+
+		return this._unfreeze(oValue);
 	};
 
 	/**
@@ -215,19 +231,16 @@ sap.ui.define([
 	Manifest.prototype.load = function (mSettings) {
 
 		if (!mSettings || !mSettings.manifestUrl) {
-			// When the manifest JSON is already set and there is a base URL, try to load i18n files.
-			if (this._sBaseUrl && this._oManifest) {
+			if (this._oManifest) {
+				// When the manifest JSON is already set try to load i18n files.
 				return this.loadI18n().then(function () {
 					this.processManifest();
 				}.bind(this));
-			} else {
-				if (this._oManifest) {
-					this.processManifest();
-				}
-				return new Promise(function (resolve) {
-					resolve();
-				});
 			}
+
+			return new Promise(function (resolve) {
+				resolve();
+			});
 		}
 
 		return CoreManifest.load({
@@ -274,7 +287,7 @@ sap.ui.define([
 		// the manifest which should be processed
 		var bHasTranslatable = false;
 
-		CoreManifest.processObject(this._oManifest.getJson(), function (oObject, sKey, vValue) {
+		CoreManifest.processObject(this.getProcessableJson(), function (oObject, sKey, vValue) {
 			if (!bHasTranslatable && vValue.match(REGEXP_TRANSLATABLE)) {
 				bHasTranslatable = true;
 			}
@@ -303,12 +316,12 @@ sap.ui.define([
 	Manifest.prototype.processManifest = function () {
 		var iCurrentLevel = 0,
 			iMaxLevel = 15,
-			//Always need the unprocessed manifest
-			oUnprocessedJson = deepExtend({}, this._oManifest.getRawJson()),
+			oValue = this.getProcessableJson(),
 			oDataSources = this.get(APP_DATA_SOURCES);
 
-		process(oUnprocessedJson, this.oResourceBundle, iCurrentLevel, iMaxLevel, this._oCombinedParams, oDataSources, this._oCombinedFilters);
-		this.setJson(oUnprocessedJson);
+		process(oValue, this.oResourceBundle, iCurrentLevel, iMaxLevel, this._oCombinedParams, oDataSources, this._oCombinedFilters);
+
+		this.setJson(merge(this.getJson(), oValue));
 	};
 
 	/**

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -68,20 +68,6 @@ sap.ui.define([
 		return aContentClone;
 	}
 
-	function recreateContentAggregation(oSimpleForm, aContentClone, oModifier, mPropertyBag) {
-		return aContentClone.reduce(function(oPreviousPromise, oContentClone, iIndex) {
-			return oPreviousPromise
-				.then(function() {
-					return oModifier.insertAggregation(oSimpleForm,
-						"content",
-						oContentClone,
-						iIndex,
-						mPropertyBag.view
-					);
-				});
-		}, Promise.resolve());
-	}
-
 	/**
 	 * Change handler for adding a SmartField or Something from a Delegate to a SimpleForm
 	 *
@@ -91,10 +77,7 @@ sap.ui.define([
 	 *
 	 * @author SAP SE
 	 *
-	 * @version 1.120.0
-	 *
-	 * @experimental Since 1.49.0 This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
+	 * @version 1.152.0
 	 */
 	var AddSimpleFormField = BaseAddViaDelegate.createAddViaDelegateChangeHandler({
 		addProperty: function(mPropertyBag) {
@@ -119,14 +102,7 @@ sap.ui.define([
 					aContent = aAggregationContent;
 					iNewIndex = getIndex(aContent, mPropertyBag);
 					aContentClone = insertLabelAndField(aContent, iNewIndex, mInnerControls);
-					// Remove each control from the "content" aggregation without leaving them orphan (would reset bindings)
-					return aContent.reduce(function(oPreviousPromise, oContent) {
-						return oPreviousPromise
-						.then(oModifier.insertAggregation.bind(oModifier, oSimpleForm, "dependents", oContent, 0, mPropertyBag.view));
-					}, Promise.resolve());
-				})
-				.then(function() {
-					return recreateContentAggregation(oSimpleForm, aContentClone, oModifier, mPropertyBag);
+					return oModifier.replaceAllAggregation(oSimpleForm, "content", aContentClone);
 				})
 				.then(function() {
 					if (mInnerControls.valueHelp) {
@@ -172,22 +148,34 @@ sap.ui.define([
 		},
 		parentAlias: "_", //ensure to take the fallback
 		fieldSuffix: "", //no suffix needed
-		skipCreateLayout: true, //simple form needs field and label separately
-		supportsDefault: true
+		skipCreateLayout: true //simple form needs field and label separately
 	});
 
 	AddSimpleFormField.getChangeVisualizationInfo = function(oChange, oAppComponent) {
-		var oRevertData = oChange.getRevertData();
+		const oFormSelector = oChange.getSelector();
+		const oForm = JsControlTreeModifier.bySelector(oFormSelector, oAppComponent);
+		const oRevertData = oChange.getRevertData();
+		const oReturn = {
+			updateRequired: true
+		};
 
 		if (oRevertData && oRevertData.labelSelector) {
-			return {
-				affectedControls: [JsControlTreeModifier.bySelector(oRevertData.labelSelector, oAppComponent).getParent().getId()],
-				updateRequired: true
-			};
+			const oLabel = JsControlTreeModifier.bySelector(oRevertData.labelSelector, oAppComponent);
+			oReturn.affectedControls = [oLabel.getParent().getId()];
+			// If the label is currently invisible, the indicator should be on the form (it can't be the group because it could have been headerless)
+			if (!oLabel.getVisible()) {
+				oReturn.displayControls = [oForm];
+			}
+		} else {
+			const oElement = JsControlTreeModifier.bySelector(oChange.getContent().elementSelector, oAppComponent);
+			oReturn.affectedControls = [oChange.getContent().newFieldSelector];
+			// If the element is currently invisible, the indicator should be on on the form (it can't be the group because it could have been headerless)
+			if (!oElement.getVisible()) {
+				oReturn.displayControls = [oForm];
+			}
 		}
-		return {
-			affectedControls: [oChange.getContent().newFieldSelector]
-		};
+
+		return oReturn;
 	};
 
 	AddSimpleFormField.getCondenserInfo = function() {

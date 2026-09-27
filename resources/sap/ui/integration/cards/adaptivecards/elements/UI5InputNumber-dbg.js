@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -19,7 +19,7 @@ sap.ui.define([
 	 * <code>ui5-step-input</code> web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
 	 * @since 1.74
@@ -36,7 +36,7 @@ sap.ui.define([
 	};
 
 	UI5InputNumber.prototype.internalRender = function () {
-		this._numberInputElement = document.createElement("ui5-step-input");
+		this._numberInputElement = document.createElement("ui5-step-input-ac");
 
 		this._numberInputElement.id = this.id;
 		this._numberInputElement.placeholder = this.placeholder || "";
@@ -67,7 +67,7 @@ sap.ui.define([
 
 	UI5InputNumber.prototype.showValidationErrorMessage = function () {
 		if (this.renderedInputControlElement) {
-			this.renderedInputControlElement.valueState = "Error";
+			this.renderedInputControlElement.valueState = "Negative";
 		}
 	};
 

@@ -1,17 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './TileContentRenderer', 'sap/ui/core/Configuration', 'sap/ui/core/Lib'],
-	function(library, Core, Control, TileContentRenderer, Configuration, CoreLib) {
+sap.ui.define(['./library', "sap/base/i18n/Localization", 'sap/ui/core/library', 'sap/ui/core/Control', './TileContentRenderer', 'sap/ui/core/Lib', 'sap/m/ObjectStatus'],
+	function(library, Localization, Core, Control, TileContentRenderer, CoreLib, ObjectStatus) {
 	"use strict";
 
 	var Priority = library.Priority;
-
+	var ValueState = Core.ValueState;
 	var LoadState = library.LoadState;
-
 	var GenericTileMode = library.GenericTileMode;
 
 	/**
@@ -24,7 +23,7 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -61,15 +60,30 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 				 */
 				"frameType" : {type : "sap.m.FrameType", group : "Appearance", defaultValue : "Auto"},
 				/**
-				 * Adds a priority badge before the content. Works only in Generic Tile ActionMode.
-				 * @experimental Since 1.96
+				 * Adds a priority badge before the content. Works only in Generic Tiles in
+				 * ActionMode or Article Mode containing FrameType Stretch.
+				 * @since 1.96
 				 */
 				"priority" : {type: "sap.m.Priority", group: "Misc", defaultValue: Priority.None},
 				/**
-				 * Sets the Text inside the Priority badge in Generic Tile ActionMode.
-				 * @experimental Since 1.103
+				 * Sets the Text inside the Priority badge in Generic Tile. Works only in Generic Tiles in
+				 * ActionMode or Article Mode containing FrameType Stretch.
+				 * @since 1.103
 				 */
 				 "priorityText" : {type: "string", group: "Misc", defaultValue: null},
+				/**
+				 * Sets the priority level for the additional priority badge.
+				 * Determines the state and icon of the badge. Works only for generic tiles with ActionMode
+				 * or Article Mode where FrameType Stretch is enabled.
+				 * @since 1.151
+				 */
+				"additionalPriority" : {type: "sap.m.Priority", group: "Misc", defaultValue: Priority.None},
+				/**
+				 * Sets the text within the additional priority badge that is displayed next to the priority badge.
+				 * Works only in Generic Tiles in ActionMode or Article Mode containing FrameType Stretch.
+				 * @since 1.151
+				 */
+				"additionalPriorityText" : {type: "string", group: "Misc", defaultValue: null},
 				/**
 				 * The load status.
 				 * @since 1.100.0
@@ -136,6 +150,10 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 	TileContent.prototype.onAfterRendering = function() {
 		var oContent = this.getContent();
 		if (oContent) {
+			const oParent = this.getParent();
+            if (oParent && oParent.isA("sap.m.GenericTile") ) {
+			oParent._applyCssStyle(this);
+		}
 			var thisRef = this.$();
 			var aTooltipEments = thisRef.find("*");
 			// tooltip of the entire tile
@@ -206,7 +224,7 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 		var sUnit = this.getUnit();
 		if (sUnit) {
 			if (sFooter) {
-				if (Configuration.getRTL()) {
+				if (Localization.getRTL()) {
 					return resourceBundle.getText('TILECONTENT_FOOTER_TEXT', [sFooter, sUnit]);
 				} else {
 					return resourceBundle.getText('TILECONTENT_FOOTER_TEXT', [sUnit, sFooter]);
@@ -230,8 +248,14 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 		var oContent = this.getContent();
 		var oParent = this.getParent();
 		var sPriorityText = this.getPriorityText();
+		var sAdditionalPriorityText = this.getAdditionalPriorityText();
+
 		if (sPriorityText && this.getPriority() !== Priority.None){
 			sAltText += sPriorityText;
+			bIsFirst = false;
+		}
+		if (sAdditionalPriorityText && this.getAdditionalPriority() !== Priority.None){
+			sAltText += (bIsFirst ? "" : "\n") + sAdditionalPriorityText;
 			bIsFirst = false;
 		}
 		if (oContent && oContent.getVisible()) {
@@ -338,6 +362,161 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 		return [].slice.call(oChildElements).filter(function(oElement) {
 			return oElement.nodeType === 1;
 		});
+	};
+
+	/**
+	 * Sets the priority of the tile content.
+	 *
+	 * @param {sap.m.Priority} sPriority - The priority level.
+	 * @returns {this} Reference to the current instance for method chaining.
+	 * @public
+	 */
+	TileContent.prototype.setPriority = function(sPriority) {
+		var oPriorityBadge = this._getPriorityBadge();
+		oPriorityBadge?.setState(this._getPriorityState(sPriority));
+		oPriorityBadge?.setIcon(this._getPriorityIcon(sPriority));
+
+		this.setProperty("priority", sPriority);
+		return this;
+	};
+
+	/**
+	 * Sets the text for the priority badge.
+	 *
+	 * @param {string} sPriorityText - The text to be displayed on the badge.
+	 * @returns {this} Reference to the current instance for method chaining.
+	 * @public
+	 */
+	TileContent.prototype.setPriorityText = function(sPriorityText) {
+		var oPriorityBadge = this._getPriorityBadge();
+		oPriorityBadge?.setText(sPriorityText);
+		oPriorityBadge?.setTooltip(sPriorityText);
+
+		this.setProperty("priorityText", sPriorityText);
+		return this;
+	};
+
+	/**
+	 * Determines the button type based on the given priority.
+	 *
+	 * @private
+	 * @param {sap.m.Priority} sPriority - The priority level.
+	 * @returns {sap.m.ButtonType} The button type corresponding to the priority.
+	 */
+	TileContent.prototype._getPriorityState = function(sPriority) {
+		switch (sPriority) {
+			case Priority.VeryHigh:
+			case Priority.High:
+				return ValueState.Error;
+			case Priority.Medium:
+				return ValueState.Warning;
+			default:
+				return ValueState.Information;
+		}
+	};
+
+	/**
+	 * Determines the badge icon based on the given priority.
+	 *
+	 * @private
+	 * @param {sap.m.Priority} sPriority - The priority level.
+	 * @returns {string} The icon URI corresponding to the priority.
+	 */
+	TileContent.prototype._getPriorityIcon = function(sPriority) {
+		switch (sPriority) {
+			case Priority.VeryHigh:
+			case Priority.High:
+				return "sap-icon://alert";
+			case Priority.Medium:
+				return "sap-icon://high-priority";
+			default:
+				return "sap-icon://information";
+		}
+	};
+
+	/**
+	 * Fetches or creates the priority badge button based on the current priority and priority text.
+	 *
+	 * @private
+	 * @returns {sap.m.Button|null} The priority badge button, or null if no priority is set.
+	 */
+	TileContent.prototype._getPriorityBadge = function() {
+		var sPriority = this.getPriority();
+		var sPriorityText = this.getPriorityText();
+
+		if (sPriority && sPriority !== Priority.None && sPriorityText) {
+			if (!this._priorityBadge) {
+				this._priorityBadge = new ObjectStatus(this.getId() + "-priority", {
+					state: this._getPriorityState(sPriority),
+					icon: this._getPriorityIcon(sPriority),
+					text: sPriorityText,
+					tooltip: sPriorityText,
+					inverted: true
+				}).addStyleClass("sapUiSizeCompact sapMGTPriorityBadge");
+				this.addDependent(this._priorityBadge);
+			}
+
+			return this._priorityBadge;
+		}
+	};
+
+	/**
+	 * Sets the text for the additional priority badge.
+	 *
+	 * @param {string} sPriorityText - The text to be displayed on the badge.
+	 * @returns {this} Reference to the current instance for method chaining.
+	 * @public
+	 */
+	TileContent.prototype.setAdditionalPriorityText = function(sPriorityText) {
+		var oAdditionalPriorityBadge = this._getAdditionalPriorityBadge();
+		oAdditionalPriorityBadge?.setText(sPriorityText);
+		oAdditionalPriorityBadge?.setTooltip(sPriorityText);
+
+		this.setProperty("additionalPriorityText", sPriorityText);
+		return this;
+	};
+
+	/**
+	 * Sets the priority level for the additional priority badge.
+	 *
+	 * @param {sap.m.Priority} sPriority - The priority level.
+	 * @returns {this} Reference to the current instance for method chaining.
+	 * @public
+	 */
+	TileContent.prototype.setAdditionalPriority = function(sPriority) {
+		var oAdditionalPriorityBadge = this._getAdditionalPriorityBadge();
+		oAdditionalPriorityBadge?.setState(this._getPriorityState(sPriority));
+		oAdditionalPriorityBadge?.setIcon(this._getPriorityIcon(sPriority));
+
+		this.setProperty("additionalPriority", sPriority);
+		return this;
+	};
+
+	/**
+	 * Fetches or creates the additional priority badge based on additionalPriorityText.
+	 * State and icon are derived from additionalPriority if set, otherwise defaults to Information.
+	 *
+	 * @private
+	 * @returns {sap.m.ObjectStatus|undefined} The additional priority badge, or undefined if no text is set.
+	 */
+	TileContent.prototype._getAdditionalPriorityBadge = function() {
+		var sPriority = this.getAdditionalPriority();
+		var sPriorityText = this.getAdditionalPriorityText();
+
+		if (sPriority && sPriority !== Priority.None && sPriorityText) {
+			if (!this._additionalPriorityBadge) {
+				this._additionalPriorityBadge = new ObjectStatus(this.getId() + "-additionalPriority", {
+					state: this._getPriorityState(sPriority),
+					icon: this._getPriorityIcon(sPriority),
+					text: sPriorityText,
+					tooltip: sPriorityText,
+					inverted: true
+				}).addStyleClass("sapUiSizeCompact sapMGTAdditionalPriorityBadge");
+				this.addDependent(this._additionalPriorityBadge);
+			}
+
+			return this._additionalPriorityBadge;
+		}
 	};
 
 	return TileContent;

@@ -1,16 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/integration/library",
 	"sap/ui/base/Object"
-], function (library, BaseObject) {
+], function (BaseObject) {
 	"use strict";
-
-	// Shortcut to sap.ui.integration.library.CardDataMode
-	var CardDataMode = library.CardDataMode;
 
 	/**
 	 * Constructor for a new <code>CardObserver</code>.
@@ -22,7 +18,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -58,6 +54,7 @@ sap.ui.define([
 			this._oObserver = new window.IntersectionObserver(function (oEntries) {
 				oEntries.forEach(function (oEntry) {
 					if (oEntry.isIntersecting) {
+						this._bIsIntersected = true;
 						this.loadManifest();
 					}
 				}.bind(this), {
@@ -83,6 +80,7 @@ sap.ui.define([
 
 			this._oObserver.observe(oDomRef);
 			this._oObservedDomRef = oDomRef;
+			this._bIsIntersected = false;
 		}
 	};
 
@@ -103,8 +101,17 @@ sap.ui.define([
 	 */
 	CardObserver.prototype.loadManifest = function () {
 		var oCardDomRef = this._oCard.getDomRef();
-		this._oCard.setDataMode(CardDataMode.Active);
 		this.unobserve(oCardDomRef);
+
+		this._oCard.refresh();
+	};
+
+	/*
+	 * @ui5-restricted sap.ui.integration
+	 * @private
+	 */
+	CardObserver.prototype.isIntersected = function () {
+		return this._bIsIntersected;
 	};
 
 	return CardObserver;

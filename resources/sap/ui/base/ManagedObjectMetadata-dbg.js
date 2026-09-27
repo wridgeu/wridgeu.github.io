@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -79,7 +79,7 @@ function(
 	 *
 	 *
 	 * @author Frank Weigel
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 0.8.6
 	 * @alias sap.ui.base.ManagedObjectMetadata
 	 * @extends sap.ui.base.Metadata
@@ -110,7 +110,7 @@ function(
 
 	function deprecation(fn, name) {
 		return function() {
-			Log.warning("Usage of deprecated feature: " + name);
+			Log.warning("[DEPRECATED] Usage of deprecated feature: " + name);
 			return fn.apply(this, arguments);
 		};
 	}
@@ -126,6 +126,29 @@ function(
 		}
 
 		return result;
+	}
+
+	/**
+	 * Validates the given default class against its aggregation type.
+	 */
+	function validateDefaultClass(oAggregation, oOriginalAggregationInfo, fnClass) {
+		const fnDefaultClass = oOriginalAggregationInfo.defaultClass;
+
+		// we check if:
+		//    1. the defaultClass matches the aggregation type
+		//    2. the defaultClass matches the altTypes ('object' must not be included)
+		//    3. the defaultClass defined with a nullish value
+		if (fnDefaultClass) {
+			if (!BaseObject.isObjectA(fnDefaultClass.prototype, oAggregation.type)) {
+				throw new TypeError(`The 'defaultClass' of the aggregation '${oAggregation.name}' in '${fnClass.getName()}' is not of type '${oAggregation.type}'.`);
+			} else if (oAggregation.altTypes?.includes("object")) {
+				throw new TypeError(`The aggregation '${oAggregation.name}' in '${fnClass.getName()}' must not defined a 'defaultClass' together with the altType 'object'.`);
+			}
+		} else if (oOriginalAggregationInfo.hasOwnProperty("defaultClass")) {
+			throw new TypeError(`The 'defaultClass' of the aggregation '${oAggregation.name}' in '${fnClass.getName()}' is defined with a nullish value (${fnDefaultClass}).`);
+		}
+
+		return fnDefaultClass;
 	}
 
 	var Kind = {
@@ -259,6 +282,7 @@ function(
 		this.name = name;
 		this.type = info.type || 'sap.ui.core.Control';
 		this.altTypes = Array.isArray(info.altTypes) ? info.altTypes : undefined;
+		this.defaultClass = validateDefaultClass(this, info, oClass) || null;
 		this.multiple = typeof info.multiple === 'boolean' ? info.multiple : true;
 		this.singularName = this.multiple ? info.singularName || guessSingularName(name) : undefined;
 		this.bindable = !!info.bindable;
@@ -713,7 +737,7 @@ function(
 			add(that._sRemoveAllMutator, function() { return this.removeAllAssociation(n); });
 			if ( n !== that.singularName ) {
 				add('removeAll' + capitalize(that.singularName), function() {
-					Log.warning("Usage of deprecated method " +
+					Log.warning("[DEPRECATED] Usage of deprecated method " +
 						that._oParent.getName() + ".prototype." + 'removeAll' + capitalize(that.singularName) + "," +
 						" use method " + that._sRemoveAllMutator  + " (plural) instead.");
 					return this[that._sRemoveAllMutator]();
@@ -948,7 +972,7 @@ function(
 	 * @param {string} sName name of the property to add
 	 * @param {sap.ui.base.ManagedObject.MetadataOptions.Property} oInfo metadata for the property
 	 * @private
-	 * @restricted sap.ui.core
+	 * @ui5-restricted sap.ui.core
 	 * @see sap.ui.core.EnabledPropagator
 	 */
 	ManagedObjectMetadata.prototype.addProperty = function(sName, oInfo) {
@@ -1318,9 +1342,9 @@ function(
 	 *
 	 * @private
 	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
-	 * @experimental As of 1.54, this method is still in an experimental state. Its signature might change or it might be removed
-	 *   completely. Controls should prefer to declare aggregation forwarding in the metadata for the aggregation. See property
-	 *   <code>forwarding</code> in the documentation of {@link sap.ui.base.ManagedObject.extend ManagedObject.extend}.
+	 *
+	 * Controls should prefer to declare aggregation forwarding in the metadata for the aggregation. See property
+	 * <code>forwarding</code> in the documentation of {@link sap.ui.base.ManagedObject.extend ManagedObject.extend}.
 	 */
 	ManagedObjectMetadata.prototype.forwardAggregation = function(sForwardedSourceAggregation, mOptions) {
 
@@ -1610,7 +1634,7 @@ function(
 	 * @param {string} sName name of the setting
 	 * @param {object} oInfo metadata for the setting
 	 * @private
-	 * @restricted sap.ui.core
+	 * @ui5-restricted sap.ui.core
 	 */
 	ManagedObjectMetadata.prototype.addSpecialSetting = function (sName, oInfo) {
 		var oSS = new SpecialSetting(this, sName, oInfo);
@@ -1942,7 +1966,7 @@ function(
 	 * you need to take care of identification yourself.
 	 *
 	 * @param {sap.ui.base.ManagedObject} [oManagedObject] instance that could have instance specific design time metadata
-	 * @param {string} [sScopeKey] scope name for which metadata will be resolved, see sap.ui.base.ManagedObjectMetadataScope
+	 * @param {string} [sScopeKey] scope name for which metadata will be resolved, see sap.ui.dt.DesignTime
 	 * @return {Promise} A promise which will return the loaded design time metadata
 	 * @private
 	 * @ui5-restricted sap.ui.dt, com.sap.webide

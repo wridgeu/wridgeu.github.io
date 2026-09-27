@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -143,7 +143,7 @@ sap.ui.define([
 
 				oRm.openStart("div");
 				oRm.class("sapFSPSideContentInner");
-				oRm.attr("aria-labelledby", oControl.getId() + "-header");
+				oRm.attr("aria-labelledby", oControl._getSideContentHeaderTitle().getId());
 				oRm.openEnd();
 
 				for (i = 0; i < aSide.length; i++) {

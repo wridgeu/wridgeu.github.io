@@ -8,7 +8,7 @@
 	width: 100%;
 	overflow: hidden;
 	font-size: @sapMFontMediumSize;
-	font-family: @sapUiFontFamily;
+	font-family: var(--sapFontFamily);
 	line-height: normal;
 }
 
@@ -29,10 +29,8 @@
 
 .sapUiUfdCurrencyCurrency {
 	text-align: end;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	width: 3rem;
-	font-family: @sapUiContentMonospaceFontFamily;
+	min-width: 3rem;
+	font-family: var(--sapContent_MonospaceFontFamily);
 }
 
 .sapUiUfdCurrency .sapMEmptyIndicator.sapMEmptyIndicatorAuto {

@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -16,10 +16,10 @@ sap.ui.define([
 	"sap/m/Title",
 	"sap/m/Text",
 	"sap/ui/Device",
-	"sap/ui/core/Core",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/Control",
-	"sap/ui/core/library"
+	"sap/ui/core/Lib",
+	"sap/ui/core/library",
+	"sap/ui/core/Supportability"
 ], function (
 	library,
 	Log,
@@ -32,10 +32,10 @@ sap.ui.define([
 	Title,
 	Text,
 	Device,
-	Core,
-	Configuration,
 	Control,
-	coreLibrary
+	Library,
+	coreLibrary,
+	Supportability
 ) {
 	"use strict";
 
@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -95,9 +95,21 @@ sap.ui.define([
 				httpResponse: {
 					type: "object",
 					defaultValue: null
+				},
+				imageSrc: {
+					type: "string",
+					defaultValue: ""
 				}
 			},
 			aggregations: {
+				additionalContent: {
+					type: "sap.m.Button",
+					multiple: true,
+					forwarding: {
+						getter: "_getIllustratedMessage",
+						aggregation: "additionalContent"
+					}
+				},
 				_illustratedMessage: {
 					type: "sap.m.IllustratedMessage",
 					multiple: false
@@ -140,6 +152,7 @@ sap.ui.define([
 	 * @param {string} [mSettings.title] Message title
 	 * @param {string} [mSettings.description] Message description
 	 * @param {string} [mSettings.details] Message details
+	 * @param {string} [mSettings.imageSrc] Source of the custom image
 	 * @param {Response} [mSettings.httpResponse] Response object
 	 * @param {sap.ui.integration.widgets.Card} oCard The card for which the message is created
 	 * @returns {sap.ui.integration.controls.BlockingMessage} The message
@@ -153,19 +166,10 @@ sap.ui.define([
 			sDetails = mSettings.details;
 
 		if (mSettings.type === CardBlockingMessageType.Error) {
-			sIllustratedMessageType = sIllustratedMessageType || IllustratedMessageType.ErrorScreen;
+			sIllustratedMessageType = sIllustratedMessageType || IllustratedMessageType.UnableToLoad;
 		} else if (mSettings.type === CardBlockingMessageType.NoData) {
 			sIllustratedMessageType = sIllustratedMessageType || IllustratedMessageType.NoData;
 		}
-
-		oCard._oContentMessage = {
-			type: mSettings.type === CardBlockingMessageType.NoData ? "noData" : "error",
-			illustrationType: sIllustratedMessageType,
-			illustrationSize: sIllustratedMessageSize,
-			title: sTitle,
-			description: sDescription,
-			details: sDetails
-		};
 
 		if (oCard.getCardContent() && oCard.getCardContent().getDomRef()) {
 			sBoxHeight = oCard.getCardContent().getDomRef().offsetHeight + "px";
@@ -178,49 +182,58 @@ sap.ui.define([
 			illustrationSize: sIllustratedMessageSize,
 			title: sTitle,
 			description: sDescription,
-			httpResponse: mSettings.httpResponse
+			httpResponse: mSettings.httpResponse,
+			details: sDetails,
+			additionalContent: BlockingMessage._createButtons(mSettings.additionalContent)
 		});
 
-		if (sDetails && Configuration.getDebug()) {
-			oBlockingMessage.setDetails(sDetails);
-		} else if (sDetails) {
-			Log.error(sDetails);
+		if (mSettings.imageSrc) {
+			oBlockingMessage.setImageSrc(oCard.resolveUrl(mSettings.imageSrc));
+		}
+
+		if (sDetails && Supportability.isDebugModeEnabled()) {
+			oBlockingMessage.addAdditionalContent(BlockingMessage._createDetailsButton(sDetails));
+
+			Log.error(sDetails); // @todo logging should happen at different place
 		}
 
 		return oBlockingMessage;
 	};
 
-	BlockingMessage.prototype.init = function () {
-		this.setAggregation("_illustratedMessage", new IllustratedMessage({
-			enableDefaultTitleAndDescription: false,
-			enableVerticalResponsiveness: true
-		}));
+	/**
+	 * Static method which creates all the buttons from the additionalContent settings.
+	 * @param {array} aAdditionalContentSettings The additionalContent settings.
+	 * @returns {sap.m.Button[]} An array of buttons.
+	 */
+	BlockingMessage._createButtons = function (aAdditionalContentSettings) {
+		const aButtons = aAdditionalContentSettings || [];
+
+		return aButtons.map((mButtonSettings) => {
+			return new Button({
+				text: mButtonSettings.text,
+				icon: mButtonSettings.icon,
+				tooltip: mButtonSettings.tooltip,
+				type: mButtonSettings.buttonType,
+				ariaHasPopup: mButtonSettings.ariaHasPopup,
+				press: mButtonSettings.press
+			});
+		});
 	};
 
-	BlockingMessage.prototype.onBeforeRendering = function () {
-		var oIllustratedMessage = this.getAggregation("_illustratedMessage");
-
-		oIllustratedMessage
-			.setIllustrationType(this.getIllustrationType())
-			.setIllustrationSize(this.getIllustrationSize())
-			.setTitle(this.getTitle())
-			.setDescription(this.getDescription())
-			.destroyAdditionalContent();
-
-		if (this.getDetails()) {
-			oIllustratedMessage.addAdditionalContent(this._getAdditionalContent());
-		}
-	};
-
-	BlockingMessage.prototype._getAdditionalContent = function () {
-		var oRb = Core.getLibraryResourceBundle("sap.ui.integration");
+	/**
+	 * Static method which creates the button to show additional details in a dialog.
+	 * @param {string} sDetails The details.
+	 * @returns {sap.m.Button} The button.
+	 */
+	BlockingMessage._createDetailsButton = function (sDetails) {
+		var oRb = Library.getResourceBundleFor("sap.ui.integration");
 
 		return new Button({
 			text: oRb.getText("CARD_BUTTON_SHOW_MORE"),
 			press: function () {
 				var oText = new Text({
 					renderWhitespace: true,
-					text: this.getDetails()
+					text: sDetails
 				}).addStyleClass("sapUiSmallMargin");
 
 				var oDialog = new Dialog({
@@ -259,8 +272,78 @@ sap.ui.define([
 				});
 
 				oDialog.open();
-			}.bind(this)
+			}
 		});
+	};
+
+	BlockingMessage.prototype.onBeforeRendering = function () {
+		var oIllustratedMessage = this._getIllustratedMessage();
+
+		oIllustratedMessage
+			.setIllustrationType(this.getIllustrationType())
+			.setIllustrationSize(this.getIllustrationSize())
+			.setTitle(this.getTitle())
+			.setDescription(this.getDescription());
+	};
+
+	/**
+	 * Creates lazily the illustrated message which is shown.
+	 * @returns {sap.m.IllustratedMessage} The illustrated message.
+	 */
+	BlockingMessage.prototype._getIllustratedMessage = function () {
+		let oIllustratedMessage = this.getAggregation("_illustratedMessage");
+
+		if (!oIllustratedMessage) {
+			oIllustratedMessage = new IllustratedMessage({
+				enableDefaultTitleAndDescription: false,
+				enableVerticalResponsiveness: true
+			});
+
+			oIllustratedMessage.addEventDelegate({
+				onAfterRendering: this._illustrationAfterRendering.bind(this)
+			});
+
+			this.setAggregation("_illustratedMessage", oIllustratedMessage);
+		}
+
+		return oIllustratedMessage;
+	};
+
+	BlockingMessage.prototype._illustrationAfterRendering = function () {
+		const sCustomImageSrc = this.getImageSrc();
+
+		if (!sCustomImageSrc ) {
+			return;
+		}
+
+		const oIllustration = this.getAggregation("_illustratedMessage").getDomRef().getElementsByClassName("sapMIllustratedMessageMainContent")[0];
+		const oIllustrationSvg = oIllustration.getElementsByTagName("svg")[0];
+		const oSvgRect = oIllustrationSvg.getBoundingClientRect();
+		const oCustomImageContainer = document.createElement("div");
+
+		oCustomImageContainer.classList.add("sapUiIntCardCustomImage");
+		oIllustration.append(oCustomImageContainer);
+
+		oCustomImageContainer.style.backgroundImage = "url(" + sCustomImageSrc + ")";
+		oCustomImageContainer.style.width = oSvgRect.width + "px";
+		oCustomImageContainer.style.height = oSvgRect.height + "px";
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {Object} The static configuration for the blocking message
+	 */
+	BlockingMessage.prototype.getStaticConfiguration = function () {
+		return {
+			type: this.getType() === CardBlockingMessageType.NoData ? "noData" : "error",
+			illustrationType: this.getIllustrationType(),
+			illustrationSize: this.getIllustrationSize(),
+			title: this.getTitle(),
+			description: this.getDescription() ? this.getDescription() : undefined,
+			imageSrc: this.getImageSrc() ? this.getImageSrc() : undefined,
+			details: this.getDetails() ? this.getDetails() : undefined
+		};
 	};
 
 	return BlockingMessage;

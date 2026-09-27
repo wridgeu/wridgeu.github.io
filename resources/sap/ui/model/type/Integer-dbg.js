@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -8,14 +8,27 @@
 sap.ui.define([
 	"sap/base/util/each",
 	"sap/base/util/isEmptyObject",
+	"sap/ui/core/Lib",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/SimpleType",
 	"sap/ui/model/ValidateException"
-], function(each, isEmptyObject, NumberFormat, FormatException, ParseException, SimpleType,
-		ValidateException) {
+], function(each, isEmptyObject, Library, NumberFormat, FormatException, ParseException, SimpleType, ValidateException) {
 	"use strict";
+
+	/**
+	 * @typedef {sap.ui.core.format.NumberFormat.IntegerFormatOptions} sap.ui.model.type.IntegerTypeFormatOptions
+	 *
+	 * The format options of the {@link sap.ui.model.type.Integer} type.
+	 *
+	 * @property {Object<string, any>} [source]
+	 *   Additional set of format options to be used if the property in the model is not of type
+	 *   <code>string</code> and needs formatting as well.
+	 *   If an empty object is given, the grouping is disabled and a dot is used as decimal separator.
+	 *
+	 * @public
+	 */
 
 	/**
 	 * Constructor for an Integer type.
@@ -26,16 +39,31 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
-	 * @param {object} [oFormatOptions]
-	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getIntegerInstance}
-	 * @param {object} [oFormatOptions.source] Additional set of format options to be used if the property in the model is not of type string and needs formatting as well.
-	 * 										   If an empty object is given, the grouping is disabled and a dot is used as decimal separator.
+	 * @param {sap.ui.model.type.IntegerTypeFormatOptions} [oFormatOptions={
+	 *     emptyString: NaN,
+	 *     groupingBaseSize: 3,
+	 *     groupingEnabled: false,
+	 *     groupingSize: 3,
+	 *     maxFractionDigits: 0,
+	 *     maxIntegerDigits: 99,
+	 *     minFractionDigits: 0,
+	 *     minIntegerDigits: 1,
+	 *     parseAsString: false,
+	 *     preserveDecimals: false,
+	 *     roundingMode: "TOWARDS_ZERO",
+	 *     showScale: true,
+	 *     strictGroupingValidation: false,
+	 *     style: "standard"
+	 *   }]
+	 *   The option object, which supports the following parameters.
+	 *   If no options are given, default values according to the type and locale settings are used.
 	 * @param {object} [oConstraints] Value constraints
 	 * @param {int} [oConstraints.minimum] Smallest value allowed for this type
 	 * @param {int} [oConstraints.maximum] Largest value allowed for this type
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> format option is provided
 	 * @alias sap.ui.model.type.Integer
 	 */
 	var Integer = SimpleType.extend("sap.ui.model.type.Integer", /** @lends sap.ui.model.type.Integer.prototype */ {
@@ -76,14 +104,14 @@ sap.ui.define([
 			case "string":
 				iResult = this.oOutputFormat.parse(String(vValue));
 				if (isNaN(iResult)) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
+					oBundle = Library.getResourceBundleFor("sap.ui.core");
 					throw new ParseException(oBundle.getText("EnterInt"));
 				}
 				break;
 			case "float":
 				iResult = Math.floor(vValue);
 				if (iResult != vValue) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
+					oBundle = Library.getResourceBundleFor("sap.ui.core");
 					throw new ParseException(oBundle.getText("EnterInt"));
 				}
 				break;
@@ -101,7 +129,7 @@ sap.ui.define([
 
 	Integer.prototype.validateValue = function(vValue) {
 		if (this.oConstraints) {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
+			var oBundle = Library.getResourceBundleFor("sap.ui.core"),
 				aViolatedConstraints = [],
 				aMessages = [],
 				iValue = vValue,

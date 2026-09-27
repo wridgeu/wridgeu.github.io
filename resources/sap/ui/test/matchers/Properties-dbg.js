@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	"use strict";
 	var oLogger = Log.getLogger("sap.ui.test.matchers.Properties");
 
+	// Note: changes to the parameter documentation must be reflectes in the .dtsgenrc file, too
 	/**
 	 * @class
 	 * Checks if a control's properties have the provided values - all properties have to match their values.
@@ -69,6 +70,9 @@ sap.ui.define([
 				var vCurrentPropertyValue = fnProperty.call(oControl);
 				// propertyValue is set in parent frame (on matcher instantiation), so match it against the parent's RegExp constructor
 				if (oPropertyValue instanceof RegExp) {
+					// Reset lastIndex so that a global/sticky RegExp is not affected by a previous
+					// partial match in the loop (where the id matched but a later property check failed).
+					oPropertyValue.lastIndex = 0;
 					bIsMatching = oPropertyValue.test(vCurrentPropertyValue);
 				} else if (isPlainObject(oPropertyValue) && oPropertyValue.regex && oPropertyValue.regex.source) {
 					// declarative syntax

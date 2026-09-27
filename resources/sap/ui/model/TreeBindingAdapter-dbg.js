@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -28,14 +28,14 @@ sap.ui.define([
 		"use strict";
 
 		/**
-		 * Adapter for TreeBindings to add the ListBinding functionality and use the
-		 * tree structure in list based controls.
+		 * Adapter for {@link sap.ui.model.TreeBinding} to add the list binding functionality and use the tree structure
+		 * in list based controls.
 		 *
 		 * @alias sap.ui.model.TreeBindingAdapter
-		 * @class
-		 * @experimental This module is only for experimental and internal use!
+		 * @namespace
 		 *
-		 * @protected
+		 * @private
+		 * @ui5-restricted sap.ui.model.ClientTreeBindingAdapter, sap.ui.model.odata.v2.ODataTreeBindingAdapter
 		 */
 		var TreeBindingAdapter = function() {
 
@@ -906,7 +906,7 @@ sap.ui.define([
 		 *
 		 * @private
 		 * @ui5-restricted unified.shell.override, sap.ca.scfld.md.controller.BaseMasterController,
-		 * sap.m.GrowingEnablement, sap.m.ListBase, sap.m.UploadCollection, sap.m.UploadSet
+		 * sap.m.GrowingEnablement, sap.m.ListBase, sap.m.UploadCollection, sap.m.upload.UploadSet
 		 */
 		TreeBindingAdapter.prototype.isGrouped = function () {
 			return true;
@@ -1999,7 +1999,7 @@ sap.ui.define([
 		 * @param {function}
 		 *            fnFunction The function to be called, when the event occurs
 		 * @param {object}
-		 *            [oListener] Context object to call the event handler with. Defaults to this
+		 *            [oListener=this] Context object to call the event handler with. Defaults to this
 		 *            <code>TreeBindingAdapter</code> itself
 		 *
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining

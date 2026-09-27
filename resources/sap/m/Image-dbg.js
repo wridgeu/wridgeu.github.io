@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,13 +11,15 @@ sap.ui.define([
 	'sap/ui/base/DataType',
 	'sap/base/security/URLListValidator',
 	'./ImageRenderer',
+	"sap/ui/core/Lib",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/thirdparty/URI",
 	"sap/base/security/encodeCSS",
 	"sap/ui/Device",
 	"sap/ui/core/library"
 ],
-	function(library, Control, DataType, URLListValidator, ImageRenderer, KeyCodes, jQuery, encodeCSS, Device, coreLibrary) {
+	function(library, Control, DataType, URLListValidator, ImageRenderer, Library, KeyCodes, jQuery, URI, encodeCSS, Device, coreLibrary) {
 	"use strict";
 
 
@@ -58,8 +60,10 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
 	 *
+	 * @borrows sap.ui.core.IFormContent.getFormDoNotAdjustWidth as #getFormDoNotAdjustWidth
+	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @alias sap.m.Image
@@ -237,8 +241,8 @@ sap.ui.define([
 			events : {
 
 				/**
-				 * Event is fired when the user clicks on the control. (This event is deprecated, use the press event instead)
-				 * @deprecated As of version 1.107.0
+				 * Event is fired when the user clicks on the control.
+				 * @deprecated As of version 1.107.0. Use the {@link #event:press press} event instead.
 				 */
 				tap : {},
 
@@ -686,6 +690,21 @@ sap.ui.define([
 	};
 
 	/**
+	* Converts an url to absolute url from the origin of the base url
+	* @param {string} sUrl - The url to be converted
+	* @param {string} oBaseUrl - The base url
+	* @returns {string} The absolute url
+	* @private
+	*/
+	Image.prototype._toAbsoluteUrl = function (sUrl, oBaseUrl) {
+		var oUrl = URI(sUrl);
+		if (oUrl.is("relative")) {
+			oUrl = oUrl.absoluteTo(oBaseUrl);
+		}
+		return oUrl.toString();
+	};
+
+	/**
 	* Update the source image either on the output DOM element (when in sap.m.ImageMode.Image mode) or on the window.Image object (when in sap.m.ImageMode.Background mode)
 	* @private
 	*/
@@ -871,7 +890,7 @@ sap.ui.define([
 
 		return {
 			role: bHasPressListeners ? "button" : "img",
-			type: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText(bHasPressListeners ? "ACC_CTR_TYPE_BUTTON" : "ACC_CTR_TYPE_IMAGE"),
+			type: Library.getResourceBundleFor("sap.m").getText(bHasPressListeners ? "ACC_CTR_TYPE_BUTTON" : "ACC_CTR_TYPE_IMAGE"),
 			description: this.getAlt() || this.getTooltip_AsString() || "",
 			focusable: bHasPressListeners
 		};

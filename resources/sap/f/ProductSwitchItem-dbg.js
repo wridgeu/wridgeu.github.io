@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,6 +9,10 @@ sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/ui/core/Icon",
 	"sap/ui/core/library",
+	"sap/m/Avatar",
+	"sap/m/AvatarShape",
+	"sap/m/AvatarImageFitType",
+	"sap/m/AvatarColor",
 	"sap/m/Text",
 	"sap/ui/events/KeyCodes",
 	"sap/f/ProductSwitchItemRenderer"
@@ -17,6 +21,10 @@ sap.ui.define([
 		Control,
 		Icon,
 		library,
+		Avatar,
+		AvatarShape,
+		AvatarImageFitType,
+		AvatarColor,
 		Text,
 		KeyCodes,
 		ProductSwitchItemRenderer
@@ -40,11 +48,10 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
-		 * @experimental Since 1.72. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 		 * @alias sap.f.ProductSwitchItem
 		 * @since 1.72
 		 */
@@ -57,6 +64,14 @@ sap.ui.define([
 					 * It can be an icon from the SAP icon font.
 					 */
 					src: { type: "sap.ui.core.URI", defaultValue: null },
+					 /**
+					 * Defines the image to be displayed as graphical element within the <code>ProductSwitchItem</code>.
+					 *
+					 * <b>Note:</b> This property takes precedence over the <code>src</code> property.
+					 *
+					 * @since 1.140
+					 */
+					imageSrc: { type: "sap.ui.core.URI", defaultValue: null },
 					 /**
 					 * Determines the title of the <code>ProductSwitchItem</code>.
 					 */
@@ -82,6 +97,10 @@ sap.ui.define([
 					target: { type: "string", group: "Behavior", defaultValue: null }
 				},
 				aggregations: {
+					/**
+					* Holds the internally created Avatar.
+					*/
+				   _avatar: { type: "sap.m.Avatar", visibility: "hidden", multiple: false },
 					 /**
 					 * Holds the internally created Icon.
 					 */
@@ -120,6 +139,28 @@ sap.ui.define([
 			this._getTitle().setMaxLines(sSubTitle ? 1 : 2);
 
 			return this;
+		};
+
+		/**
+		 * Gets content of aggregation _avatar.
+		 * @returns {sap.m.Avatar} The avatar aggregation instance.
+		 * @private
+		 */
+		ProductSwitchItem.prototype._getAvatar = function () {
+			var oAvatar = this.getAggregation("_avatar");
+
+			if (!oAvatar) {
+				oAvatar = new Avatar({
+					displayShape: AvatarShape.Square,
+					src: this.getImageSrc(),
+					imageFitType: AvatarImageFitType.Contain,
+					backgroundColor: AvatarColor.Transparent
+				});
+
+				this.setAggregation("_avatar", oAvatar);
+			}
+
+			return oAvatar;
 		};
 
 		/**

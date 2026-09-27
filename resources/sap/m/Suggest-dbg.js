@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,8 +13,8 @@ sap.ui.define([
 	"./SuggestionItem",
 	"sap/ui/Device",
 	"sap/m/library",
-	"sap/ui/core/Core",
-	"sap/ui/core/InvisibleText"
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Lib"
 ], function (
 	Toolbar,
 	Button,
@@ -24,8 +24,8 @@ sap.ui.define([
 	SuggestionItem,
 	Device,
 	library,
-	Core,
-	InvisibleText
+	InvisibleText,
+	Library
 ) {
 	"use strict";
 
@@ -127,7 +127,7 @@ sap.ui.define([
 			});
 
 			okButton = new Button({
-				text : Core.getLibraryResourceBundle("sap.m").getText("MSGBOX_OK"),
+				text : Library.getResourceBundleFor("sap.m").getText("MSGBOX_OK"),
 				press : function() {
 					dialog.close();
 				}
@@ -172,7 +172,6 @@ sap.ui.define([
 				offsetX: 0,
 				offsetY: 0,
 				initialFocus: parent,
-				bounce: false,
 				ariaLabelledBy: InvisibleText.getStaticId("sap.m", "INPUT_AVALIABLE_VALUES"),
 				afterOpen: function () {
 					oInput._applySuggestionAcc();
@@ -218,8 +217,10 @@ sap.ui.define([
 
 		this.setPopoverMinWidth = function() {
 			var oPopoverDomRef = self._oPopover.getDomRef();
+			var iShadow = self._oPopover._fThickShadowSize;
+
 			if (oPopoverDomRef) {
-				var w = (oInput.$().outerWidth() / parseFloat(library.BaseFontSize)) + "rem";
+				var w = ((oInput.$().outerWidth() - (iShadow * 2)) / parseFloat(library.BaseFontSize)) + "rem";
 				oPopoverDomRef.style.minWidth = w;
 			}
 		};

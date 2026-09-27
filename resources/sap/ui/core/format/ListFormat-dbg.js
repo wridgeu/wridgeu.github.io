@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.format.ListFormat
 sap.ui.define([
+	"sap/base/i18n/Formatting",
 	'sap/ui/core/Locale',
 	'sap/ui/core/LocaleData',
 	"sap/base/Log",
 	"sap/base/util/extend",
-	"sap/base/util/isEmptyObject",
-	"sap/ui/core/Configuration"
+	"sap/base/util/isEmptyObject"
 ],
-	function(Locale, LocaleData, Log, extend, isEmptyObject, Configuration) {
+	function(Formatting, Locale, LocaleData, Log, extend, isEmptyObject) {
 	"use strict";
 
 	/**
@@ -68,7 +68,7 @@ sap.ui.define([
 		}
 
 		if (!oLocale) {
-			oLocale = Configuration.getFormatSettings().getFormatLocale();
+			oLocale = new Locale(Formatting.getLanguageTag());
 		}
 		oFormat.oLocale = oLocale;
 		oFormat.oLocaleData = LocaleData.getInstance(oLocale);
@@ -92,10 +92,10 @@ sap.ui.define([
 		}
 
 		var oOriginalFormat = this.oOriginalFormatOptions,
-				mListPatterns,
-				sPattern, sValue, sStart, sMiddle, sEnd,
-				aValues = [].concat(aList),
-				aStart, aMiddle;
+			mListPatterns,
+			sValue, sMiddle, sEnd,
+			aValues = [].concat(aList),
+			aStart, aMiddle;
 
 		mListPatterns = this.oLocaleData.getListFormat(oOriginalFormat.type, oOriginalFormat.style);
 
@@ -104,26 +104,24 @@ sap.ui.define([
 			return "";
 		}
 
+		function applyPattern(sPattern, aValues) {
+			return sPattern.replace(/\{(\d+)\}/g, function(sMatch, sIndex) {
+				return aValues[parseInt(sIndex)];
+			});
+		}
+
 		function replaceMiddlePatterns(aValues, sPattern) {
-			var sResult =  aValues[0]; // 1
+			let sResult = aValues[0];
 
 			for (var i = 1; i < aValues.length; i++) {
-				sResult = sPattern.replace("{0}", sResult); // 1, {1}
-				sResult = sResult.replace("{1}", aValues[i]); // 1, 2
+				sResult = applyPattern(sPattern, [sResult, aValues[i]]);
 			}
 
 			return sResult;
 		}
 
-
-
 		if (mListPatterns[aValues.length]) {
-			sPattern = mListPatterns[aValues.length];
-
-			for (var i = 0; i < aValues.length; i++) {
-				sPattern = sPattern.replace('{' + i + '}', aValues[i]);
-			}
-			sValue = sPattern;
+			sValue = applyPattern(mListPatterns[aValues.length], aValues);
 
 		} else if (aValues.length < 2) {
 			sValue = aValues.toString();
@@ -134,11 +132,8 @@ sap.ui.define([
 			sEnd = aValues.pop();
 			aMiddle = aValues;
 
-			sStart = mListPatterns.start.replace("{0}", aStart);
-			sEnd = mListPatterns.end.replace("{1}", sEnd);
 			sMiddle = replaceMiddlePatterns(aMiddle, mListPatterns.middle);
-
-			sValue = sStart.replace("{1}", sEnd.replace("{0}", sMiddle));
+			sValue = applyPattern(mListPatterns.start, [aStart, applyPattern(mListPatterns.end, [sMiddle, sEnd])]);
 		}
 
 		return sValue;

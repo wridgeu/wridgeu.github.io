@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -8,14 +8,14 @@ sap.ui.define([
 	"./MicrochartLegendRenderer",
 	"sap/m/Text",
 	"sap/ui/core/Control",
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/core/theming/Parameters",
 	"sap/ui/integration/util/BindingHelper"
 ], function (
 	MicrochartLegendRenderer,
 	Text,
 	Control,
-	Core,
+	Element,
 	Parameters,
 	BindingHelper
 ) {
@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -115,7 +115,7 @@ sap.ui.define([
 	};
 
 	MicrochartLegend.prototype._loadLegendColors = function () {
-		var oChart = Core.byId(this.getChart()),
+		var oChart = Element.getElementById(this.getChart()),
 			aNames = [],
 			vParams;
 

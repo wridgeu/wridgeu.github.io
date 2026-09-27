@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -20,7 +20,7 @@ sap.ui.define([
 	 * <code>ui5-select</code>, or container with <code>ui5-radio-button</code>, or <code>ui5-checkbox</code> web components.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
 	 * @since 1.74
@@ -42,7 +42,7 @@ sap.ui.define([
 		if (!this.isMultiSelect) {
 			if (this.isCompact) {
 				//if this.isMultiSelect is false and this.isCompact is true, we need to render an ui5-select web component
-				this._selectElement = document.createElement("ui5-select");
+				this._selectElement = document.createElement("ui5-select-ac");
 				this._selectElement.id = this.id;
 				this._selectElement.addEventListener("change", function () {
 					this.valueChanged();
@@ -50,7 +50,7 @@ sap.ui.define([
 
 				var oDocFragment = document.createDocumentFragment();
 				for (var i = 0; i < this.choices.length; i++) {
-					var oOption = document.createElement("ui5-option");
+					var oOption = document.createElement("ui5-option-ac");
 					oOption.value = this.choices[i].value;
 					oOption.textContent  = this.choices[i].title;
 
@@ -74,7 +74,7 @@ sap.ui.define([
 			}.bind(this));
 			this._toggleInputs = [];
 			for (var j = 0; j < this.choices.length; j++) {
-				var oRb = document.createElement("ui5-radio-button");
+				var oRb = document.createElement("ui5-radio-button-ac");
 				oRb.value = this.choices[j].value;
 				oRb.text = this.choices[j].title;
 				oRb.name = this.id;
@@ -99,7 +99,7 @@ sap.ui.define([
 		oCbContainer.addEventListener("change", function () { this.valueChanged(); }.bind(this));
 		this._toggleInputs = [];
 		for (var k = 0; k < this.choices.length; k++) {
-			var oCb = document.createElement("ui5-checkbox");
+			var oCb = document.createElement("ui5-checkbox-ac");
 			oCb.value = this.choices[k].value;
 			oCb.text = this.choices[k].title;
 			oCb.name = this.id;
@@ -172,7 +172,7 @@ sap.ui.define([
 		}
 
 		this._toggleInputs.forEach(function(oToggleInput){
-			oToggleInput.valueState = "Error";
+			oToggleInput.valueState = "Negative";
 		});
 	};
 

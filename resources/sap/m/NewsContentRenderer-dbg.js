@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/m/TileContent"],
+	function(TileContent) {
 	"use strict";
 
 	/**
@@ -24,6 +24,7 @@ sap.ui.define([],
 	 */
 	NewsContentRenderer.render = function(oRm, oControl) {
 		var sTooltip = oControl.getTooltip_AsString();
+		var bIsSubheaderPresent = oControl.getSubheader();
 		if (typeof sTooltip !== "string") {
 			sTooltip = "";
 		}
@@ -39,17 +40,39 @@ sap.ui.define([],
 		}
 		oRm.openEnd();
 
-		oRm.openStart("div");
-		oRm.class("sapMNwCCTxt");
-		oRm.openEnd();
-		oRm.renderControl(oControl._oContentText);
-		oRm.close("div");
+			// render tile content priority badges, if present
+			var oTileContent = oControl.getParent();
+			var oContentPriorityBadge = oTileContent instanceof TileContent && oTileContent._getPriorityBadge();
+			var oContentAdditionalPriorityBadge = oTileContent instanceof TileContent && oTileContent._getAdditionalPriorityBadge();
 
-		oRm.openStart("div", oControl.getId() + "-subheader");
-		oRm.class("sapMNwCSbh");
-		oRm.openEnd();
-		oRm.renderControl(oControl._oSubHeaderText);
-		oRm.close("div");
+			if (oContentPriorityBadge || oContentAdditionalPriorityBadge) {
+				oRm.openStart("div");
+				oRm.class("sapMNwCPriorityContainer");
+				oRm.openEnd();
+				if (oContentPriorityBadge) {
+					oRm.renderControl(oContentPriorityBadge);
+				}
+				if (oContentAdditionalPriorityBadge) {
+					oRm.renderControl(oContentAdditionalPriorityBadge);
+				}
+				oRm.close("div");
+			}
+
+			oRm.openStart("div", oControl.getId() + "-title");
+			oRm.class("sapMNwCCTxt");
+			if (!bIsSubheaderPresent) {
+				oRm.class("sapMNwCExtend");
+			}
+			oRm.openEnd();
+			oRm.renderControl(oControl._oContentText);
+			oRm.close("div");
+
+			oRm.openStart("div", oControl.getId() + "-subheader");
+			oRm.class("sapMNwCSbh");
+			oRm.class("sapMNwCExtend");
+			oRm.openEnd();
+			oRm.renderControl(oControl._oSubHeaderText);
+			oRm.close("div");
 		oRm.close("div");
 	};
 

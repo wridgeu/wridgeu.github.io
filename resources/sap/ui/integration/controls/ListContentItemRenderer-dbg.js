@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,12 +34,13 @@ sap.ui.define([
 		rm.class("sapUiIntLCI");
 
 		var iLines = oLI.getLinesCount(),
-			sIcon = oLI.getIcon();
+			sIcon = oLI.getIcon(),
+			vActionsStrip = oLI.getActionsStrip();
 
 		if (iLines === 1) {
 			rm.class("sapUiIntLCIOneLine");
 
-			if (sIcon && !IconPool.isIconURI(sIcon)) {
+			if (sIcon && sIcon.trim() && !IconPool.isIconURI(sIcon)) {
 				rm.class("sapUiIntLCIThumbnail");
 			}
 		} else if (iLines === 2) {
@@ -48,7 +49,7 @@ sap.ui.define([
 			rm.class("sapUiIntLCIMultipleLines");
 		}
 
-		if (oLI.getActionsStrip()) {
+		if (vActionsStrip && vActionsStrip.hasVisibleItems()) {
 			rm.class("sapUiIntLCIWithActionsStrip");
 		}
 	};
@@ -92,7 +93,7 @@ sap.ui.define([
 		rm.close("div");
 		rm.close("div");
 
-		if (oActionsStrip) {
+		if (oActionsStrip && oActionsStrip.hasVisibleItems()) {
 			rm.renderControl(oActionsStrip);
 		}
 
@@ -101,7 +102,7 @@ sap.ui.define([
 
 	ListContentItemRenderer.renderTitle = function(rm, oLI) {
 		var sTitle = oLI.getTitle(),
-			sInfo = oLI.getInfo();
+			bHasInfo = oLI.getHasInfo();
 
 		rm.openStart("div")
 			.class("sapUiIntLCITitleWrapper")
@@ -113,7 +114,7 @@ sap.ui.define([
 			.text(sTitle)
 			.close("div");
 
-		if (sInfo && !oLI.getDescription() && oLI.getInfoVisible()) {
+		if (bHasInfo && !oLI.getDescription() && oLI.getInfoVisible()) {
 			this.renderInfo(rm, oLI);
 		}
 
@@ -122,7 +123,7 @@ sap.ui.define([
 
 	ListContentItemRenderer.renderDescription = function(rm, oLI) {
 		var sDescription = oLI.getDescription(),
-			sInfo = oLI.getInfo();
+			bHasInfo = oLI.getHasInfo();
 
 		rm.openStart("div")
 			.class("sapUiIntLCIDescriptionWrapper")
@@ -134,7 +135,7 @@ sap.ui.define([
 			.text(sDescription)
 			.close("div");
 
-		if (sInfo && oLI.getInfoVisible()) {
+		if (bHasInfo && oLI.getInfoVisible()) {
 			this.renderInfo(rm, oLI);
 		}
 

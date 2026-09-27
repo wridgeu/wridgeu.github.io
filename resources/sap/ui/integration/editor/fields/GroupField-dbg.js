@@ -1,22 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/core/Element",
 	"sap/ui/integration/editor/fields/BaseField",
 	"sap/m/Panel",
 	"sap/m/IconTabBar",
 	"sap/m/IconTabFilter",
 	"sap/m/MessageStrip",
-	"sap/ui/core/Core"
+	"sap/ui/integration/editor/Constants"
 ], function (
+	Element,
 	BaseField,
 	Panel,
 	IconTabBar,
 	IconTabFilter,
 	MessageStrip,
-	Core
+	Constants
 ) {
 	"use strict";
 
@@ -26,9 +28,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.GroupField
 	 * @author SAP SE
 	 * @since 1.106.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.106.0
 	 * @ui5-restricted
 	 */
 	var GroupField = BaseField.extend("sap.ui.integration.editor.fields.GroupField", {
@@ -72,7 +73,7 @@ sap.ui.define([
 							}
 							var oMessageStrip = oControl._level === "1" && this.getParent().getParent() ? this.getParent().getParent().getAggregation("_messageStrip") : this.getParent().getAggregation("_messageStrip");
 							if (oMessageStrip === null) {
-								oMessageStrip = Core.byId(this.getAssociation("_messageStrip"));
+								oMessageStrip = Element.getElementById(this.getAssociation("_messageStrip"));
 							}
 							oControl.addContent(oMessageStrip);
 							oControl.focus();
@@ -110,7 +111,7 @@ sap.ui.define([
 		var oConfig = this.getConfiguration();
 		var oControl = this.getAggregation("_field");
 		if (oControl instanceof Panel) {
-			if (this.getMode() !== "translation") {
+			if (this.getMode() !== Constants.EDITOR_MODE.TRANSLATION) {
 				var oResourceBundle = this.getResourceBundle();
 				var oMessageStripOfPanel = new MessageStrip({
 					id: this.getParameterId() + "_strip",
@@ -140,7 +141,7 @@ sap.ui.define([
 					}
 				});
 				if (oConfig.level !== "1") {
-					oMessageStripOfPanel.setModel(this._settingsModel, "currentSettings");
+					oMessageStripOfPanel.setModel(this._oSettingsModel, "currentSettings");
 				}
 				oMessageStripOfPanel.addStyleClass("sapUiIntegrationEditorPanelMessageStrip");
 				oControl._messageStrip = oMessageStripOfPanel;
@@ -157,11 +158,11 @@ sap.ui.define([
 					ePanel.setAttribute("aria-label", oConfig.label);
 					// handle error message for panel
 					if (oControl._subItems && oControl._subItems.length > 0) {
-						this.checkErrorsInSubItems(this._settingsModel, oControl);
+						this.checkErrorsInSubItems(this._oSettingsModel, oControl);
 					}
 					var oMessageStrip = oControl._messageStrip;
 					if (oControl._level !== "1" && oMessageStrip) {
-						oMessageStrip.rerender();
+						oMessageStrip.invalidate();
 					}
 					if (oControl.getExpanded()) {
 						// handle error message for sub panel/tab
@@ -170,7 +171,7 @@ sap.ui.define([
 							if (oItem.isA("sap.ui.integration.editor.fields.GroupField")) {
 								var oItemControl = oItem.getAggregation("_field");
 								if (oItemControl instanceof Panel && oItemControl._subItems && oItemControl._subItems.length > 0) {
-									oItem.checkErrorsInSubItems(oItem._settingsModel, oItemControl);
+									oItem.checkErrorsInSubItems(oItem._oSettingsModel, oItemControl);
 								} else if (oItemControl instanceof IconTabBar && oItemControl.getItems().length > 0) {
 									oItem.checkErrorsInIconTabBar();
 								}
@@ -200,10 +201,8 @@ sap.ui.define([
 			oControl.setBackgroundDesign("Transparent");
 			oControl.setHeaderBackgroundDesign("Transparent");
 			// oControl.setHeaderBackgroundDesign("Solid");
-			oControl.addStyleClass("sapUiIntegrationEditorSubGroup");
-			// oControl.addStyleClass("sapUiIntegrationEditorSubGroup").addStyleClass("cardEditorIconTabBarBG");
 			// handle messageStrip for tab filter
-			if (this.getMode() !== "translation") {
+			if (this.getMode() !== Constants.EDITOR_MODE.TRANSLATION) {
 				var oMessageStripOfTab = new MessageStrip({
 					id: this.getParameterId() + "_strip",
 					showIcon: false,
@@ -218,7 +217,7 @@ sap.ui.define([
 				oControl._messageStrip = oMessageStripOfTab;
 			}
 			// oControl._cols = oConfig.cols || 2; //by default 2 cols
-			oControl._level = oConfig.level || 0; //by default 0 level
+			oIconTabFilter._level = oConfig.level || 0; //by default 0 level
 		}
 	};
 
@@ -267,7 +266,7 @@ sap.ui.define([
 				//handle error message for fields
 				var tMessageStrip = this.getParent().getParent().getAggregation("_messageStrip");
 				if (tMessageStrip === null) {
-					tMessageStrip = Core.byId(this.getAssociation("_messageStrip"));
+					tMessageStrip = Element.getElementById(this.getAssociation("_messageStrip"));
 				}
 				aItems[n].addContent(tMessageStrip);
 			}
@@ -279,7 +278,7 @@ sap.ui.define([
 		var sErrorType = "None";
 		for (var i = 0; i < oControl._subItems.length; i++) {
 			var sSettingsPath = oControl._subItems[i].settingspath;
-			var oItem = Core.byId(oControl._subItems[i].itemId);
+			var oItem = Element.getElementById(oControl._subItems[i].itemId);
 			if (oModel.getProperty(sSettingsPath + "/hasError") === true && oItem.getVisible()) {
 				bHasError = true;
 				var sType = oModel.getProperty(sSettingsPath + "/errorType");
@@ -324,7 +323,7 @@ sap.ui.define([
 			});
 			expandBTN.setEnabled(false);
 			expandBTN.addStyleClass("errorBTN").addStyleClass("errorBTNDisabled");
-			var iMessageStrip = Core.byId(this.getParameterId() + "_strip");
+			var iMessageStrip = Element.getElementById(this.getParameterId() + "_strip");
 			expandBTN.addEventDelegate({
 				onmouseover: function() {
 					iMessageStrip.setVisible(true);
@@ -347,6 +346,20 @@ sap.ui.define([
 			}
 		}, 50);
 	};
+
+	GroupField.prototype.exit = function () {
+		if (BaseField.prototype.exit) {
+			BaseField.prototype.exit.call(this);
+		}
+
+		// destroy MessageStrip
+		var oControl = this.getAggregation("_field");
+		if ((oControl instanceof Panel || oControl instanceof IconTabBar) && oControl._messageStrip) {
+			oControl._messageStrip.destroy();
+			delete oControl._messageStrip;
+		}
+	};
+
 
 	return GroupField;
 });

@@ -1,8 +1,8 @@
-import Core from "sap/ui/core/Core";
 import Controller from "sap/ui/core/mvc/Controller";
 import View from "sap/ui/core/mvc/View";
 import History from "sap/ui/core/routing/History";
-import Router from "sap/ui/core/routing/Router";
+import Router, { ComponentTargetParameters } from "sap/ui/core/routing/Router";
+import Theming from "sap/ui/core/Theming";
 import UIComponent from "sap/ui/core/UIComponent";
 import VersionDialog from "../classes/VersionDialog";
 
@@ -17,10 +17,10 @@ export default class BaseController extends Controller {
 	 * @returns {void}
 	 */
 	public toggleTheme(): void {
-		if (Core.getConfiguration().getTheme() === this._sLightTheme) {
-			Core.applyTheme(this._sDarkTheme);
+		if (Theming.getTheme() === this._sLightTheme) {
+			Theming.setTheme(this._sDarkTheme);
 		} else {
-			Core.applyTheme(this._sLightTheme);
+			Theming.setTheme(this._sLightTheme);
 		}
 	}
 
@@ -33,8 +33,8 @@ export default class BaseController extends Controller {
 	public navTo(
 		psTarget: string,
 		pmParameters?: object,
-		targetInfo?: object,
-		pbReplace?: boolean
+		targetInfo?: Record<string, ComponentTargetParameters>,
+		pbReplace?: boolean,
 	): void {
 		this.getRouter().navTo(psTarget, pmParameters, targetInfo, pbReplace);
 	}

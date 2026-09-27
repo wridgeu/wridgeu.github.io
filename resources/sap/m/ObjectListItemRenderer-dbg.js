@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -253,11 +253,12 @@ sap.ui.define(['./ListItemBaseRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/li
 
 			if (oLI.getMarkers()) {
 				oLI.getMarkers().forEach(function(marker) {
-					if (marker._isIconVisible()) {
+					var isMarkerVisible = marker.getVisible();
+					if (isMarkerVisible && marker._isIconVisible()) {
 						aLabelledByIds.push(marker.getId() + "-text-icon");
 					}
 
-					if (marker._isTextVisible()) {
+					if (isMarkerVisible && marker._isTextVisible()) {
 						aLabelledByIds.push(marker.getId() + "-text");
 					}
 				});

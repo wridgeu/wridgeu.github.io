@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/core/InvisibleText", "sap/ui/core/Core", "sap/ui/Device", "./library", "./ListBaseRenderer", "./ColumnListItemRenderer", "sap/ui/core/Lib"],
-	function(Localization, Renderer, InvisibleText, Core, Device, library, ListBaseRenderer, ColumnListItemRenderer, Library) {
+sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/core/InvisibleText", "sap/ui/Device", "./library", "./ListBaseRenderer", "./ColumnListItemRenderer", "sap/ui/core/Lib"],
+	function(Localization, Renderer, InvisibleText, Device, library, ListBaseRenderer, ColumnListItemRenderer, Library) {
 	"use strict";
 
 
@@ -47,6 +47,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 			bColumnHeadersActive = false,
 			bHasFooter = (sType == "Foot"),
 			sMode = oTable.getMode(),
+			sMultiSelectMode = oTable.getMultiSelectMode(),
 			iModeOrder = ListBaseRenderer.ModeOrder[sMode],
 			sClassPrefix = "sapMListTbl",
 			sIdPrefix = oTable.getId("tbl"),
@@ -69,7 +70,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 					ColumnListItemRenderer.makeFocusable(rm);
 				}
 				if (sLabelKey) {
-					rm.attr("aria-label", Core.getLibraryResourceBundle("sap.m").getText(sLabelKey));
+					rm.attr("aria-label", Library.getResourceBundleFor("sap.m").getText(sLabelKey));
 				}
 				if (sType == "Head") {
 					rm.class("sapMTableTH");
@@ -86,7 +87,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 				rm.openStart(sCellTag, sIdPrefix + sType + sIdSuffix);
 				sType == "Head" && rm.class("sapMTableTH");
 				rm.class(sClassPrefix + sClassSuffix);
-				rm.attr("role", "presentation");
+				rm.attr("role", "none");
 				rm.openEnd();
 				rm.close(sCellTag);
 				iIndex++;
@@ -134,7 +135,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 			}
 			if (sType == "Head") {
 				rm.attr("aria-rowindex", "1");
-				if (oTable._bSelectionMode) {
+				if (sMode === "MultiSelect" && sMultiSelectMode !== MultiSelectMode.ClearAll) {
 					rm.attr("aria-selected", "false");
 					bRenderAriaSelected = true;
 				}
@@ -147,9 +148,23 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 		createBlankCell("Highlight", "HighlightCol");
 
 		if (iModeOrder == -1) {
-			openStartCell("ModeCol", "SelCol", "TABLE_SELECTION_COLUMNHEADER").openEnd();
-			if (bRenderAriaSelected && sMode == "MultiSelect") {
-				rm.renderControl(oTable.getMultiSelectMode() == MultiSelectMode.ClearAll ? oTable._getClearAllButton() : oTable._getSelectAllCheckbox());
+			openStartCell("ModeCol", "SelCol", "TABLE_SELECTION_COLUMNHEADER");
+			if (sMode == "MultiSelect" && sType == "Head") {
+				const oBundle = Library.getResourceBundleFor("sap.m");
+
+				if (oTable.getMultiSelectMode() == MultiSelectMode.ClearAll) {
+					rm.attr("title", oBundle.getText("TABLE_CLEARBUTTON_TOOLTIP"))
+						.class("sapMTableClearAll")
+						.openEnd();
+					rm.renderControl(oTable._getClearAllIcon());
+				} else {
+					rm.attr("aria-description",
+						oBundle.getText("TABLE_SELECTION_COLUMNHEADER_DESCRIPTION") + " " + oBundle.getText("ACC_CTR_STATE_NOT_CHECKED"));
+					rm.openEnd();
+					rm.renderControl(oTable._getSelectAllCheckbox());
+				}
+			} else {
+				rm.openEnd();
 			}
 			rm.close(sCellTag);
 			iIndex++;
@@ -186,7 +201,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 						rm.attr("aria-haspopup", oMenu ? oMenu.getAriaHasPopupType().toLowerCase() : "dialog");
 						bColumnHeadersActive = true;
 					}
-					if (oControl.isA("sap.m.Label") && oControl.getRequired()) {
+					if (oControl.getRequired?.()) {
 						rm.attr("aria-describedby", InvisibleText.getStaticId("sap.m", "CONTROL_IN_COLUMN_REQUIRED"));
 					}
 				}
@@ -221,6 +236,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 						rm.style("text-align", sAlign);
 					}
 					rm.openEnd();
+					rm.renderControl(oColumn.getAggregation("_action"));
 					rm.renderControl(oControl.addStyleClass("sapMColumnHeaderContent"));
 					rm.close("div");
 				} else {
@@ -240,13 +256,26 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 			createBlankCell("DummyCell", "DummyCell");
 		}
 
-		if (oTable.doItemsNeedTypeColumn()) {
-			openStartCell("Nav", "NavCol", "TABLE_ROW_ACTION").openEnd().close(sCellTag);
+		const iActionCount = oTable._getItemActionCount();
+		if (iActionCount > 0) {
+			const iEffectiveActionCount = oTable.doItemsNeedTypeColumn() ? iActionCount + 1 : iActionCount;
+			openStartCell("Actions", "ActionsCol", "TABLE_ROW_ACTIONS");
+			rm.class(`sapMTable${iEffectiveActionCount}ActionsCol`);
+			rm.openEnd();
+			this.hideFromScreenReader(rm, "TABLE_ROW_ACTIONS");
+			rm.close(sCellTag);
+			iIndex++;
+		} else if (oTable.doItemsNeedTypeColumn()) {
+			openStartCell("Nav", "NavCol").openEnd();
+			this.hideFromScreenReader(rm, "TABLE_ROW_ACTIONS");
+			rm.close(sCellTag);
 			iIndex++;
 		}
 
-		if (iModeOrder == 1) {
-			openStartCell("ModeCol", "SelCol", sMode == "Delete" ? "TABLE_ROW_ACTION" : "TABLE_SELECTION_COLUMNHEADER").openEnd().close(sCellTag);
+		if (iActionCount < 0 && iModeOrder === 1) {
+			openStartCell("ModeCol", "SelCol").openEnd();
+			this.hideFromScreenReader(rm, sMode == "Delete" ? "TABLE_ROW_ACTIONS" : "TABLE_SELECTION_COLUMNHEADER");
+			rm.close(sCellTag);
 			iIndex++;
 		}
 
@@ -267,8 +296,8 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 				rm.class("sapMListTblHeaderNone");
 				rm.attr("role", sType == "Head" ? "columnheader" : "gridcell");
 				rm.attr("aria-colindex", aAriaOwns.push(sPopinColumnHeaderId));
-				rm.attr("aria-label", Core.getLibraryResourceBundle("sap.m").getText("TABLE_COLUMNHEADER_POPIN"));
 				rm.openEnd();
+				this.hideFromScreenReader(rm, "TABLE_COLUMNHEADER_POPIN");
 				rm.close("div");
 			}
 			rm.close("td");
@@ -367,20 +396,28 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 	 */
 	TableRenderer.renderNoData = function(rm, oControl) {
 		rm.openStart("tr", oControl.getId("nodata"));
-		rm.class("sapMLIB").class("sapMListTblRow").class("sapMLIBTypeInactive");
+		rm.class("sapMLIB").class("sapMListTblRow").class("sapMLIBTypeInactive").class("sapMListTblRowNoData");
 		if (Device.system.desktop) {
 			rm.attr("tabindex", "-1");
-			rm.class("sapMLIBFocusable").class("sapMTableRowCustomFocus");
+			rm.class("sapMLIBFocusable");
 		}
 		if (!oControl._headerHidden || (!oControl.getHeaderText() && !oControl.getHeaderToolbar())) {
 			rm.class("sapMLIBShowSeparator");
 		}
 		rm.openEnd();
 
-		var bRenderDummyColumn = oControl.shouldRenderDummyColumn();
+		// Without visible columns the header only has the highlight + navigated cells (getColCount() is 2),
+		// so skip the pad cells and let nodata-text span all columns; otherwise colspan would be 0 (message invisible).
+		const bHasVisibleColumns = oControl.shouldRenderItems();
+		if (bHasVisibleColumns) {
+			rm.openStart("td").attr("role", "none").openEnd().close("td"); // empty cell for the highlight column
+		}
 		rm.openStart("td", oControl.getId("nodata-text"));
-		rm.attr("colspan", oControl.getColCount() - bRenderDummyColumn);
+		rm.attr("colspan", bHasVisibleColumns ? oControl.getColCount() - 2 : oControl.getColCount());
 		rm.class("sapMListTblCell").class("sapMListTblCellNoData");
+		if (oControl.getNoData() === null || ( typeof oControl.getNoData() === "string" || !oControl.getNoData().isA("sap.m.IllustratedMessage"))) {
+			rm.class("sapMListTblCellNoIllustratedMessage");
+		}
 		rm.openEnd();
 
 		if (!oControl.shouldRenderItems()) {
@@ -395,12 +432,16 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 		}
 
 		rm.close("td");
-
-		if (bRenderDummyColumn) {
-			ColumnListItemRenderer.renderDummyCell(rm, oControl);
+		if (bHasVisibleColumns) {
+			rm.openStart("td").attr("role", "none").openEnd().close("td"); // empty cell for the navigated column
 		}
-
 		rm.close("tr");
+	};
+
+	TableRenderer.hideFromScreenReader = function(rm, sBundleKey) {
+		rm.openStart("div").class("sapMTableScreenReaderOnly").openEnd();
+		rm.text(Library.getResourceBundleFor("sap.m").getText(sBundleKey));
+		rm.close("div");
 	};
 
 	return TableRenderer;

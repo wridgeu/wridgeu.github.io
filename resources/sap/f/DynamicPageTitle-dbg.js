@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.f.DynamicPageTitle.
 sap.ui.define([
 	"./library",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
 	"sap/ui/core/Control",
 	"sap/ui/base/ManagedObjectObserver",
@@ -20,11 +21,12 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/Icon",
 	"sap/ui/Device",
-    "sap/ui/events/KeyCodes",
-	"sap/ui/core/InvisibleMessage",
-	"sap/ui/core/Core"
+	"sap/ui/core/RenderManager",
+	"sap/ui/events/KeyCodes",
+	"sap/ui/core/InvisibleMessage"
 ], function(
 	library,
+	Library,
 	CoreLibrary,
 	Control,
 	ManagedObjectObserver,
@@ -38,9 +40,9 @@ sap.ui.define([
 	Log,
 	Icon,
 	Device,
+	RenderManager,
 	KeyCodes,
-	InvisibleMessage,
-	oCore
+	InvisibleMessage
 ) {
 	"use strict";
 
@@ -93,7 +95,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -210,8 +212,9 @@ sap.ui.define([
 
 				/**
 				 * The <code>DynamicPageTitle</code> actions.
-				 * <br><b>Note:</b> The <code>actions</code> aggregation accepts any UI5 control, but it`s recommended to use controls,
-				 * suitable for {@link sap.m.Toolbar} and {@link sap.m.OverflowToolbar}.
+				 * <br><b>Note:</b> The <code>actions</code> aggregation accepts any UI5 control.
+				 * However, it is best to use buttons or controls that work well inside toolbars, such
+				 * as those typically used with {@link sap.m.Toolbar} and {@link sap.m.OverflowToolbar}.
 				 *
 				 * <b>Note:</b> If the <code>snappedTitleOnMobile</code> aggregation is set, its
 				 * content overrides this aggregation when the control is viewed on a phone mobile
@@ -376,13 +379,15 @@ sap.ui.define([
 	DynamicPageTitle.TOGGLE_HEADER_TEXT_ID = InvisibleText.getStaticId("sap.f", "TOGGLE_HEADER");
 	DynamicPageTitle.DEFAULT_HEADER_TEXT_ID = InvisibleText.getStaticId("sap.f", "DEFAULT_HEADER_TEXT");
 
+	DynamicPageTitle.KNOWN_HEADING_CONTROL_CLASS_NAMES = ["sap.m.Title", "sap.m.Text", "sap.m.FormattedText", "sap.m.Label"];
+
 	/**
 	 * Retrieves the resource bundle for the <code>sap.f</code> library.
 	 * @returns {Object} the resource bundle object
 	 * @private
 	 */
 	DynamicPageTitle._getResourceBundle = function () {
-		return oCore.getLibraryResourceBundle("sap.f");
+		return Library.getResourceBundleFor("sap.f");
 	};
 
 	DynamicPageTitle.ARIA = {
@@ -402,7 +407,7 @@ sap.ui.define([
 			return;
 		}
 
-		oRenderManager = oCore.createRenderManager();
+		oRenderManager = new RenderManager().getInterface();
 		oRenderManager.renderControl(oControlToRender);
 		oRenderManager.flush(oContainerDOM);
 		oRenderManager.destroy();
@@ -429,13 +434,18 @@ sap.ui.define([
 		this._oObserver.observe(this, {
 			aggregations: [
 				"content",
-				"_actionsToolbar"
+				"_actionsToolbar",
+				"heading"
 			]
 		});
 	};
 
 	DynamicPageTitle.prototype.onBeforeRendering = function () {
 		this._getActionsToolbar();
+		if (this.getNavigationActions().length > 0) {
+			this._getNavigationActionsToolbar();
+		}
+		this._updateToolbarAriaLabelledBy();
 		this._observeControl(this.getBreadcrumbs());
 		this._detachFocusSpanHandlers();
 	};
@@ -702,6 +712,17 @@ sap.ui.define([
 
 	/* ========== PRIVATE METHODS  ========== */
 
+	DynamicPageTitle.prototype._getTitleText = function() {
+		// Resolve via the same subtree walk used to wire the title-text observer, so the
+		// public title-text contract matches what triggers aria-label updates. This covers
+		// direct heading controls, plain sap.m.FlexBox structures, and arbitrarily nested
+		// containers (e.g. sap.fe.macros.header.HeaderTitleDescription's BuildingBlock).
+		var oTitle = this._walkHeadingSubtree().titles[0];
+
+		return oTitle?.getText();
+	};
+
+
 	/**
 	 * Creates and caches an instance of the {@link sap.ui.core.InvisibleText} control for the specified aria label.
 	 * @param {string} sId The ID for the invisible text control.
@@ -876,6 +897,16 @@ sap.ui.define([
 
 		oAction.sParentAggregationName = oAction._sOriginalParentAggregationName;
 		oAction._sOriginalParentAggregationName = null;
+	};
+
+	DynamicPageTitle.prototype.onfocusfail = function (oEvent) {
+		var oSourceControl = oEvent.srcControl;
+
+		if (oSourceControl.sParentAggregationName === "actions") {
+			this.getAggregation("_actionsToolbar")?.onfocusfail(oEvent);
+		} else {
+			Control.prototype.onfocusfail.apply(this, arguments);
+		}
 	};
 
 	/**
@@ -1205,7 +1236,7 @@ sap.ui.define([
 
 	/**
 	 * Lazily retrieves the <code>snappedTitleOnMobileIcon</code> aggregation.
-	 * @returns {sap.m.Icon}
+	 * @returns {sap.ui.core.Icon}
 	 * @private
 	 */
 	DynamicPageTitle.prototype._getSnappedTitleOnMobileIcon = function () {
@@ -1389,10 +1420,136 @@ sap.ui.define([
 
 			if (sChangeName === "content" || sChangeName === "_actionsToolbar") { // change of the content or _actionsToolbar aggregation
 				this._observeContentChanges(oChanges);
+			} else if (sChangeName === "heading") { // change of the heading aggregation - rewire title text observer
+				this._refreshHeadingTitleObservers();
+				this._notifyTitleTextChanged();
 			}
 
+		} else if (sChangeName === "text" && this._aObservedHeadingTitles && this._aObservedHeadingTitles.indexOf(oObject) > -1) {
+			// change of the "text" property of a title control inside the heading aggregation
+			this._notifyTitleTextChanged();
+		} else if (this._aObservedHeadingContainers && this._aObservedHeadingContainers.indexOf(oObject) > -1) {
+			// structural change inside a container in the heading subtree (e.g. async-created
+			// content of a sap.fe.base.BuildingBlockBase). Re-walk the subtree to pick up any
+			// newly inserted title controls and to drop ones that are gone.
+			this._refreshHeadingTitleObservers();
+			this._notifyTitleTextChanged();
 		} else if (sChangeName === "visible") { // change of the actions or navigationActions elements` visibility
 			this._updateTopAreaVisibility();
+		}
+	};
+
+	/**
+	 * Walks the <code>heading</code> aggregation subtree and refreshes the observer wiring:
+	 * <ul>
+	 *   <li>The <code>text</code> property is observed on every title-bearing control found
+	 *       (sap.m.Title / Text / FormattedText / Label).</li>
+	 *   <li>All aggregations are observed on every non-leaf container in the subtree, so the
+	 *       observer also reacts to structural mutations deeper down — including content that
+	 *       is created asynchronously (e.g. <code>sap.fe.base.BuildingBlockBase#content</code>
+	 *       populated when OData metadata becomes available).</li>
+	 * </ul>
+	 *
+	 * @private
+	 */
+	DynamicPageTitle.prototype._refreshHeadingTitleObservers = function () {
+		var oWalk = this._walkHeadingSubtree(),
+			aPrevTitles = this._aObservedHeadingTitles || [],
+			aPrevContainers = this._aObservedHeadingContainers || [];
+
+		aPrevTitles.forEach(function (oTitle) {
+			if (oWalk.titles.indexOf(oTitle) === -1 && !oTitle.bIsDestroyed) {
+				this._oObserver.unobserve(oTitle, { properties: ["text"] });
+			}
+		}, this);
+		oWalk.titles.forEach(function (oTitle) {
+			if (aPrevTitles.indexOf(oTitle) === -1) {
+				this._oObserver.observe(oTitle, { properties: ["text"] });
+			}
+		}, this);
+
+		aPrevContainers.forEach(function (oContainer) {
+			if (oWalk.containers.indexOf(oContainer) === -1 && !oContainer.bIsDestroyed) {
+				this._oObserver.unobserve(oContainer, { aggregations: true });
+			}
+		}, this);
+		oWalk.containers.forEach(function (oContainer) {
+			if (aPrevContainers.indexOf(oContainer) === -1) {
+				this._oObserver.observe(oContainer, { aggregations: true });
+			}
+		}, this);
+
+		this._aObservedHeadingTitles = oWalk.titles;
+		this._aObservedHeadingContainers = oWalk.containers;
+	};
+
+	/**
+	 * Recursively traverses the <code>heading</code> aggregation, partitioning every encountered
+	 * managed object into either a title-bearing leaf (text contributes to the page's accessible
+	 * name) or a container whose aggregations need to be tracked for structural changes.
+	 *
+	 * Traversal goes through the public aggregations of each visited control via
+	 * {@link sap.ui.base.ManagedObject#getAggregation} on each defined aggregation.
+	 *
+	 * @returns {{ titles: sap.ui.core.Control[], containers: sap.ui.core.Control[] }}
+	 *   the discovered title controls and the containers that wrap them
+	 * @private
+	 */
+	DynamicPageTitle.prototype._walkHeadingSubtree = function () {
+		var aTitles = [],
+			aContainers = [],
+			oHeading = this.getHeading();
+
+		if (!oHeading) {
+			return { titles: aTitles, containers: aContainers };
+		}
+
+		(function visit(oNode) {
+			if (!oNode || !oNode.getMetadata) {
+				return;
+			}
+
+			var sClassName = oNode.getMetadata().getName();
+			if (DynamicPageTitle.KNOWN_HEADING_CONTROL_CLASS_NAMES.indexOf(sClassName) > -1) {
+				aTitles.push(oNode);
+				return; // leaf - do not descend further
+			}
+
+			aContainers.push(oNode);
+
+			// Descend through every defined aggregation of the node
+			var mAggregations = oNode.getMetadata().getAllAggregations();
+			for (var sAggrName in mAggregations) {
+				var vChildren = oNode.getAggregation(sAggrName);
+				if (!vChildren) {
+					continue;
+				}
+				if (Array.isArray(vChildren)) {
+					vChildren.forEach(visit);
+				} else {
+					visit(vChildren);
+				}
+			}
+		})(oHeading);
+
+		return { titles: aTitles, containers: aContainers };
+	};
+
+	/**
+	 * Fires the private <code>_titleTextChange</code> event so subscribed parents
+	 * (e.g. {@link sap.f.DynamicPage} or {@link sap.uxap.ObjectPageLayout}) can refresh any
+	 * cached accessibility attributes (such as <code>aria-label</code> on the page header DOM)
+	 * that depend on the resolved title text.
+	 *
+	 * Using an event instead of calling a private method on the parent avoids brittle coupling:
+	 * each subscriber owns its own handler name, and renames stay local.
+	 *
+	 * @private
+	 * @ui5-restricted sap.f.DynamicPage, sap.uxap.ObjectPageLayout
+	 */
+	DynamicPageTitle.prototype._notifyTitleTextChanged = function () {
+		if (this.mEventRegistry["_titleTextChange"]) {
+			this.fireEvent("_titleTextChange");
 		}
 	};
 
@@ -1473,6 +1630,26 @@ sap.ui.define([
 			this._bActionsAreaHasContent = bAreaHasContent;
 			$node.toggleClass("sapFDynamicPageTitleMainActionsHasContent", bAreaHasContent);
 		}
+	};
+
+	DynamicPageTitle.prototype._updateToolbarAriaLabelledBy = function () {
+		var sHeadingId = this._getARIALabelReferences(this._bExpandedState),
+			oActionsToolbar = this.getAggregation("_actionsToolbar"),
+			oNavActionsToolbar = this.getAggregation("_navActionsToolbar"),
+			aToolbars = [oActionsToolbar, oNavActionsToolbar].filter(Boolean);
+
+		aToolbars.forEach(function (oToolbar) {
+			var sInvisibleTextId = oToolbar.getId() + "-InvisibleText",
+				bHasHeading = sHeadingId && sHeadingId !== DynamicPageTitle.DEFAULT_HEADER_TEXT_ID && sHeadingId !== sInvisibleTextId;
+
+			// Reset to only the static InvisibleText, then prepend the heading ID if available.
+			// This ensures order: "[Heading text] Header actions" for screen readers.
+			oToolbar.removeAllAriaLabelledBy();
+			if (bHasHeading) {
+				oToolbar.addAriaLabelledBy(sHeadingId);
+			}
+			oToolbar.addAriaLabelledBy(sInvisibleTextId);
+		});
 	};
 
 	DynamicPageTitle.prototype._updateARIAState = function (bExpanded) {

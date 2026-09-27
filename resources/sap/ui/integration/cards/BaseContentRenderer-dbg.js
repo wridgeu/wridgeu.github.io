@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,8 +38,6 @@ sap.ui.define([
 			sName = oCardContent.getMetadata().getName(),
 			sType = sName.slice(sName.lastIndexOf(".") + 1),
 			oCard = oCardContent.getCardInstance(),
-			bLoading = oCardContent.isLoading(),
-			bIsAbstractPreviewMode =  oCard && oCard.getPreviewMode() === CardPreviewMode.Abstract,
 			oMessageContainer = oCardContent.getAggregation("_messageContainer"),
 			oBlockingMessage = oCardContent.getAggregation("_blockingMessage");
 
@@ -53,20 +51,20 @@ sap.ui.define([
 			oRm.class("sapFCardSectionClickable");
 		}
 
-		if (oCard && oCard.getHeight() === "auto") { // if there is no height specified the default value is "auto"
+		if (oCard && oCard.getHeight() === "auto" && !oCardContent.getOverflowWithShowMore()) { // if there is no height specified the default value is "auto"
 			var sHeight = this.getMinHeight(oCardContent.getParsedConfiguration(), oCardContent, oCard);
 			oRm.style("min-height", sHeight);
 		}
 
-		if (bLoading || bIsAbstractPreviewMode) {
-			oRm.class("sapFCardContentLoading");
+		if (oCardContent._iKeptWidth) {
+			oRm.style("min-width", oCardContent._iKeptWidth + "px");
 		}
+
+		this.renderLoadingClass(oRm, oCardContent);
 
 		oRm.openEnd();
 
-		if (bLoading || bIsAbstractPreviewMode) {
-			oRm.renderControl(oCardContent.getAggregation("_loadingPlaceholder"));
-		}
+		this.renderLoadingPlaceholder(oRm, oCardContent);
 
 		if (oMessageContainer) {
 			oRm.renderControl(oMessageContainer);
@@ -92,6 +90,34 @@ sap.ui.define([
 
 	/**
 	 * @protected
+	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the Render-Output-Buffer
+	 * @param {sap.ui.integration.cards.BaseContent} oCardContent an object representation of the control that should be rendered
+	 */
+	BaseContentRenderer.renderLoadingClass = function (oRm, oCardContent) {
+		const oCard = oCardContent.getCardInstance();
+		const bIsAbstractPreviewMode =  oCard && oCard.getPreviewMode() === CardPreviewMode.Abstract;
+
+		if (oCardContent.isLoading() || bIsAbstractPreviewMode) {
+			oRm.class("sapFCardContentLoading");
+		}
+	};
+
+	/**
+	 * @protected
+	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the Render-Output-Buffer
+	 * @param {sap.ui.integration.cards.BaseContent} oCardContent an object representation of the control that should be rendered
+	 */
+	BaseContentRenderer.renderLoadingPlaceholder = function (oRm, oCardContent) {
+		const oCard = oCardContent.getCardInstance();
+		const bIsAbstractPreviewMode = oCard && oCard.getPreviewMode() === CardPreviewMode.Abstract;
+
+		if (oCardContent.isLoading() || bIsAbstractPreviewMode) {
+			oRm.renderControl(oCardContent.getAggregation("_loadingPlaceholder"));
+		}
+	};
+
+	/**
+	 * @protected
 	 * @param {object} oConfiguration The manifest configuration of the content
 	 * @param {sap.ui.integration.cards.BaseContent} oContent The content
 	 * @returns {string} Min height in Rems.
@@ -109,7 +135,7 @@ sap.ui.define([
 		}
 
 		// check if there is an element up the DOM which enables compact density
-		return oReferenceElement.$().closest(".sapUiSizeCompact").hasClass("sapUiSizeCompact");
+		return oReferenceElement.getDomRef()?.closest(".sapUiSizeCompact")?.classList.contains("sapUiSizeCompact");
 	};
 
 	return BaseContentRenderer;

@@ -1,28 +1,34 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/Control",
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/core/InvisibleText",
 	"sap/base/Log",
+	"sap/base/util/merge",
 	"sap/ui/core/Icon",
 	"sap/m/HBox",
 	"sap/m/Text",
+	"sap/ui/core/Lib",
 	"sap/ui/integration/model/ObservableModel",
-	"sap/ui/integration/util/LoadingProvider"
-], function (
+	"sap/ui/integration/util/LoadingProvider",
+	"sap/ui/integration/util/BindingHelper"
+], function(
 	Control,
-	Core,
+	Element,
 	InvisibleText,
 	Log,
+	merge,
 	Icon,
 	HBox,
 	Text,
+	Library,
 	ObservableModel,
-	LoadingProvider
+	LoadingProvider,
+	BindingHelper
 ) {
 	"use strict";
 
@@ -37,7 +43,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -57,7 +63,7 @@ sap.ui.define([
 				/**
 				 * The configuration object, defined in the manifest.
 				 */
-				config: { type: "object", defaultValue: "null" },
+				config: { type: "object", defaultValue: {} },
 
 				/**
 				 * The value of the filter that can be used in the manifest.
@@ -73,7 +79,9 @@ sap.ui.define([
 				/**
 				 * The hidden label for this control
 				 */
-				_label: { type: "sap.ui.core.InvisibleText", multiple: false, visibility: "hidden" }
+				_label: { type: "sap.ui.core.InvisibleText", multiple: false, visibility: "hidden" },
+
+				_error: { type: "sap.m.HBox", multiple: false, visibility: "hidden" }
 			},
 			associations: {
 
@@ -81,24 +89,32 @@ sap.ui.define([
 				 * Association with the parent Card that contains this filter.
 				 */
 				card: { type: "sap.ui.integration.widgets.Card", multiple: false }
+			},
+			events: {
+				change: {
+					parameters: {
+						key: { type: "string"},
+						value: { type: "string"}
+					}
+				}
 			}
 
 		},
 		renderer: {
 			apiVersion: 2,
 			render: function (oRM, oFilter) {
-				var bLoading = oFilter.isLoading();
+				const oError = oFilter.getAggregation("_error");
 
 				oRM.openStart("div", oFilter).class("sapFCardFilter");
 
-				if (bLoading) {
+				if (oFilter.isLoading()) {
 					oRM.class("sapFCardFilterLoading");
 				}
 
 				oRM.openEnd();
 
-				if (oFilter._hasError()) {
-					oRM.renderControl(oFilter._getErrorMessage());
+				if (oError) {
+					oRM.renderControl(oError);
 				} else {
 					oRM.renderControl(oFilter.getField());
 				}
@@ -185,35 +201,51 @@ sap.ui.define([
 	 * @returns {sap.ui.integration.widgets.Card} The card instance.
 	 */
 	BaseFilter.prototype.getCardInstance = function () {
-		return Core.byId(this.getCard());
+		return Element.getElementById(this.getCard());
 	};
 
-	BaseFilter.prototype._hasError = function () {
-		return !!this._bError;
+	BaseFilter.prototype.getParsedConfiguration = function () {
+		var oResult = merge({}, this.getConfig()),
+			oDataSettings = oResult.data;
+
+		// do not create binding info for data
+		delete oResult.data;
+		oResult = BindingHelper.createBindingInfos(oResult, this.getCardInstance().getBindingNamespaces());
+
+		if (oDataSettings) {
+			oResult.data = oDataSettings;
+		}
+
+		return oResult;
 	};
 
-	BaseFilter.prototype._getErrorMessage = function () {
-		var sMessage = Core.getLibraryResourceBundle("sap.ui.integration").getText("CARD_FILTER_DATA_LOAD_ERROR");
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration.delegate.Paginator
+	 * @param {object} oConfiguration Filter configuration where the value will be written.
+	 */
+	BaseFilter.prototype.writeValueToConfiguration = function (oConfiguration) { };
 
-		return new HBox({
+	BaseFilter.prototype._showError = function () {
+		var sMessage = Library.getResourceBundleFor("sap.ui.integration").getText("CARD_FILTER_DATA_LOAD_ERROR");
+
+		this.destroyAggregation("_error");
+		this.setAggregation("_error", new HBox({
 			justifyContent: "Center",
 			alignItems: "Center",
 			items: [
 				new Icon({ src: "sap-icon://message-error", size: "1rem" }).addStyleClass("sapUiTinyMargin"),
 				new Text({ text: sMessage })
 			]
-		});
+		}));
 	};
 
 	BaseFilter.prototype._handleError = function (sLogMessage) {
 		Log.error(sLogMessage);
-
-		this._bError = true;
-		this.invalidate();
+		this._showError();
 	};
 
 	BaseFilter.prototype._onDataRequestComplete = function () {
-		this.fireEvent("_dataReady");
 		this.hideLoadingPlaceholders();
 	};
 
@@ -235,7 +267,7 @@ sap.ui.define([
 			this._oDataProvider.destroy();
 		}
 
-		this._oDataProvider = oCard.getDataProviderFactory().create(oDataConfig, null, true);
+		this._oDataProvider = oCard.getDataProviderFactory().create(oDataConfig, true);
 
 		if (oDataConfig.name) {
 			oModel = oCard.getModel(oDataConfig.name);
@@ -250,9 +282,13 @@ sap.ui.define([
 			return;
 		}
 
-		oModel.attachEvent("change", function () {
+		oModel.attachEvent("change", () => {
 			this.onDataChanged();
-		}.bind(this));
+			// wait for the binding update to finish
+			setTimeout(() => {
+				this.fireEvent("_dataReady");
+			}, 0);
+		});
 
 		if (this._oDataProvider) {
 			this._oDataProvider.attachDataRequested(function () {
@@ -267,6 +303,7 @@ sap.ui.define([
 			this._oDataProvider.attachError(function (oEvent) {
 				this._handleError(oEvent.getParameter("message"));
 				this._onDataRequestComplete();
+				this.fireEvent("_dataReady");
 			}.bind(this));
 
 			this._oDataProvider.triggerDataUpdate();
@@ -276,23 +313,17 @@ sap.ui.define([
 	};
 
 	BaseFilter.prototype._syncValue = function () {
-		var oValueForModel = this.getValueForModel(),
-			oCard = this.getCardInstance(),
-			mParams = {},
-			sManifestKey;
+		const oValueForModel = this.getValueForModel();
 
 		this.setValue(oValueForModel);
-
-		if (oCard) {
-			sManifestKey = "/sap.card/configuration/filters/" + this.getKey() + "/value";
-			mParams[sManifestKey] = oValueForModel.value;
-			oCard._fireConfigurationChange(mParams);
-			oCard.resetPaginator();
-		}
+		this.fireChange({
+			key: this.getKey(),
+			value: oValueForModel.value
+		});
 	};
 
 	BaseFilter.prototype._isDataProviderJson = function () {
-		return this._oDataProvider && this._oDataProvider.getSettings() && this._oDataProvider.getSettings()["json"];
+		return !!this._oDataProvider?.getConfiguration()?.json;
 	};
 
 	return BaseFilter;

@@ -1,7 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/m/library","sap/ui/core/Core"],function(e,r){"use strict";var n=e.ValueColor;var o={apiVersion:2};o.render=function(e,n){var t=r.byId(n.getChart()),a=[],i=n.getAggregation("_titles");if(t){a=t._calculateChartData().map(function(e){return e.color})}e.openStart("div",n).class("sapUiIntMicrochartLegend").openEnd();a.forEach(function(r,t){e.openStart("div").class("sapUiIntMicrochartLegendItem").openEnd();e.openStart("div");o.addColor(e,n,r);e.openEnd().close("div");e.renderControl(i[t]);e.close("div")});e.close("div")};o.addColor=function(e,r,o){if(n[o]){e.class("sapUiIntMicrochartLegendItem"+o)}else{var t=r._mLegendColors[o]||o;e.style("background",t)}};return o},true);
+sap.ui.define(["sap/m/library","sap/ui/core/Element"],function(e,r){"use strict";var t=e.ValueColor;var n={apiVersion:2};n.render=function(e,t){var a=r.getElementById(t.getChart()),o=[],i=t.getAggregation("_titles");if(a){o=a._calculateChartData().map(function(e){return e.color})}e.openStart("div",t).class("sapUiIntMicrochartLegend").openEnd();o.forEach(function(r,a){e.openStart("div").class("sapUiIntMicrochartLegendItem").openEnd();e.openStart("div");n.addColor(e,t,r);e.openEnd().close("div");e.renderControl(i[a]);e.close("div")});e.close("div")};n.addColor=function(e,r,n){if(t[n]){e.class("sapUiIntMicrochartLegendItem"+n)}else{var a=r._mLegendColors[n]||n;e.style("background",a)}};return n},true);
 //# sourceMappingURL=MicrochartLegendRenderer.js.map

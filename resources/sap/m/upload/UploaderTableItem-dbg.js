@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,9 +10,9 @@ sap.ui.define([
 	"sap/ui/core/Element",
 	"sap/ui/core/util/File",
 	"sap/ui/Device",
-	"sap/m/upload/UploadSetwithTableItem",
-	"sap/m/upload/UploaderHttpRequestMethod"
-], function (Log, MobileLibrary, Element, FileUtil, Device, UploadSetItem, UploaderHttpRequestMethod) {
+	"sap/m/upload/UploaderHttpRequestMethod",
+	"sap/m/upload/UploadItem"
+], function (Log, MobileLibrary, Element, FileUtil, Device, UploaderHttpRequestMethod, UploadItem) {
 	"use strict";
 
 	/**
@@ -25,9 +25,8 @@ sap.ui.define([
 	 *
 	 * @constructor
 	 * @public
-	 * @experimental since 1.120
 	 * @since 1.120
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @alias sap.m.upload.UploaderTableItem
 	 */
 	var Uploader = Element.extend("sap.m.upload.UploaderTableItem", {
@@ -62,9 +61,9 @@ sap.ui.define([
 				uploadStarted: {
 					parameters: {
 						/**
-						 * The item that is going to be uploaded.
+						 * The item {@link sap.m.upload.UploadItem UploadItem} that is going to be uploaded.
 						 */
-						item: {type: "sap.m.upload.UploadSetwithTableItem"}
+						item: {type: "any"}
 					}
 				},
 				/**
@@ -73,9 +72,9 @@ sap.ui.define([
 				uploadProgressed: {
 					parameters: {
 						/**
-						 * The item that is being uploaded.
+						 * The item {@link sap.m.upload.UploadItem UploadItem} that is being uploaded.
 						 */
-						item: {type: "sap.m.upload.UploadSetwithTableItem"},
+						item: {type: "any"},
 						/**
 						 * The number of bytes transferred since the beginning of the operation.
 						 * This doesn't include headers and other overhead, but only the content itself
@@ -94,9 +93,9 @@ sap.ui.define([
 				uploadCompleted: {
 					parameters: {
 						/**
-						 * The item that was uploaded.
+						 * The item {@link sap.m.upload.UploadItem UploadItem} that was uploaded.
 						 */
-						item: {type: "sap.m.upload.UploadSetwithTableItem"},
+						item: {type: "any"},
 						/**
 						 * A JSON object containing the additional response parameters like response, responseXML, readyState, status and headers.
 						 * <i>Sample response object:</i>
@@ -111,6 +110,17 @@ sap.ui.define([
 						 * </code></pre>
 						 */
 						responseXHR: {type: "object"}
+					}
+				},
+				/**
+				 * The event is fired when an XHR request reports its termination.
+				 */
+				uploadTerminated: {
+					parameters: {
+						/**
+						 * The item that is going to be deleted.
+						 */
+						item: {type: "sap.m.upload.UploadItem"}
 					}
 				}
 			}
@@ -132,7 +142,7 @@ sap.ui.define([
 	 */
 	Uploader.uploadFile = function (oFile, sUrl, aHeaderFields) {
 		var oXhr = new window.XMLHttpRequest();
-		var sHttpRequestMethod = this.getHttpRequestMethod();
+		var sHttpRequestMethod = this.getHttpRequestMethod()?.toUpperCase();
 
 		return new Promise(function(resolve, reject) {
 			oXhr.open(sHttpRequestMethod, sUrl, true);
@@ -164,7 +174,7 @@ sap.ui.define([
 	/**
 	 * Starts the process of uploading the specified file.
 	 *
-	 * @param {sap.m.upload.UploadSetwithTableItem} oItem Item representing the file to be uploaded.
+	 * @param {sap.m.upload.UploadItem} oItem Item representing the file to be uploaded.
 	 * @param {sap.ui.core.Item[]} [aHeaderFields] Collection of request header fields to be send along.
 	 * @public
 	 */
@@ -176,8 +186,28 @@ sap.ui.define([
 				xhr: oXhr,
 				item: oItem
 			},
-			sHttpRequestMethod = this.getHttpRequestMethod(),
+			sHttpRequestMethod = this.getHttpRequestMethod()?.toUpperCase(),
 			sUploadUrl = oItem.getUploadUrl() || this.getUploadUrl();
+
+		const _isBrowserOffline = () => {
+			return !window.navigator.onLine;
+		};
+
+		const _fireBrowserOfflineEvent = () => {
+			that.fireUploadCompleted({
+				item: oItem,
+				responseXHR: {
+					response: null, // No server response
+					responseXML: null,
+					responseText: JSON.stringify({
+						error: "Internet is offline. Please check your connection and try again."
+					}),
+					readyState: 4, // Indicates request has been processed (mocking completed state)
+					status: 0, // 0 typically indicates a network error
+					headers: ""
+				}
+			});
+		};
 
 		oXhr.open(sHttpRequestMethod, sUploadUrl, true);
 
@@ -190,6 +220,15 @@ sap.ui.define([
 				oXhr.setRequestHeader(oHeader.getKey(), oHeader.getText());
 			});
 		}
+
+		oXhr.upload.addEventListener("progress", function (oEvent) {
+			that.fireUploadProgressed({
+				item: oItem,
+				loaded: oEvent.loaded,
+				total: oEvent.total,
+				aborted: false
+			});
+		});
 
 		oXhr.onreadystatechange = function () {
 			var oHandler = that._mRequestHandlers[oItem.getId()],
@@ -219,20 +258,32 @@ sap.ui.define([
 			oFile = oFormData;
 
 			this._mRequestHandlers[oItem.getId()] = oRequestHandler;
-			oXhr.send(oFile);
-			this.fireUploadStarted({item: oItem});
+			if (_isBrowserOffline()) {
+				this.fireUploadStarted({item: oItem});
+				_fireBrowserOfflineEvent();
+			} else {
+				oXhr.send(oFile);
+				this.fireUploadStarted({item: oItem});
+			}
 		} else {
 			this._mRequestHandlers[oItem.getId()] = oRequestHandler;
-			oXhr.send(oFile);
-			this.fireUploadStarted({item: oItem});
+			if (_isBrowserOffline()) {
+				this.fireUploadStarted({item: oItem});
+				_fireBrowserOfflineEvent();
+			} else {
+				oXhr.send(oFile);
+				this.fireUploadStarted({item: oItem});
+			}
 		}
 
 	};
 
 	/**
-	 * Starts the process of downloading a file.
+	 * Starts the process of downloading a file. Plugin uses the URL set in the item or the downloadUrl set in the uploader class to download the file.
+	 * If the URL is not set, a warning is logged.
+	 * API downloads the file with xhr response of blob type or string type.
 	 *
-	 * @param {sap.m.upload.UploadSetwithTableItem} oItem Item representing the file to be downloaded.
+	 * @param {sap.m.upload.UploadItem} oItem Item representing the file to be downloaded.
 	 * @param {sap.ui.core.Item[]} aHeaderFields List of header fields to be added to the GET request.
 	 * @param {boolean} bAskForLocation If it is true, the location of where the file is to be downloaded is queried by a browser dialog.
 	 * @return {boolean} It returns true if the download is processed successfully
@@ -250,8 +301,8 @@ sap.ui.define([
 			Log.warning("Items to download do not have a URL.");
 			return false;
 		} else if (bAskForLocation) {
-			var oBlob = null,
-				oXhr = new window.XMLHttpRequest();
+			var oResponse = null,
+			oXhr = new window.XMLHttpRequest();
 			oXhr.open("GET", sUrl);
 
 			aHeaderFields.forEach(function (oHeader) {
@@ -260,17 +311,101 @@ sap.ui.define([
 
 			oXhr.responseType = "blob"; // force the HTTP response, response-type header to be blob
 			oXhr.onload = function () {
+				let targetItem = UploadItem;
+				if (oItem instanceof UploadItem) {
+					targetItem = UploadItem;
+				}
 				var sFileName = oItem.getFileName(),
-					oSplit = UploadSetItem._splitFileName(sFileName, false);
-				oBlob = oXhr.response;
-				FileUtil.save(oBlob, oSplit.name, oSplit.extension, oItem.getMediaType(), "utf-8");
-			};
+					oSplit = targetItem._splitFileName(sFileName, false);
+				oResponse = oXhr.response;
+				if (oResponse instanceof window.Blob) {
+					const sFullFileName =  `${oSplit.name}.${oSplit.extension}`;
+					this._saveAsFile(oResponse, sFullFileName);
+				} else if (typeof oResponse === "string") {
+					FileUtil.save(oResponse, oSplit.name, oSplit.extension, oItem.getMediaType(), "utf-8");
+				}
+			}.bind(this);
 			oXhr.send();
 			return true;
 		} else {
 			MobileLibrary.URLHelper.redirect(sUrl, true);
 			return true;
 		}
+	};
+
+	/**
+	 * Attempts to terminate the process of uploading the specified file.
+	 *
+	 * @param {sap.m.upload.UploadItem} oItem Item representing the file whose ongoing upload process is to be terminated.
+	 * @public
+	 */
+	Uploader.prototype.terminateItem = function (oItem) {
+		var oHandler = this._mRequestHandlers[oItem.getId()],
+			that = this;
+
+		oHandler.xhr.onabort = function () {
+			oHandler.aborted = false;
+			that.fireUploadTerminated({item: oItem});
+		};
+		oHandler.aborted = true;
+		oHandler.xhr.abort();
+	};
+
+	/**
+		 * This function saves the provided Blob to the local file system.
+		 * The parameter name is optional and depending on the browser it
+		 * is not ensured that the filename can be applied. Google Chrome,
+		 * Mozilla Firefox, Internet Explorer and Microsoft Edge will
+		 * apply the filename correctly.
+		 *
+		 * @param {Blob} oBlob - Binary large object of the file that should be saved to the filesystem
+		 * @param {string} [sFilename] - Filename of the file including the file extension
+		 * @private
+		 */
+	Uploader.prototype._saveAsFile = function(oBlob, sFilename) {
+		let fnSave;
+
+		/* Ignore other formats than Blob */
+		if (!(oBlob instanceof Blob)) {
+			return;
+		}
+
+		const oLink = document.createElement("a");
+		const oDownloadSupported = "download" in oLink;
+
+		if (oDownloadSupported) {
+			fnSave = function(data, fileName) {
+				oLink.download = fileName;
+				oLink.href = window.URL.createObjectURL(data);
+				oLink.dispatchEvent(new window.MouseEvent("click"));
+			};
+		}
+
+		function openWindow(sUrl, sWindowName) {
+			const sWindowFeatures = "noopener,noreferrer";
+
+			return window.open(sUrl, sWindowName, sWindowFeatures);
+		}
+
+		/* In case of pre iOS 13 Safari, MacOS Safari (legacy) */
+		if (typeof fnSave === "undefined") {
+			fnSave = function(data) {
+				const oReader = new window.FileReader();
+
+				oReader.onloadend = function() {
+					const sUrl = oReader.result.replace(/^data:[^;]*;/, "data:attachment/file;");
+					const opened = openWindow(sUrl, "_blank");
+
+					if (!opened) {
+						window.location.href = sUrl;
+					}
+				};
+				oReader.readAsDataURL(data);
+			};
+		}
+
+		/* Save file to device */
+		fnSave(oBlob, sFilename);
 	};
 
 	return Uploader;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,6 +19,7 @@ sap.ui.define(['sap/ui/core/Renderer', './DateTimeFieldRenderer', 'sap/ui/core/l
 		TimePickerRenderer.apiVersion = 2;
 
 		TimePickerRenderer.CSS_CLASS = "sapMTimePicker";
+		const MAX_INPUT_VALUE_LENGTH = 512;
 
 		/**
 		 * Adds <code>sap.m.TimePicker</code> control specific classes to the input.
@@ -44,24 +45,13 @@ sap.ui.define(['sap/ui/core/Renderer', './DateTimeFieldRenderer', 'sap/ui/core/l
 		 * @param {sap.m.TimePicker} oControl An object representation of the control that should be rendered
 		 */
 		TimePickerRenderer.writeInnerValue = function(oRm, oControl) {
+			const sInputValue = oControl._getInputValue();
 			if (oControl._inPreferredUserInteraction()) {
-				oRm.attr("value", oControl._$input.val());
+				oRm.attr("value", sInputValue);
 			} else {
-				oRm.attr("value", oControl._formatValue(oControl.getDateValue()));
+				const sFormattedValue = oControl._formatValue(oControl.getDateValue());
+				oRm.attr("value", sFormattedValue ? sFormattedValue : sInputValue);
 			}
-		};
-
-		/**
-		 * Returns the inner aria labelledby announcement texts for the accessibility.
-		 *
-		 * @overrides sap.m.DateTimeFieldRenderer.getLabelledByAnnouncement
-		 * @param {sap.m.TimePicker} oControl an object representation of the control.
-		 * @returns {string}
-		 */
-		TimePickerRenderer.getLabelledByAnnouncement = function(oControl) {
-			// In the TimePicker we need to render the placeholder should be placed as
-			// hidden aria labelledby node for the accessibility
-			return oControl._getPlaceholder() || "";
 		};
 
 		/**
@@ -98,8 +88,10 @@ sap.ui.define(['sap/ui/core/Renderer', './DateTimeFieldRenderer', 'sap/ui/core/l
 				oRm.attr("readonly", "readonly"); // readonly for mobile devices
 			}
 			if (oControl.getShowValueStateMessage()) {
-				oRm.attr("autocomplete", "off"); // autocomplete="off" needed so the native browser autocomplete is not shown?
+				oRm.attr("autocomplete", "off");
 			}
+
+			oRm.attr("maxlength", MAX_INPUT_VALUE_LENGTH);
 		};
 
 		return TimePickerRenderer;

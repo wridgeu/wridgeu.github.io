@@ -1,49 +1,64 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides base class sap.ui.core.Component for all components
 sap.ui.define([
+	"sap/base/assert",
+	"sap/base/i18n/Localization",
 	'sap/ui/base/Object',
-	'sap/ui/thirdparty/URI',
 	'sap/ui/VersionInfo',
 	'sap/base/util/Version',
+	'sap/base/future',
 	'sap/base/Log',
 	'sap/ui/dom/includeStylesheet',
+	'sap/ui/util/_URL',
 	'sap/base/i18n/ResourceBundle',
 	'sap/base/util/uid',
 	'sap/base/util/merge',
 	'sap/base/util/isPlainObject',
 	'sap/base/util/LoaderExtensions',
 	'sap/base/config',
-	'sap/ui/core/Configuration',
 	'sap/ui/core/Supportability',
 	'sap/ui/core/Lib',
 	'./_UrlResolver'
-],
-	function(
-		BaseObject,
-		URI,
-		VersionInfo,
-		Version,
-		Log,
-		includeStylesheet,
-		ResourceBundle,
-		uid,
-		merge,
-		isPlainObject,
-		LoaderExtensions,
-		BaseConfig,
-		Configuration,
-		Supportability,
-		Library,
-		_UrlResolver
-	) {
+], function(
+	assert,
+	Localization,
+	BaseObject,
+	VersionInfo,
+	Version,
+	future,
+	Log,
+	includeStylesheet,
+	_URL,
+	ResourceBundle,
+	uid,
+	merge,
+	isPlainObject,
+	LoaderExtensions,
+	BaseConfig,
+	Supportability,
+	Library,
+	_UrlResolver
+) {
 	"use strict";
 
 	/*global Promise */
+
+	function noMultipleMajorVersionsCheck(aVersions) {
+		const aSeen = [];
+		aVersions.forEach((sVersion) => {
+			const oVersion = Version(sVersion);
+			if (aSeen.includes(oVersion.getMajor())) {
+				throw new Error(`The minimal UI5 versions defined in the manifest must not include multiple versions with the same major version, Component: ${this.getComponentName()}.`);
+			} else {
+				aSeen.push(oVersion.getMajor());
+			}
+		});
+	}
 
 	/**
 	 * Removes the version suffix
@@ -51,8 +66,13 @@ sap.ui.define([
 	 * @param {string} sVersion Version
 	 * @return {string} Version without suffix
 	 */
-	function getVersionWithoutSuffix(sVersion) {
-		var oVersion = Version(sVersion);
+	function getVersionWithoutSuffix(vVersion) {
+		let sVersion = vVersion;
+		if (Array.isArray(vVersion)) {
+			sVersion = vVersion.sort()[0];
+			noMultipleMajorVersionsCheck.call(this, vVersion);
+		}
+		const oVersion = Version(sVersion);
 		return oVersion.getSuffix() ? Version(oVersion.getMajor() + "." + oVersion.getMinor() + "." + oVersion.getPatch()) : oVersion;
 	}
 
@@ -147,7 +167,7 @@ sap.ui.define([
 	 * @class The Manifest class.
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @alias sap.ui.core.Manifest
 	 * @since 1.33.0
 	 */
@@ -183,13 +203,14 @@ sap.ui.define([
 			var sComponentName = this.getComponentName(),
 				sBaseUrl = mOptions && mOptions.baseUrl || sComponentName && sap.ui.require.toUrl(sComponentName.replace(/\./g, "/")) + "/";
 			if (sBaseUrl) {
-				this._oBaseUri = new URI(sBaseUrl).absoluteTo(new URI(document.baseURI).search(""));
+				this._oBaseUri = new _URL(sBaseUrl, document.baseURI);
 			}
 
 			// determine the base URL of the manifest or use the component base
 			// as by default the manifest is next to the component controller
 			if (mOptions && typeof mOptions.url === "string") {
-				this._oManifestBaseUri = new URI(mOptions.url).absoluteTo(new URI(document.baseURI).search("")).search("");
+				this._oManifestBaseUri = new _URL(mOptions.url, document.baseURI);
+				this._oManifestBaseUri.search = "";
 			} else {
 				this._oManifestBaseUri = this._oBaseUri;
 			}
@@ -216,6 +237,8 @@ sap.ui.define([
 		 * @param {boolean} bAsync true, if the ResourceBundle will be loaded async
 		 * @param {string[]} [aI18nProperties] The array of manifest temnplate strings to replace (if processed already processed from outside this function)
 		 * @return {Promise|undefined} when using the API async it will return a Promise which resolves when the texts have been replaced
+		 * @private
+		 * @ui5-restricted sap.ui.core, sap.ushell
 		 */
 		_processI18n: function(bAsync, aI18nProperties) {
 
@@ -263,18 +286,15 @@ sap.ui.define([
 		_loadI18n: function(bAsync) {
 			// extract the i18n URI from the manifest
 			var oManifest = this._oRawManifest,
-				oI18nURI,
 				// a bundle url given in the "sap.app.i18n" section is by default always resolved relative to the manifest
 				// when using the object syntax for the "sap.app.i18n" section a "bundleRelativeTo" property can be given to change the default
 				sBaseBundleUrlRelativeTo = "manifest",
 				vI18n = (oManifest["sap.app"] && oManifest["sap.app"]["i18n"]) || "i18n/i18n.properties";
 
 			if (typeof vI18n === "string") {
-				oI18nURI = new URI(vI18n);
-
 				// load the ResourceBundle relative to the manifest
 				return ResourceBundle.create({
-					url: this.resolveUri(oI18nURI, sBaseBundleUrlRelativeTo),
+					url: this.resolveUri(vI18n, sBaseBundleUrlRelativeTo),
 					async: bAsync
 				});
 
@@ -361,7 +381,7 @@ sap.ui.define([
 		 */
 		getEntry: function(sPath) {
 			if (!sPath || sPath.indexOf(".") <= 0) {
-				Log.warning("Manifest entries with keys without namespace prefix can not be read via getEntry. Key: " + sPath + ", Component: " + this.getComponentName());
+				future.warningThrows("Manifest entries with keys without namespace prefix can not be read via getEntry. Key: " + sPath + ", Component: " + this.getComponentName());
 				return null;
 			}
 
@@ -369,11 +389,10 @@ sap.ui.define([
 			var oEntry = getObject(oManifest, sPath);
 
 			// top-level manifest section must be an object (e.g. sap.ui5)
-			if (sPath && sPath[0] !== "/" && !isPlainObject(oEntry)) {
-				Log.warning("Manifest entry with key '" + sPath + "' must be an object. Component: " + this.getComponentName());
+			if (sPath && sPath[0] !== "/" && oEntry !== undefined && !isPlainObject(oEntry)) {
+				future.warningThrows("Manifest entry with key '" + sPath + "' must be an object. Component: " + this.getComponentName());
 				return null;
 			}
-
 			return oEntry;
 		},
 
@@ -384,28 +403,40 @@ sap.ui.define([
 		 *
 		 * @private
 		 */
-		checkUI5Version: function() {
-
+		checkUI5Version: async function() {
 			// version check => only if minVersion is available a warning
 			// will be logged and the debug mode is turned on
 			// TODO: enhance version check also for libraries and components
-			var sMinUI5Version = this.getEntry("/sap.ui5/dependencies/minUI5Version");
-			if (sMinUI5Version &&
+			var vMinUI5Version = this.getEntry("/sap.ui5/dependencies/minUI5Version");
+			if (vMinUI5Version &&
 				Log.isLoggable(Log.Level.WARNING) &&
 				Supportability.isDebugModeEnabled()) {
-				VersionInfo.load().then(function(oVersionInfo) {
-					var oMinVersion = getVersionWithoutSuffix(sMinUI5Version);
-					var oVersion = getVersionWithoutSuffix(oVersionInfo && oVersionInfo.version);
-					if (oMinVersion.compareTo(oVersion) > 0) {
-						Log.warning("Component \"" + this.getComponentName() + "\" requires at least version \"" + oMinVersion.toString() + "\" but running on \"" + oVersion.toString() + "\"!");
-					}
-				}.bind(this), function(e) {
-					Log.warning("The validation of the version for Component \"" + this.getComponentName() + "\" failed! Reason: " + e);
-				}.bind(this));
-			}
 
+				const oVersionInfo = await VersionInfo.load().catch((e) => {
+					Log.warning("The validation of the version for Component \"" + this.getComponentName() + "\" failed! Reason: " + e);
+				});
+
+				const oMinVersion = getVersionWithoutSuffix.call(this, vMinUI5Version);
+				const oVersion = getVersionWithoutSuffix.call(this, oVersionInfo?.version);
+
+				if (oMinVersion.compareTo(oVersion) > 0) {
+				  Log.warning("Component \"" + this.getComponentName() + "\" requires at least version \"" + oMinVersion.toString() + "\" but running on \"" + oVersion.toString() + "\"!");
+				}
+			}
 		},
 
+		/**
+		 * Returns the major schema version of the manifest.
+		 * Only used internally to check the manifest schema version for feature toggles.
+		 * @private
+		 *
+		 * @returns {number} The major version of the manifest
+		 */
+		_getSchemaVersion: function() {
+			const oJsonContent = this.getJson();
+			const sVersion = getObject(oJsonContent, "/_version");
+			return new Version(sVersion).getMajor();
+		},
 
 		/**
 		 * Loads the included CSS and JavaScript resources. The resources will be
@@ -415,6 +446,7 @@ sap.ui.define([
 		 * @return {Promise<void>|undefined} Promise for required *.js resources
 		 *
 		 * @private
+		 * @ui5-transform-hint replace-param bAsync true
 		 */
 		_loadIncludes: function(bAsync) {
 			var mResources = this.getEntry("/sap.ui5/resources"), oPromise;
@@ -425,10 +457,16 @@ sap.ui.define([
 
 			var sComponentName = this.getComponentName();
 
-			// [Deprecated since 1.94]: Load JS files.
-			//                          Standard dependencies should be used instead.
-			var aJSResources = mResources["js"];
-			if (aJSResources) {
+			/**
+			 * Load JS files.
+			 * @deprecated As of version 1.94, standard dependencies should be used instead.
+			 */
+			if (mResources["js"]) {
+				if (this._getSchemaVersion() === 2) {
+					throw new Error(`'sap.ui5/resources/js' is deprecated and not supported with manifest version 2 (component '${sComponentName}'.`);
+				}
+
+				var aJSResources = mResources["js"];
 				var requireAsync = function (sModule) {
 					// Wrap promise within function because OPA waitFor (sap/ui/test/autowaiter/_promiseWaiter.js)
 					// can't deal with a promise instance in the wrapped then handler
@@ -516,6 +554,7 @@ sap.ui.define([
 		 * @return {Promise<void>} Promise containing further promises of dependent libs and components requests
 		 *
 		 * @private
+		 * @ui5-transform-hint replace-param bAsync true
 		 */
 		_loadDependencies: function(bAsync) {
 			var aPromises = [];
@@ -538,58 +577,59 @@ sap.ui.define([
 
 				// collect all "non-lazy" components
 				var mComponents = oDep["components"];
-				var aComponentDependencies = [];
 				if (mComponents) {
+					var aComponentDependencies = [];
 					for (var sName in mComponents) {
 						if (!mComponents[sName].lazy) {
 							aComponentDependencies.push(sName);
 						}
 					}
-				}
-
-				if (bAsync) {
-					// Async loading of Component, so that Component.load is available
-					var pComponentLoad = new Promise(function(fnResolve, fnReject) {
-						sap.ui.require(["sap/ui/core/Component"], function(Component) {
-							fnResolve(Component);
-						}, fnReject);
-					}).then(function(Component) {
-						// trigger Component.load for all "non-lazy" component dependencies (parallel)
-						return Promise.all(aComponentDependencies.map(function(sComponentName) {
-							// Component.load does not load the dependencies of a dependent component in case property manifest: false
-							// because this could have a negative impact on performance and we do not know if there is a necessity
-							// to load the dependencies
-							// If needed we could make this configurable via manifest.json by adding a 'manifestFirst' option
-							return Component.load({
-								name: sComponentName,
-								manifest: false
+					if (aComponentDependencies.length > 0) {
+						if (bAsync) {
+							// Async loading of Component, so that Component.load is available
+							var pComponentLoad = new Promise(function(fnResolve, fnReject) {
+								sap.ui.require(["sap/ui/core/Component"], function(Component) {
+									fnResolve(Component);
+								}, fnReject);
+							}).then(function(Component) {
+								// trigger Component.load for all "non-lazy" component dependencies (parallel)
+								return Promise.all(aComponentDependencies.map(function(sComponentName) {
+									// Component.load does not load the dependencies of a dependent component in case property manifest: false
+									// because this could have a negative impact on performance and we do not know if there is a necessity
+									// to load the dependencies
+									// If needed we could make this configurable via manifest.json by adding a 'manifestFirst' option
+									return Component.load({
+										name: sComponentName,
+										manifest: false
+									});
+								}));
 							});
-						}));
-					});
 
-					aPromises.push(pComponentLoad);
-				} else {
-					aComponentDependencies.forEach(function(sName) {
-						// Check for and execute preloaded component controller module
-						// Don't use sap.ui.component.load in order to avoid a warning log
-						// See comments in commit 83f4b601f896dbfcab76fffd455cce841f15b2fb
-						var sControllerModule = sName.replace(/\./g, "/") + "/Component";
-						var iModuleState = sap.ui.loader._.getModuleState(sControllerModule + ".js");
-						if (iModuleState === -1 /* PRELOADED */) {
-							sap.ui.requireSync(sControllerModule); // legacy-relevant: Sync path
-						} else if (iModuleState === 0 /* INITIAL */) {
-							Log.info("Component \"" + sComponentName + "\" is loading component: \"" + sName + ".Component\"");
-							// requireSync needed because of cyclic dependency
-							sap.ui.requireSync("sap/ui/core/Component"); // legacy-relevant: Sync path
-							sap.ui.component.load({ // legacy-relevant: Sync path
-								name: sName
+							aPromises.push(pComponentLoad);
+						} else {
+							aComponentDependencies.forEach(function(sName) {
+								// Check for and execute preloaded component controller module
+								// Don't use sap.ui.component.load in order to avoid a warning log
+								// See comments in commit 83f4b601f896dbfcab76fffd455cce841f15b2fb
+								var sControllerModule = sName.replace(/\./g, "/") + "/Component";
+								var iModuleState = sap.ui.loader._.getModuleState(sControllerModule + ".js");
+								if (iModuleState === -1 /* PRELOADED */) {
+									sap.ui.requireSync(sControllerModule); // legacy-relevant: Sync path
+								} else if (iModuleState === 0 /* INITIAL */) {
+									Log.info("Component \"" + sComponentName + "\" is loading component: \"" + sName + ".Component\"");
+									// requireSync needed because of cyclic dependency
+									sap.ui.requireSync("sap/ui/core/Component"); // legacy-relevant: Sync path
+									sap.ui.component.load({ // legacy-relevant: Sync path
+										name: sName
+									});
+								}
 							});
 						}
-					});
+					}
 				}
 			}
-			return Promise.all(aPromises);
 
+			return Promise.all(aPromises);
 		},
 
 		/**
@@ -608,9 +648,9 @@ sap.ui.define([
 			if (mResourceRoots) {
 				for (var sResourceRoot in mResourceRoots) {
 					var sResourceRootPath = mResourceRoots[sResourceRoot];
-					var oResourceRootURI = new URI(sResourceRootPath);
-					if (oResourceRootURI.is("absolute") || (oResourceRootURI.path() && oResourceRootURI.path()[0] === "/")) {
-						Log.error("Resource root for \"" + sResourceRoot + "\" is absolute and therefore won't be registered! \"" + sResourceRootPath + "\"", this.getComponentName());
+					var oResourceRootURI = new _URL(sResourceRootPath);
+					if (oResourceRootURI.isAbsolute() || oResourceRootURI.plainUrl?.[0] === "/") {
+						future.errorThrows(`${this.getComponentName()}: Resource root for "${sResourceRoot}" is absolute and therefore won't be registered! "${sResourceRootPath}"`);
 						continue;
 					}
 					sResourceRootPath = this.resolveUri(sResourceRootPath);
@@ -648,9 +688,10 @@ sap.ui.define([
 		 * @since 1.60.1
 		 */
 		resolveUri: function(sUri, sRelativeTo) {
+			assert(sUri !== undefined && typeof sUri === "string", "'sUri' must be of type 'string'");
 			var oRelativeToBaseUri = sRelativeTo === "manifest" ? this._oManifestBaseUri : this._oBaseUri;
 			var oResultUri = _UrlResolver._resolveUri(sUri, oRelativeToBaseUri);
-			return oResultUri && oResultUri.toString();
+			return oResultUri && oResultUri.sourceUrl;
 		},
 
 		/**
@@ -707,7 +748,7 @@ sap.ui.define([
 			}
 			// version check => only if minVersion is available a warning
 			// will be logged and the debug mode is turned on
-			this.checkUI5Version();
+			const pCheckUI5Version = this.checkUI5Version();
 
 			// define the resource roots
 			// => if not loaded via manifest first approach the resource roots
@@ -724,7 +765,8 @@ sap.ui.define([
 
 			this._pDependenciesAndIncludes = Promise.all([
 				this._loadDependencies(bAsync), // load the component dependencies (other UI5 libraries)
-				this._loadIncludes(bAsync) // load the custom scripts and CSS files
+				this._loadIncludes(bAsync), // load the custom scripts and CSS files
+				pCheckUI5Version
 			]);
 
 			return this._pDependenciesAndIncludes;
@@ -790,20 +832,20 @@ sap.ui.define([
 		// or needs to be loaded from a specific client.
 		// If the language or the client is already provided it won't be overridden
 		// as this is expected to be only done by intension.
-		var oManifestUrl = new URI(sManifestUrl);
-		if (!oManifestUrl.hasQuery("sap-language")) {
-			var sValue = Configuration.getSAPLogonLanguage();
+		var oManifestUrl = new _URL(sManifestUrl);
+		if (!oManifestUrl.searchParams.has("sap-language")) {
+			const sValue = Localization.getSAPLogonLanguage();
 			if (sValue) {
-				oManifestUrl.addQuery("sap-language", sValue);
+				oManifestUrl.searchParams.set("sap-language", sValue);
 			}
 		}
-		if (!oManifestUrl.hasQuery("sap-client")) {
-			var sValue = BaseConfig.get({name: "sapClient", type:BaseConfig.Type.String, external: true});
+		if (!oManifestUrl.searchParams.has("sap-client")) {
+			const sValue = BaseConfig.get({name: "sapClient", type:BaseConfig.Type.String, external: true});
 			if (sValue) {
-				oManifestUrl.addQuery("sap-client", sValue);
+				oManifestUrl.searchParams.set("sap-client", sValue);
 			}
 		}
-		sManifestUrl = oManifestUrl.toString();
+		sManifestUrl = oManifestUrl.sourceUrl;
 
 		Log.info("Loading manifest via URL: " + sManifestUrl);
 		if (!bAsync) {
@@ -819,7 +861,7 @@ sap.ui.define([
 			dataType: "json",
 			async: typeof bAsync !== "undefined" ? bAsync : false,
 			headers: {
-				"Accept-Language": Configuration.getLanguageTag()
+				"Accept-Language": Localization.getLanguageTag().toString()
 			},
 			failOnError: typeof bFailOnError !== "undefined" ? bFailOnError : true
 		});

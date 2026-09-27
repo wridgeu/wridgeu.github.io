@@ -1,9 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
+/**
+ * @fileOverview Helper code for branch tracking with Blanket.js and QUnit
+ * @deprecated As of version 1.120.2, use sap.ui.test.ModuleTracking instead.
+ */
 (function () {
 	"use strict";
 	/*global _$blanket, blanket, falafel, Map, QUnit */
@@ -647,11 +651,11 @@
 			"sap/base/Log",
 			"sap/ui/base/SyncPromise"
 		], function (Log, SyncPromise) {
-			var oUriParameters = new URLSearchParams(window.location.search);
+			var oURLSearchParams = new URLSearchParams(window.location.search);
 
 			bInfo = Log.isLoggable(Log.Level.INFO, sClassName);
-			sFilter = oUriParameters.get("filter");
-			sTestId = oUriParameters.get("testId");
+			sFilter = oURLSearchParams.get("filter");
+			sTestId = oURLSearchParams.get("testId");
 			SyncPromise.listener = listener;
 		});
 
@@ -687,4 +691,3 @@
 	}
 }());
 //TODO add tooltips to highlighting to explain rules
-

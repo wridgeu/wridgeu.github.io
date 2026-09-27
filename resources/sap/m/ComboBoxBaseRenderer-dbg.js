@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer'],
-	function (ComboBoxTextFieldRenderer, Renderer) {
+sap.ui.define(['./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/library'],
+	function (ComboBoxTextFieldRenderer, Renderer, coreLibrary) {
 		"use strict";
 
 		/**
@@ -22,6 +22,18 @@ sap.ui.define(['./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer'],
 		 */
 		ComboBoxBaseRenderer.CSS_CLASS_COMBOBOXBASE = "sapMComboBoxBase";
 
+		ComboBoxBaseRenderer.getAriaDescribedBy = function(oControl) {
+			let sAriaDescribedBy = ComboBoxTextFieldRenderer.getAriaDescribedBy.apply(this, arguments);
+
+			if (oControl.getValueStateLinksForAcc().length) {
+				sAriaDescribedBy =  sAriaDescribedBy
+					? `${sAriaDescribedBy} ${oControl.getValueStateLinksShortcutsId()}`
+					: oControl.getValueStateLinksShortcutsId();
+			}
+
+			return sAriaDescribedBy;
+		};
+
 		/**
 		 * Retrieves the accessibility state of the control.
 		 * To be overwritten by subclasses.
@@ -36,6 +48,7 @@ sap.ui.define(['./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer'],
 			if (oPicker) {
 				mAccessibilityState.controls = oPicker.getId();
 			}
+
 			return mAccessibilityState;
 		};
 

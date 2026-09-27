@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,7 +8,7 @@
 /**
  * @fileoverview
  * @deprecated As of version 1.120, support for blanket-based instrumentation has been deprecated. As an alternative,
- *    you might use the {@link https://github.com/SAP/ui5-tooling-extensions/tree/main/packages/middleware-code-coverage
+ *    you might use the {@link https://github.com/UI5/cli-extensions/tree/main/packages/middleware-code-coverage
  *    @ui5/middleware-code-coverage}.
  */
 (function() {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,12 +14,11 @@ sap.ui.define([
 	"use strict";
 
 	/*
-		* Change handler for adding a simple form group.
-		* @alias sap.ui.layout.changeHandler.AddSimpleFormGroup
-		* @author SAP SE
-		* @version 1.120.0
-		* @experimental Since 1.27.0
-		*/
+	 * Change handler for adding a simple form group.
+	 * @alias sap.ui.layout.changeHandler.AddSimpleFormGroup
+	 * @author SAP SE
+	 * @version 1.152.0
+	 */
 	var AddSimpleFormGroup = {};
 
 	AddSimpleFormGroup.CONTENT_AGGREGATION = "content";
@@ -78,7 +77,7 @@ sap.ui.define([
 	 * Adds a smart form group
 	 *
 	 * @param {sap.ui.fl.Change} oChangeWrapper Change wrapper object with instructions to be applied to the control map
-	 * @param {sap.ui.layout.SimpleForm} oForm Smart form control that matches the change selector for applying the change
+	 * @param {sap.ui.layout.form.SimpleForm} oForm Smart form control that matches the change selector for applying the change
 	 * @param {object} mPropertyBag Property bag containing the modifier, the appComponent and the view
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
 	 * @param {object} mPropertyBag.appComponent Component in which the change should be applied
@@ -155,26 +154,26 @@ sap.ui.define([
 	 * @public
 	 */
 	AddSimpleFormGroup.completeChangeContent = function (oChange, oSpecificChangeInfo, mPropertyBag) {
-		var oAppComponent = mPropertyBag.appComponent;
-		var oContent = {
+		const oAppComponent = mPropertyBag.appComponent;
+		const oContent = {
 			group: {}
 		};
 
-		if (oSpecificChangeInfo.newLabel) {
-			oChange.setText("groupLabel", oSpecificChangeInfo.newLabel, "XFLD");
+		if (oSpecificChangeInfo.content?.newLabel) {
+			oChange.setText("groupLabel", oSpecificChangeInfo.content.newLabel, "XFLD");
 		} else {
-			throw new Error("oSpecificChangeInfo.newLabel attribute required");
+			throw new Error("oSpecificChangeInfo.content.newLabel attribute required");
 		}
-		if (oSpecificChangeInfo.newControlId) {
-			oContent.group.selector = JsControlTreeModifier.getSelector(oSpecificChangeInfo.newControlId, oAppComponent);
+		if (oSpecificChangeInfo.content.newControlId) {
+			oContent.group.selector = JsControlTreeModifier.getSelector(oSpecificChangeInfo.content.newControlId, oAppComponent);
 		} else {
-			throw new Error("oSpecificChangeInfo.newControlId attribute required");
+			throw new Error("oSpecificChangeInfo.content.newControlId attribute required");
 		}
 
-		if (oSpecificChangeInfo.index === undefined) {
-			throw new Error("oSpecificChangeInfo.index attribute required");
+		if (oSpecificChangeInfo.content.index === undefined) {
+			throw new Error("oSpecificChangeInfo.content.index attribute required");
 		} else {
-			oContent.group.relativeIndex = oSpecificChangeInfo.index;
+			oContent.group.relativeIndex = oSpecificChangeInfo.content.index;
 		}
 
 		oChange.setContent(oContent);
@@ -201,7 +200,7 @@ sap.ui.define([
 	 * Reverts the applied change
 	 *
 	 * @param {sap.ui.fl.Change} oChangeWrapper Change wrapper object with instructions to be applied to the control map
-	 * @param {sap.ui.layout.SimpleForm} oForm Smart form control that matches the change selector for applying the change
+	 * @param {sap.ui.layout.form.SimpleForm} oForm Smart form control that matches the change selector for applying the change
 	 * @param {object} mPropertyBag Property bag containing the modifier, the appComponent and the view
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
 	 * @param {object} mPropertyBag.appComponent Component in which the change should be applied

@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './async/Targets'],
-	function(Targets, TargetHandler, Target, asyncTargets) {
+sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target'],
+	function(Targets, TargetHandler, Target) {
 		"use strict";
 
 		/**
@@ -348,7 +348,6 @@ sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './
 		 */
 		var MobileTargets = Targets.extend("sap.f.routing.Targets", /** @lends sap.f.routing.Targets.prototype */ {
 			constructor: function(oOptions) {
-
 				oOptions.config._async = true;
 
 				if (oOptions.targetHandler) {
@@ -359,14 +358,6 @@ sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './
 				}
 
 				Targets.prototype.constructor.apply(this, arguments);
-
-				var TargetsStub = asyncTargets;
-
-				this._super = {};
-				for (var fn in TargetsStub) {
-					this._super[fn] = this[fn];
-					this[fn] = TargetsStub[fn];
-				}
 			},
 
 			destroy: function () {
@@ -393,6 +384,10 @@ sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './
 				return new Target(oOptions, this.getViews(), oParent, this._oTargetHandler);
 			},
 
+			_getDeprecatedOptions : function() {
+				return Object.assign(Targets.prototype._getDeprecatedOptions.apply(this), {"viewLevel": "level"});
+			},
+
 			/**
 			 * Traverse up from the given target through the parent chain to find out the first target with a defined view level.
 			 * @param {sap.f.routing.Target} oTarget The target from which the traverse starts to find the first defined view level
@@ -410,6 +405,48 @@ sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './
 				} while (oTarget);
 
 				return iLevel;
+			},
+
+			/**
+			 * @private
+			 */
+			display: function () {
+				var iLevel,
+					sName;
+
+				// don't remember previous displays
+				this._oLastDisplayedTarget = null;
+
+				var oPromise = Targets.prototype.display.apply(this, arguments);
+
+				return oPromise.then(function(oViewInfo) {
+					// maybe a wrong name was provided then there is no last displayed target
+					if (this._oLastDisplayedTarget) {
+						iLevel = this._getLevel(this._oLastDisplayedTarget);
+						sName = this._oLastDisplayedTarget._oOptions._name;
+					}
+
+					this._oTargetHandler.navigate({
+						level: iLevel,
+						navigationIdentifier: sName
+					});
+
+					return oViewInfo;
+				}.bind(this));
+			},
+
+			/**
+			 * @private
+			 */
+			_displaySingleTarget: function(oTargetInfo) {
+				var oTarget = this.getTarget(oTargetInfo.name);
+
+				return Targets.prototype._displaySingleTarget.apply(this, arguments).then(function(oViewInfo){
+					if (oTarget) {
+						this._oLastDisplayedTarget = oTarget;
+					}
+					return oViewInfo;
+				}.bind(this));
 			}
 		});
 

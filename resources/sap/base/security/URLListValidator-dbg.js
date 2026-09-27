@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([], function() {
 	"use strict";
 
 	// validation regexes
-	var rBasicUrl = /^(?:([^:\/?#]+):)?((?:[\/\\]{2,}((?:\[[^\]]+\]|[^\/?#:]+))(?::([0-9]+))?)?([^?#]*))(?:\?([^#]*))?(?:#(.*))?$/;
+	var rBasicUrl = /^(?:([^:\/?#]+):)?((?:[\/\\]{2,}(?:(?:[^\/?#]*@)?(\[[^\]]+\]|[^\/?#:]+)(?::([0-9]+))?)?)?([^?#]*))(?:\?([^#]*))?(?:#(.*))?$/;
 	var rCheckPath = /^([a-z0-9-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*$/i;
 	var rCheckQuery = /^([a-z0-9-._~!$&'()*+,;=:@\/?]|%[0-9a-f]{2})*$/i;
 	var rCheckFragment = rCheckQuery;
@@ -17,7 +17,11 @@ sap.ui.define([], function() {
 	var rCheckIPv6 = /^\[[^\]]+\]$/;
 	var rCheckValidIPv6 = /^\[(((([0-9a-f]{1,4}:){6}|(::([0-9a-f]{1,4}:){5})|(([0-9a-f]{1,4})?::([0-9a-f]{1,4}:){4})|((([0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::([0-9a-f]{1,4}:){3})|((([0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::([0-9a-f]{1,4}:){2})|((([0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:)|((([0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::))(([0-9a-f]{1,4}:[0-9a-f]{1,4})|(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])))|((([0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4})|((([0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::))\]$/i;
 	var rCheckHostName = /^([a-z0-9]([a-z0-9\-]*[a-z0-9])?\.)*[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/i;
-	var rSpecialSchemeURLs = /^((?:ftp|https?|wss?):)([\s\S]+)$/;
+	var rSpecialSchemeURLs = /^((?:file|ftp|https?|wss?):)([\s\S]+)$/i;
+	// Protocols accepted when no allowlist is configured, or when an allowlist entry
+	// has a falsy protocol. The regex requires a full match, so a scheme like "httpg"
+	// or "ftpz" is not accepted as "http" or "ftp".
+	var rDefaultProtocols = /^(https?|ftp)$/i;
 
 	/* eslint-disable no-control-regex */
 	var rCheckWhitespaces = /[\u0009\u000A\u000D]/;
@@ -106,7 +110,8 @@ sap.ui.define([], function() {
 	 * @param {string} [protocol] The protocol of the URL, can be falsy to allow all protocols for an entry e.g. "", "http", "mailto"
 	 * @param {string} [host] The host of the URL, can be falsy to allow all hosts. A wildcard asterisk can be set at the beginning, e.g. "examples.com", "*.example.com"
 	 * @param {string} [port] The port of the URL, can be falsy to allow all ports, e.g. "", "8080"
-	 * @param {string} [path] the path of the URL, path of the url, can be falsy to allow all paths. A wildcard asterisk can be set at the end, e.g. "/my-example*", "/my-news"
+	 * @param {string} [path] the path of the URL, e.g. "/my-news". Can be falsy to allow all paths. A wildcard asterisk can be set at the end to ensure a path starts with the given string, e.g. "/my-example*".
+	 * 	When using wildcards, make sure to only provide normalized URLs to the validate function in order to mitigate the risk of path traversal attacks.
 	 * @public
 	 */
 	oURLListValidator.add = function(protocol, host, port, path) {
@@ -141,12 +146,15 @@ sap.ui.define([], function() {
 	 * Validates a URL. Check if it's not a script or other security issue.
 	 *
 	 * <b>Note</b>:
-	 * It is strongly recommended to validate only absolute URLs. There's almost no case
+	 * It is strongly recommended to validate only absolute, normalized URLs. There's almost no case
 	 * where checking only the path of a URL would allow to ensure its validity.
-	 * For compatibility reasons, this API cannot automatically resolve URLs relative to
+	 * For compatibility reasons, this API does not normalize URLs and cannot automatically resolve URLs relative to
 	 * <code>document.baseURI</code>, but callers should do so. In that case, and when the
 	 * allow list is not empty, an entry for the origin of <code>document.baseURI</code>
 	 * must be added to the allow list.
+	 *
+	 * Any measures to mitigate path traversal or similar attack vectors must be taken by the caller, e.g. by using the
+	 * {@link https://developer.mozilla.org/docs/Web/API/URL URL} API to normalize the URL beforehand.
 	 *
 	 * <h3>Details</h3>
 	 * Splits the given URL into components and checks for allowed characters according to RFC 3986:
@@ -268,13 +276,44 @@ sap.ui.define([], function() {
 			}
 		}
 
-		// for 'special' URLs without a given base URL, the whatwg spec allows any number of slashes.
-		// As the rBasicUrl regular expression cannot handle 'special' URLs, the URL is modified upfront,
-		// if it wouldn't be recognized by the regex.
-		// See https://url.spec.whatwg.org/#scheme-state (case 2.6.)
+		// For 'special' URLs (file/ftp/http/https/ws/wss) the whatwg spec treats "\" as "/" in the
+		// authority and allows any number of leading slashes; rBasicUrl does neither. Normalize
+		// so rBasicUrl reads the same host a browser would. Special-scheme rules apply either
+		// when the URL carries a special scheme, or when it is schemeless and begins with an
+		// authority marker ("//", "\\", "/\"), because it then resolves against the page's
+		// special-scheme origin.
+		// See https://url.spec.whatwg.org/#special-authority-slashes-state and
+		// https://url.spec.whatwg.org/#special-authority-ignore-slashes-state
+		var sScheme = "",
+			sRest;
 		var result = rSpecialSchemeURLs.exec(sUrl);
-		if (result && !/^[\/\\]{2}/.test(result[2])) {
-			sUrl = result[1] + "//" + result[2];
+		if (result) {
+			// result[1] is the scheme incl. its ":", result[2] the rest of the URL.
+			sScheme = result[1];
+			sRest = result[2];
+		} else if (/^[\/\\]{2,}/.test(sUrl)) {
+			// A schemeless URL that starts with an authority marker ("//", "\\", "/\").
+			// It has no scheme prefix, so the whole input is the rest to normalize.
+			sRest = sUrl;
+		}
+		if (sRest !== undefined) {
+			// Replace "\" with "/" in the authority and path. A "\" left in the authority stays inside
+			// rBasicUrl's userinfo run ("[^/?#]*@"), so the host would be read from the wrong side of the "@".
+			// The spec keeps "\" literal in query and fragment, so replace only up to the first
+			// "?" or "#".
+			var iCut = sRest.search(/[?#]/);
+			if (iCut < 0) {
+				sRest = sRest.replace(/\\/g, "/");
+			} else {
+				sRest = sRest.slice(0, iCut).replace(/\\/g, "/") + sRest.slice(iCut);
+			}
+
+			// rBasicUrl only parses an authority that starts with "//". Add it when the
+			// rest does not already begin with two slashes.
+			if (!/^\/{2}/.test(sRest)) {
+				sRest = "//" + sRest;
+			}
+			sUrl = sScheme + sRest;
 		}
 
 		result = rBasicUrl.exec(sUrl);
@@ -295,7 +334,7 @@ sap.ui.define([], function() {
 			sProtocol = sProtocol.toUpperCase();
 			if (aAllowedEntries.length <= 0) {
 				// no allowed entries -> check for default protocols
-				if (!/^(https?|ftp)/i.test(sProtocol)) {
+				if (!rDefaultProtocols.test(sProtocol)) {
 					return false;
 				}
 			}
@@ -360,9 +399,27 @@ sap.ui.define([], function() {
 		//filter allowed entries
 		if (aAllowedEntries.length > 0) {
 			var bFound = false;
+			// A schemeless URL with an authority marker ("//", "\\", "/\") is protocol-relative:
+			// a browser resolves it under the page's special-scheme (http-family) origin, so it
+			// must not match every entry's protocol the way a relative path does.
+			var bAuthorityRelative = !sProtocol && /^[\/\\]{2,}/.test(sBody);
 			for (var i = 0; i < aAllowedEntries.length; i++) {
-				if (!sProtocol || !aAllowedEntries[i].protocol || sProtocol == aAllowedEntries[i].protocol) {
-					// protocol OK
+				var sEntryProtocol = aAllowedEntries[i].protocol;
+				// Protocol matches if:
+				//  - the URL has no protocol (relative URL), OR
+				//  - the URL's protocol equals the entry's protocol, OR
+				//  - the entry has no protocol AND the URL uses one of the default
+				//    protocols (rDefaultProtocols).
+				// A falsy-protocol entry accepts the same scheme set as the
+				// empty-allowlist branch above.
+				// A protocol-relative URL matches only an entry that accepts a special
+				// scheme (falsy or http-family), never a scheme-only entry like "javascript".
+				var bProtocolOk = bAuthorityRelative
+					? (!sEntryProtocol || rDefaultProtocols.test(sEntryProtocol))
+					: (!sProtocol
+						|| sProtocol == sEntryProtocol
+						|| (!sEntryProtocol && rDefaultProtocols.test(sProtocol)));
+				if (bProtocolOk) {
 					var bOk = false;
 					if (sHost && aAllowedEntries[i].host && /^\*/.test(aAllowedEntries[i].host)) {
 						// check for wildcard search at begin
@@ -374,12 +431,19 @@ sap.ui.define([], function() {
 						if (rFilter.test(sHost)) {
 							bOk = true;
 						}
-					} else if (!sHost || !aAllowedEntries[i].host || sHost == aAllowedEntries[i].host) {
+					} else if (!aAllowedEntries[i].host || (!sHost && !sProtocol && !/^[\/\\]{2,}/.test(sBody)) || sHost == aAllowedEntries[i].host) {
+						// host OK if the entry has no host, the URL is a relative (schemeless
+						// and hostless) path, or the hosts match exactly. A schemed URL without
+						// a host (e.g. "data:...") does not match a host-restricted entry.
+
+						// An input whose body starts with an authority marker ("//", "\\", "/\")
+						// is an authority per WHATWG, never a relative path: if rBasicUrl could
+						// not extract a host from it, reject it rather than treat it as relative.
 						bOk = true;
 					}
 					if (bOk) {
 						// host OK
-						if ((!sHost && !sPort) || !aAllowedEntries[i].port || sPort == aAllowedEntries[i].port) {
+						if ((!sHost && !sProtocol && !sPort) || !aAllowedEntries[i].port || sPort == aAllowedEntries[i].port) {
 							// port OK
 							if (aAllowedEntries[i].path && /\*$/.test(aAllowedEntries[i].path)) {
 								// check for wildcard search at end

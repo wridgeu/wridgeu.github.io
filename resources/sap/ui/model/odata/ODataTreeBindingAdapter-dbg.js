@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -18,7 +18,8 @@ sap.ui.define(['sap/ui/model/TreeBinding', './v2/ODataTreeBinding', 'sap/ui/mode
 	 *
 	 * @alias sap.ui.model.odata.ODataTreeBindingAdapter
 	 * @function
-	 * @experimental This module is only for experimental and internal use!
+	 * @deprecated As of version 1.138.0, will be replaced by OData V4 hierarchy functionality, see
+	 *    {@link topic:7d914317c0b64c23824bf932cc8a4ae1/section_RCH Recursive Hierarchy}
 	 *
 	 * @public
 	 */
@@ -265,6 +266,7 @@ sap.ui.define(['sap/ui/model/TreeBinding', './v2/ODataTreeBinding', 'sap/ui/mode
 			}
 
 			sKey = this.oModel._getKey(oEntry);
+			// deep path not needed here, it gets updated in ODataTreeBinding#_getContextsForNodeId
 			oContext = this.oModel.getContext("/" + sKey);
 
 			sParentGroupID = mParentGroupIDs[sParentNodeID];

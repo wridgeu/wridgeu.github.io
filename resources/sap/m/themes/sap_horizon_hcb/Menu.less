@@ -1,10 +1,19 @@
-/* ================================== */
-/* CSS for control sap.m/Menu         */
-/* Horizon High Contrast Black theme  */
-/* ================================== */
+/* ==================================== */
+/* CSS for control sap.m/Menu           */
+/* Quartz High Contrast Black theme     */
+/* ==================================== */
 
-html.sap-phone .sapMRespMenuDialog .sapMPage {
-  .sapMBar-CTX.sapMHeader-CTX,.sapMBarPH {
-	.sapMBarShadow(@sapUiPageHeaderBorderColor);
-  }
+.sapMMenu {
+
+	box-shadow: @sapUiContentShadow1;
+
+	.sapMMenuItem.sapMMenuItemSubMenuOpen {
+		background-color: @sapUiListSelectionBackgroundColor
+	}
+
+	.sapMMenuItem.sapMMenuItemSubMenuOpen:hover,
+	.sapMMenuItem.sapMMenuItemSubMenuOpen:focus {
+		background-color: @sapUiListActiveBackground;
+	}
+
 }

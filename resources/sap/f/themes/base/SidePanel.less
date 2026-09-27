@@ -1,28 +1,29 @@
-/* =============================== */
-/* CSS for control sap.f/SidePanel */
-/* Base theme                      */
-/* =============================== */
+/* ================================ */
+/* CSS for control sap.f/SidePanel  */
+/* Base theme                       */
+/* ================================ */
 
-@_sap_ui_layout_Splitter_BarDecorationColors: @sapUiHighlight, fade(@sapUiHighlight, 0);
-@_sap_ui_layout_Splitter_BarActiveDecorationColors: @sapUiHighlight, @sapUiHighlight;
+@_sap_ui_layout_Splitter_BarDecorationColors: var(--sapHighlightColor), fade(@sapUiHighlight, 0);
+@_sap_ui_layout_Splitter_BarActiveDecorationColors: var(--sapHighlightColor), var(--sapHighlightColor);
 
 /***** Desktop *****/
 
-// Cozy
+/* Cozy */
 .sapFSP {
 	height: 100%;
 	display: flex;
 	margin: 0;
 	touch-action: none;
 
-	// Main content
+	/* Main content */
 	.sapFSPMain {
 		flex: 1 1;
-		padding: 0.5rem;
+		padding: 0 0.5rem;
+		margin:  0.5rem 0;
 		overflow: hidden auto;
 	}
 
-	// Splitter
+	/* Splitter */
 	.sapFSPSplitterBar {
 		cursor: col-resize;
 		width: 1rem;
@@ -34,23 +35,23 @@
 		border-left: none;
 		border-right: none;
 		vertical-align: top;
-		color: @sapUiContentIconColor;
+		color: var(--sapContent_IconColor);
 		position: absolute;
 		left: -1rem;
 
-		&:focus {
+		&:focus-visible {
 			outline: none;
 		}
 
-		&:focus:not(:active)::after {
-			content: "";
+		&:focus-visible:not(:active)::after {
+			content: '';
 			display: block;
 			position: absolute;
 			top: 0;
 			right: 0;
 			bottom: 0;
 			left: 0;
-			border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+			border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
 		}
 
 		.sapFSPSplitterBarDecorationBefore {
@@ -82,18 +83,19 @@
 
 			.sapFSPSplitterBarGripIcon {
 				cursor: col-resize;
-				line-height: 1.625rem - @sapUiButtonBorderWidth - @sapUiButtonBorderWidth;
+				line-height: ~"calc(1.625rem - var(--sapButton_BorderWidth) - var(--sapButton_BorderWidth); )";
 				box-sizing: border-box;
 				height: 1.625rem;
 				width: 1.5rem;
 				margin-top: 3px;
-				border: @sapUiButtonBorderWidth solid @sapUiButtonLiteBorderColor;
-				border-radius: @sapUiButtonBorderCornerRadius;
-				background: @sapUiButtonLiteBackground;
+				border: var(--sapButton_BorderWidth) solid var(--sapButton_Lite_BorderColor);
+				border-radius: var(--sapButton_BorderCornerRadius);
+				background: var(--sapButton_Lite_Background);
 			}
 		}
 
 		&:active {
+
 			.sapFSPSplitterBarDecorationBefore {
 				flex-grow: 1;
 				background-image: linear-gradient(to top, @_sap_ui_layout_Splitter_BarActiveDecorationColors);
@@ -105,6 +107,7 @@
 		}
 
 		&:hover {
+
 			.sapFSPSplitterBarDecorationBefore,
 			.sapFSPSplitterBarDecorationAfter {
 				flex-grow: 1;
@@ -112,13 +115,13 @@
 			}
 
 			.sapFSPSplitterBarGripIcon {
-				background: @sapUiButtonLiteBackground;
-				border-color: @sapUiButtonLiteBorderColor;
+				background: var(--sapButton_Lite_Background);
+				border-color: var(--sapButton_Lite_BorderColor);
 			}
 		}
 	}
 
-	// Side panel
+	/* Side panel */
 	.sapFSPSide {
 		position: relative;
 		display: flex;
@@ -140,9 +143,9 @@
 			display: flex;
 			flex-direction: row-reverse;
 			align-items: stretch;
-			border-radius: @sapUiTileBorderCornerRadius 0 0 @sapUiTileBorderCornerRadius;
+			border-radius: var(--sapTile_BorderCornerRadius) 0 0 var(--sapTile_BorderCornerRadius);
 			box-shadow: 0 0 1rem fade(@sapUiContentShadowColor, 10);
-			background-color: @sapUiGroupContentBackground;
+			background-color: var(--sapGroup_ContentBackground);
 			min-width: 4.25rem;
 			width: 100%;
 
@@ -169,16 +172,16 @@
 					margin-right: 1rem;
 
 					& > .sapUiIcon {
-						color: @sapUiContentIconColor;
+						color: var(--sapContent_IconColor);
 					}
 
 					.sapMTitle {
 						flex-grow: 2;
-						font-family: @sapUiFontBoldFamily;
-						font-size: @sapMFontHeader6Size;
+						font-family: var(--sapFontBoldFamily);
+						font-size: var(--sapFontHeader6Size);
 						font-style: normal;
 						font-weight: 700;
-						color: @sapUiBaseText;
+						color: var(--sapTextColor);
 
 						& > span {
 							overflow: hidden;
@@ -225,11 +228,11 @@
 				cursor: pointer;
 
 				.sapFSPItemText {
-					font-family: @sapUiFontSemiboldDuplexFamily;
-					font-size: @sapMFontHeader6Size;
+					font-family: var(--sapFontSemiboldDuplexFamily);
+					font-size: var(--sapFontHeader6Size);
 					font-style: normal;
 					font-weight: 600;
-					color: @sapUiBaseText;
+					color: var(--sapTextColor);
 					overflow: hidden;
 					text-overflow: ellipsis;
 					white-space: nowrap;
@@ -240,19 +243,19 @@
 					flex-shrink: 0;
 					align-items: center;
 					justify-content: center;
-					font-size: @sapMFontHeader4Size;
-					background-color: @sapUiGroupContentBackground;
-					color: @sapUiContentSelectedForegroundColor;
+					font-size: var(--sapFontHeader4Size);
+					background-color: var(--sapGroup_ContentBackground);
+					color: var(--sapContent_Selected_ForegroundColor);
 					width: 2.75rem;
 					height: 2.75rem;
 					box-sizing: border-box;
 					border-radius: 50%;
-					border: 0.0625rem solid @sapUiContentSelectedForegroundColor;
+					border: 0.0625rem solid var(--sapContent_Selected_ForegroundColor);
 					cursor: pointer;
 				}
 
 				&.sapFSPDisabled {
-					opacity: @sapUiContentDisabledOpacity;
+					opacity: var(--sapContent_DisabledOpacity);
 
 					&:hover {
 						background-color: initial;
@@ -263,70 +266,73 @@
 					visibility: hidden;
 
 					.sapUiIcon {
-						color: @sapUiContentSelectedForegroundColor;
+						color: var(--sapContent_Selected_ForegroundColor);
 					}
 
 					&:not(.sapFSPSelected):not(:hover) {
+
 						.sapUiIcon {
 							border: none;
 						}
 					}
 
 					&.sapFSPSelected {
+
 						&::before {
 							display: none;
 						}
 
 						.sapUiIcon {
-							border-color: @sapUiContentSelectedForegroundColor;
-							background-color: @sapUiListSelectionBackgroundColor;
-							color: @sapUiContentSelectedForegroundColor;
+							border-color: var(--sapContent_Selected_ForegroundColor);
+							background-color: var(--sapList_SelectionBackgroundColor);
+							color: var(--sapContent_Selected_ForegroundColor);
 						}
 					}
 				}
 
-				&:focus {
+				&:focus-visible {
 					outline: none;
 
 					&::after {
-						content: "";
+						content: '';
 						position: absolute;
 						box-sizing: border-box;
 						left: 0;
 						top: 0;
 						right: 0;
 						bottom: 0;
-						border: 0.0625rem dotted @sapUiContentFocusColor;
+						border: 0.0625rem dotted var(--sapContent_FocusColor);
 						pointer-events: none;
 					}
 				}
 
 				&:hover {
-					background-color: @sapUiListHoverBackground;
+					background-color: var(--sapList_Hover_Background);
 
 					&.sapFSPOverflowItem .sapUiIcon {
-						border-color: @sapUiContentSelectedForegroundColor;
+						border-color: var(--sapContent_Selected_ForegroundColor);
 					}
 				}
 
 				&.sapFSPSelected {
+
 					&::before {
 						position: absolute;
 						left: 0;
-						content: "";
+						content: '';
 						height: 3.125rem;
 						width: 0.1875rem;
-						background-color: @sapUiContentSelectedForegroundColor;
+						background-color: var(--sapContent_Selected_ForegroundColor);
 						border-radius: 0 0.1875rem 0.1875rem 0;
 					}
 
 					.sapUiIcon {
-						border-color: @sapUiContentSelectedForegroundColor;
-						background-color: @sapUiContentSelectedForegroundColor;
-						color: @sapUiContentContrastIconColor;
+						border-color: var(--sapContent_Selected_ForegroundColor);
+						background-color: var(--sapContent_Selected_ForegroundColor);
+						color: var(--sapContent_ContrastIconColor);
 					}
 
-					&:focus::after {
+					&:focus-visible::after {
 						border-left-color: transparent;
 					}
 				}
@@ -341,6 +347,7 @@
 	}
 
 	&.sapFSPActionBarExpanded {
+
 		&:not(.sapFSPSideContentExpanded) .sapFSPSide {
 			width: 20rem;
 		}
@@ -357,7 +364,9 @@
 		}
 
 		&.sapFSPSideContentExpanded {
+
 			.sapFSPSide:not(.sapFSPSplitView) {
+
 				.sapFSPSideContent {
 					display: none;
 				}
@@ -373,11 +382,13 @@
 	}
 
 	&:not(.sapFSPSingleItem) .sapFSPSideContent {
-		border-right: 0.0625rem solid @sapUiGroupContentBorderColor;
+		border-right: 0.0625rem solid var(--sapGroup_ContentBorderColor);
 	}
 
 	&.sapFSPSingleItem {
+
 		&.sapFSPSideContentExpanded	{
+
 			.sapFSPExpandCollapse,
 			.sapFSPActionBar {
 				display: none;
@@ -406,33 +417,65 @@
 	overflow: hidden;
 }
 
-.sapFSPOverflowMenu .sapUiMnuItm {
-	.sapUiMnuItmIco {
-		color: @sapUiContentSelectedForegroundColor;
+html.sap-desktop .sapFSP .sapFSPSplitterBar:focus {
+	outline: none;
+}
+
+html.sap-desktop .sapFSP .sapFSPSplitterBar:focus:not(:active)::after {
+	content: '';
+	display: block;
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+}
+
+html.sap-desktop .sapFSP .sapFSPSide .sapFSPActionBarList .sapFSPItem:focus {
+	outline: none;
+}
+
+html.sap-desktop .sapFSP .sapFSPSide .sapFSPActionBarList .sapFSPItem:focus::after {
+	content: '';
+	position: absolute;
+	box-sizing: border-box;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	border: 0.0625rem dotted var(--sapContent_FocusColor);
+	pointer-events: none;
+}
+
+html.sap-desktop .sapFSP .sapFSPSide .sapFSPActionBarList .sapFSPItem.sapFSPSelected:focus::after {
+	border-left-color: transparent;
+}
+
+.sapFSPOverflowMenu .sapMMenuItem {
+	.sapMMenuItemIcon {
+		color: var(--sapContent_Selected_ForegroundColor);
 	}
 
-	.sapUiMnuItmTxt {
-		font-family: @sapUiFontFamily;
-		font-size: @sapMFontHeader6Size;
+	.sapMMenuItemText {
+		font-family: var(--sapFontFamily);
+		font-size: var(--sapFontHeader6Size);
 		font-style: normal;
 		font-weight: 600;
 	}
 
-	&.sapUiMnuItmDsbl {
-		.sapUiMnuItmTxt {
-			opacity: @sapUiContentDisabledOpacity;
+	&.sapMMenuItemDisabled {
+		.sapMMenuItemText {
+			opacity: var(--sapContent_DisabledOpacity);
 		}
-	}
-
-	&:not(.sapUiMnuItmHov:active) .sapUiMnuItmTxt,
-	&.sapUiMnuItmDsbl.sapUiMnuItmHov:active .sapUiMnuItmTxt {
-		color: @sapUiBaseText;
 	}
 }
 
-// Compact
+/* Compact */
 .sapUiSizeCompact {
+
 	.sapFSP {
+
 		.sapFSPSide {
 			min-width: 4rem;
 			width: 4rem;
@@ -449,6 +492,7 @@
 			}
 
 			.sapFSPActionBarList {
+
 				.sapFSPItem {
 					height: 2.375rem;
 					padding: 0.1875rem 1rem;
@@ -458,7 +502,7 @@
 					}
 
 					.sapUiIcon {
-						font-size: @sapMFontHeader5Size;
+						font-size: var(--sapFontHeader5Size);
 						width: 2rem;
 						height: 2rem;
 						line-height: 1.75rem;
@@ -477,6 +521,7 @@
 		}
 
 		&.sapFSPActionBarExpanded {
+
 			.sapFSPSideInner .sapFSPActionBar {
 				width: 100%;
 				max-width: 100%;
@@ -487,40 +532,37 @@
 
 .sapFSP.sapFSPLeft {
 	flex-direction: row-reverse;
+
 	.sapFSPSide {
 		margin: 0.5rem 1rem 0.5rem 0;
+
 		.sapFSPSideInner {
-			border-radius: 0 @sapUiTileBorderCornerRadius @sapUiTileBorderCornerRadius 0;
+			border-radius: 0 var(--sapTile_BorderCornerRadius) var(--sapTile_BorderCornerRadius) 0;
 			flex-direction: row;
 		}
+
 		.sapFSPExpandCollapse {
 			right: auto;
 			left: 1rem;
 		}
-		.sapFSPActionBarList {
-			.sapFSPItem {
-				flex-direction: row-reverse;
-				&.sapFSPSelected {
-					&::before {
-						right: 0;
-						left: auto;
-					}
-				}
-			}
+
+		.sapFSPSplitterBar {
+			left: initial;
+			right: -1rem;
 		}
 	}
 }
 
 .sapFSP.sapFSPLeft:not(.sapFSPSingleItem) .sapFSPSideContent {
 	border-right: none;
-	border-left: 0.0625rem solid @sapUiGroupContentBorderColor;
+	border-left: 0.0625rem solid var(--sapGroup_ContentBorderColor);
 }
 
 /***** Phone *****/
 
 html.sap-phone {
 
-	// Cozy
+	/* Cozy */
 	.sapFSP {
 		flex-direction: column;
 
@@ -551,7 +593,7 @@ html.sap-phone {
 				overflow: hidden;
 				border-radius: 0;
 				border: none;
-				border-top: 0.0625rem solid @sapUiGroupContentBorderColor;
+				border-top: 0.0625rem solid var(--sapGroup_ContentBorderColor);
 
 				.sapFSPActionBar {
 					position: relative;
@@ -582,7 +624,7 @@ html.sap-phone {
 						text-align: center;
 						height: 2.25rem;
 						padding: 0.1875rem 1rem;
-						border-bottom: 0.0625rem solid @sapUiGroupContentBorderColor;
+						border-bottom: 0.0625rem solid var(--sapGroup_ContentBorderColor);
 						margin-right: 0;
 
 						& > .sapUiIcon {
@@ -660,6 +702,7 @@ html.sap-phone {
 		}
 
 		&.sapFSPActionBarExpanded {
+
 			&.sapFSPSideContentExpanded .sapFSPSide:not(.sapFSPSplitView) .sapFSPSideContent {
 				display: flex;
 			}
@@ -676,6 +719,7 @@ html.sap-phone {
 		}
 
 		&.sapFSPSingleItem {
+
 			.sapFSPSide {
 				flex: 0 0 4.125rem;
 				width: 100%;
@@ -708,6 +752,7 @@ html.sap-phone {
 									border-width: 0;
 									width: 2.25rem;
 								}
+
 								.sapFSPItemText {
 									display: inline;
 									font-size: 0.875rem;
@@ -752,7 +797,7 @@ html.sap-phone {
 			bottom: 0;
 			left: 0;
 			right: 0;
-			background: @sapBackgroundColor;
+			background: var(--sapBackgroundColor);
 			height: 100%;
 
 			.sapFSPSideInner {
@@ -764,7 +809,7 @@ html.sap-phone {
 				border: none;
 
 				.sapFSPActionBarListWrapper {
-					border-top: 0.0625rem solid @sapUiGroupContentBorderColor;
+					border-top: 0.0625rem solid var(--sapGroup_ContentBorderColor);
 				}
 			}
 		}
@@ -775,13 +820,16 @@ html.sap-phone {
 		}
 	}
 
-	// Compact
+	/* Compact */
 	.sapUiSizeCompact {
+
 		.sapFSP {
+
 			.sapFSPSide {
 				flex: 0 0 3.75rem;
 
 				.sapFSPSideInner {
+
 					.sapFSPActionBarListWrapper {
 						height: 5.5rem;
 					}
@@ -820,11 +868,13 @@ html.sap-phone {
 				height: 100%;
 
 				.sapFSPSideInner {
+
 					.sapFSPSideContentInner {
 						padding: 0.5rem 1rem;
 					}
 
 					.sapFSPSideContentHeader {
+
 						& > .sapUiIcon {
 							width: 2rem;
 						}
@@ -837,8 +887,11 @@ html.sap-phone {
 			}
 
 			&.sapFSPSingleItem {
+
 				.sapFSPSide {
+
 					.sapFSPSideInner {
+
 						.sapFSPActionBarListWrapper .sapFSPActionBarList .sapFSPItem .sapUiIcon {
 							width: 2rem;
 						}
@@ -848,6 +901,7 @@ html.sap-phone {
 						}
 					}
 				}
+
 				&.sapFSPSideContentExpanded .sapFSPSide .sapFSPSideInner .sapFSPActionBarListWrapper {
 					height: 0;
 					overflow: hidden;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -23,6 +23,7 @@ sap.ui.define([
 	"./ODataUtils",
 	"sap/base/assert",
 	"sap/base/Log",
+	"sap/base/i18n/Localization",
 	"sap/base/security/encodeURL",
 	"sap/base/util/each",
 	"sap/base/util/extend",
@@ -30,7 +31,6 @@ sap.ui.define([
 	"sap/base/util/isPlainObject",
 	"sap/base/util/merge",
 	"sap/base/util/uid",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/Supportability",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/Context",
@@ -41,8 +41,8 @@ sap.ui.define([
 	"sap/ui/thirdparty/datajs",
 	"sap/ui/thirdparty/URI"
 ], function(CountMode, ODataContextBinding, ODataListBinding, ODataMetadata, ODataPropertyBinding,
-		ODataTreeBinding, ODataUtils, assert, Log, encodeURL, each, extend, isEmptyObject,
-		isPlainObject, merge, uid, Configuration, Supportability, BindingMode, Context,
+		ODataTreeBinding, ODataUtils, assert, Log, Localization, encodeURL, each, extend,
+		isEmptyObject, isPlainObject, merge, uid, Supportability, BindingMode, Context,
 		FilterProcessor, Model, ODataAnnotations, ODataMetaModel, OData, URI) {
 	"use strict";
 
@@ -78,7 +78,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @deprecated As of version 1.48, please use {@link sap.ui.model.odata.v2.ODataModel} instead.
@@ -129,8 +129,8 @@ sap.ui.define([
 
 			this.oServiceData = {};
 			this.sDefaultBindingMode = BindingMode.OneWay;
-			this.mSupportedBindingModes = {"OneWay": true, "OneTime": true, "TwoWay":true};
-			this.mUnsupportedFilterOperators = {"Any": true, "All": true};
+			this.mSupportedBindingModes = {"OneWay": true, "OneTime": true, "TwoWay": true};
+			this.mUnsupportedFilterOperators = {All: true, Any: true, NotAll: true, NotAny: true};
 			this.bCountSupported = true;
 			this.bJSON = bJSON;
 			this.bCache = true;
@@ -195,7 +195,7 @@ sap.ui.define([
 			this.sUser = sUser;
 			this.sPassword = sPassword;
 
-			this.oHeaders["Accept-Language"] = Configuration.getLanguageTag();
+			this.oHeaders["Accept-Language"] = Localization.getLanguageTag().toString();
 
 			if (!this.oServiceData.oMetadata) {
 				//create Metadata object
@@ -1959,7 +1959,7 @@ sap.ui.define([
 		//collect keys
 		each(aBatchRequests, function(i, oBatchOperation) {
 			if (oBatchOperation["__changeRequests"]) {
-				//this is a changeset
+				//this is a change set
 				each(oBatchOperation["__changeRequests"],function(j, oChangeRequest){
 					if (oChangeRequest.keys && oChangeRequest.method != "POST") {
 						each(oChangeRequest.keys, function(k,sKey){
@@ -2808,7 +2808,7 @@ sap.ui.define([
 	/**
 	 * Appends the change batch operations to the end of the batch stack. Only <code>PUT</code,
 	 * <code>POST</code> or <code>DELETE</code> batch operations should be included in the specified
-	 * array. The operations in the array will be included in a single changeset. To embed change
+	 * array. The operations in the array will be included in a single change set. To embed change
 	 * operations in different change sets call this method with the corresponding change operations
 	 * again. If an illegal batch operation is added to the change set nothing will be performed and
 	 * false will be returned.
@@ -3793,7 +3793,7 @@ sap.ui.define([
 			this.oMetaModel.loaded().then(function() {
 				that.bMetaModelLoaded = true;
 				that.checkUpdate(false, false, null, true);
-			});
+			}).catch(() => { /* avoid uncaught in promise */ });
 		}
 		return this.oMetaModel;
 	};

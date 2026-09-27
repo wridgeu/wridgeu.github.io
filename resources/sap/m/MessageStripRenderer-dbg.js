@@ -1,11 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./MessageStripUtilities", "sap/ui/core/IconPool"],
-	function (MSUtils, IconPool) {
+sap.ui.define([
+	"./MessageStripUtilities",
+	"sap/ui/core/IconPool" // side effect: required when calling RenderManager#icon
+],
+	function (MSUtils) {
 	"use strict";
 
 	/**
@@ -41,8 +44,10 @@ sap.ui.define(["./MessageStripUtilities", "sap/ui/core/IconPool"],
 
 	MessageStripRenderer.startMessageStrip = function (oRm, oControl) {
 		oRm.openStart("div", oControl);
-		oRm.class(MSUtils.CLASSES.ROOT);
-		oRm.class(MSUtils.CLASSES.ROOT + oControl.getType());
+
+		oControl._getColorSetClass().forEach((sColorClass) => {
+			oRm.class(sColorClass);
+		});
 
 		oRm.attr(MSUtils.ATTRIBUTES.CLOSABLE, oControl.getShowCloseButton());
 		oRm.accessibilityState(oControl, this.getAccessibilityState.call(oControl));

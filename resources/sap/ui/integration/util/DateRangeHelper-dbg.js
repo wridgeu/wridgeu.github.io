@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -88,6 +88,28 @@ sap.ui.define([
 			+ "-" + oDate.getDate().toString().padStart(2, "0");
 	}
 
+	/**
+	 * Converts a short date string in ISO 8601 format (yyyy-MM-dd) into a date object within the local timezone.
+	 *
+	 * @param {*} vDate The date input to be parsed. If it is in format yyyy-MM-dd, it will be converted to a UI5Date instance in the local timezone.
+	 * @returns {UI5Date} A UI5Date instance representing the date.
+	 */
+	function fromShortDate(vDate) {
+		// Using UI5Date.getInstance(year, month, day) ensures the date is created in the local timezone,
+		// unlike the default UTC handling when using a single string value in UI5Date.getInstance(value).
+
+		if (typeof vDate !== "string") {
+			return vDate;
+		}
+
+		const aParts = vDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+		if (aParts) {
+			return UI5Date.getInstance(parseInt(aParts[1]), parseInt(aParts[2]) - 1, parseInt(aParts[3]));
+		}
+
+		return UI5Date.getInstance(vDate);
+	}
+
 	var DateRangeHelper = {};
 
 	DateRangeHelper.createInput = function (oConfig, oCard, bIsFormInput) {
@@ -97,10 +119,13 @@ sap.ui.define([
 		});
 
 		if (aOptions.length === 1 && aOptions[0] === "DATE" && bIsFormInput) {
-			oControl = new DatePicker();
+			oControl = new DatePicker({
+				placeholder: oConfig.placeholder
+			});
 		} else {
 			oControl = new DynamicDateRange({
-				standardOptions: aOptions
+				standardOptions: aOptions,
+				placeholder: oConfig.placeholder
 			});
 		}
 
@@ -110,29 +135,36 @@ sap.ui.define([
 	};
 
 	DateRangeHelper.setValue = function (oControl, oValue, oCard) {
-		if (!oValue) {
+		let _oValue = oValue;
+
+		if (_oValue === null) {
+			_oValue = {
+				option: null,
+				values: null
+			};
+		}
+
+		if (!_oValue) {
 			return;
 		}
 
-		var oResolvedValue = BindingResolver.resolveValue(oValue, oCard);
-
 		if (oControl.isA("sap.m.DatePicker")) {
-			var sDatePickerValue;
-
-			if (oResolvedValue.values) {
-				sDatePickerValue = oResolvedValue.values[0];
+			if ("values" in _oValue) {
+				_oValue = _oValue.values;
 			}
 
-			oControl.setValue(sDatePickerValue);
+			oControl.applySettings({
+				value: _oValue
+			});
 		} else {
-
+			var oResolvedValue = BindingResolver.resolveValue(_oValue, oCard);
 			var sOption = oResolvedValue.option.toUpperCase();
 			var aTypes = oControl.getOption(sOption).getValueTypes();
 			oControl.setValue({
 				operator: sOption,
 				values: oResolvedValue.values.map(function (vValue, i) {
 					if (aTypes[i] === "date" || aTypes[i] === "datetime") {
-						return UI5Date.getInstance(vValue);
+						return fromShortDate(vValue);
 					}
 					return vValue;
 				})
@@ -149,7 +181,7 @@ sap.ui.define([
 		if (oControl.isA("sap.m.DatePicker") && oControl.getValue() && oControl.isValidValue()) {
 			oDateRangeValue = {
 				operator: "DATE",
-				values: [UI5Date.getInstance(oControl.getValue())]
+				values: [oControl.getDateValue()]
 			};
 		} else if (oControl.isA("sap.m.DynamicDateRange")) {
 			oDateRangeValue = oControl.getValue();

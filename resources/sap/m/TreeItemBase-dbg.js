@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,13 +11,24 @@ sap.ui.define([
 	'sap/ui/core/IconPool',
 	'sap/ui/core/Icon',
 	'./TreeItemBaseRenderer',
+	"sap/ui/core/Lib",
 	'sap/ui/events/KeyCodes'
 ],
-	function(ListItemBase, library, IconPool, Icon, TreeItemBaseRenderer, KeyCodes) {
+	function(ListItemBase, library, IconPool, Icon, TreeItemBaseRenderer, Library, KeyCodes) {
 	"use strict";
 
 	// shortcut for sap.m.ListMode
-	var ListMode = library.ListMode;
+	const ListMode = library.ListMode;
+
+	const INDENTATION_FACTOR = [
+		0,   // Root
+		1.5, // Level 1
+		1,   // Level 2
+		0.5, // Level 3
+		0.5, // Level 4
+		0.5, // Level 5
+		0.25 // Level 6 and above
+	];
 
 	/**
 	 * Constructor for a new TreeItemBase.
@@ -30,7 +41,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -213,7 +224,7 @@ sap.ui.define([
 	 */
 	TreeItemBase.prototype._getExpanderControl = function() {
 		var sSrc = this.CollapsedIconURI,
-			oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			oBundle = Library.getResourceBundleFor("sap.m"),
 			sIconTooltip = oBundle.getText("TREE_ITEM_EXPAND_NODE");
 
 		if (this.getExpanded()) {
@@ -258,38 +269,15 @@ sap.ui.define([
 	/**
 	 * Gets the indentation of the node for rendering purposes.
 	 *
-	 * @returns {float}
+	 * @returns {float} The indentation value for the current node level.
 	 * @private
 	 * @since 1.42.0
 	 */
 	TreeItemBase.prototype._getPadding = function() {
-		var oTree = this.getTree(),
-		iNodeLevel = this.getLevel(),
-		iIndentation = 0,
-		iDeepestLevel;
-
-		// use number count from hierarchy binding
-		if (oTree) {
-			iDeepestLevel = oTree.getDeepestLevel();
-		}
-
-		// for add node
-		if (iDeepestLevel < iNodeLevel) {
-			oTree._iDeepestLevel = iNodeLevel;
-			iDeepestLevel = oTree._iDeepestLevel;
-		}
-
-		if (iDeepestLevel < 2) {
-			iIndentation = iNodeLevel * 1.5;
-		} else if (iDeepestLevel === 2) {
-			iIndentation = iNodeLevel * 1;
-		} else if (iDeepestLevel < 6) {
-			iIndentation = iNodeLevel * 0.5;
-		} else {
-			iIndentation = iNodeLevel * 0.25;
-		}
-
-		return iIndentation;
+		const iLevel = this.getLevel();
+		const iDeepestLevel = this.getTree() ? this.getTree().getDeepestLevel() : 0;
+		const fIndentationFactor = INDENTATION_FACTOR[Math.min(iDeepestLevel, INDENTATION_FACTOR.length - 1)];
+		return iLevel * fIndentationFactor;
 	};
 
 	/**

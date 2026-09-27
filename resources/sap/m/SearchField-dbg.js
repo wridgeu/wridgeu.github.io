@@ -1,12 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.SearchField.
 sap.ui.define([
-	'sap/ui/core/Theming',
 	'./library',
 	'sap/ui/core/Control',
 	'sap/ui/core/EnabledPropagator',
@@ -21,7 +20,6 @@ sap.ui.define([
 	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
-		Theming,
 		library,
 		Control,
 		EnabledPropagator,
@@ -69,7 +67,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	* @implements sap.ui.core.IFormContent
 	* @author SAP SE
-	* @version 1.120.0
+	* @version 1.152.0
 	*
 	* @constructor
 	* @public
@@ -82,7 +80,8 @@ sap.ui.define([
 			interfaces : [
 				"sap.ui.core.IFormContent",
 				"sap.f.IShellBar",
-				"sap.m.IToolbarInteractiveControl"
+				"sap.m.IToolbarInteractiveControl",
+				"sap.m.IOverflowToolbarContent"
 			],
 			library : "sap.m",
 			properties : {
@@ -133,7 +132,7 @@ sap.ui.define([
 
 				/**
 				 * Tooltip text of the refresh button. If it is not set, the Default tooltip text is the word "Refresh" in the current local language (if supported) or in English. Tooltips are not displayed on touch devices.
-				 * @deprecated Since version 1.110.0.
+				 * @deprecated As of version 1.110.0, the concept has been discarded.
 				 * @since 1.16
 				 */
 				refreshButtonTooltip : {type : "string", group : "Misc", defaultValue : null},
@@ -170,7 +169,13 @@ sap.ui.define([
 				/**
 				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
 				 */
-				ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
+				ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"},
+				/**
+				 * Associates controls or IDs that are controlled by this control,
+				 * as described by the WAI-ARIA attribute <code>aria-controls</code>.
+				 * @since 1.150
+				 */
+				ariaControls: {type : "sap.ui.core.Control", multiple : true}
 			},
 			defaultAggregation : "suggestionItems",
 			designtime: "sap/m/designtime/SearchField.designtime",
@@ -902,7 +907,7 @@ sap.ui.define([
 		if (iNumItems === 1) {
 			sAriaText = oRb.getText("INPUT_SUGGESTIONS_ONE_HIT");
 		} else if (iNumItems > 1) {
-			sAriaText = oRb.getText("INPUT_SUGGESTIONS_MORE_HITS", iNumItems);
+			sAriaText = oRb.getText("INPUT_SUGGESTIONS_MORE_HITS", [iNumItems]);
 		} else {
 			sAriaText = oRb.getText("INPUT_SUGGESTIONS_NO_HIT");
 		}
@@ -923,13 +928,30 @@ sap.ui.define([
 	};
 
 	/**
+	 * Enables the <code>sap.m.SearchField</code> to be used inside sap.m.OverflowToolbar.
+	 * Required by the {@link sap.m.IOverflowToolbarContent} interface.
+	 *
+	 * @public
+	 * @returns {sap.m.OverflowToolbarConfig} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
+	 */
+	SearchField.prototype.getOverflowToolbarConfig = function() {
+		const oConfig = {
+			canOverflow: true,
+			autoCloseEvents: ["search"],
+			propsUnrelatedToSize: ["enabled", "value", "selectOnFocus"]
+		};
+
+		return oConfig;
+	};
+
+	/**
 	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
 	 * Determines if the Control is interactive.
 	 *
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	SearchField.prototype._getToolbarInteractive = function () {
 		return true;
@@ -991,6 +1013,14 @@ sap.ui.define([
 			}
 		}
 		return this;
+	};
+
+	SearchField.prototype._hasAriaLabelledBy = function() {
+		return this.getAriaLabelledBy().length;
+	};
+
+	SearchField.prototype._getPlaceholder = function() {
+		return this.getPlaceholder() || Library.getResourceBundleFor("sap.m").getText("FACETFILTER_SEARCH", undefined, true);
 	};
 
 	function updateSuggestions(oSF) {

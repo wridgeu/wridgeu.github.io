@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,9 +9,42 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/base/ManagedObjectObserver',
 	'./FormRenderer',
-	'./FormHelper'
-	], function(Control, ManagedObjectObserver, FormRenderer, FormHelper) {
+	'./FormHelper',
+	'./FormTitleUtil'
+	], function(Control, ManagedObjectObserver, FormRenderer, FormHelper, FormTitleUtil) {
 	"use strict";
+
+	/**
+	 * Modules for form-like controls.
+	 *
+	 * Use {@link sap.ui.layout.form.Form Form} if you want to do the following:
+	 * <ul>
+	 * <li>Create a highly customized form</li>
+	 * <li>Display a large amount of data in a form</li>
+	 * <li>Create complex forms with multiple sections and different types of input fields</li>
+	 * <li>Have granular control over the structure of a form</li>
+	 * <li>Manage the responsiveness of the form yourself</li>
+	 * </ul>
+	 *
+	 * Use {@link sap.ui.layout.form.SimpleForm SimpleForm} if you want to do the following:
+	 * <ul>
+	 * <li>Use a very simple structure of a form in a straightforward way</li>
+	 * <li>Create a form quickly and easily</li>
+	 * <li>Use a form that is automatically responsive</li>
+	 * </ul>
+	 *
+	 * <b>Recommendations</b>
+	 * <ul>
+	 * <li>Do not nest layouts and forms as nesting can lead to undesired issues.</li>
+	 * <li>Do not use other forms or layout controls.
+	 * Using any other form or layout control (for example, <code>HBox</code>) as children of a <code>Form</code> can lead to issues with accessibility or the responsive design.</li>
+	 * <li>Use the <code>ColumnLayout</code> as <code>Layout</code>, as its responsiveness uses the space available in the best way possible.</li>
+	 * </ul>
+	 * @namespace
+	 * @name sap.ui.layout.form
+	 * @since 1.16.0
+	 * @public
+	 */
 
 	/**
 	 * Constructor for a new sap.ui.layout.form.Form.
@@ -23,28 +56,28 @@ sap.ui.define([
 	 * A <code>Form</code> control arranges labels and fields (like input fields) into groups and rows.
 	 * There are different ways to visualize forms for different screen sizes.
 	 *
-	 * A <code>Form</code> is structured into <code>FormContainers</code>. Each <code>FormContainer</code> consists of <code>FormElements</code>.
-	 * The <code>FormElements</code> consists of a label and the form fields.
-	 * A <code>Form</code> doesn't render its content by itself. The rendering is done by the assigned <code>FormLayout</code>.
+	 * A <code>Form</code> is structured into <code>FormContainers</code>. Each {@link sap.ui.layout.form.FormContainer FormContainer} consists of <code>FormElements</code>.
+	 * The {@link sap.ui.layout.form.FormElement FormElement} consists of a label and the form fields.
+	 * A <code>Form</code> doesn't render its content on its own. The rendering is done by the assigned {@link sap.ui.layout.form.FormLayout FormLayout}.
 	 * This is so that the rendering can be adopted to new UI requirements without changing the <code>Form</code> itself.
 	 *
-	 * For the content of a <code>Form</code>, <code>VariantLayoutData</code> are supported to allow simple switching of the <code>FormLayout</code>.
-	 * <code>LayoutData</code> on the content can be used to overwrite the default layout of the <code>Form</code>.
+	 * For the content of a <code>Form</code>, {@link sap.ui.core.VariantLayoutData VariantLayoutData} are supported to allow simple switching of the {@link sap.ui.layout.form.FormLayout FormLayout}.
+	 * {@link sap.ui.core.Element#setLayoutData LayoutData} on the content can be used to overwrite the default layout of the <code>Form</code>.
 	 *
 	 * The <code>Form</code> (and its sub-controls) automatically add label and field assignment to enable screen reader support.
 	 * It also adds keyboard support to navigate between the fields and groups inside the form.
 	 *
-	 * <b>Warning:</b> Do not put any layout or other container controls into the <code>FormElement</code>.
+	 * <b>Warning:</b> Do not put any layout or other container controls into the {@link sap.ui.layout.form.FormElement FormElement}.
 	 * Views are also not supported. This could damage the visual layout, keyboard support and screen-reader support.
 	 *
-	 * If editable controls are used as content, the <code>editable</code> property must be set to <code>true</code>,
-	 * otherwise to <code>false</code>. If the <code>editable</code> property is set incorrectly, there will be visual issues
-	 * like wrong label alignment or wrong spacing between the controls.
+	 * If editable controls are used as content, the {@link #setEditable editable} property must be set to <code>true</code>,
+	 * otherwise to <code>false</code>. If the {@link #setEditable editable} property is set incorrectly, there will be visual issues
+	 * like wrong label alignment or wrong spacing between the controls. In addition to that, wrong screen reader announcements might occur.
 	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -69,12 +102,13 @@ sap.ui.define([
 				 * The labels inside the form will be rendered by default in the according mode.
 				 *
 				 * <b>Note:</b> The setting of this property does not change the content of the form.
-				 * For example, <code>Input</code> controls in a form with <code>editable</code> set to false are still editable.
+				 * For example, {@link sap.m.Input Input} controls in a form with <code>editable</code> set to false are still editable.
 				 *
 				 * <b>Warning:</b> If this property is wrongly set, this might lead to visual issues.
 				 * The labels and fields might be misaligned, the labels might be rendered in the wrong mode,
 				 * and the spacing between the single controls might be wrong.
 				 * Also, controls that do not fit the mode might be rendered incorrectly.
+				 * In addition to that, wrong screen reader announcements might occur.
 				 * @since 1.20.0
 				 */
 				editable : {type : "boolean", group : "Misc", defaultValue : false}
@@ -88,23 +122,35 @@ sap.ui.define([
 				formContainers : {type : "sap.ui.layout.form.FormContainer", multiple : true, singularName : "formContainer"},
 
 				/**
-				 * Title of the <code>Form</code>. Can either be a <code>Title</code> element or a string.
+				 * Title of the <code>Form</code>. Can either be a {@link sap.ui.core.Title Title} element or a string.
 				 * If a <code>Title</code> element it used, the style of the title can be set.
 				 *
-				 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
+				 * <b>Note:</b> If a {@link #getToolbar Toolbar} is used, the <code>Title</code> is ignored.
 				 *
 				 * <b>Note:</b> If the title is provided as a string, the title is rendered with a theme-dependent default level.
 				 * As the <code>Form</code> control cannot know the structure of the page, this might not fit the page structure.
-				 * In this case provide the title using a <code>Title</code> element and set its {@link sap.ui.core.Title#setLevel level} to the needed value.
+				 * In this case, provide the title using a {@link sap.ui.core.Title Title} element and set its {@link sap.ui.core.Title#setLevel level} to the needed value.
+				 *
+				 * <b>Note:</b> Do not use {@link sap.ui.core.Title#setIcon icon} for {@link sap.ui.core.Title Title}.
+				 * If an icon is needed, use a {@link #setToolbar Toolbar} to show both title and icon.
+				 *
+				 * <b>Note:</b> Do not use {@link sap.ui.core.Title#setEmphasized emphasized} for {@link sap.ui.core.Title Title}.
+				 * This is not supported in current themes and might lead to accessibillity issues.
 				 */
 				title : {type : "sap.ui.core.Title", altTypes : ["string"], multiple : false},
 
 				/**
+				 * Title control used for rendering. It is internally created and synchronized with the setting of the {@link #setTitle title} aggregation.
+				 * @since 1.152
+				 */
+				_renderingTitle : {type : "sap.ui.core.ITitle", multiple : false, visibility: "hidden"},
+
+				/**
 				 * Toolbar of the <code>Form</code>.
 				 *
-				 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
+				 * <b>Note:</b> If a <code>Toolbar</code> is used, the {@link #getTitle Title} is ignored.
 				 * If a title is needed inside the <code>Toolbar</code> it must be added at content to the <code>Toolbar</code>.
-				 * In this case add the <code>Title</code> to the <code>ariaLabelledBy</code> association.
+				 * In this case, add the <code>Title</code> to the {@link #addAriaLabelledBy ariaLabelledBy} association.
 				 * Use the right title level to meet the visual requirements. This might be theme-dependent.
 				 * @since 1.36.0
 				 */
@@ -121,6 +167,10 @@ sap.ui.define([
 
 				/**
 				 * Association to controls / IDs that label this control (see WAI-ARIA attribute <code>aria-labelledby</code>).
+				 *
+				 * <b>Note:</b> Every <code>Form</code> needs to have some title or label (at least for screen reader support). If no {@link #getTitle Title}
+				 * is set, and the <code>Form</code> is not a child or a control with a title, such as {@link sap.m.Panel Panel} or {@link sap.m.Dialog Dialog},
+				 * a label or title needs to be assigned using the <code>ariaLabelledBy</code> association.
 				 * @since 1.28.0
 				 */
 				ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" }
@@ -139,7 +189,7 @@ sap.ui.define([
 
 		this._oObserver.observe(this, {
 			properties: ["editable"],
-			aggregations: ["formContainers"]
+			aggregations: ["formContainers", "title"]
 		});
 
 	};
@@ -195,7 +245,9 @@ sap.ui.define([
 
 	Form.prototype.setEditable = function(bEditable) {
 
-		this.setProperty("editable", bEditable, true);
+		const oLayout = this.getLayout();
+		const bSuppressInvalidate = !oLayout?.invalidateEditableChange();
+		this.setProperty("editable", bEditable, bSuppressInvalidate);
 
 		return this;
 
@@ -316,16 +368,24 @@ sap.ui.define([
 	};
 
 	/**
-	 * Method used to propagate the <code>Title</code> control ID of a container control
-	 * (like a <code>Dialog</code> control) to use it as aria-label in the <code>Form</code>.
+	 * Method used to propagate the {@link sap.ui.core.Title Title} control ID of a container control
+	 * (like a {@link sap.m.Dialog Dialog} control) to use it as <code>aria-label</code> in the <code>Form</code>.
 	 * So the <code>Form</code> must not have an own title.
-	 * @param {string} sTitleID <code>Title</code> control ID
+	 * @param {string | object} sTitleID {@link sap.ui.core.Title Title} control ID or object <code>{ id: string, role?: string }</code> containing title ID and aria role
 	 * @private
+	 * @ui5-restricted sap.m.TitlePropagationSupport, sap.fe
 	 * @return {this} Reference to <code>this</code> to allow method chaining
 	 */
 	Form.prototype._suggestTitleId = function (sTitleID) {
+		if (typeof sTitleID === "string") {
+			this._sSuggestedTitleId = sTitleID;
+		} else if (sTitleID && sTitleID.id) {
+			this._sSuggestedTitleId = sTitleID.id;
+			if (sTitleID.role) {
+				this._sSuggestedTitleAriaRole = sTitleID.role;
+			}
+		}
 
-		this._sSuggestedTitleId = sTitleID;
 		if (this.getDomRef()) {
 			this.invalidate();
 		}
@@ -340,6 +400,8 @@ sap.ui.define([
 			_setEditable.call(this, oChanges.current, oChanges.old);
 		} else if (oChanges.name === "formContainers") {
 			_formContainerChanged.call(this, oChanges.mutation, oChanges.child);
+		} else {
+			FormTitleUtil.observeTitleChange.call(this, oChanges);
 		}
 
 	}

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -173,16 +173,37 @@ sap.ui.define(['sap/m/library', "sap/base/security/encodeCSS", "sap/ui/core/libr
 	};
 
 	ImageRenderer._renderSvgAttributes = function (oRm, aAttributes, oImage) {
+		var sControlId = oImage.getId();
+
 		for (var i = 0; i < aAttributes.length; i++) {
 			var oAttr = aAttributes[i],
 				iNamespaceIndex = oAttr.name.indexOf(":"),
-				sAttributeName = iNamespaceIndex < 0 ? oAttr.name : oAttr.name.slice(iNamespaceIndex + 1);
+				sAttributeName = iNamespaceIndex < 0 ? oAttr.name : oAttr.name.slice(iNamespaceIndex + 1),
+				sAttributeValue = oAttr.value;
 
-			if (sAttributeName === "href" && !oImage._isHrefValid(oAttr.value)) {
-				continue;
+			// Scope IDs
+			if (sAttributeName === "id") {
+				sAttributeValue = sControlId + "--" + sAttributeValue;
 			}
 
-			oRm.attr(sAttributeName, oAttr.value);
+			// Scope ID references in url(#id) patterns
+			if (sAttributeValue.indexOf("url(#") > -1) {
+				sAttributeValue = sAttributeValue.split("url(#").join("url(#" + sControlId + "--");
+			}
+
+			if (sAttributeName === "href") {
+				if (sAttributeValue.charAt(0) === "#") {
+					sAttributeValue = "#" + sControlId + "--" + sAttributeValue.substring(1);
+				} else {
+					// Validate and convert external URLs only
+					if (!oImage._isHrefValid(sAttributeValue)) {
+						continue;
+					}
+					sAttributeValue = oImage._toAbsoluteUrl(sAttributeValue, oImage.getSrc());
+				}
+			}
+
+			oRm.attr(sAttributeName, sAttributeValue);
 		}
 	};
 

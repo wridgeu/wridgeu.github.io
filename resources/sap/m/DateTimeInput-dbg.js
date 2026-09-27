@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.DateTimeInput.
 sap.ui.define([
+	"sap/base/i18n/Formatting",
+	"sap/ui/core/Locale",
 	"sap/ui/thirdparty/jquery",
 	'sap/ui/core/Control',
 	'./library',
@@ -19,10 +21,11 @@ sap.ui.define([
 	'sap/ui/core/library',
 	'sap/ui/Device',
 	"./DateTimeInputRenderer",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/date/UI5Date"
 ],
 function(
+	Formatting,
+	Locale,
 	jQuery,
 	Control,
 	library,
@@ -36,7 +39,6 @@ function(
 	coreLibrary,
 	Device,
 	DateTimeInputRenderer,
-	Configuration,
 	UI5Date
 ) {
 	"use strict";
@@ -66,7 +68,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -295,7 +297,7 @@ function(
 
 			case DateTimeInputType.Time:
 				oPicker = new TimePicker(this.getId() + "-Picker",
-					{localeId: Configuration.getFormatSettings().getFormatLocale().toString()});
+					{localeId: new Locale(Formatting.getLanguageTag()).toString()});
 				break;
 
 			default: // default is date
@@ -648,7 +650,7 @@ function(
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	DateTimeInput.prototype._getToolbarInteractive = function () {
 		return true;

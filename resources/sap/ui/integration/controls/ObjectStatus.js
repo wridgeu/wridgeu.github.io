@@ -1,7 +1,7 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
-sap.ui.define(["sap/m/ObjectStatus","sap/m/ObjectStatusRenderer"],function(t,e){"use strict";var a=t.extend("sap.ui.integration.controls.ObjectStatus",{metadata:{library:"sap.ui.integration",properties:{showStateIcon:{type:"boolean",defaultValue:false}}},renderer:e});a.prototype.onBeforeRendering=function(){if(this.getShowStateIcon()){if(!this.getIcon()){this.addStyleClass("sapMObjStatusShowIcon")}else{this.addStyleClass("sapMObjStatusShowCustomIcon")}}};return a});
+sap.ui.define(["sap/m/library","sap/ui/core/library","sap/m/ObjectStatus","sap/m/ObjectStatusRenderer"],function(t,e,a,o){"use strict";var s=t.EmptyIndicatorMode;var n=e.ValueState;var r=a.extend("sap.ui.integration.controls.ObjectStatus",{metadata:{library:"sap.ui.integration",properties:{showStateIcon:{type:"boolean",defaultValue:false},customIcon:{type:"sap.ui.core.URI",group:"Misc",defaultValue:null}}},renderer:o});r.prototype._isEmpty=function(){return this.getEmptyIndicatorMode()===s.Off&&this._hasNoValue()};r.prototype._shouldRenderEmptyIndicator=function(){return this.getEmptyIndicatorMode()===s.On&&this._hasNoValue()};r.prototype._hasNoValue=function(){return!this.getText()&&(!this.getShowStateIcon()||this.getShowStateIcon()&&this.getState()===n.None&&!this.getIcon())};r.prototype.onBeforeRendering=function(){this.addStyleClass("sapUiIntObjStatus");if(!this.getShowStateIcon()){return}const t=this.getCustomIcon();if(t){this.setIcon(t)}else{let t="";switch(this.getState()){case n.Success:t="sap-icon://sys-enter-2";break;case n.Error:t="sap-icon://error";break;case n.Warning:t="sap-icon://warning";break;case n.Information:t="sap-icon://information";break}this.setIcon(t)}};return r});
 //# sourceMappingURL=ObjectStatus.js.map

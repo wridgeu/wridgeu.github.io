@@ -1,16 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /**
  * The types in this namespace are {@link sap.ui.model.SimpleType simple types} corresponding
  * to OData primitive types for both
- * {@link http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem OData V2}
+ * {@link https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338 OData V4.01}
  * and
- * {@link http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html OData V4} (see
- * "4.4 Primitive Types").
+ * {@link https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem OData V2}.
  *
  * They can be used in any place where simple types are allowed (and the model representation
  * matches), but they are of course most valuable when used in bindings to a
@@ -92,9 +91,9 @@ sap.ui.define([
 	 * Constructor for a new <code>ODataType</code>.
 	 *
 	 * @class This class is an abstract base class for all OData primitive types (see {@link
-	 * http://docs.oasis-open.org/odata/odata/v4.0/errata02/os/complete/part3-csdl/odata-v4.0-errata02-os-part3-csdl-complete.html#_The_edm:Documentation_Element
-	 * OData V4 Edm Types} and
-	 * {@link http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem
+	 * https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338
+	 * OData V4.01 Edm Types} and
+	 * {@link https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem
 	 * OData V2 Edm Types}). All subtypes implement the interface of
 	 * {@link sap.ui.model.SimpleType}. That means they implement next to the constructor:
 	 * <ul>
@@ -116,7 +115,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @abstract
 	 * @alias sap.ui.model.odata.type.ODataType
@@ -198,15 +197,23 @@ sap.ui.define([
 
 	/**
 	 * Returns a language-dependent placeholder text such as "e.g. <sample value>" where <sample value> is formatted
-	 * using this type.
+	 * using this type. The <code>oMinimum</code> and <code>oMaximum</code> parameters are supported since 1.149.0 and
+	 * only by types that use {@link sap.ui.core.format.DateFormat} for formatting
+	 * ({@link sap.ui.model.odata.type.Date}, {@link sap.ui.model.odata.type.DateTime},
+	 * {@link sap.ui.model.odata.type.DateTimeOffset},
+	 * {@link sap.ui.model.odata.type.DateTimeWithTimezone},
+	 * {@link sap.ui.model.odata.type.Time}, and {@link sap.ui.model.odata.type.TimeOfDay}).
+	 * If given, a sample date within [<code>oMinimum</code>, <code>oMaximum</code>] is used.
 	 *
+	 * @param {module:sap/ui/core/date/UI5Date} [oMinimum] The minimum date
+	 * @param {module:sap/ui/core/date/UI5Date} [oMaximum] The maximum date
 	 * @returns {string|undefined}
 	 *   The language-dependent placeholder text or <code>undefined</code> if the type does not offer a placeholder
 	 *
 	 * @public
 	 */
-	ODataType.prototype.getPlaceholderText = function () {
-		return this.getFormat && this.getFormat().getPlaceholderText && this.getFormat().getPlaceholderText();
+	ODataType.prototype.getPlaceholderText = function (oMinimum, oMaximum) {
+		return this.getFormat?.().getPlaceholderText?.(oMinimum, oMaximum);
 	};
 
 	/**

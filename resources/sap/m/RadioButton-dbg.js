@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,9 @@
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
-	'sap/ui/core/Core',
 	'sap/ui/core/EnabledPropagator',
+	"sap/ui/core/Lib",
+	"sap/ui/core/Element",
 	'sap/ui/core/message/MessageMixin',
 	'sap/m/Label',
 	'sap/ui/core/library',
@@ -19,8 +20,9 @@ sap.ui.define([
 function(
 	library,
 	Control,
-	Core,
 	EnabledPropagator,
+	Library,
+	Element,
 	MessageMixin,
 	Label,
 	coreLibrary,
@@ -37,6 +39,9 @@ function(
 
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
+
+	// shortcut for sap.m.WrappingType
+	var WrappingType = library.WrappingType;
 
 	var getNextSelectionNumber = (function () {
 		var i = 0;
@@ -80,18 +85,16 @@ function(
 	 * <li>Avoid using horizontally aligned radio buttons as they will be cut off on phones.</li>
 	 * </ul>
 	 *
-	 * <b>Note:</b> The order in which the RadioButtons will be selected one after another is determined upon instantiation of the control.
-	 * This order is consistent with the ARIA attributes for position, which the same button will receive when added to specific group.
+	 * <b>Note:</b> The order in which the RadioButtons will be traversed with keyboard arrow keys is determined based on their order in the document.
 	 *
-	 * <b>Example:</b> If three buttons are created (<code>button1, button2, button3</code>) in consecutive order, initially they will have the same positions
-	 * and TAB order. However if after that <code>button1</code> and <code>button3</code> are moved to a new group and then <code>button2</code> is added to the
-	 * same group, their TAB order and position in this group will be <code>button1, button3, button2</code>.
+	 * <b>Example:</b> If there are three buttons of the same group (<code>button1, button2, button3</code>) initially and then a new button <code>button4</code> is added on the second position,
+	 * the order will be <code>button1, button4, button2, button3</code>.
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -185,18 +188,33 @@ function(
 				 * Defines the text that appears in the tooltip of the <code>RadioButton</code>. If this is not specified, a default text is shown from the resource bundle.
 				 * @private
 				 */
-				valueStateText: { type: "string", group: "Misc", defaultValue: null, visibility: "hidden" }
+				valueStateText: { type: "string", group: "Misc", defaultValue: null, visibility: "hidden" },
 
+				/**
+				 * Determines the wrapping of the text within the <code>Radio Button</code> label.
+				 * When set to <code>false</code> (default), the label text will be truncated and an ellipsis will be added at the end. If set to <code>true</code>, the label text will wrap.
+				 * @since 1.126
+				 */
+				wrapping: {type : "boolean", group : "Appearance", defaultValue : false},
+
+				/**
+				 * Defines the type of wrapping to be used for the label text (hyphenated or normal).
+				 * @since 1.126
+				 */
+				wrappingType : {type: "sap.m.WrappingType", group : "Appearance", defaultValue : WrappingType.Normal}
 			},
 			events : {
 				/**
-				 * Event is triggered when the user makes a change on the radio button (selecting or unselecting it).
+				 * The event is triggered when the user selects or deselects the radio button.
 				 */
 				select : {
 					parameters : {
 
 						/**
-						 * Checks whether the RadioButton is active or not.
+						 * Indicates whether the RadioButton is selected.
+						 *
+						 * <b>Note:</b> A single RadioButton cannot be deselected by user interaction.
+						 * Deselection only occurs when another RadioButton in the same group receives a selection.
 						 */
 						selected : {type : "boolean"}
 					}
@@ -453,7 +471,7 @@ function(
 	 * @returns {sap.ui.core.AccessibilityInfo} The <code>sap.m.RadioButton</code> accessibility information
 	 */
 	RadioButton.prototype.getAccessibilityInfo = function() {
-		var oBundle = Core.getLibraryResourceBundle("sap.m");
+		var oBundle = Library.getResourceBundleFor("sap.m");
 		return {
 			role: "radio",
 			type: oBundle.getText("ACC_CTR_TYPE_RADIO"),
@@ -478,13 +496,21 @@ function(
 	 * @private
 	 */
 	RadioButton.prototype._getNextFocusItem = function(sNavigation) {
-		var aVisibleBtnsGroup = this._groupNames[this.getGroupName()].filter(function (oRB) {
+		const aVisibleBtnsGroup = this._groupNames[this.getGroupName()].filter(function (oRB) {
 			return (oRB.getDomRef() && oRB.getEnabled());
 		});
 
-		var iButtonIndex = aVisibleBtnsGroup.indexOf(this),
-			iIndex = iButtonIndex,
-			iVisibleBtnsLength = aVisibleBtnsGroup.length;
+		const sBtnsDomSelector = aVisibleBtnsGroup.map((oRB) => {
+			return `#${oRB.getDomRef().getAttribute("id")}`;
+		}).join(", ");
+
+		const aBtnsInDomOrder = Array.from(document.querySelectorAll(sBtnsDomSelector)).map((oBtnDom) => {
+			return Element.getElementById(oBtnDom.id);
+		});
+
+		const iButtonIndex = aBtnsInDomOrder.indexOf(this);
+		const iVisibleBtnsLength = aBtnsInDomOrder.length;
+		let iIndex = iButtonIndex;
 
 		switch (sNavigation) {
 			case KH_NAVIGATION.NEXT:
@@ -501,7 +527,7 @@ function(
 				break;
 		}
 
-		return aVisibleBtnsGroup[iIndex] || this;
+		return aBtnsInDomOrder[iIndex] || this;
 	};
 
 	// #############################################################################
@@ -567,7 +593,9 @@ function(
 		oLabel.setText(sText)
 			.setWidth(!bUseEntireWidth ? this.getWidth() : "auto")
 			.setTextDirection(this.getTextDirection())
-			.setTextAlign(this.getTextAlign());
+			.setTextAlign(this.getTextAlign())
+			.setWrappingType(this.getWrappingType())
+			.setWrapping(this.getWrapping());
 	};
 
 	/**
@@ -635,7 +663,7 @@ function(
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	RadioButton.prototype._getToolbarInteractive = function () {
 		return true;

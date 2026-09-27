@@ -1,9 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/core/Element",
 	"sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor",
 	"sap/ui/integration/designtime/baseEditor/util/isValidBindingString",
 	"sap/ui/core/Fragment",
@@ -15,7 +16,8 @@ sap.ui.define([
 	"sap/base/util/isEmptyObject",
 	"sap/base/util/restricted/_omit",
 	"sap/ui/core/IconPool"
-], function (
+], function(
+	Element,
 	BasePropertyEditor,
 	isValidBindingString,
 	Fragment,
@@ -40,10 +42,9 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.cardEditor.propertyEditor.iconEditor.IconEditor
 	 * @author SAP SE
 	 * @since 1.81
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
-	 * @experimental 1.81
 	 * @ui5-restricted
 	 */
 	var IconEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.cardEditor.propertyEditor.iconEditor.IconEditor", {
@@ -51,7 +52,7 @@ sap.ui.define([
 			library: "sap.ui.integration"
 		},
 		xmlFragment: "sap.ui.integration.designtime.cardEditor.propertyEditor.iconEditor.IconEditor",
-		renderer: BasePropertyEditor.getMetadata().getRenderer().render
+		renderer: BasePropertyEditor.getMetadata().getRenderer()
 	});
 
 	IconEditor.configMetadata = Object.assign(
@@ -400,7 +401,7 @@ sap.ui.define([
 	 * @private
 	 */
 	IconEditor.prototype._handleColorPickerChange = function (oEvent) {
-		var oInput = sap.ui.getCore().byId(this._inputId);
+		var oInput = Element.getElementById(this._inputId);
 		oInput.setValue(oEvent.getParameter("hex"));
 		oInput.setValueState("None");
 		this._inputId = "";

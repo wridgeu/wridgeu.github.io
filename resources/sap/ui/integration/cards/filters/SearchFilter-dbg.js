@@ -1,14 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseFilter",
-	"sap/m/SearchField"
+	"sap/m/SearchField",
+	"sap/base/util/merge"
 ], function (
 	BaseFilter,
-	SearchField
+	SearchField,
+	merge
 ) {
 	"use strict";
 
@@ -23,7 +25,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.filters.BaseFilter
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -67,6 +69,24 @@ sap.ui.define([
 		return {
 			value: this._escapeDoubleQuotes(this._getSearchField().getValue())
 		};
+	};
+
+	/**
+	 * @returns {object} Filter configuration with static items
+	 */
+	SearchFilter.prototype.getStaticConfiguration = function () {
+		const oStaticConfiguration = merge({}, this.getParsedConfiguration());
+
+		oStaticConfiguration.value = this.getValueForModel().value;
+
+		return oStaticConfiguration;
+	};
+
+	/**
+	 * @override
+	 */
+	SearchFilter.prototype.writeValueToConfiguration = function (oConfiguration) {
+		oConfiguration.value = this.getValueForModel().value;
 	};
 
 	SearchFilter.prototype._getSearchField = function () {

@@ -1,19 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
  * IMPORTANT: This is a private module, its API must not be used and is subject to change.
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
  */
-/*global XMLHttpRequest, document, location, window */
-sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
-], function(Log, URI, now) {
-
+sap.ui.define([
+	'sap/base/Log',
+	'sap/base/util/now',
+	"sap/ui/performance/XHRInterceptor"
+], function(
+	Log,
+	now,
+	XHRInterceptor
+) {
 	"use strict";
-
-	var URI = window.URI;
 
 	/**
 	 * Performance Measurement API.
@@ -88,7 +91,6 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		}
 
 		var bActive = false,
-			fnXHR = XMLHttpRequest,
 			aRestrictedCategories = null,
 			aAverageMethods = [],
 			aOriginalMethods = [],
@@ -135,7 +137,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 				return;
 			}
 			bActive = bOn;
-			if (bActive) {
+			if (bActive && !XHRInterceptor.isRegistered("MEASUREMENT", "open")) {
 
 				//activate method implementations once
 				for (var sName in mMethods) {
@@ -146,25 +148,14 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 				fnStart = this.start;
 
 				// wrap and instrument XHR
-				/* eslint-disable-next-line no-global-assign */
-				XMLHttpRequest = function() {
-					var oXHR = new fnXHR(),
-						fnOpen = oXHR.open,
-						sMeasureId;
+				XHRInterceptor.register("MEASUREMENT", "open", function (sMethod, sUrl, bAsync) {
+					const sMeasureId = new URL(sUrl, document.baseURI).href;
+					fnStart(sMeasureId, "Request for " + sMeasureId, "xmlhttprequest");
+					this.addEventListener("loadend", fnEnd.bind(null, sMeasureId));
 
-					oXHR.open = function() {
-						sMeasureId = new URI(arguments[1], new URI(document.baseURI).search("")).href();
-						fnStart(sMeasureId, "Request for " + sMeasureId, "xmlhttprequest");
-						oXHR.addEventListener("loadend", fnEnd.bind(null, sMeasureId));
-
-						fnOpen.apply(this, arguments);
-					};
-
-					return oXHR;
-				};
-			} else {
-				/* eslint-disable-next-line no-global-assign */
-				XMLHttpRequest = fnXHR;
+				});
+			} else if (XHRInterceptor.isRegistered("MEASUREMENT", "open")) {
+				XHRInterceptor.unregister("MEASUREMENT", "open");
 			}
 
 			return bActive;
@@ -198,8 +189,8 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 
 			// create timeline entries if available
 			/*eslint-disable no-console */
-			if (Log.getLevel("sap.ui.Performance") >= 4 && window.console && console.time) {
-				console.time(sInfo + " - " + sId);
+			if (Log.getLevel("sap.ui.Performance") >= 4) {
+				console?.time(sInfo + " - " + sId);
 			}
 			/*eslint-enable no-console */
 			Log.info("Performance measurement start: " + sId + " on " + iTime);
@@ -328,8 +319,8 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 			if (oMeasurement) {
 				// end timeline entry
 				/*eslint-disable no-console */
-				if (Log.getLevel("sap.ui.Performance") >= 4 && window.console && console.timeEnd) {
-					console.timeEnd(oMeasurement.info + " - " + sId);
+				if (Log.getLevel("sap.ui.Performance") >= 4) {
+					console?.timeEnd(oMeasurement.info + " - " + sId);
 				}
 				/*eslint-enable no-console */
 				return this.getMeasurement(sId);

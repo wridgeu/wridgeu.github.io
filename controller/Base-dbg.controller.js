@@ -1,6 +1,4 @@
-"use strict";
-
-sap.ui.define(["sap/ui/core/Core", "sap/ui/core/mvc/Controller", "sap/ui/core/routing/History", "sap/ui/core/UIComponent", "../classes/VersionDialog"], function (Core, Controller, History, UIComponent, __VersionDialog) {
+sap.ui.define(["sap/ui/core/mvc/Controller", "sap/ui/core/routing/History", "sap/ui/core/Theming", "sap/ui/core/UIComponent", "../classes/VersionDialog"], function (Controller, History, Theming, UIComponent, __VersionDialog) {
   "use strict";
 
   function _interopRequireDefault(obj) {
@@ -16,19 +14,35 @@ sap.ui.define(["sap/ui/core/Core", "sap/ui/core/mvc/Controller", "sap/ui/core/ro
       this._sLightTheme = "sap_horizon";
       this._sDarkTheme = "sap_horizon_dark";
     },
+    /**
+     * @returns {void}
+     */
     toggleTheme: function _toggleTheme() {
-      if (Core.getConfiguration().getTheme() === this._sLightTheme) {
-        Core.applyTheme(this._sDarkTheme);
+      if (Theming.getTheme() === this._sLightTheme) {
+        Theming.setTheme(this._sDarkTheme);
       } else {
-        Core.applyTheme(this._sLightTheme);
+        Theming.setTheme(this._sLightTheme);
       }
     },
+    /**
+     * @param  {string} psTarget Target
+     * @param  {object} pmParameters Parameters
+     * @param  {boolean} pbReplace Replace routing hash?
+     * @returns {void}
+     */
     navTo: function _navTo(psTarget, pmParameters, targetInfo, pbReplace) {
       this.getRouter().navTo(psTarget, pmParameters, targetInfo, pbReplace);
     },
+    /**
+     * @returns {sap.ui.core.routing.Router} UIComponent router via context
+     */
     getRouter: function _getRouter() {
       return UIComponent.getRouterFor(this);
     },
+    /**
+     * @param {typeof sap.ui.core.mvc.View} view
+     * @returns {Promise<void>}
+     */
     openVersionDialog: function _openVersionDialog(view) {
       try {
         return Promise.resolve(new VersionDialog(view).open()).then(function () {});
@@ -36,6 +50,10 @@ sap.ui.define(["sap/ui/core/Core", "sap/ui/core/mvc/Controller", "sap/ui/core/ro
         return Promise.reject(e);
       }
     },
+    /**
+     * Event-handler for backwards navigation
+     * @returns {void}
+     */
     onNavBack: function _onNavBack() {
       const sPreviousHash = History.getInstance().getPreviousHash();
       if (sPreviousHash !== undefined) {

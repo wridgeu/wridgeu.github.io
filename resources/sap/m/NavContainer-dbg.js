@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,17 +9,20 @@ sap.ui.define([
 	'./library',
 	"sap/ui/core/Configuration",
 	'sap/ui/core/Control',
-	"sap/ui/core/Core",
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Element",
 	'sap/ui/core/RenderManager',
 	'./NavContainerRenderer',
 	"sap/ui/thirdparty/jquery",
 	"sap/base/Log",
-	"sap/ui/dom/jquery/Focusable" // jQuery Plugin "firstFocusableDomRef"
+	// jQuery Plugin "firstFocusableDomRef"
+	"sap/ui/dom/jquery/Focusable"
 ], function(
 	library,
 	Configuration,
 	Control,
-	Core,
+	ControlBehavior,
+	Element,
 	RenderManager,
 	NavContainerRenderer,
 	jQuery,
@@ -45,7 +48,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -324,7 +327,7 @@ sap.ui.define([
 	};
 
 	var fnGetDelay = function (iDelay) {
-		var sAnimationMode = Configuration.getAnimationMode(),
+		var sAnimationMode = ControlBehavior.getAnimationMode(),
 			bUseAnimations = sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal;
 
 		return bUseAnimations ? iDelay : 0;
@@ -454,7 +457,7 @@ sap.ui.define([
 	NavContainer.prototype._getActualInitialPage = function () {
 		var pageId = this.getInitialPage();
 		if (pageId) {
-			var page = sap.ui.getCore().byId(pageId);
+			var page = Element.getElementById(pageId);
 			if (page) {
 				return page;
 			} else {
@@ -653,8 +656,6 @@ sap.ui.define([
 		this._iTransitionsCompleted++;
 		this._bNavigating = false;
 
-
-		this._afterNavigation(oNavInfo, oData, oBackData);
 		// TODO: destroy HTML? Remember to destroy ALL HTML of several pages when backToTop has been called
 
 		Log.info(this + ": _afterTransitionCallback called, to: " + oNavInfo.toId);
@@ -663,6 +664,8 @@ sap.ui.define([
 			Log.warning(this.toString() + ": target page '" + oNavInfo.toId + "' still has CSS class 'sapMNavItemHidden' after transition. This should not be the case, please check the preceding log statements.");
 			oNavInfo.to.removeStyleClass("sapMNavItemHidden");
 		}
+
+		this._afterNavigation(oNavInfo, oData, oBackData);
 	};
 
 	NavContainer.prototype.enhancePagesAccessibility = function () {
@@ -899,7 +902,7 @@ sap.ui.define([
 				if (!(oToPageDomRef = oToPage.getDomRef()) || oToPageDomRef.parentNode != this.getDomRef() || RenderManager.isPreservedContent(oToPageDomRef)) {
 					oToPage.addStyleClass("sapMNavItemRendering");
 					Log.debug("Rendering 'to' page '" + oToPage.toString() + "' for 'to' navigation");
-					var rm = sap.ui.getCore().createRenderManager();
+					var rm = new RenderManager().getInterface();
 					rm.render(oToPage, this.getDomRef());
 					rm.destroy();
 					oToPage.addStyleClass("sapMNavItemHidden").removeStyleClass("sapMNavItemRendering");
@@ -1068,7 +1071,7 @@ sap.ui.define([
 					Log.error(this.toString() + ": Cannot navigate backToPage('" + sRequestedPageId + "') because target page was not found among the previous pages.");
 					return this;
 				}
-				oToPage = sap.ui.getCore().byId(info.id);
+				oToPage = Element.getElementById(info.id);
 				if (!oToPage) {
 					Log.error(this.toString() + ": Cannot navigate backToPage('" + sRequestedPageId + "') because target page does not exist anymore.");
 					return this;
@@ -1169,7 +1172,7 @@ sap.ui.define([
 				if (!(oToPageDomRef = oToPage.getDomRef()) || oToPageDomRef.parentNode != this.getDomRef() || RenderManager.isPreservedContent(oToPageDomRef)) {
 					oToPage.addStyleClass("sapMNavItemRendering");
 					Log.debug("Rendering 'to' page '" + oToPage.toString() + "' for back navigation");
-					var rm = sap.ui.getCore().createRenderManager();
+					var rm = new RenderManager().getInterface();
 					var childPos = this.$().children().index(oFromPage.getDomRef());
 					rm.renderControl(oToPage);
 					rm.flush(this.getDomRef(), false, childPos);
@@ -1783,7 +1786,7 @@ sap.ui.define([
 	/**
 	 * Removes a page.
 	 *
-	 * @param {int | string | sap.ui.core.Control}
+	 * @param {int | sap.ui.core.ID | sap.ui.core.Control}
 	 *            vPage the position or ID of the <code>Control</code> that should be removed
 	 *            or that <code>Control</code> itself;
 	 *            if <code>vPage</code> is invalid, a negative value or a value greater or equal than the current size
@@ -1797,7 +1800,7 @@ sap.ui.define([
 		if (typeof (vPage) == "number") {
 			oPage = this.getPages()[vPage];
 		} else if (typeof (vPage) == "string") {
-			oPage = sap.ui.getCore().byId(vPage);
+			oPage = Element.getElementById(vPage);
 		} else {
 			oPage = vPage;
 		}
@@ -1905,7 +1908,7 @@ sap.ui.define([
 	 * Otherwise, registers the 'onAfterRendering' delegate which shows the placeholder.
 	 *
 	 * @param {object} [mSettings] Object containing the placeholder instance.
-	 *                             Can be omitted if a placeholder instance is already created by <code>sap.ui.core.routing.async.Target</code>.
+	 *                             Can be omitted if a placeholder instance is already created by <code>sap.ui.core.routing.Target</code>.
 	 * @param {object} [mSettings.placeholder] The placeholder instance
 	 * @param {sap.ui.core.Placeholder} mSettings.placeholder The placeholder instance
 	 * @return {Promise} Promise that resolves with the placeholder

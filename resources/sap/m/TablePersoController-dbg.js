@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,13 +9,15 @@ sap.ui.define([
 	'./library',
 	'./TablePersoDialog',
 	'sap/ui/base/ManagedObject',
+	"sap/ui/base/ManagedObjectMetadata",
 	'sap/ui/base/ManagedObjectRegistry',
+	"sap/ui/core/Element",
 	"sap/ui/core/syncStyleClass",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Configuration"
 ],
-	function(library, TablePersoDialog, ManagedObject, ManagedObjectRegistry, syncStyleClass, Log, jQuery, Configuration) {
+	function(library, TablePersoDialog, ManagedObject, ManagedObjectMetadata, ManagedObjectRegistry, Element, syncStyleClass, Log, jQuery, Configuration) {
 	"use strict";
 
 	// shortcut for sap.m.ResetAllMode
@@ -40,7 +42,7 @@ sap.ui.define([
 	 * @class Table Personalization Controller
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @alias sap.m.TablePersoController
 	 */
 	var TablePersoController = ManagedObject.extend("sap.m.TablePersoController", /** @lends sap.m.TablePersoController.prototype */
@@ -361,7 +363,7 @@ sap.ui.define([
 						aColumnInfo.forEach(function(oColumnInfo){
 							var sGroup = null;
 							if (this.getPersoService().getGroup) {
-								var oTable = sap.ui.getCore().byId(oTablePersoDialog.getPersoDialogFor());
+								var oTable = Element.getElementById(oTablePersoDialog.getPersoDialogFor());
 								var oColumn = this._mTablePersMap[oTable][oColumnInfo.id];
 								sGroup = this.getPersoService().getGroup(oColumn);
 								oColumnInfo.group = sGroup;
@@ -431,13 +433,14 @@ sap.ui.define([
 		// or if any of the column ids is not static
 		if (mPersoMap && this._oPersonalizations) {
 			var bDoSaveMigration = false;
+			var bColumnStateChanged = false;
 			// Set order and visibility
 			for ( var c = 0, cl = this._oPersonalizations.aColumns.length; c < cl; c++) {
 				var oNewSetting = this._oPersonalizations.aColumns[c];
 				var oTableColumn = mPersoMap[oNewSetting.id];
 				if (!oTableColumn) {
 					//Fallback for deprecated personalization procedure
-					oTableColumn = sap.ui.getCore().byId(oNewSetting.id);
+					oTableColumn = Element.getElementById(oNewSetting.id);
 					if (oTableColumn) {
 						// migrate old persistence id which still contain generated column ids, example: __xmlview0--idColor
 						Log.info("Migrating personalization persistence id of column " + oNewSetting.id );
@@ -447,8 +450,14 @@ sap.ui.define([
 				}
 
 				if (oTableColumn) {
-					oTableColumn.setVisible(oNewSetting.visible);
-					oTableColumn.setOrder(oNewSetting.order);
+					// Only flag a change if the column state actually differs.
+					// Re-applying identical values is a no-op, but the invalidate below must not run otherwise
+					if (oTableColumn.getVisible() !== !!oNewSetting.visible || oTableColumn.getOrder() !== +oNewSetting.order) {
+						bColumnStateChanged = true;
+
+						oTableColumn.setVisible(oNewSetting.visible);
+						oTableColumn.setOrder(oNewSetting.order);
+					}
 				} else {
 					Log.warning("Personalization could not be applied to column " + oNewSetting.id + " - not found!");
 				}
@@ -459,10 +468,27 @@ sap.ui.define([
 				this.savePersonalizations();
 			}
 
-			// Force re-rendering of Table for column reorder
-			// SUGGESTED IMPROVEMENT: this is probably obsolete by now: changing one of
-			// the table column's visibility or order should suffice to trigger table's rerendering
-			oTable.invalidate();
+			/*
+			 * Force re-rendering of Table for column reorder
+			 * Do not invalidate unconditionally as this would cause infinite invalidate/rerendering loops:
+			 *
+			 * Table.onBeforeRendering
+			 *  └─ delegate → applyPersonalizations(oTable)
+			 *  └─ persoService.getPersData()              (might be actually async)
+			 *      └─ .done(oPersData) ──────────────┐  ← runs on a later microtask
+			 *                                        │
+			 *  ── render pass finishes here ──       │
+			 *                                        ▼
+			 *                                 _adjustTable(oPersData, oTable)
+			 *                                   └─ _personalizeTable(oTable)
+			 *                                         ├─ col.setVisible / setOrder
+			 *                                         └─ oTable.invalidate()          ← schedules ANOTHER render
+			 *                                              │
+			 *                                              └──────────────► back to Table.onBeforeRendering  (∞)
+			 */
+			if (bColumnStateChanged) {
+				oTable.invalidate();
+			}
 		}
 	};
 
@@ -516,7 +542,7 @@ sap.ui.define([
 		if (oTablePersoDialog) {
 			// Need to refresh the map which contains columns and personalizations
 			// columns may have been removed or added. (CSN 0120031469 0000415411 2014)
-			oTablePersoDialog.setPersoMap(this._getPersoColumnMap(sap.ui.getCore().byId(oTablePersoDialog.getPersoDialogFor())));
+			oTablePersoDialog.setPersoMap(this._getPersoColumnMap(Element.getElementById(oTablePersoDialog.getPersoDialogFor())));
 		}
 	};
 
@@ -671,14 +697,14 @@ sap.ui.define([
 	 * @private
 	 */
 	TablePersoController.prototype._callFunctionForAllTables = function(fnToCall) {
-		var oTable = sap.ui.getCore().byId(this.getAssociation("table"));
+		var oTable = Element.getElementById(this.getAssociation("table"));
 		if (oTable) {
 			fnToCall.call(this, oTable);
 		}
 		var aTables = this.getAssociation("tables");
 		if (aTables) {
 			for ( var i = 0, iLength = this.getAssociation("tables").length; i < iLength; i++) {
-				oTable = sap.ui.getCore().byId(this.getAssociation("tables")[i]);
+				oTable = Element.getElementById(this.getAssociation("tables")[i]);
 				fnToCall.call(this, oTable);
 			}
 		}
@@ -694,7 +720,7 @@ sap.ui.define([
 	TablePersoController.prototype._isStatic = function (sId) {
 		// SUGGESTED IMPROVEMENT: make this an inline function of '_getPersoColumnMap'
 		// it is only used there
-		var sUidPrefix = Configuration.getUIDPrefix();
+		var sUidPrefix = ManagedObjectMetadata.getUIDPrefix();
 		var rGeneratedPrefix = new RegExp("^" + sUidPrefix);
 		return !rGeneratedPrefix.test(sId);
 	};

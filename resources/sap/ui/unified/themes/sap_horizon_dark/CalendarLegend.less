@@ -7,22 +7,66 @@
 	border-radius: 0.5rem;
 }
 
+.sapUiCalLegDayTypeNonWorking .sapUiUnifiedLegendSquare .sapUiUnifiedLegendSquareColor,
+.sapUiUnifiedLegendNonWorkingDay .sapUiUnifiedLegendSquare .sapUiUnifiedLegendSquareColor {
+	background: var(--sapLegend_NonWorkingBackground);
+}
+
+.sapUiUnifiedLegendSelected .sapUiUnifiedLegendSquare .sapUiUnifiedLegendSquareColor {
+	background: none;
+	border: 0.0625rem solid var(--sapList_SelectionBorderColor);
+
+	&::after {
+		content: '';
+		display: block;
+		width: 0.25rem;
+		height: 0.25rem;
+		background: var(--sapContent_Selected_TextColor);
+		border-radius: 50%;
+		position: absolute;
+		inset-block-start: 0.75rem;
+		inset-inline-start: 0.75rem;
+	}
+}
+
 .sapUiUnifiedLegendItem {
 	position: relative;
 
 	&:focus {
 		outline: none;
+
 		&::after {
-			content: "";
+			content: '';
 			position: absolute;
 			box-sizing: border-box;
-			left: 0.0625rem;
-			top: 0.0625rem;
-			right: 0.0625rem;
-			bottom: 0.0625rem;
-			border: @sapContent_FocusWidth @sapContent_FocusStyle @sapUiContentFocusColor;
+			inset: 0.125rem;
+			border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
 			border-radius: 0.25rem;
 			pointer-events: none;
 		}
 	}
+}
+
+.sapUiSizeCompact .sapUiUnifiedLegendItem,
+.sapUiSizeCompact.sapUiUnifiedLegendItem {
+	position: relative;
+
+	&:focus {
+		outline: none;
+
+		&::after {
+			content: '';
+			position: absolute;
+			box-sizing: border-box;
+			inset: 0;
+			border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+			border-radius: 0.25rem;
+			pointer-events: none;
+		}
+	}
+}
+
+.sapUiSizeCompact .sapUiUnifiedLegendSelected .sapUiUnifiedLegendSquare .sapUiUnifiedLegendSquareColor::after {
+	inset-block-start: 0.625rem;
+	inset-inline-start: 0.625rem;
 }

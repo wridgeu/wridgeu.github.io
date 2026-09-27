@@ -1,42 +1,52 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 sap.ui.define([
 	"../library",
 	"sap/m/library",
-	"sap/ui/core/Core",
+	"sap/ui/core/library",
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
 	"sap/ui/integration/cards/actions/CardActions",
 	"sap/ui/integration/util/BindingHelper",
+	"sap/ui/integration/util/BindingResolver",
+	"sap/ui/model/json/JSONModel",
 	"sap/m/Button",
-	"sap/ui/integration/controls/LinkWithIcon",
+	"sap/m/Link",
 	"sap/m/OverflowToolbarButton",
 	"sap/m/OverflowToolbar",
 	"sap/m/OverflowToolbarLayoutData",
-	"sap/m/ToolbarSpacer"
+	"sap/m/ToolbarSpacer",
+	"sap/m/Label"
 ], function (
 	library,
 	mLibrary,
-	Core,
+	coreLibrary,
 	Control,
+	Element,
 	CardActions,
 	BindingHelper,
+	BindingResolver,
+	JSONModel,
 	Button,
-	LinkWithIcon,
+	Link,
 	OverflowToolbarButton,
 	OverflowToolbar,
 	OverflowToolbarLayoutData,
-	ToolbarSpacer
+	ToolbarSpacer,
+	Label
 ) {
 	"use strict";
 
-	var ToolbarStyle = mLibrary.ToolbarStyle;
-	var ToolbarDesign = mLibrary.ToolbarDesign;
+	const ToolbarStyle = mLibrary.ToolbarStyle;
+	const ToolbarDesign = mLibrary.ToolbarDesign;
 
-	var ActionArea = library.CardActionArea;
+	const AriaHasPopup = coreLibrary.aria.HasPopup;
+
+	const CardActionType = library.CardActionType;
 
 	/**
 	 * Constructor for a new ActionsStrip.
@@ -49,7 +59,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -63,12 +73,19 @@ sap.ui.define([
 				disableItemsInitially: {
 					type: "boolean",
 					defaultValue: false
+				},
+				configuration: {
+					type: "object"
+				},
+				cardActions: {
+					type: "object"
 				}
 			},
 			aggregations: {
 				/**
 				 * The toolbar.
 				 * @private
+				 * @ui5-restricted sap.ui.integration.controls.ActionsStrip
 				 */
 				_toolbar: {
 					type: "sap.m.OverflowToolbar",
@@ -99,6 +116,33 @@ sap.ui.define([
 		}
 	});
 
+	ActionsStrip.prototype.onDataChanged = function () {
+		if (this.getConfiguration()?.item) {
+			this._updateToolbar(this._createItemsFromTemplate(this.getBindingContext().getProperty(this.getConfiguration().item?.path)));
+		}
+	};
+
+	/**
+	 * Gets the first focusable item in the actions strip which is visible and enabled.
+	 * @returns {sap.m.Button|sap.m.Link} The first focusable item in the actions strip.
+	 */
+	ActionsStrip.prototype.getFirstFocusableItem = function () {
+		const oToolbar = this._getToolbar();
+
+		// @todo should return the overflow button if all items are in the overflow?
+		return oToolbar.getContent().find((oItem) => {
+			if (!(oItem.isA("sap.m.Button") || oItem.isA("sap.m.Link"))) {
+				return false;
+			}
+
+			if (!(oItem.getVisible() && oItem.getEnabled())) {
+				return false;
+			}
+
+			return true;
+		});
+	};
+
 	ActionsStrip.prototype._getToolbar = function () {
 		var oToolbar = this.getAggregation("_toolbar");
 		if (!oToolbar) {
@@ -112,77 +156,111 @@ sap.ui.define([
 		return oToolbar;
 	};
 
-	ActionsStrip.prototype._initButtons = function (aButtons) {
-		if (!aButtons || !aButtons.length) {
-			return null;
+	ActionsStrip.prototype._updateToolbar = function (aItemsConfigs) {
+		if (!aItemsConfigs || !aItemsConfigs.length) {
+			return;
 		}
 
-		var oToolbar = this._getToolbar(),
-			oCard = Core.byId(this.getCard()),
-			oActions = new CardActions({
-				card: oCard
-			}),
-			bHasSpacer = false,
-			mActionsConfig;
+		const oToolbar = this._getToolbar();
 
-		this._oActions = oActions;
+		aItemsConfigs.forEach((oItemConfig) => {
+			oToolbar.addContent(this._createItem(oItemConfig));
+		});
 
-		aButtons = BindingHelper.createBindingInfos(aButtons, oCard.getBindingNamespaces());
-
-		aButtons.forEach(function (mConfig) {
-			if (mConfig.type === "ToolbarSpacer") {
-				bHasSpacer = true;
-				oToolbar.addContent(new ToolbarSpacer());
-				return;
-			}
-
-			var aActions = mConfig.actions,
-				oOverflow = new OverflowToolbarLayoutData({
-					group: mConfig.overflowGroup,
-					priority: mConfig.overflowPriority
-				}),
-				oControl;
-
-			switch (mConfig.type) {
-				case "Link":
-					oControl = this._createLink(mConfig);
-				break;
-				case "Button":
-				default:
-					oControl = this._createButton(mConfig);
-				break;
-			}
-
-			oControl.setLayoutData(oOverflow);
-
-			mActionsConfig = {
-				area: ActionArea.ActionsStrip,
-				control: oControl,
-				actions: aActions,
-				enabledPropertyName: "enabled"
-			};
-
-			if (this.getDisableItemsInitially()) {
-				mActionsConfig.enabledPropertyValue = false;
-				oControl._mActionsConfig = mActionsConfig;
-				oControl._bIsDisabled = true;
-			}
-
-			oActions.attach(mActionsConfig);
-
-			oToolbar.addContent(oControl);
-		}.bind(this));
+		const bHasSpacer = oToolbar.getContent().find((oItem) => oItem instanceof ToolbarSpacer);
 
 		if (!bHasSpacer) {
 			oToolbar.insertContent(new ToolbarSpacer(), 0);
 		}
 	};
 
+	ActionsStrip.prototype._createItems = function (aItems) {
+		if (!aItems || !aItems.length) {
+			return null;
+		}
+
+		const oCard = Element.getElementById(this.getCard());
+
+		aItems = BindingHelper.createBindingInfos(aItems, oCard.getBindingNamespaces());
+
+		return aItems;
+	};
+
+	ActionsStrip.prototype._createItemsFromTemplate = function (aData) {
+		if (!aData || !aData.length) {
+			return null;
+		}
+
+		const oItemConfiguration = this.getConfiguration().item;
+		let sPath = oItemConfiguration.path + "/";
+
+		if (!BindingHelper.isAbsolutePath(sPath)) {
+			sPath = this.getBindingContext().getPath();
+
+			if (sPath !== "/") {
+				sPath +=  "/";
+			}
+
+			sPath += oItemConfiguration.path + "/";
+		}
+
+		const oParentData = this.getBindingContext().getProperty();
+		this.setModel(new JSONModel(oParentData), "parent");
+
+		return aData.map((oItemData, i) => {
+			return BindingResolver.resolveValue(oItemConfiguration.template, this, sPath + i);
+		});
+	};
+
+	ActionsStrip.prototype._createItem = function (oConfig) {
+		let oItem;
+
+		switch (oConfig.type) {
+			case "Label":
+				oItem = this._createLabel(oConfig);
+				break;
+			case "ToolbarSpacer":
+				return new ToolbarSpacer();
+			case "Link":
+				oItem = this._createLink(oConfig);
+				break;
+			case "Button":
+			default:
+				oItem = this._createButton(oConfig);
+		}
+
+		oItem.setLayoutData(new OverflowToolbarLayoutData({
+			group: oConfig.overflowGroup,
+			priority: oConfig.overflowPriority
+		}));
+
+		const oActionsConfig = {
+			control: oItem,
+			actions: oConfig.actions,
+			enabledPropertyName: "enabled"
+		};
+
+		if (this.getDisableItemsInitially()) {
+			oActionsConfig.enabledPropertyValue = false;
+			oItem._bIsDisabled = true;
+		}
+
+		// Store config for later use by disableItems/enableItems
+		oItem._mActionsConfig = oActionsConfig;
+
+		if (oConfig.type !== "Label") {
+			this.getCardActions().attach(oActionsConfig);
+		}
+
+		return oItem;
+	};
+
 	ActionsStrip.prototype.disableItems = function () {
 		var aItems = this._getToolbar().getContent();
 
+		// TODO: find better way to disable the items
 		aItems.forEach(function (oItem) {
-			if (oItem.setEnabled && !oItem._bIsDisabled) {
+			if (oItem.setEnabled && !oItem._bIsDisabled && oItem.getEnabled()) {
 				oItem.setEnabled(false);
 				oItem._bIsDisabled = true;
 			}
@@ -191,30 +269,36 @@ sap.ui.define([
 
 	ActionsStrip.prototype.enableItems = function () {
 		var aItems = this._getToolbar().getContent(),
-			oActions = this._oActions,
 			mActionsConfig;
 
-		aItems.forEach(function (oItem) {
+		// TODO: find better way to enable the items
+		aItems.forEach((oItem) => {
 			if (oItem.setEnabled && oItem._bIsDisabled) {
 				mActionsConfig = oItem._mActionsConfig;
-				if (mActionsConfig.action) {
+				if (mActionsConfig?.action) {
 					mActionsConfig.enabledPropertyValue = true;
-					oActions._setControlEnabledState(mActionsConfig);
-				} else {
-					oItem.setEnabled(true);
+					this.getCardActions()._setControlEnabledState(mActionsConfig);
+					delete oItem._bIsDisabled;
 				}
-
-				delete oItem._bIsDisabled;
 			}
 		});
 	};
 
+	ActionsStrip.prototype._createLabel = function (mConfig) {
+		var oLabel = new Label({
+			text: mConfig.text,
+			visible: mConfig.visible
+		});
+
+		return oLabel;
+	};
+
 	ActionsStrip.prototype._createLink = function (mConfig) {
-		var oLink = new LinkWithIcon({
+		var oLink = new Link({
 			icon: mConfig.icon,
 			text: mConfig.text,
 			tooltip: mConfig.tooltip,
-			ariaHasPopup: mConfig.ariaHasPopup,
+			ariaHasPopup: mConfig.ariaHasPopup ?? this._getAriaHasPopup(mConfig),
 			emphasized: mConfig.emphasized,
 			visible: mConfig.visible
 		});
@@ -223,44 +307,84 @@ sap.ui.define([
 	};
 
 	ActionsStrip.prototype._createButton = function (mConfig) {
-		var oButton;
+		const vAriaHasPopup = mConfig.ariaHasPopup ?? this._getAriaHasPopup(mConfig);
 
-		if (mConfig.icon) {
-			oButton = new OverflowToolbarButton({
-				icon: mConfig.icon,
-				text: mConfig.text || mConfig.tooltip,
-				tooltip: mConfig.tooltip || mConfig.text,
-				type: mConfig.buttonType,
-				ariaHasPopup: mConfig.ariaHasPopup,
-				visible: mConfig.visible
-			});
-
-			return oButton;
-		}
-
-		oButton = new Button({
+		const mButtonSettings = {
+			icon: mConfig.icon,
 			text: mConfig.text,
 			tooltip: mConfig.tooltip,
 			type: mConfig.buttonType,
-			ariaHasPopup: mConfig.ariaHasPopup,
+			ariaHasPopup: vAriaHasPopup,
 			visible: mConfig.visible
-		});
+		};
 
-		return oButton;
+		// @todo this will not work well if text is set to binding which later resolves to an empty string
+		if (mConfig.icon && (mConfig.preferIcon || !mConfig.text)) {
+			mButtonSettings.text = mConfig.text || mConfig.tooltip;
+			mButtonSettings.tooltip = mConfig.tooltip || mConfig.text;
+
+			return new OverflowToolbarButton(mButtonSettings);
+		}
+
+		return new Button(mButtonSettings);
 	};
 
-	ActionsStrip.create = function (oCard, aButtons, bDisableItemsInitially) {
-		if (!aButtons) {
+	/**
+	 * Checks the correct value for ariaHasPopup for the given item configuration.
+	 * Note: Only checks the first action since we support only one action for now.
+	 * Note: If custom action opens a popup - the custom action developer is responsible to add the ariaHasPopup property.
+	 * @param {map} mConfig The config for the item.
+	 * @returns {sap.ui.core.aria.HasPopup|null} True if the item opens a popup. False otherwise.
+	 */
+	ActionsStrip.prototype._getAriaHasPopup = function (mConfig) {
+		const aActions = mConfig.actions;
+
+		if (aActions?.length > 0 && aActions[0].type === CardActionType.ShowCard) {
+			return AriaHasPopup.Dialog;
+		}
+
+		return null;
+	};
+
+	ActionsStrip.create = function (oConfiguration, oCard, bDisableItemsInitially) {
+		if (!oConfiguration) {
 			return null;
 		}
 
-		var oActionsStrip = new ActionsStrip({
+		const oActionsStrip = new ActionsStrip({
 			card: oCard,
+			configuration: oConfiguration,
+			cardActions: new CardActions({
+				card: oCard
+			}),
 			disableItemsInitially: bDisableItemsInitially
 		});
-		oActionsStrip._initButtons(aButtons);
+
+		if (Array.isArray(oConfiguration)) {
+			oActionsStrip._updateToolbar(oActionsStrip._createItems(oConfiguration));
+		}
 
 		return oActionsStrip;
+	};
+
+	ActionsStrip.hasVisibleTemplateItems = function (oConfiguration, oContent) {
+		const vActionsStrip = oConfiguration;
+
+		if (!Array.isArray(vActionsStrip)) {
+			//@todo fix this case
+			return false;
+		}
+
+		const vResolvedConfig = BindingResolver.resolveValue(vActionsStrip, oContent);
+
+		return vResolvedConfig.some((oItem) => !oItem.hasOwnProperty("visible") || !!oItem.visible);
+	};
+
+	ActionsStrip.prototype.hasVisibleItems = function () {
+		const oToolbar = this._getToolbar(),
+			aContent = oToolbar.getContent();
+
+		return aContent.some((oItem) => !(oItem instanceof ToolbarSpacer) && oItem.getVisible());
 	};
 
 	return ActionsStrip;

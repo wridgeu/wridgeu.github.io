@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,6 +22,7 @@ sap.ui.define(["sap/ui/core/Lib"],
 	 */
 	FeedInputRenderer.render = function (oRm, oControl) {
 		var sMyId = oControl.getId();
+		var oActionButton = oControl._getActionButtonIfValid();
 
 		oRm.openStart("div", oControl);
 		oRm.class("sapMFeedInBase");
@@ -42,9 +43,15 @@ sap.ui.define(["sap/ui/core/Lib"],
 		}
 		oRm.openStart("div", sMyId + "-container");
 		oRm.class("sapMFeedInContainer");
+		if (oActionButton) {
+			oRm.class("sapMFeedInAcitonButtonContainer");
+		}
 		oRm.openEnd();
 		var oTextArea = oControl._getTextArea();
 		oRm.renderControl(oTextArea);
+		if (oActionButton) {
+			oRm.renderControl(oActionButton.addStyleClass("sapMFeedInActionButton"));
+		}
 		oRm.renderControl(oControl._getPostButton());
 		oRm.close("div");
 		oRm.close("div");

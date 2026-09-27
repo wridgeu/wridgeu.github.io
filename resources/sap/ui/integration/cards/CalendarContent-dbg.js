@@ -1,10 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 		"./CalendarContentRenderer",
+		"sap/base/i18n/Formatting",
+		"sap/ui/core/Element",
 		"sap/ui/core/ResizeHandler",
 		"sap/ui/integration/library",
 		"sap/ui/integration/cards/BaseContent",
@@ -27,12 +29,12 @@ sap.ui.define([
 		"sap/ui/unified/DateTypeRange",
 		"sap/ui/core/date/UniversalDate",
 		"sap/ui/unified/CalendarLegendItem",
-		"sap/ui/core/Configuration",
 		"sap/ui/core/date/UI5Date",
-		"sap/ui/unified/DateRange",
-		"sap/ui/core/Core"
+		"sap/ui/unified/DateRange"
 ],
 	function (CalendarContentRenderer,
+		Formatting,
+		Element,
 		ResizeHandler,
 		library,
 		BaseContent,
@@ -55,14 +57,10 @@ sap.ui.define([
 		DateTypeRange,
 		UniversalDate,
 		CalendarLegendItem,
-		Configuration,
 		UI5Date,
-		DateRange,
-		Core
+		DateRange
 		) {
 		"use strict";
-
-		var ActionArea = library.CardActionArea;
 
 		/**
 		 * Constructor for a new <code>CalendarContent</code>.
@@ -79,7 +77,7 @@ sap.ui.define([
 		 * @extends sap.ui.integration.cards.BaseContent
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @private
@@ -99,7 +97,9 @@ sap.ui.define([
 					/**
 					 * Defines the text that is displayed when no {@link sap.f.CalendarAppointmentInCard CalendarAppointmentInCard} are assigned.
 					 */
-					noAppointmentsText : {type : "string", group : "Misc", defaultValue : null}
+					noAppointmentsText : {type : "string", group : "Misc", defaultValue : null},
+
+					use12HourFormat : { type : "boolean", defaultValue : false }
 				},
 				aggregations: {
 					/**
@@ -299,9 +299,6 @@ sap.ui.define([
 		CalendarContent.prototype.applyConfiguration = function () {
 			var oConfiguration = this.getParsedConfiguration();
 
-			//workaround until actions refactor
-			this.fireEvent("_actionContentReady"); // todo
-
 			if (!oConfiguration) {
 				return;
 			}
@@ -330,43 +327,53 @@ sap.ui.define([
 				this._addMaxLegendItems(oConfiguration.maxLegendItems);
 			}
 
+			if (oConfiguration.use12HourFormat) {
+				this.setUse12HourFormat(oConfiguration.use12HourFormat);
+			}
+
 			if (oConfiguration.noItemsText) {
 				this._addNoItemsText(oConfiguration.noItemsText);
 			}
 
 			if (oConfiguration.moreItems && oConfiguration.moreItems.actions) {
 				this._oActions.attach({
-					area: ActionArea.Content,
 					actions: oConfiguration.moreItems.actions,
-					control: this._getMoreButton()
+					control: this._getMoreButton(),
+					enabledPropertyName: "enabled"
 				});
+			}
+
+			if (oConfiguration.calendarWeekNumbering) {
+				this._oCalendar.setCalendarWeekNumbering(oConfiguration.calendarWeekNumbering);
 			}
 		};
 
 		CalendarContent.prototype._getStaticConfigurationLegendItems = function (aLegendItems, aLegendAppointmentItems, oConfiguration, oLegend) {
 			var aResolvedLegendItems = [];
-			aLegendItems.forEach(function (oItem, i) {
+			aLegendItems.forEach(function (oItem) {
 				var aTemplateKeys = Object.keys(oConfiguration.legendItem.template),
-					singleAssembledItem = {};
+					oSingleAssembledItem = {},
+					sBindingContextPath = oItem.getBindingContext().getPath();
 
 				aTemplateKeys.forEach(function(sKey) {
-					var oBindingInfo = BindingHelper.prependRelativePaths(oConfiguration.legendItem.template[sKey], oLegend.getBindingPath("items") + "/" + i);
+					var oBindingInfo = BindingHelper.prependRelativePaths(oConfiguration.legendItem.template[sKey], sBindingContextPath);
 
-					singleAssembledItem[sKey] = BindingResolver.resolveValue(oBindingInfo, this);
+					oSingleAssembledItem[sKey] = BindingResolver.resolveValue(oBindingInfo, this);
 				}.bind(this));
-				aResolvedLegendItems.push(singleAssembledItem);
+				aResolvedLegendItems.push(oSingleAssembledItem);
 			}.bind(this));
 
-			aLegendAppointmentItems.forEach(function (oItem, i) {
+			aLegendAppointmentItems.forEach(function (oItem) {
 				var aTemplateKeys  = Object.keys(oConfiguration.legendItem.template),
-					singleAssembledItem = {};
+					oSingleAssembledItem = {},
+					sBindingContextPath = oItem.getBindingContext().getPath();
 
 				aTemplateKeys.forEach(function(sKey) {
-					var oBindingInfo = BindingHelper.prependRelativePaths(oConfiguration.legendItem.template[sKey], oLegend.getBindingPath("items") + "/" + i);
+					var oBindingInfo = BindingHelper.prependRelativePaths(oConfiguration.legendItem.template[sKey], sBindingContextPath);
 
-					singleAssembledItem[sKey] = BindingResolver.resolveValue(oBindingInfo, this);
+					oSingleAssembledItem[sKey] = BindingResolver.resolveValue(oBindingInfo, this);
 				}.bind(this));
-				aResolvedLegendItems.push(singleAssembledItem);
+				aResolvedLegendItems.push(oSingleAssembledItem);
 			}.bind(this));
 
 			return aResolvedLegendItems;
@@ -401,9 +408,9 @@ sap.ui.define([
 					}.bind(this));
 
 					oResolvedDate = BindingResolver.resolveValue(oBindingInfo, this);
-					oResolvedDate.startDate = new Date(oResolvedDate.startDate).toISOString();
+					oResolvedDate.startDate = this.formatDate(oResolvedDate.startDate).toISOString();
 					if (oResolvedDate.endDate) {
-						oResolvedDate.endDate = new Date(oResolvedDate.endDate).toISOString();
+						oResolvedDate.endDate = this.formatDate(oResolvedDate.endDate).toISOString();
 					}
 
 					aResolvedSpecialDates.push(oResolvedDate);
@@ -435,9 +442,9 @@ sap.ui.define([
 
 						singleAssembledItem[sKey] = BindingResolver.resolveValue(oBindingInfo, this);
 					}.bind(this));
-					singleAssembledItem.startDate = new Date(singleAssembledItem.startDate).toISOString();
+					singleAssembledItem.startDate = this.formatDate(singleAssembledItem.startDate).toISOString();
 					if (singleAssembledItem.endDate) {
-						singleAssembledItem.endDate = new Date(singleAssembledItem.endDate).toISOString();
+						singleAssembledItem.endDate = this.formatDate(singleAssembledItem.endDate).toISOString();
 					}
 					aResolvedItems.push(singleAssembledItem);
 					if (aResolvedItems.length > oConfiguration.maxItems) {
@@ -455,12 +462,12 @@ sap.ui.define([
 		/**
 		 * @override
 		 */
-		 CalendarContent.prototype.getStaticConfiguration = function () {
+		CalendarContent.prototype.getStaticConfiguration = function () {
 			var oConfiguration = this.getParsedConfiguration(),
 				aAppointments = this.getAppointments(),
 				aSpecialDates = this._oCalendar.getSpecialDates(),
 				sLegendId = this._oCalendar.getLegend(),
-				oLegend = Core.byId(sLegendId),
+				oLegend = Element.getElementById(sLegendId),
 				aLegendItems = oLegend.getItems(),
 				aLegendAppointmentItems = oLegend.getAppointmentItems(),
 				oFocusedDate = this._oCalendar.getSelectedDates()[0] ?
@@ -696,7 +703,6 @@ sap.ui.define([
 			this._oAppointmentTemplate = new CalendarAppointmentInCard(mAppointmentSettings);
 			var oCardActions = this.getActions();
 			oCardActions.attach({
-				area: ActionArea.ContentItem,
 				actions: mItem.template.actions,
 				control: this,
 				actionControl: this._oAppointmentTemplate,
@@ -853,7 +859,10 @@ sap.ui.define([
 		 */
 		CalendarContent.prototype._getMoreButton = function () {
 			if (!this._oMoreAppsButton) {
-				this._oMoreAppsButton = new Button({ text: "More" });
+				this._oMoreAppsButton = new Button({
+					text: "More",
+					enabled: false  // Start disabled, will be enabled if actions are attached.
+				});
 			}
 			return this._oMoreAppsButton;
 		};
@@ -928,6 +937,10 @@ sap.ui.define([
 			});
 		};
 
+		CalendarContent.prototype.ontap = function (oEvent) {
+			oEvent.stopPropagation();
+		};
+
 		function _getLocaleData() {
 
 			if (!this._oLocaleData) {
@@ -943,7 +956,7 @@ sap.ui.define([
 		function _getLocale() {
 
 			if (!this._sLocale) {
-				this._sLocale = Configuration.getFormatSettings().getFormatLocale().toString();
+				this._sLocale = new Locale(Formatting.getLanguageTag()).toString();
 			}
 
 			return this._sLocale;

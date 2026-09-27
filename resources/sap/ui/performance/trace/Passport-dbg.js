@@ -1,19 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
  * IMPORTANT: This is a private module, its API must not be used and is subject to change.
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
  */
-sap.ui.define(["sap/ui/performance/XHRInterceptor", "sap/ui/thirdparty/URI"], function(XHRInterceptor, URI) {
+sap.ui.define([
+	"sap/ui/performance/FetchInterceptor",
+	"sap/ui/performance/XHRInterceptor",
+	"sap/ui/util/isCrossOriginURL"
+], function(FetchInterceptor, XHRInterceptor, isCrossOriginURL) {
 	"use strict";
 
 	var iE2eTraceLevel;
 	var sTransactionId;
 	var ROOT_ID;
-	var HOST = window.location.host;
 
 	// old methods taken over from E2eTraceLib
 	function getBytesFromString(s) {
@@ -187,12 +190,6 @@ sap.ui.define(["sap/ui/performance/XHRInterceptor", "sap/ui/thirdparty/URI"], fu
 		return sTransactionId;
 	};
 
-	function isCORSRequest(sUrl) {
-		var sHost = new URI(sUrl).host();
-		// url is relative or with same host
-		return sHost && sHost !== HOST;
-	}
-
 	/**
 	 * @param {boolean} bActive State of the Passport header creation
 	 * @private
@@ -200,14 +197,29 @@ sap.ui.define(["sap/ui/performance/XHRInterceptor", "sap/ui/thirdparty/URI"], fu
 	Passport.setActive = function(bActive) {
 		if (bActive) {
 			XHRInterceptor.register("PASSPORT_ID", "open", function() {
-				if (!isCORSRequest(arguments[1])) {
+				if (!isCrossOriginURL(arguments[1])) {
 					sTransactionId = Passport.createGUID();
 				}
 			});
 			XHRInterceptor.register("PASSPORT_HEADER", "open", function() {
-				if (!isCORSRequest(arguments[1])) {
+				if (!isCrossOriginURL(arguments[1])) {
 					// set passport with Root Context ID, Transaction ID for Trace
 					this.setRequestHeader("SAP-PASSPORT", Passport.header(iE2eTraceLevel, ROOT_ID, sTransactionId));
+				}
+			});
+			FetchInterceptor.register("PASSPORT_ID", {
+				onRequest(oRequest) {
+					if (!isCrossOriginURL(oRequest.url)) {
+						sTransactionId = Passport.createGUID();
+					}
+				}
+			});
+			FetchInterceptor.register("PASSPORT_HEADER", {
+				onRequest(oRequest) {
+					if (!isCrossOriginURL(oRequest.url)) {
+						// set passport with Root Context ID, Transaction ID for Trace
+						oRequest.headers.append("SAP-PASSPORT", Passport.header(iE2eTraceLevel, ROOT_ID, sTransactionId));
+					}
 				}
 			});
 		}

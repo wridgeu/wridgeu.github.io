@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/integration/library",
 	"sap/base/Log",
+	"sap/ui/dom/detectTextSelection",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/integration/cards/actions/CustomAction",
 	"sap/ui/integration/cards/actions/DateChangeAction",
@@ -21,6 +22,7 @@ sap.ui.define([
 ], function (
 	library,
 	Log,
+	detectTextSelection,
 	ManagedObject,
 	CustomAction,
 	DateChangeAction,
@@ -36,16 +38,7 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	function _getServiceName(vService) {
-		if (vService && typeof vService === "object") {
-			return vService.name;
-		}
-
-		return vService;
-	}
-
-	var ActionArea = library.CardActionArea,
-		CardActionType = library.CardActionType;
+	var CardActionType = library.CardActionType;
 
 	/**
 	 * Constructor for a new <code>CardActions</code>.
@@ -59,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -80,6 +73,14 @@ sap.ui.define([
 				 */
 				bindingPathResolver: {
 					type: "function"
+				},
+
+				/**
+				 * Set this function if specific parameter resolution is needed.
+				 * By default BindingResolver.resolveValue is used.
+				 */
+				parametersResolver: {
+					type: "function"
 				}
 			}
 		}
@@ -89,7 +90,6 @@ sap.ui.define([
 	 * Listens for a press event on the provided area control and triggers an action with the provided parameters from the item.
 	 * @private
 	 * @param {object} oConfig Object containing configuration for the action
-	 * @param {sap.ui.integration.CardActionArea} oConfig.area The area that describes what the action will be attached to
 	 * @param {object[]} oConfig.actions Configuration object for the actions on an item
 	 * @param {sap.ui.core.Control} oConfig.control The control that the action will be attached on
 	 * @param {sap.ui.core.Control} [oConfig.actionControl] Optional control that the action will be attached on. If supplied, <code>oConfig.control</code> will not receive the action.
@@ -99,140 +99,72 @@ sap.ui.define([
 	 * @param {string} [oConfig.eventName=press] Name of the event to attach to
 	 */
 	CardActions.prototype.attach = function (oConfig) {
-		var oControl = oConfig.control,
-			sActionArea = oConfig.area;
-
 		oConfig.actionControl = oConfig.actionControl || oConfig.control;
 		oConfig.enabledPropertyValue = oConfig.enabledPropertyValue !== undefined ? oConfig.enabledPropertyValue : true;
 		oConfig.disabledPropertyValue = oConfig.disabledPropertyValue || false;
 		oConfig.eventName = oConfig.eventName || "press";
 
-		if (!oConfig.actions) {
-			// For now firing the event here, after refactor need to think
-			// of a way to sync async navigation setters
-			this._fireActionReady(oControl, sActionArea);
+		if (!oConfig.actions || !oConfig.actions.length) {
+			// No actions defined - disable the control
+			this._setControlDisabled(oConfig);
 
 			return;
 		}
 
 		// For now we allow for only one action of type navigation.
 		var oAction = oConfig.actions[0];
-		if (oAction && oAction.type) { // todo - check if the type is valid
-			oConfig.action = oAction;
-			this._attachAction(oConfig);
 
-		} else {
-			// For now firing the event here, after refactor need to think of a way to sync async navigation setters
-			this._fireActionReady(oControl, sActionArea);
+		if (oAction) {
+			oConfig.action = oAction;
+
+			if (oAction.type) {
+				// Action has a type - attach the full action logic
+				this._attachAction(oConfig);
+			} else if (oConfig.enabledPropertyName && (oConfig.actionControl.isA("sap.m.Button") || oConfig.actionControl.isA("sap.m.Link"))) {
+				// Action has no type but we have Button/Link - handle the enabled state
+				// This applies to ActionsStrip buttons/links, not list items
+				this._setControlEnabledState(oConfig);
+			}
+		}
+	};
+
+	/**
+	 * Disables the control if the enabledPropertyName is set.
+	 * @param {object} oConfig The action configuration
+	 * @private
+	 */
+	CardActions.prototype._setControlDisabled = function (oConfig) {
+		if (!oConfig.control?.isA("sap.m.Link") && !oConfig.control?.isA("sap.m.Button")) {
+			return;
+		}
+
+		if (oConfig.enabledPropertyName) {
+			// No valid action configuration - disable the control
+			Log.warning("Button disabled: no actions defined");
+			oConfig.actionControl.setProperty(oConfig.enabledPropertyName, oConfig.disabledPropertyValue);
 		}
 	};
 
 	CardActions.prototype._attachAction = function (oConfig) {
 		var oAction = oConfig.action,
-			sActionArea = oConfig.area,
-			oAreaControl = oConfig.control,
 			sEnabledPropertyName = oConfig.enabledPropertyName,
 			bCheckEnabledState = true,
-			bSingleAction = this._isSingleAction(sActionArea),
 			bActionEnabled = true;
 
 		if (sEnabledPropertyName) {
 			bCheckEnabledState = false;
-
-			if (oAction.service && !bSingleAction) {
-				// When there is a service let it handle the "enabled" state.
-				this._setControlEnabledStateUsingService(oConfig);
-			} else {
-				// Or when there is a list item template, handle the "enabled" state with bindProperty + formatter
-				this._setControlEnabledState(oConfig);
-			}
-		}
-
-		if (oAction.service && bSingleAction) {
-			this._getSingleActionEnabledState(oAction, oAreaControl).then(function (bEnabled) {
-				if (bEnabled) {
-					this._attachEventListener(oConfig);
-				}
-
-				this._fireActionReady(oAreaControl, sActionArea);
-			}.bind(this));
-
-			return;
+			// When there is a list item template, handle the "enabled" state with bindProperty + formatter
+			this._setControlEnabledState(oConfig);
 		}
 
 		if (bCheckEnabledState) {
-			// Handle the "enabled" state when there is no service and item template with formatter.
+			// Handle the "enabled" state when there is no item template with formatter.
 			bActionEnabled = oAction.enabled !== false && oAction.enabled !== "false";
 		}
 
 		if (bActionEnabled) {
 			this._attachEventListener(oConfig);
 		}
-
-		this._fireActionReady(oAreaControl, sActionArea);
-	};
-
-	CardActions.prototype._setControlEnabledStateUsingService = function (oConfig) {
-		var oAction = oConfig.action,
-			oAreaControl = oConfig.control,
-			oActionControl = oConfig.actionControl,
-			sEnabledPropertyName = oConfig.enabledPropertyName,
-			vEnabled = oConfig.enabledPropertyValue,
-			vDisabled = oConfig.disabledPropertyValue,
-			oBindingInfo = ManagedObject.bindingParser("{path:''}");
-
-		// Async formatter to set oActionControl's property depending
-		// if the list item context is a correct navigation target (decided by the navigation service).
-		oBindingInfo.formatter = function (vValue) {
-
-			var oBindingContext = this.getBindingContext(),
-				sPath,
-				mParameters;
-
-			if (oBindingContext) {
-				sPath = oBindingContext.getPath();
-			}
-
-			mParameters = BindingResolver.resolveValue(oAction.parameters, oAreaControl, sPath);
-
-			if (vValue.__resolved) {
-				if (!vValue.__enabled || vValue.__enabled === "false") {
-					return vDisabled;
-				}
-
-				return vEnabled;
-			}
-
-			if (!vValue.__promise) {
-				vValue.__promise = true;
-
-				oAreaControl._oServiceManager.getService(_getServiceName(oAction.service))
-					.then(function (oNavigationService) {
-						if (oNavigationService) {
-							oNavigationService
-								.enabled({
-									parameters: mParameters
-								})
-								.then(function (bEnabled) {
-									vValue.__resolved = true;
-									vValue.__enabled = bEnabled;
-									oAreaControl.getModel().checkUpdate(true);
-								})
-								.catch(function () {
-									vValue.__resolved = true;
-									vValue.__enabled = false;
-								});
-						} else {
-							vValue.__resolved = true;
-							vValue.__enabled = false;
-						}
-					});
-			}
-
-			return vDisabled;
-		};
-
-		oActionControl.bindProperty(sEnabledPropertyName, oBindingInfo);
 	};
 
 	/**
@@ -271,47 +203,6 @@ sap.ui.define([
 		}
 	};
 
-	CardActions.prototype._getSingleActionEnabledState = function (oAction, oAreaControl) {
-		var oBindingContext = oAreaControl.getBindingContext(),
-			mParameters,
-			sPath;
-
-		if (oBindingContext) {
-			sPath = oBindingContext.getPath();
-		}
-
-		mParameters = BindingResolver.resolveValue(oAction.parameters, oAreaControl, sPath);
-
-		return new Promise(function (resolve) {
-			oAreaControl._oServiceManager.getService(_getServiceName(oAction.service))
-				.then(function (oNavigationService) {
-					if (oNavigationService) {
-						oNavigationService
-							.enabled({
-								parameters: mParameters
-							})
-							.then(function (bEnabled) {
-								resolve(bEnabled);
-							})
-							.catch(function () {
-								resolve(false);
-							});
-					} else {
-						resolve(false);
-					}
-				})
-				.catch(function () {
-					resolve(false);
-				});
-		});
-	};
-
-	CardActions.prototype._fireActionReady = function (oAreaControl, sActionArea) {
-		var bHeader = sActionArea === ActionArea.Header;
-		var sEventName = bHeader ? "_actionHeaderReady" : "_actionContentReady";
-		oAreaControl.fireEvent(sEventName);
-	};
-
 	CardActions.prototype._resolveBindingPath = function (oEvent) {
 		var oBindingContext = oEvent.getSource().getBindingContext(),
 			sPath;
@@ -325,48 +216,47 @@ sap.ui.define([
 		return sPath;
 	};
 
-	CardActions.prototype._handleServiceAction = function (oEvent, oAction, oAreaControl) {
-		var oSource = oEvent.getSource();
-		var sPath = this._resolveBindingPath(oEvent);
-
-		oAreaControl._oServiceManager.getService(_getServiceName(oAction.service))
-			.then(function (oService) {
-				if (oService) {
-					oService.navigate({ // only for navigation?
-						parameters: BindingResolver.resolveValue(oAction.parameters, oSource, sPath)
-					});
-				}
-			})
-			.catch(function (e) {
-				Log.error("Navigation service unavailable", e);
-			}).finally(function () {
-				this._processAction(oSource, oAction, sPath);
-			}.bind(this));
-	};
-
 	CardActions.prototype._attachEventListener = function (oConfig) {
 		var oAction = oConfig.action;
 
 		oConfig.actionControl["attach" + capitalize(oConfig.eventName)](function (oEvent) {
-			var oSource = oEvent.getSource();
+			const oSource = oEvent.getSource();
+			const oOriginalEvent = oEvent.getParameter("originalEvent");
+			const oDomRef = oConfig.actionControl.getDomRef();
 
-			if (oAction.service) {
-				this._handleServiceAction(oEvent, oAction, oConfig.control);
-			} else {
-				this._processAction(oSource, oAction, this._resolveBindingPath(oEvent));
+			if (oOriginalEvent) {
+				oOriginalEvent.stopPropagation();
+
+				if (detectTextSelection(oDomRef)) {
+					oOriginalEvent.preventDefault();
+					return;
+				}
+
+				if (oConfig.actionControl.getFocusDomRef()?.matches(":has(:focus-within)")) {
+					return;
+				}
 			}
+
+			this._processAction(oSource, oAction, this._resolveBindingPath(oEvent), oEvent);
 		}.bind(this));
 	};
 
-	CardActions.prototype._processAction = function (oSource, oAction, sPath) {
+	CardActions.prototype._processAction = function (oSource, oAction, sPath, oEvent) {
 		var oHost = this._getHostInstance(),
-			oCard = this.getCard();
+			oCard = this.getCard(),
+			mParameters;
+
+		if (this.getParametersResolver()) {
+			mParameters = this.getParametersResolver()(oAction, oSource, sPath, oEvent);
+		} else {
+			mParameters = BindingResolver.resolveValue(oAction.parameters, oSource, sPath);
+		}
 
 		CardActions.fireAction({
 			card: oCard,
 			host: oHost,
 			action: oAction,
-			parameters: BindingResolver.resolveValue(oAction.parameters, oSource, sPath),
+			parameters: mParameters,
 			source: oSource
 		});
 	};
@@ -407,8 +297,12 @@ sap.ui.define([
 			mEventParamsLegacy,
 			bActionResult = true;
 
+		if (sType === CardActionType.Submit || sType === CardActionType.Custom) {
+			mEventParams.formData = oCard.getModel("form").getData();
+		}
+
 		if (sType === CardActionType.Submit) {
-			mParameters.data = oCard.getModel("form").getData();
+			mParameters.data = mParameters.data ?? oCard.getModel("form").getData(); // deprecated since 1.129
 		}
 
 		mEventParams.parameters = mParameters;
@@ -447,17 +341,6 @@ sap.ui.define([
 		}
 
 		return true;
-	};
-
-	/**
-	 * @param {sap.ui.integration.CardActionArea} sActionArea The area that describes what the action will be attached to
-	 * @returns {boolean} If the action is configured for the header, content, or a detail of an item in the content of the card
-	 */
-	CardActions.prototype._isSingleAction = function (sActionArea) {
-		return [ActionArea.Header,
-			ActionArea.Content,
-			ActionArea.ContentItemDetail,
-			ActionArea.ActionsStrip].indexOf(sActionArea) > -1;
 	};
 
 	CardActions._createHandler = function (mConfig) {

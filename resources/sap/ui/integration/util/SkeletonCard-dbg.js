@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.widgets.Card
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -34,7 +34,8 @@ sap.ui.define([
 	var SkeletonCard = Card.extend("sap.ui.integration.util.SkeletonCard", {
 		metadata: {
 			library: "sap.ui.integration"
-		}
+		},
+		renderer: null
 	});
 
 	SkeletonCard.prototype.init = function () {

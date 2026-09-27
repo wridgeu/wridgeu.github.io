@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,10 +8,9 @@
 sap.ui.define([
 	'sap/ui/core/Element',
 	'sap/ui/core/IconPool',
-	'./library',
-	"sap/base/security/encodeXML"
+	'./library'
 ],
-	function(Element, IconPool, library, encodeXML) {
+	function(Element, IconPool, library) {
 	"use strict";
 
 
@@ -27,13 +26,13 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.22.0
 	 * @alias sap.ui.unified.ShellHeadUserItem
-	 * @deprecated Since version 1.44.0.
+	 * @deprecated As of version 1.44.0, the concept has been discarded.
 	 */
 	var ShellHeadUserItem = Element.extend("sap.ui.unified.ShellHeadUserItem", /** @lends sap.ui.unified.ShellHeadUserItem.prototype */ { metadata : {
 
@@ -85,33 +84,6 @@ sap.ui.define([
 
 	ShellHeadUserItem.prototype.onsapspace = ShellHeadUserItem.prototype.onclick;
 	ShellHeadUserItem.prototype.onsapenter = ShellHeadUserItem.prototype.onclick;
-
-	ShellHeadUserItem.prototype.setImage = function(sImage){
-		this.setProperty("image", sImage, true);
-		if (this.getDomRef()) {
-			this._refreshImage();
-		}
-		return this;
-	};
-
-	ShellHeadUserItem.prototype._refreshImage = function(){
-		var $Ico = this.$("img");
-		var sImage = this.getImage();
-		if (!sImage) {
-			$Ico.html("").attr("style", "").css("display", "none");
-		} else if (IconPool.isIconURI(sImage)) {
-			var oIconInfo = IconPool.getIconInfo(sImage);
-			$Ico.html("").attr("style", "");
-			if (oIconInfo) {
-				$Ico.text(oIconInfo.content).attr("role", "presentation").attr("aria-label", oIconInfo.text || oIconInfo.name).css("font-family", "'" + oIconInfo.fontFamily + "'");
-			}
-		} else {
-			var $Image = this.$("img-inner");
-			if ($Image.length == 0 || $Image.attr("src") != sImage) {
-				$Ico.attr("style", "").attr("aria-label", null).html("<img role='presentation' id='" + this.getId() + "-img-inner' src='" + encodeXML(sImage) + "'>");
-			}
-		}
-	};
 
 	ShellHeadUserItem.prototype._checkAndAdaptWidth = function(bShellSearchVisible){
 		if (!this.getDomRef()) {

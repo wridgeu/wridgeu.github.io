@@ -1,3 +1,7 @@
+/**
+ * @file
+ * @deprecated as of version 1.88, together with sap.m.UploadCollection
+ */
 /* ======================================= */
 /* CSS for control sap.m/UploadCollection  */
 /* Horizon High Contrast White theme       */
@@ -16,17 +20,15 @@
 /* Text: Description (Progress) */
 .sapMLabel.sapMUCProgress {
 	font-size: @sapMFontMediumSize;
-	color: @sapUiContentLabelColor;
+	color: var(--sapContent_LabelColor);
 }
 
-/*Drag && Drop*/
-.sapMUC .sapMUCDragDropOverlay.sapMUCDropIndicator:after {
+/* Drag && Drop */
+.sapMUC .sapMUCDragDropOverlay.sapMUCDropIndicator::after {
 	background-color: transparent;
 }
 
-/* ************************************************************************************* */
-/* local fixes: should be done by used simple controls
-/* ************************************************************************************* */
+/* local fixes: should be done by used simple controls */
 .sapMUCItemIconInactive.sapUiIcon:focus,
 .sapMUCItemIcon.sapUiIcon:focus,
 .sapMUCItemImage:focus {

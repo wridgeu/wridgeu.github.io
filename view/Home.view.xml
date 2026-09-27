@@ -11,11 +11,12 @@
 							<l:BlockLayoutCell>
 								<FlexBox id="socialsGrouped" class="sapUiTinyMarginTop" justifyContent="Center">
 									<!-- core:require https://sapui5.hana.ondemand.com/sdk/#/topic/b11d853a8e784db6b2d210ef57b0f7d7.html -->
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://linkedin.com/in/dev-marco-beier', true)" src="./resources/img/svg/Logo_LinkedIn.svg" alt="Linkedin Logo" width="5vw" height="5vh" lazyLoading="true" />
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://xing.com/profile/Marco_Beier8/cv', true)" src="./resources/img/svg/Logo_Xing.svg" alt="Xing Logo" width="5vw" height="5vh" lazyLoading="true" />
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu', true)" src="./resources/img/svg/Logo_Github_New.svg" alt="Github Logo" width="5vw" height="5vh" lazyLoading="true" />
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://twitter.com/Wridgeu', true)" src="./resources/img/svg/Logo_Twitter.svg" alt="Twitter Logo" width="5vw" height="5vh" lazyLoading="true" />
-									<Image class="socials setMinSeperator" press="sapMLib.URLHelper.redirect('https://people.sap.com/marcobeier', true)" src="./resources/img/svg/Logo_SAP_1.svg" alt="SAP Logo Community" width="5vw" height="5vh" lazyLoading="true" />
+									<Link class="socials setMinSeperator socials-linkedin" href="https://linkedin.com/in/dev-marco-beier" target="_blank" rel="noopener noreferrer" text="LinkedIn" tooltip="LinkedIn" />
+									<Link class="socials setMinSeperator socials-xing" href="https://xing.com/profile/Marco_Beier8/cv" target="_blank" rel="noopener noreferrer" text="Xing" tooltip="Xing" />
+									<Link class="socials setMinSeperator socials-github" href="https://github.com/wridgeu" target="_blank" rel="noopener noreferrer" text="GitHub" tooltip="GitHub" />
+									<Link class="socials setMinSeperator socials-twitter" href="https://twitter.com/Wridgeu" target="_blank" rel="noopener noreferrer" text="Twitter" tooltip="Twitter" />
+									<Link class="socials setMinSeperator socials-bluesky" href="https://bsky.app/profile/wridgeu.bsky.social" target="_blank" rel="noopener noreferrer" text="Bluesky" tooltip="Bluesky" />
+									<Link class="socials setMinSeperator socials-sap" href="https://people.sap.com/marcobeier" target="_blank" rel="noopener noreferrer" text="SAP Community" tooltip="SAP Community" />
 								</FlexBox>
 							</l:BlockLayoutCell>
 						</VBox>
@@ -38,10 +39,13 @@
 						<FlexBox direction="Column">
 							<FlexBox justifyContent="Center">
 								<Tree items="{path: 'cv>/', parameters:{arrayNames: ['nodes']}}">
+									<layoutData>
+										<FlexItemData growFactor="1" />
+									</layoutData>
 									<CustomTreeItem>
 										<Text renderWhitespace="true" text="{cv>description}" />
 										<Link href="{cv>website}" text="{cv>company}" target="_blank" />
-										<Label text="{cv>position}" />
+										<Label wrapping="true" text="{cv>position}" />
 										<FlexBox direction="Column">
 											<FlexBox>
 												<Text renderWhitespace="true" text="{cv>textTo}" />
@@ -69,9 +73,9 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell id="integrationcards-container">
 						<FlexBox wrap="Wrap" justifyContent="Center" alignItems="Center">
-							<w:Card class="integrationcard" manifest="./integrationcards/datacard-sap-manifest.json" width="250px" height="auto" />
-							<w:Card class="integrationcard" manifest="./integrationcards/datacard-tools-manifest.json" width="250px" height="auto" />
-							<w:Card class="integrationcard" manifest="./integrationcards/datacard-lang-manifest.json" width="250px" height="auto" />
+							<w:Card class="integrationcard" dataMode="Active" manifest="./integrationcards/datacard-sap-manifest.json" width="250px" height="auto" />
+							<w:Card class="integrationcard" dataMode="Active" manifest="./integrationcards/datacard-tools-manifest.json" width="250px" height="auto" />
+							<w:Card class="integrationcard" dataMode="Active" manifest="./integrationcards/datacard-lang-manifest.json" width="250px" height="auto" />
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>

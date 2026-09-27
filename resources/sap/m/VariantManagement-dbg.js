@@ -1,16 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.VariantManagement.
 sap.ui.define([
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	"sap/ui/core/ShortcutHintsMixin",
+	"sap/ui/dom/containsOrEquals",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/model/base/ManagedObjectModel",
 	"sap/ui/model/Filter",
 	"sap/ui/model/FilterOperator",
-	'sap/ui/base/ManagedObjectObserver',
+	"sap/ui/model/BindingMode",
+	"sap/ui/base/ManagedObjectObserver",
 	"sap/ui/Device",
 	"sap/ui/core/InvisibleText",
 	"sap/ui/core/Control",
@@ -40,16 +45,23 @@ sap.ui.define([
 	"sap/m/OverflowToolbar",
 	"sap/m/OverflowToolbarLayoutData",
 	"sap/m/VBox",
-	'sap/m/HBox',
+	"sap/m/HBox",
+	"sap/m/IllustratedMessage",
 	"sap/ui/events/KeyCodes",
-	'sap/base/Log',
+	"sap/base/Log",
 	"sap/ui/core/library",
+	"sap/base/util/merge",
 	"sap/m/library"
 ], function(
+	Element,
+	Library,
+	ShortcutHintsMixin,
+	containsOrEquals,
 	JSONModel,
 	ManagedObjectModel,
 	Filter,
 	FilterOperator,
+	BindingMode,
 	ManagedObjectObserver,
 	Device,
 	InvisibleText,
@@ -81,9 +93,11 @@ sap.ui.define([
 	OverflowToolbarLayoutData,
 	VBox,
 	HBox,
+	IllustratedMessage,
 	KeyCodes,
 	Log,
 	coreLibrary,
+	merge,
 	mobileLibrary
 ) {
 	"use strict";
@@ -109,6 +123,9 @@ sap.ui.define([
 	// shortcut for sap.m.ListKeyboardMode
 	var ListKeyboardMode = mobileLibrary.ListKeyboardMode;
 
+	// shortcut for sap.m.Sticky
+	var Sticky = mobileLibrary.Sticky;
+
 	// shortcut for sap.ui.core.ValueState
 	var ValueState = coreLibrary.ValueState;
 
@@ -117,6 +134,9 @@ sap.ui.define([
 
 	// shortcut for sap.ui.core.TitleLevel
 	var TitleLevel = coreLibrary.TitleLevel;
+
+	// shortcut for sap.m.IllustratedMessageSize
+	const IllustratedMessageSize = mobileLibrary.IllustratedMessageSize;
 
 	/**
 	 * Constructor for a new <code>VariantManagement</code>.
@@ -179,9 +199,9 @@ sap.ui.define([
 				},
 
 				/**
-				 *  Indicates that contexts functionality is supported.
-				 * <b>Note:</b>
-				 * This property is used internally for SAPUI5 Adaptation scenario.
+				 *  Indicates that contexts functionality is supported.<br>
+				 * <b>Note:</b> This property is used internally by the SAPUI5 flexibility layer.
+				 * @restricted sap.ui.fl, sap.ui.comp
 				 */
 				supportContexts: {
 					type: "boolean",
@@ -208,7 +228,7 @@ sap.ui.define([
 				},
 
 				/**
-				 * Controls the visibility of the 'SaveAs' button
+				 * Controls the visibility of the Save As button.
 				 */
 				showSaveAs: {
 					type: "boolean",
@@ -217,7 +237,7 @@ sap.ui.define([
 				},
 
 				/**
-				 * If set to <code>false</code> neither 'Save As' nor 'Save' buttons on the 'My Views' dialog are visible.
+				 * If set to <code>false</code>, neither the Save As nor the Save button in the My Views dialog is visible.
 				 */
 				creationAllowed: {
 					type: "boolean",
@@ -226,7 +246,7 @@ sap.ui.define([
 				},
 
 				/**
-				 * Indicates if the buttons and the complete footer in the <i>My Views</i> dialog are visible.
+				 * Indicates if the buttons and the complete footer in the My Views dialog are visible.
 				 */
 				showFooter: {
 					type: "boolean",
@@ -244,7 +264,7 @@ sap.ui.define([
 				},
 
 				/**
-				 * The title in the 'My Views' popover.
+				 * The title in the My Views popover.
 				 */
 				popoverTitle: {
 					type: "string",
@@ -296,7 +316,7 @@ sap.ui.define([
 				},
 
 				/**
-				 * Defines the Apply Automatically text for the standard variant in the <i>Manage Views</i> dialog if the application controls this behavior.
+				 * Defines the Apply Automatically text for the standard variant in the Manage Views dialog if the application controls this behavior.
 				 */
 				_displayTextForExecuteOnSelectionForStandardVariant: {
 					type: "string",
@@ -309,10 +329,10 @@ sap.ui.define([
 				 * Renders the name of the variant as a text.
 				 * The name of the variant is usually rendered as {@link sap.m.Title}
 				 * but there are use cases - related to accessibility requirements - where the
-				 * rendering should be done using {@link sap.m.Text} instead.
+				 * rendering should be done using {@link sap.m.Text} instead.<br>
 				 * <b>Note:</b>
-				 * If the name of the variant is rendered as <code>sap.m.Text</code>, all the <code>sap.m.Title</code>-
-				 * specific information (<code>headerLevel</code> and <code>titleStyle</code>) is ignored.
+				 * If the name of the variant is rendered as <code>sap.m.Text</code>, all the <code>sap.m.Title</code>
+				 * specific information like <code>level</code> and <code>titleStyle</code> is ignored.
 				 *
 				 * @since 1.118
 				 */
@@ -342,6 +362,21 @@ sap.ui.define([
 					group: "Misc",
 					defaultValue: "",
 					visibility: "hidden"
+				},
+				/**
+				 * Callback function that can be used to dynamically load variants when the <i>Manage Views</i> dialog is opened.
+				 * The provided function must return a <code>Promise</code>. The management table will be set to busy
+				 * until the returned <code>Promise</code> is resolved.
+				 * If no callback is provided, the management table's busy state will not be affected.
+				 *
+				 * @since 1.147
+				 *
+				 * @private
+	 			 * @ui5-restricted sap.ui.fl, sap.m
+				 */
+				dynamicVariantsLoadedCallback: {
+					type: "function",
+					bindable: false
 				}
 			},
 			defaultAggregation: "items",
@@ -359,7 +394,7 @@ sap.ui.define([
 			events: {
 
 				/**
-				 * This event is fired when either <i>Save As</i> is triggered from the <i>Save View</i> dialog, or <i>Save</i> from <i>My Views</i>.
+				 * This event is fired when the Save View dialog or the Save As dialog is closed with the Save button.
 				 */
 				save: {
 					parameters: {
@@ -372,7 +407,6 @@ sap.ui.define([
 
 						/**
 						 * Indicates if an existing variant is updated or if a new variant is created.
-						 * Basically 'Save' operation leads to overwrite <code>true</code>, while 'Save As' leads to overwrite <code>false</code>.
 						 */
 						overwrite: {
 							type: "boolean"
@@ -407,14 +441,16 @@ sap.ui.define([
 						},
 
 						/**
-						 * Array describing the contexts.
+						 * Array describing the contexts.<br>
+						 * <b>Note:</b> This property is used internally by the SAPUI5 flexibility layer.
+						 * @restricted sap.ui.fl, sap.ui.comp
 						 */
 						contexts: {
 							type: "object[]"
 						},
 
 						/**
-						 * Indicates the check box state for 'Create Tile'.
+						 * Indicates the check box state for 'Create Tile'.<br>
 						 * <b>Note:</b>
 						 * This event parameter is used only internally.
 						 */
@@ -441,10 +477,10 @@ sap.ui.define([
 				manage: {
 					parameters: {
 						/**
-						 * List of changed variants. Each entry contains a 'key' - the variant key and a 'name' - the new title of the variant
+						 * List of changed variants.
 						 */
 						renamed: {
-							type: "object[]"
+							type: "sap.m.VariantManagementRename[]"
 						},
 
 						/**
@@ -455,17 +491,17 @@ sap.ui.define([
 						},
 
 						/**
-						 * List of variant keys and the associated Execute on Selection indicator. Each entry contains a 'key' - the variant key and a 'exe' - flag describing the intention
+						 * List of variant keys and the associated Execute on Selection indicator.
 						 */
 						exe: {
-							type: "object[]"
+							type: "sap.m.VariantManagementExe[]"
 						},
 
 						/**
-						 * List of variant keys and the associated favorite indicator. Each entry contains a 'key' - the variant key and a 'visible' - flag describing the intention
+						 * List of variant keys and the associated favorite indicator.
 						 */
 						fav: {
-							type: "object[]"
+							type: "sap.m.VariantManagementFav[]"
 						},
 
 						/**
@@ -476,7 +512,10 @@ sap.ui.define([
 						},
 
 						/**
-						 * List of variant keys and the associated contexts array. Each entry contains a 'key' - the variant key and a 'contexts' - array describing the contexts
+						 * List of variant keys and the associated contexts array.
+						 * Each entry contains a <code>key</code> (the variant key) and a <code>contexts</code> array describing the contexts.<br>
+						 * <b>Note:</b> This property is used internally by the SAPUI5 flexibility layer.
+						 * @restricted sap.ui.fl, sap.ui.comp
 						 */
 						contexts: {
 							type: "object[]"
@@ -519,11 +558,14 @@ sap.ui.define([
 		}
 	});
 
+	const AriaHasPopup = coreLibrary.aria.HasPopup;
+
 	VariantManagement.INNER_MODEL_NAME = "$sapMInnerVariants";
 	VariantManagement.MAX_NAME_LEN = 100;
 	VariantManagement.COLUMN_FAV_IDX = 0;
 	VariantManagement.COLUMN_NAME_IDX = 1;
 	VariantManagement.COLUMN_DEFAULT_IDX = 3;
+	VariantManagement.COLUMN_ROLES_IDX = 5;
 
 	/*
 	 * Constructs and initializes the <code>VariantManagement</code> control.
@@ -531,8 +573,10 @@ sap.ui.define([
 	VariantManagement.prototype.init = function() {
 		Control.prototype.init.apply(this, arguments);
 
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = Library.getResourceBundleFor("sap.m");
 
+		// Check whether device is Macintosh
+		this.deviceIsMac = Device.os.macintosh;
 
         this._oManagedObjectModel = new ManagedObjectModel(this);
         this.setModel(this._oManagedObjectModel, "$mVariants");
@@ -575,23 +619,31 @@ sap.ui.define([
 			}
 		} else if (oChanges.type === "property") {
 
-			if (oChanges.object.isA && oChanges.object.isA("sap.m.VariantItem")) {
+			if (oChanges.object?.isA?.("sap.m.VariantItem")) {
 				oVariantItem = oChanges.object;
-				if (oVariantItem) {
-					if (this.getSelectedKey() === oVariantItem.getKey()) {
-						this.refreshTitle();
-					}
 
-					if (!this.oManagementTable || (this.oManagementTable.getItems && this.oManagementTable.getItems().length === 0)) {
-						if (oChanges.name === "title") {
-							oVariantItem._setOriginalTitle(oChanges.current);
-						} else if (oChanges.name === "favorite") {
-							oVariantItem._setOriginalFavorite(oChanges.current);
-						} else if (oChanges.name === "executeOnSelect") {
-							oVariantItem._setOriginalExecuteOnSelect(oChanges.current);
-						} else if (oChanges.name === "contexts") {
-							oVariantItem._setOriginalContexts(oChanges.current);
-						}
+				if (this.getSelectedKey() === oVariantItem.getKey()) {
+					this.refreshTitle();
+				}
+
+				if (!this.oManagementTable || (this.oManagementTable.getItems && this.oManagementTable.getItems().length === 0)) {
+					if (oChanges.name === "title") {
+						oVariantItem._setOriginalTitle(oChanges.current);
+					} else if (oChanges.name === "favorite") {
+						oVariantItem._setOriginalFavorite(oChanges.current);
+					} else if (oChanges.name === "executeOnSelect") {
+						oVariantItem._setOriginalExecuteOnSelect(oChanges.current);
+					} else if (oChanges.name === "contexts") {
+						oVariantItem._setOriginalContexts(oChanges.current);
+					}
+				} else {
+					const oRow = this.oManagementTable.getItems().find((oListItem) => {
+						const oItem = this._findVariantItem(oListItem.getBindingContext(this._sModelName));
+						return oItem.getKey() === oVariantItem.getKey();
+					});
+
+					if (oChanges.name === "contexts") {
+						this._updateContextsDependencies(oRow);
 					}
 				}
 			}
@@ -609,7 +661,7 @@ sap.ui.define([
  	 * Special handling of the rendering the apply automatically control in <i>Manage Views</i>
 	 * @returns {string} Value of the private property
 	 * @private
-	 * @restricted sap.ui.mdc, sap.ui.comp
+	 * @restricted sap.ui.fl, sap.ui.comp
  	 */
 	VariantManagement.prototype.getDisplayTextForExecuteOnSelectionForStandardVariant = function() {
 		return this.getProperty("_displayTextForExecuteOnSelectionForStandardVariant");
@@ -619,7 +671,7 @@ sap.ui.define([
 	 * @param {string} sValue to be displayed
 	 * @returns {string} the current instance
 	 * @private
-	 * @restricted sap.ui.mdc, sap.ui.comp
+	 * @restricted sap.ui.fl, sap.ui.comp
  	 */
 	VariantManagement.prototype.setDisplayTextForExecuteOnSelectionForStandardVariant = function(sValue) {
 		this.setProperty("_displayTextForExecuteOnSelectionForStandardVariant", sValue);
@@ -628,9 +680,9 @@ sap.ui.define([
 	/**
  	 * Special handling of the rendering of this control.
 	 * @param {boolean} bValue defines the intended rendering
-	 * @returns {sap.ui.m.VariantManagement} the current instance
+	 * @returns {sap.m.VariantManagement} the current instance
 	 * @private
-	 * @restricted sap.ui.mdc, sap.ui.comp
+	 * @restricted sap.ui.fl, sap.ui.comp
  	 */
 	VariantManagement.prototype.setShowAsText = function(bValue) {
 		this.setProperty("_showAsText", bValue);
@@ -642,7 +694,7 @@ sap.ui.define([
  	 * Special handling of the rendering of this control.
 	 * @returns {boolean} the current intend
 	 * @private
-	 * @restricted sap.ui.mdc, sap.ui.comp
+	 * @restricted sap.ui.fl, sap.ui.comp
  	 */
 	VariantManagement.prototype.getShowAsText = function() {
 		return this.getProperty("_showAsText");
@@ -704,7 +756,7 @@ sap.ui.define([
 			return;
 		}
 
-		this.oVariantInvisibleText = new InvisibleText();
+		this.oVariantInvisibleText = new InvisibleText(this.getId() + "-invText");
 
 		this.oVariantText = this._createVariantTextControl();
 
@@ -738,13 +790,14 @@ sap.ui.define([
 				formatter: function(bValue) {
 					return !bValue;
 				}
-			}
+			},
+			ariaHasPopup: AriaHasPopup.Dialog
 		});
 
 		this.oVariantPopoverTrigger.addAriaLabelledBy(this.oVariantInvisibleText);
 		this.oVariantPopoverTrigger.addStyleClass("sapMVarMngmtClickable");
 
-		this.oVariantLayout = new HorizontalLayout({
+		this.oVariantLayout = new HorizontalLayout(this.getId() + "-content", {
 			content: [
 				this.oVariantText, oVariantModifiedText, this.oVariantPopoverTrigger
 			]
@@ -827,7 +880,8 @@ sap.ui.define([
 	VariantManagement.prototype._createInnerModel = function() {
 		var oModel = new JSONModel({
 			showCreateTile: false,
-			isDesignMode: false
+			isDesignMode: false,
+			hasNoData: false
 		});
 		this.setModel(oModel, VariantManagement.INNER_MODEL_NAME);
 	};
@@ -845,6 +899,9 @@ sap.ui.define([
 	};
 	VariantManagement.prototype.setDesignMode = function(bValue) {
 		this._setInnerModelProperty("/isDesignMode", bValue);
+	};
+	VariantManagement.prototype.setHasNoData = function(bValue) {
+		this._setInnerModelProperty("/hasNoData", bValue);
 	};
 
 	VariantManagement.prototype._setInnerModelProperty = function(sPropertyPath, vValue) {
@@ -884,7 +941,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Retrieves for the controls {@link sap.ui.comp.SmartVariantManagement} and {@link sap.ui.fl.variants.VariantManagement} the <i>Standard</i> variant.
+	 * Retrieves for the controls {@link sap.ui.comp.smartvariants.SmartVariantManagement} and {@link sap.ui.fl.variants.VariantManagement} the <i>Standard</i> variant.
 	 * For all other scenarios the first visible variant will be returned, or <code>null</code> if there are none.
 	 * @public
 	 * @returns {(string | null)} The key of either the standard variant or the first visible variant or <code>null</code>.
@@ -902,7 +959,7 @@ sap.ui.define([
 	 * Assignes the key of the <i>Standard</i> variant.
 	 *
 	 * @private
-	 * @restricted sap.ui.mdc, sap.ui.comp
+	 * @restricted sap.ui.fl, sap.ui.comp
 	 * @param {string} sValue describing the key of the standard variant
 	 */
 	VariantManagement.prototype.setStandardVariantKey = function(sValue) {
@@ -912,7 +969,7 @@ sap.ui.define([
 	VariantManagement.prototype._getFirstVisibleVariant = function() {
 		var aItems = this._getItems();
 		for (var i = 0; i < aItems.length; i++) {
-			if (aItems[i].getVisible()) {
+			if (!this._isItemDeleted(aItems[i])) {
 				if (this.getSupportFavorites()) {
 					if (aItems[i].getFavorite()) {
 						return aItems[i].getKey();
@@ -999,7 +1056,7 @@ sap.ui.define([
 			if (nPos > 0) {
 				sId = sId.substring(0, nPos);
 			}
-			return sap.ui.getCore().byId(sId);
+			return Element.getElementById(sId);
 		}
 
 		return null;
@@ -1034,7 +1091,7 @@ sap.ui.define([
 	};
 
 	VariantManagement.prototype.onkeyup = function(oEvent) {
-		if (oEvent.which === KeyCodes.F4 || oEvent.which === KeyCodes.SPACE || oEvent.altKey === true && oEvent.which === KeyCodes.ARROW_UP || oEvent.altKey === true && oEvent.which === KeyCodes.ARROW_DOWN) {
+		if (oEvent.keyCode === KeyCodes.F4 || oEvent.keyCode === KeyCodes.SPACE || oEvent.altKey === true && oEvent.keyCode === KeyCodes.ARROW_UP || oEvent.altKey === true && oEvent.keyCode === KeyCodes.ARROW_DOWN) {
 			this._oCtrlRef = this._obtainControl(oEvent);
 			this._openVariantList();
 		}
@@ -1049,6 +1106,11 @@ sap.ui.define([
 				this.oVariantPopoverTrigger.removeStyleClass("sapMVarMngmtTriggerBtnHover");
 			}.bind(this));
 		}
+
+		// Set initial aria-expanded state after rendering
+		if (this.oVariantPopoverTrigger && this.oVariantPopoverTrigger.$().length > 0) {
+			this.oVariantPopoverTrigger.$().attr("aria-expanded", "false");
+		}
 	};
 
 	// ERROR LIST
@@ -1056,18 +1118,18 @@ sap.ui.define([
 		var oVBox;
 
 		if (!this.oErrorVariantPopOver) {
-			oVBox = new VBox({
+			oVBox = new VBox(this.getId() + "-errorContent", {
 				fitContainer: true,
 				alignItems: FlexAlignItems.Center,
 				items: [
-					new Icon({
+					new Icon(this.getId() + "-errorIcon", {
 						size: "4rem",
 						color: "lightgray",
 						src: "sap-icon://message-error"
-					}), new Title({
+					}), new Title(this.getId() + "-errorTitle", {
 						titleStyle: TitleLevel.H2,
 						text: this._oRb.getText("VARIANT_MANAGEMENT_ERROR_TEXT1")
-					}), new Text({
+					}), new Text(this.getId() + "-errorText", {
 						textAlign: TextAlign.Center,
 						text: this._oRb.getText("VARIANT_MANAGEMENT_ERROR_TEXT2")
 					})
@@ -1103,6 +1165,9 @@ sap.ui.define([
 						}.bind(this), 200);
 					}
 				}.bind(this),
+				beforeClose: function() {
+					this.oVariantPopoverTrigger?.$().attr("aria-expanded", "false");
+				}.bind(this),
 				contentHeight: "300px"
 			});
 
@@ -1120,11 +1185,36 @@ sap.ui.define([
 		this.oErrorVariantPopOver.openBy(this.oVariantLayout);
 	};
 
+	VariantManagement.prototype._createIllustratedMessages = function() {
+
+		if (!this._oNoDataIllustratedMessage || this._oNoDataIllustratedMessage.bIsDestroyed) {
+			this._oNoDataIllustratedMessage = new IllustratedMessage(this.getId() + "-noData", {
+				title: this._oRb.getText("VARIANT_MANAGEMENT_NODATA"),
+				description: this._oRb.getText("VARIANT_MANAGEMENT_NODATA_DESCR"),
+				enableVerticalResponsiveness: true,
+				illustrationSize: IllustratedMessageSize.Auto,
+				illustrationType: mobileLibrary.IllustratedMessageType.NoEntries
+			});
+		}
+		if (!this._oNoDataFoundIllustratedMessage || this._oNoDataFoundIllustratedMessage.bIsDestroyed) {
+			this._oNoDataFoundIllustratedMessage = new IllustratedMessage(this.getId() + "-noDataFound", {
+				title: this._oRb.getText("VARIANT_MANAGEMENT_NODATA_FOUND"),
+				description: this._oRb.getText("VARIANT_MANAGEMENT_NODATA_FOUND_DESCR"),
+				enableVerticalResponsiveness: true,
+				illustrationSize: IllustratedMessageSize.Auto,
+				illustrationType: mobileLibrary.IllustratedMessageType.NoSearchResults
+			});
+			this._oNoDataFoundIllustratedMessage.addStyleClass("sapMVarMngmtIllustratedMessage");
+		}
+	};
+
 	// My Views List
 	VariantManagement.prototype._createVariantList = function() {
 		if (this.oVariantPopOver) {
 			return;
 		}
+
+		this._createIllustratedMessages();
 
 		this.oVariantManageBtn = new Button(this.getId() + "-manage", {
 			text: this._oRb.getText("VARIANT_MANAGEMENT_MANAGE"),
@@ -1132,7 +1222,7 @@ sap.ui.define([
 			press: function() {
 				this._openManagementDialog();
 			}.bind(this),
-			layoutData: new OverflowToolbarLayoutData({
+			layoutData: new OverflowToolbarLayoutData(this.getId() + "-manage-layoutData", {
 				priority: OverflowToolbarPriority.Low
 			})
 		});
@@ -1161,17 +1251,21 @@ sap.ui.define([
 				}.bind(this)
 			},
 			type: ButtonType.Emphasized,
-			layoutData: new OverflowToolbarLayoutData({
+			layoutData: new OverflowToolbarLayoutData(this.getId() + "-mainsave-layoutData", {
 				priority: OverflowToolbarPriority.Low
 			})
 		});
+		ShortcutHintsMixin.addConfig(this.oVariantSaveBtn, {
+			addAccessibilityLabel: true,
+			message: this._getSaveTooltipText("SAVE_MAIN")
+		}, this);
 
 		this.oVariantSaveAsBtn = new Button(this.getId() + "-saveas", {
 			text: this._oRb.getText("VARIANT_MANAGEMENT_SAVEAS"),
 			press: function() {
 				this._openSaveAsDialog();
 			}.bind(this),
-			layoutData: new OverflowToolbarLayoutData({
+			layoutData: new OverflowToolbarLayoutData(this.getId() + "-saveas-layoutData", {
 				priority: OverflowToolbarPriority.Low
 			}),
 			visible: {
@@ -1192,6 +1286,13 @@ sap.ui.define([
 				path: "/selectedKey",
 				model: "$mVariants"
 			},
+			visible: {
+				path: "/hasNoData",
+				model: VariantManagement.INNER_MODEL_NAME,
+				formatter: function(bValue) {
+					 return !bValue;
+				}
+			},
 			itemPress: function(oEvent) {
 				var sSelectionKey = null;
 				if (oEvent && oEvent.getParameters()) {
@@ -1201,23 +1302,29 @@ sap.ui.define([
 					}
 				}
 				if (sSelectionKey) {
-
-					var bTriggerForSameItem = this.getProperty("_selectStategyForSameItem");
-
-					if (bTriggerForSameItem || (!bTriggerForSameItem && (this.getSelectedKey() !== sSelectionKey))) {
-						this.setSelectedKey(sSelectionKey);
-
-						this.fireSelect({
-							key: sSelectionKey
-						});
-					}
+					this.setCurrentVariantKey(sSelectionKey);
 					this.oVariantPopOver.close();
 				}
 			}.bind(this)
 		});
-		this.oVariantList.setNoDataText(this._oRb.getText("VARIANT_MANAGEMENT_NODATA"));
 
-		var oItemTemplate = new Item({
+		this.oVariantListInvisibleText = new InvisibleText(this.getId() + "-listInvisibleText", {
+			text: this._oRb.getText("VARIANT_MANAGEMENT_VIEW_LIST")
+		});
+
+		this.oVariantListInvisibleText.toStatic();
+		this.oVariantList.addAriaLabelledBy(this.oVariantListInvisibleText);
+
+		this.oNodataTextLayout = new VBox(this.getId() + "-no-data", {
+			visible: {
+				path: "/hasNoData",
+				model: VariantManagement.INNER_MODEL_NAME
+			},
+			fitContainer: true,
+			items: [this._oNoDataFoundIllustratedMessage]
+		});
+
+		var oItemTemplate = new Item(this.getId() + "-list-item", {
 			key: "{$mVariants>key}",
 			text: "{$mVariants>title}"
 		});
@@ -1234,17 +1341,17 @@ sap.ui.define([
 		}.bind(this));
 
 		this.oVariantSelectionPage = new Page(this.getId() + "-selpage", {
-			subHeader: new Toolbar({
+			subHeader: new Toolbar(this.getId() + "-selpage-header", {
 				content: [
 					this._oSearchField
 				]
 			}),
 			content: [
-				this.oVariantList
+				this.oVariantList, this.oNodataTextLayout
 			],
-			footer: new OverflowToolbar({
+			footer: new OverflowToolbar(this.getId() + "-selpage-footer", {
 				content: [
-					new ToolbarSpacer(this.getId() + "-spacer"), this.oVariantSaveBtn, this.oVariantSaveAsBtn, this.oVariantManageBtn
+					new ToolbarSpacer(this.getId() + "-selpage-footer-spacer"), this.oVariantSaveBtn, this.oVariantSaveAsBtn, this.oVariantManageBtn
 				]
 			}),
 			showNavButton: false,
@@ -1264,6 +1371,7 @@ sap.ui.define([
 			titleAlignment: "Auto",
 			contentWidth: "400px",
 			placement: PlacementType.VerticalPreferredBottom,
+			resizable: true,
 			content: [
 				this.oVariantSelectionPage
 			],
@@ -1277,8 +1385,27 @@ sap.ui.define([
 					}.bind(this), 200);
 				}
 			}.bind(this),
+			beforeClose: function() {
+				this.oVariantPopoverTrigger?.$().attr("aria-expanded", "false");
+			}.bind(this),
 			contentHeight: "300px"
 		});
+
+		this.oVariantPopOver.addEventDelegate({
+			onkeydown: function(oEvent) {
+				const bCtrlKey = this.deviceIsMac ? oEvent.metaKey : oEvent.ctrlKey;
+
+				// Use CTRL / CMD + S to trigger the Save action
+				if ( oEvent.keyCode == KeyCodes.S && (oEvent.shiftKey === false) && (oEvent.altKey === false) && (bCtrlKey === true)) {
+					if (this.oVariantSaveBtn?.getVisible() && this.oVariantSaveBtn?.getEnabled()) {
+						oEvent.preventDefault();
+						oEvent.stopPropagation();
+						this._handleVariantSave();
+					}
+				}
+			}
+
+		}, this);
 
 		this.oVariantPopOver.addStyleClass("sapMVarMngmtPopover");
 		if (this.oVariantLayout.$().closest(".sapUiSizeCompact").length > 0) {
@@ -1289,10 +1416,32 @@ sap.ui.define([
 		this.oVariantPopOver.isPopupAdaptationAllowed = function() {
 			return false;
 		};
-
-		// this.oVariantList.getBinding("items").filter(this._getFilters());
 	};
 
+
+	/**
+	 * Enables the programmatic selection of a variant.
+	 * @public
+	 * @param {string} sKey of variant to be selected. If the passed key doesn't identify a variant, it will be ignored
+	 *
+	 * @since 1.121
+	 */
+	VariantManagement.prototype.setCurrentVariantKey = function(sKey) {
+		var oItem = this.getItemByKey(sKey);
+		if (oItem) {
+			var bTriggerForSameItem = this.getProperty("_selectStategyForSameItem");
+
+			if (bTriggerForSameItem || (!bTriggerForSameItem && (this.getSelectedKey() !== sKey))) {
+				this.setSelectedKey(sKey);
+
+				this.fireSelect({
+					key: sKey
+				});
+			}
+		} else {
+			Log.error("setCurrentVariantKey called with unknown key:'" + sKey + "'");
+		}
+	};
 
 	VariantManagement.prototype._determineEmphasizedFooterButton = function() {
 		if (this.oVariantSaveBtn.getVisible()) {
@@ -1313,15 +1462,25 @@ sap.ui.define([
 			this._openInErrorState();
 			return;
 		}
+		this.oVariantPopoverTrigger.$().attr("aria-expanded", "true");
 
-		if (this.bPopoverOpen) {
+		if (this.bPopoverOpen || this.iOpenTimer) {
 			return;
 		}
 
 		this._createVariantList();
 		this._oSearchField.setValue("");
 
-		this.oVariantList.getBinding("items").filter(this._getFilters());
+		const oListBinding = this.oVariantList.getBinding("items");
+		oListBinding.attachChange(function(oEvent) {
+			this.setHasNoData(this.oVariantList.getItems().length === 0);
+		}.bind(this));
+		oListBinding.filter(this._getFilters());
+
+		if (this.oVariantList.getItems().length < 1) {
+			this.oNodataTextLayout.removeAllItems();
+			this.oNodataTextLayout.addItem(this._oNoDataIllustratedMessage);
+		}
 
 		this.oVariantSelectionPage.setShowSubHeader(this.oVariantList.getItems().length > 9);
 
@@ -1334,7 +1493,12 @@ sap.ui.define([
 
 		var oControlRef = this._oCtrlRef ? this._oCtrlRef : this.oVariantLayout;
 		this._oCtrlRef = null;
-		this.oVariantPopOver.openBy(oControlRef);
+		this.iOpenTimer = setTimeout(() => { // otherwise screenreader would not announce the expanded-state of the button
+			delete this.iOpenTimer;
+			if (!this.isDestroyed()) {
+				this.oVariantPopOver.openBy(oControlRef);
+			}
+		}, 100);
 	};
 
 	VariantManagement.prototype._triggerSearch = function(oEvent, oVariantList) {
@@ -1356,6 +1520,16 @@ sap.ui.define([
 		});
 
 		oVariantList.getBinding("items").filter(this._getFilters(oFilter));
+
+		if (oVariantList.getItems().length < 1) {
+			if ((this.oNodataTextLayout.getItems().length === 0) || (this.oNodataTextLayout.getItems().length > 0) && (this.oNodataTextLayout.getItems()[0] !== this._oNoDataFoundIllustratedMessage)) {
+				if (!this._oNoDataFoundIllustratedMessage.hasStyleClass("sapMVarMngmtIllustratedMessage")) {
+					this._oNoDataFoundIllustratedMessage.toggleStyleClass("sapMVarMngmtIllustratedMessage");
+				}
+				this.oNodataTextLayout.removeAllItems();
+				this.oNodataTextLayout.addItem(this._oNoDataFoundIllustratedMessage);
+			}
+		}
 	};
 
 	// Save View dialog
@@ -1432,26 +1606,21 @@ sap.ui.define([
 			this.oSaveSave = new Button(this.getId() + "-variantsave", {
 				text: this._oRb.getText("VARIANT_MANAGEMENT_SAVE"),
 				type: ButtonType.Emphasized,
-				press: function() {
-					if (!this._bSaveOngoing) {
-						this._checkVariantNameConstraints(this.oInputName);
-
-						if (this.oInputName.getValueState() === "Error") {
-							this.oInputName.focus();
-							return;
-						}
-
-						this._bSaveOngoing = true;
-						this._bSaveCanceled = false;
-						var bReturn = this._handleVariantSaveAs(this.oInputName.getValue());
-						if (!bReturn) {
-							this._bSaveOngoing = false;
-						}
-					}
-				}.bind(this),
+				press: this._fireVariantSaveAsEvent.bind(this),
 				enabled: true
 			});
-			var oSaveAsDialogOptionsGrid = new Grid({
+
+			this.oSaveAsCancel = new Button(this.getId() + "-variantcancel", {
+					text: this._oRb.getText("VARIANT_MANAGEMENT_CANCEL"),
+					press: this._cancelPressed.bind(this)
+			});
+
+			ShortcutHintsMixin.addConfig(this.oSaveSave, {
+				addAccessibilityLabel: true,
+				message: this._getSaveTooltipText("SAVE")
+			}, this);
+
+			var oSaveAsDialogOptionsGrid = new Grid(this.getId() + "-savedialog-options", {
 				defaultSpan: "L12 M12 S12"
 			});
 
@@ -1479,14 +1648,12 @@ sap.ui.define([
 
 				}.bind(this),
 				beginButton: this.oSaveSave,
-				endButton: new Button(this.getId() + "-variantcancel", {
-					text: this._oRb.getText("VARIANT_MANAGEMENT_CANCEL"),
-					press: this._cancelPressed.bind(this)
-				}),
+				endButton: this.oSaveAsCancel,
 				content: [
 					oLabelName, this.oInputName, oSaveAsDialogOptionsGrid
 				],
-				stretch: Device.system.phone
+				stretch: Device.system.phone,
+				busyIndicatorDelay: 0
 			});
 
 			this.oSaveAsDialog.isPopupAdaptationAllowed = function() {
@@ -1501,6 +1668,27 @@ sap.ui.define([
 			}
 
 			this.addDependent(this.oSaveAsDialog);
+
+			// Use submit event to allow enter pressing for save
+			this.oInputName.attachSubmit(this._fireVariantSaveAsEvent, this);
+		}
+	};
+
+	VariantManagement.prototype._fireVariantSaveAsEvent = function() {
+		if (!this._bSaveOngoing) {
+			this._checkVariantNameConstraints(this.oInputName);
+
+			if (this.oInputName.getValueState() === ValueState.Error) {
+				this.oInputName.focus();
+				return;
+			}
+
+			this._bSaveOngoing = true;
+			this._bSaveCanceled = false;
+			const bReturn = this._handleVariantSaveAs(this.oInputName.getValue());
+			if (!bReturn) {
+				this._bSaveOngoing = false;
+			}
 		}
 	};
 
@@ -1709,9 +1897,15 @@ sap.ui.define([
 			this.oVariantPopOver.close();
 		}
 
+		//Lazy loading of variants
+		if (!this.oSaveAsDialog.isOpen()){
+			this._executeDynamicVariantsLoadedCallback(this.oSaveAsDialog);
+		}
+
 		if (!bDoNotOpen) {
 			this.oSaveAsDialog.open();
 		}
+		this.oInputName.selectText(0, this.getSelectedVariantText(this.getSelectedKey()).length);
 	};
 
 	VariantManagement.prototype._handleVariantSaveAs = function(sNewVariantName) {
@@ -1872,26 +2066,92 @@ sap.ui.define([
 
 	VariantManagement.prototype._triggerSearchInManageDialogByValue = function(sValue, oManagementTable) {
 
-		var aFilters = [
-			this._getVisibleFilter(), new Filter({
-				filters: [
-					new Filter({
-						path: "title",
-						operator: FilterOperator.Contains,
-						value1: sValue
-					}), new Filter({
-						path: "author",
-						operator: FilterOperator.Contains,
-						value1: sValue
-					})
-				],
-				and: false
-			})
-		];
+		const oBinding = oManagementTable.getBinding("items");
+		const oVisibleFilter = this._getVisibleFilter();
+		const aFilters = oVisibleFilter ? [oVisibleFilter] : [];
 
-		oManagementTable.getBinding("items").filter(aFilters);
+		if (sValue) {
+			const sLowerValue = sValue.toLowerCase();
+			const aBranches = [];
+			let bMatchAll = false;
+
+			for (const sProperty of ["title", "author"]) {
+				const oResolved = this._resolveTemplatePath(sProperty);
+				if (oResolved.path) {
+					aBranches.push(new Filter({
+						path: oResolved.path,
+						operator: FilterOperator.Contains,
+						value1: sValue
+					}));
+				} else if ("value" in oResolved) {
+					if (String(oResolved.value ?? "").toLowerCase().includes(sLowerValue)) {
+						// Static value matches search -> show all rows, no further filtering
+						bMatchAll = true;
+						break;
+					}
+				} else {
+					// Complex binding with formatter -> filter by formatted value
+					const oFormatterFilter = this._buildFormatterFilter(oResolved.bindingInfo, sValue, oBinding);
+					if (oFormatterFilter) {
+						aBranches.push(oFormatterFilter);
+					}
+				}
+			}
+
+			if (!bMatchAll) {
+				aFilters.push(aBranches.length
+					? new Filter({ filters: aBranches, and: false })
+					: new Filter({ path: "/", test: () => false }));
+			}
+		}
+
+		oBinding.filter(aFilters);
+
+        if (this.oManagementTable.getItems().length < 1) {
+			if (this._oNoDataFoundIllustratedMessage.hasStyleClass("sapMVarMngmtIllustratedMessage")) {
+				this._oNoDataFoundIllustratedMessage.toggleStyleClass("sapMVarMngmtIllustratedMessage");
+			}
+			this.oManagementTable.setNoData(this._oNoDataFoundIllustratedMessage);
+		}
 
 		this._bRebindRequired = true;
+	};
+
+	/**
+	 * Builds an OR-filter that matches rows whose formatted value contains <code>sValue</code>,
+	 * by evaluating the formatter against each binding context's properties and emitting
+	 * key-based <code>EQ</code> filters for the matches. Operates on a snapshot of contexts
+	 * cached in <code>this._aManageDialogContexts</code> (populated lazily on first use and
+	 * reset on each manage-dialog open), so consecutive searches see the full unfiltered set.
+	 *
+	 * @param {object} oBI The binding info of the template's property.
+	 * @param {string} sValue The search string to match against the formatted value.
+	 * @param {sap.ui.model.ListBinding} oBinding The items binding of the management table.
+	 * @returns {sap.ui.model.Filter|null} An OR-combined multi-filter of key-based <code>EQ</code>
+	 *   filters for the matching rows, or <code>null</code> if no row matches.
+	 * @private
+	 */
+	VariantManagement.prototype._buildFormatterFilter = function(oBI, sValue, oBinding) {
+		const sLowerValue = sValue.toLowerCase();
+		const aParts = oBI.parts ?? [{ path: oBI.path }];
+		const fnFormatter = oBI.formatter ?? ((v) => v);
+		const sKeyPath = this._resolveTemplatePath("key").path ?? "key";
+		// Snapshot the unfiltered context set on first use; subsequent searches in the same
+		// dialog session reuse it so they see all variants, not just the previously filtered ones.
+		// Note: Only gets currently materialized contexts in case of oData models
+		this._aManageDialogContexts ??= oBinding.getAllCurrentContexts();
+
+		const aMatchingFilters = [];
+		this._aManageDialogContexts.forEach((oContext) => {
+			const sFormatted = fnFormatter.apply(null, aParts.map((p) => oContext.getProperty(p.path)));
+			if (typeof sFormatted === "string" && sFormatted.toLowerCase().includes(sLowerValue)) {
+				aMatchingFilters.push(new Filter(sKeyPath, FilterOperator.EQ, oContext.getProperty(sKeyPath)));
+			}
+		});
+
+		return aMatchingFilters.length
+			? new Filter({ filters: aMatchingFilters, and: false })
+			: null;
 	};
 
 	VariantManagement.prototype.getManageDialog = function() {
@@ -1901,14 +2161,18 @@ sap.ui.define([
 	VariantManagement.prototype._createManagementDialog = function() {
 		if (!this.oManagementDialog || this.oManagementDialog.bIsDestroyed) {
 
+			this._createIllustratedMessages();
+
 			this.oManagementTable = new Table(this.getId() + "-managementTable", {
 				contextualWidth: "Auto",
 				fixedLayout: false,
 				growing: true,
-				keyboardMode: ListKeyboardMode.Edit,
+				noData: this._oNoDataIllustratedMessage,
+				keyboardMode: ListKeyboardMode.Navigation,
+				sticky: [ Sticky.ColumnHeaders ],
 				columns: [
-					new Column({
-						header: new InvisibleText({
+					new Column(this.getId() + "-managementTable-col-favorite", {
+						header: new InvisibleText(this.getId() + "-managementTable-col-favorite-invText", {
 									text: this._oRb.getText("VARIANT_MANAGEMENT_FAVORITE_COLUMN")
 								}),
 						width: "3rem",
@@ -1916,13 +2180,13 @@ sap.ui.define([
 							path: "/supportFavorites",
 							model: "$mVariants"
 						}
-					}), new Column({
-						header: new Text({
+					}), new Column(this.getId() + "-managementTable-col-name", {
+						header: new Text(this.getId() + "-managementTable-col-name-text", {
 							text: this._oRb.getText("VARIANT_MANAGEMENT_NAME")
 						}),
 						width: "16rem"
-					}), new Column({
-						header: new Text({
+					}), new Column(this.getId() + "-managementTable-col-variantType", {
+						header: new Text(this.getId() + "-managementTable-col-variantType-text", {
 							text: this._oRb.getText("VARIANT_MANAGEMENT_VARIANTTYPE"),
 							wrappingType: "Hyphenated"
 						}),
@@ -1933,8 +2197,8 @@ sap.ui.define([
 						demandPopin: true,
 						popinDisplay: PopinDisplay.Inline,
 						minScreenWidth: ScreenSize.Tablet
-					}), new Column({
-						header: new Text({
+					}), new Column(this.getId() + "-managementTable-col-default", {
+						header: new Text(this.getId() + "-managementTable-col-default-text", {
 							text: this._oRb.getText("VARIANT_MANAGEMENT_DEFAULT"),
 							wrappingType: "Hyphenated"
 						}),
@@ -1946,8 +2210,8 @@ sap.ui.define([
 							path: "/supportDefault",
 							model: "$mVariants"
 						}
-					}), new Column({
-						header: new Text({
+					}), new Column(this.getId() + "-managementTable-col-executeOnSelect", {
+						header: new Text(this.getId() + "-managementTable-col-executeOnSelect-text", {
 							text: this._oRb.getText("VARIANT_MANAGEMENT_EXECUTEONSELECT"),
 							wrappingType: "Hyphenated"
 						}),
@@ -1959,8 +2223,8 @@ sap.ui.define([
 							path: "/supportApplyAutomatically",
 							model: "$mVariants"
 						}
-					}), new Column({
-						header: new Text({
+					}), new Column(this.getId() + "-managementTable-col-visibility", {
+						header: new Text(this.getId() + "-managementTable-col-visibility-text", {
 							text: this._oRb.getText("VARIANT_MANAGEMENT_VISIBILITY"),
 							wrappingType: "Hyphenated"
 						}),
@@ -1972,23 +2236,24 @@ sap.ui.define([
 							path: "/supportContexts",
 							model: "$mVariants"
 						}
-					}), new Column({
-						header: new Text({
+					}), new Column(this.getId() + "-managementTable-col-author", {
+						header: new Text(this.getId() + "-managementTable-col-author-text", {
 							text: this._oRb.getText("VARIANT_MANAGEMENT_AUTHOR"),
 							wrappingType: "Hyphenated"
 						}),
 						demandPopin: true,
 						popinDisplay: PopinDisplay.Block,
 						minScreenWidth: ScreenSize.Tablet
-					}), new Column({
-						header: new InvisibleText({
+					}), new Column(this.getId() + "-managementTable-col-action", {
+						header: new InvisibleText(this.getId() + "-managementTable-col-action-invText", {
 									text: this._oRb.getText("VARIANT_MANAGEMENT_ACTION_COLUMN")
 								}),
 						hAlign: TextAlign.Center
-					}), new Column({
+					}), new Column(this.getId() + "-managementTable-col-last", {
 						visible: false
 					})
-				]
+				],
+				busyIndicatorDelay: 0
 			});
 
 			this.oManagementSave = new Button(this.getId() + "-managementsave", {
@@ -1996,12 +2261,16 @@ sap.ui.define([
 				enabled: true,
 				type: ButtonType.Emphasized,
 				press: function() {
-					this._handleManageSavePressed();
-					if (this.oManagementDialog) {
+					if (this._handleManageSavePressed() && this.oManagementDialog) {
 						this.oManagementDialog.close();
 					}
 				}.bind(this)
 			});
+
+			ShortcutHintsMixin.addConfig(this.oManagementSave, {
+				addAccessibilityLabel: true,
+				message: this._getSaveTooltipText("SAVE")
+			}, this);
 
 			this.oManagementCancel = new Button(this.getId() + "-managementcancel", {
 				text: this._oRb.getText("VARIANT_MANAGEMENT_CANCEL"),
@@ -2040,7 +2309,8 @@ sap.ui.define([
 				return false;
 			};
 
-			this._oSearchFieldOnMgmtDialog = new SearchField();
+			this._oSearchFieldOnMgmtDialog = new SearchField(this.getId() + "-managementdialog-search");
+
 			this._oSearchFieldOnMgmtDialog.attachLiveChange(function(oEvent) {
 				this._triggerSearchInManageDialog(oEvent, this.oManagementTable);
 			}.bind(this));
@@ -2061,16 +2331,35 @@ sap.ui.define([
 			if (this.oVariantLayout.$().closest(".sapUiSizeCompact").length > 0) {
 				this.oManagementDialog.addStyleClass("sapUiSizeCompact");
 			}
+
+			// Attach keydown event to the search field, as its overrides corresponding keydown events, to handle Ctrl+Enter (or Cmd+Enter on Mac) to trigger Save action
+			this._oSearchFieldOnMgmtDialog.addEventDelegate({
+				// there is no onsapenter event for SearchField, so we need to use onkeydown
+				onkeydown: (oEvent) => {
+					if (oEvent.keyCode === KeyCodes.ENTER){
+						this._handleManagementDialogKeydown(oEvent);
+					}
+				}
+			}, this);
+
 			this.addDependent(this.oManagementDialog);
 
-			this.oManagementTable.bindAggregation("items", {
-				path: "/items",
-				model: "$mVariants",
-				factory: this._templateFactoryManagementDialog.bind(this),
-				filters: this._getVisibleFilter()
-			});
+			this._rebindVMTable(true);
+		}
+	};
 
-			this._bRebindRequired = false;
+	VariantManagement.prototype._getSaveTooltipText = function(sTextType) {
+		const sTextKey = `VARIANT_MANAGEMENT_${sTextType}_TT${this.deviceIsMac ? "_MAC" : ""}`;
+		return this._oRb.getText(sTextKey);
+	};
+
+	VariantManagement.prototype._handleManagementDialogKeydown = function(oEvent) {
+		// on macintosh os cmd-key is used instead of ctrl-key
+		var bCtrlKey = this.deviceIsMac ? oEvent.metaKey : oEvent.ctrlKey;
+		if ( (oEvent.shiftKey === false) && (oEvent.altKey === false) && (bCtrlKey === true)){
+			this.oManagementSave.firePress();
+			oEvent.stopPropagation();
+			oEvent.preventDefault();
 		}
 	};
 
@@ -2097,13 +2386,11 @@ sap.ui.define([
 		}
 	};
 
-	VariantManagement.prototype._templateFactoryManagementDialog = function(sId, oContext) {
-		var sTooltip = null;
-		var oDeleteButton;
-		var oNameControl;
-		var oExecuteOnSelectCtrl;
-		var oRolesCell;
-		var oItem = oContext.getObject();
+	VariantManagement.prototype._templateFactoryManagementDialog = function(oItemsTemplate, sId, oContext) {
+		const sTooltip = null;
+		let oNameControl;
+		let oExecuteOnSelectCtrl;
+		const oItem = this._findVariantItem(oContext);
 		if (!oItem) {
 			Log.error("couldn't obtain the item for '" + oContext.getPath() + "'");
 			return undefined;
@@ -2115,43 +2402,88 @@ sap.ui.define([
 			return undefined;
 		}
 
-		var sIdPrefix = this.getId() + "-manage";
+		const fnPropertyIsInTemplate = (sProperty) => oItemsTemplate && (oItemsTemplate.getBindingInfo(sProperty) !== undefined || !oItemsTemplate.isPropertyInitial?.(sProperty));
 
-		var sModelName = "$mVariants";
+		const fnTemplateExtractBinding = (sProperty) => oItemsTemplate?.getBindingInfo(sProperty) ?? ({value: oItemsTemplate?.getProperty(sProperty)});
 
-		var fLiveChange = function(oEvent) {
-			var oItem = oEvent.oSource.getBindingContext(sModelName).getObject();
+		const fnCreateBinding = (sProperty) => {
+			// use OneWay Binding to not update text and flags via Model but using the explicit event handlers. (fl-VariantModel is alwqays OneWay per default)
+			// VariantItem extends Item: "title" (VariantItem) may be bound as "text" (Item) in the template.
+			if (!fnPropertyIsInTemplate(sProperty) && sProperty === "title" && fnPropertyIsInTemplate("text")) {
+				sProperty = "text";
+			}
+			if (fnPropertyIsInTemplate(sProperty)) {
+				let oBindingCopy = merge({}, fnTemplateExtractBinding(sProperty));
+				if (!oBindingCopy.parts) {
+					oBindingCopy = {parts: [merge({}, oBindingCopy)]};
+				}
+				oBindingCopy.parts.forEach((oPart) => {
+					oPart.mode = BindingMode.OneWay;
+				});
+				return oBindingCopy;
+			} else {
+				return {parts: [{path: sProperty, model: this._sModelName, mode: BindingMode.OneWay}]};
+			}
+		};
+
+		const sIdPrefix = this.getId() + "-manage";
+		const sModelName = this._sModelName;
+		const fLiveChange = function(oEvent) {
+			const oContext = oEvent.oSource.getBindingContext(sModelName);
+			const oItem = this._findVariantItem(oContext);
 			this._handleManageTitleChange(oEvent.oSource, oItem);
 		}.bind(this);
 
-		var fChange = function(oEvent) {
-			var oItem = oEvent.oSource.getBindingContext(sModelName).getObject();
-			this._handleManageTitleChange(oEvent.oSource, oItem);
+		const fChange = function(oEvent) {
+			const oInput = oEvent.getSource();
+			const oContext = oInput.getBindingContext(sModelName);
+			const oItem = this._findVariantItem(oContext);
+			const oRow = oInput.getParent();
+
+			if (sModelName === "$mVariants" && Element.getActiveElement() !== oInput && containsOrEquals(oRow.getDomRef(), document.activeElement)) {
+				// if ManagedObjectModel used, all Bindings are updated on changing title of an item.
+				// set it async to allow to finish the triggering browser event (e.g. Click on delete button) if anoter control of the row is focussed
+				setTimeout(() => {
+					oItem.setTitle(oInput.getValue());
+					this._handleManageTitleChange(oInput, oItem);
+				}, 100); // 100 beacuse otherwise tab-event on delete button will be later
+			} else {
+				oItem.setTitle(oInput.getValue());
+				this._handleManageTitleChange(oInput, oItem);
+			}
+
 		}.bind(this);
 
-		var fSelectRB = function(oEvent) {
-			this._handleManageDefaultVariantChange(oEvent.oSource, oEvent.oSource.getBindingContext(sModelName).getObject(), oEvent.getParameters().selected);
+		const fSelectRB = function(oEvent) {
+			const oContext = oEvent.oSource.getBindingContext(sModelName);
+			const oItem = this._findVariantItem(oContext);
+			this._handleManageDefaultVariantChange(oEvent.oSource, oItem, oEvent.getParameters().selected);
 		}.bind(this);
 
-		var fPress = function(oEvent) {
-			this._handleManageDeletePressed(oEvent.oSource.getBindingContext(sModelName).getObject());
+		const fPress = function(oEvent) {
+			const oContext = oEvent.oSource.getBindingContext(sModelName);
+			const oItem = this._findVariantItem(oContext);
+			this._handleManageDeletePressed(oItem);
 			this._reCheckVariantNameConstraints();
 		}.bind(this);
 
-		var fSelectFav = function(oEvent) {
-			this._handleManageFavoriteChanged(oEvent.oSource, oEvent.oSource.getBindingContext(sModelName).getObject());
+		const fSelectFav = function(oEvent) {
+			const oContext = oEvent.oSource.getBindingContext(sModelName);
+			const oItem = this._findVariantItem(oContext);
+			this._handleManageFavoriteChanged(oEvent.oSource, oItem);
 		}.bind(this);
 
-		var fRolesPressed = function(oEvent) {
-			var oItem = oEvent.oSource.getBindingContext(sModelName).getObject();
-			this._openRolesDialog(oItem, oEvent.oSource.getParent().getItems()[0]);
-		}.bind(this);
+		const fEnableApply = (oEvent) => {
+			const oContext = oEvent.oSource.getBindingContext(sModelName);
+			const oItem = this._findVariantItem(oContext);
+			oItem.setExecuteOnSelect(oEvent.getParameter("selected"));
+		};
 
 		if (oItem.getRename()) {
 			oNameControl = new Input(sIdPrefix + "-input-" + nPos, {
 				liveChange: fLiveChange,
 				change: fChange,
-				value: '{' + sModelName + ">title}"
+				value: fnCreateBinding("title")
 			});
 
 			if (oItem.getTitle() !== oItem._getOriginalTitle()) {
@@ -2161,14 +2493,14 @@ sap.ui.define([
 
 		} else {
 			oNameControl = new ObjectIdentifier(sIdPrefix + "-text-" + nPos, {
-				title: '{' + sModelName + ">title}"
+				title: fnCreateBinding("title")
 			});
 			if (sTooltip) {
 				oNameControl.setTooltip(sTooltip);
 			}
 		}
 
-		oDeleteButton = new Button(sIdPrefix + "-del-" + nPos, {
+		const oDeleteButton = new Button(sIdPrefix + "-del-" + nPos, {
 			icon: "sap-icon://decline",
 			enabled: true,
 			type: ButtonType.Transparent,
@@ -2177,19 +2509,20 @@ sap.ui.define([
 			visible: oItem.getRemove()
 		});
 
-		var oFavoriteIcon = new Icon(sIdPrefix + "-fav-" + nPos, {
+		const oFavoriteBinding = fnCreateBinding("favorite");
+		const oFavoriteIcon = new Icon(sIdPrefix + "-fav-" + nPos, {
 			src: {
-				path: "favorite",
-				model: sModelName,
+				path: oFavoriteBinding.parts?.[0]?.path ?? "favorite",
+				model: oFavoriteBinding.parts?.[0]?.model ?? "$mVariants",
 				formatter: function(bFlagged) {
-					return bFlagged ? "sap-icon://favorite" : "sap-icon://unfavorite";
+					return bFlagged || bFlagged == null ? "sap-icon://favorite" : "sap-icon://unfavorite";
 				}
 			},
 			tooltip: {
-				path: 'favorite',
-				model: sModelName,
+				path: oFavoriteBinding.parts?.[0]?.path ?? "favorite",
+				model: oFavoriteBinding.parts?.[0]?.model ?? "$mVariants",
 				formatter: function(bFlagged) {
-					return this._oRb.getText(bFlagged ? "VARIANT_MANAGEMENT_FAV_DEL_TOOLTIP" : "VARIANT_MANAGEMENT_FAV_ADD_TOOLTIP");
+					return this._oRb.getText(bFlagged || bFlagged == null ? "VARIANT_MANAGEMENT_FAV_DEL_TOOLTIP" : "VARIANT_MANAGEMENT_FAV_ADD_TOOLTIP");
 				}.bind(this)
 			},
 			press: fSelectFav,
@@ -2205,93 +2538,97 @@ sap.ui.define([
 		if (this.getDisplayTextForExecuteOnSelectionForStandardVariant() && (this.getStandardVariantKey() === oItem.getKey())) {
 			oExecuteOnSelectCtrl = new CheckBox(sIdPrefix + "-exe-" + nPos, {
 				wrapping: true,
-				text: '{' + sModelName + ">/_displayTextForExecuteOnSelectionForStandardVariant}",
-				selected: '{' + sModelName + ">executeOnSelect}"
+				text: "{$mVariants>/_displayTextForExecuteOnSelectionForStandardVariant}",
+				selected: fnCreateBinding("executeOnSelect"),
+				select: fEnableApply
 			});
 		} else {
 			oExecuteOnSelectCtrl = new CheckBox(sIdPrefix + "-exe-" + nPos, {
 				text: "",
-				selected: '{' + sModelName + ">executeOnSelect}"
+				selected: fnCreateBinding("executeOnSelect"),
+				select: fEnableApply
 			});
 		}
 
 		// roles
-		var oText;
-		if (this._sStyleClass && this.getSupportContexts() && (oItem.getKey() !== this.getStandardVariantKey())) {
-			oText = new Text({ wrapping: false });
-			this._determineRolesSpecificText(oItem, oText);
-			var oIcon = new Icon({
-				src: "sap-icon://edit",
-				press: fRolesPressed
-			});
-			oIcon.addStyleClass("sapMVarMngmtRolesEdit");
-			oIcon.setTooltip(this._oRb.getText("VARIANT_MANAGEMENT_VISIBILITY_ICON_TT"));
-			oRolesCell = new HBox(sIdPrefix + "-role-" + nPos, {
-				items: [oText, oIcon]
-			});
+		const oRolesCell = this._createRolesCell(oItem, oContext);
 
-		} else {
-			oRolesCell = new Text();
-		}
+		const oSharingBinding = fnCreateBinding("sharing");
+		const oSharingText = new Text(sIdPrefix + "-type-" + nPos, {
+			text: {
+				path: oSharingBinding.parts?.[0]?.path ?? "sharing",
+				model: oSharingBinding.parts?.[0]?.model ?? sModelName,
+				formatter: function(sValue) {
+					return this._oRb.getText(sValue === "Private" ? "VARIANT_MANAGEMENT_PRIVATE" : "VARIANT_MANAGEMENT_PUBLIC");
+				}.bind(this)
+			},
+			textAlign: "Center"
+		});
 
-		var oDefaultRadioButton = new RadioButton(sIdPrefix + "-def-" + nPos, {
+		const oDefaultRadioButton = new RadioButton(sIdPrefix + "-def-" + nPos, {
 			groupName: this.getId(),
 			select: fSelectRB,
 			selected: {
 				path: "/defaultKey",
-				model: sModelName,
+				model: "$mVariants",
 				formatter: function(sKey) {
 					return oItem.getKey() === sKey;
 				}
 			}
 		});
 
-		if (oText && this._isRestricted(oItem.getContexts())) {
+		if (oRolesCell.isA("sap.m.HBox") && this._isRestricted(oItem.getContexts())) {
 			oDefaultRadioButton.setEnabled(false);
 			if (this.getDefaultKey() === oItem.getKey())  {
 				this.setDefaultKey(this.getStandardVariantKey());
 			}
 		}
 
-		var oListItem = new ColumnListItem({
+		const oListItem = new ColumnListItem(sIdPrefix + "-item-" + nPos, {
 			cells: [
 				oFavoriteIcon,
 				oNameControl,
-				new Text(sIdPrefix + "-type-" + nPos, {
-					text: {
-						path: "sharing",
-						model: sModelName,
-						formatter: function(sValue) {
-							return this._oRb.getText(sValue === "private" ? "VARIANT_MANAGEMENT_PRIVATE" : "VARIANT_MANAGEMENT_PUBLIC");
-						}.bind(this)
-					},
-					textAlign: "Center"
-				}),
+				oSharingText,
 				oDefaultRadioButton,
 				oExecuteOnSelectCtrl,
 				oRolesCell,
 				new Text(sIdPrefix + "-author-" + nPos, {
-					text: '{' + sModelName + ">author}",
+					text:  fnCreateBinding("author"),
 					textAlign: "Begin",
 				    wrappingType: "Hyphenated"
 				}),
 				oDeleteButton,
-				new Text({
-					text: '{' + sModelName + ">key}"
+				new Text(sIdPrefix + "-key-" + nPos, {
+					text: fnCreateBinding("key")
 				})
 			]
 		});
 
-		if (this._getDeletedItems() && this._getDeletedItems().indexOf(oItem.getKey()) > -1) {
+		if (fnPropertyIsInTemplate("visible")) {
+			oListItem.bindProperty("visible", fnCreateBinding("visible"));
+		}
+
+		if (this._isItemDeleted(oItem)) {
 			oListItem.setVisible(false);
 		}
 
 		return oListItem;
 	};
 
-
-	VariantManagement.prototype._openManagementDialog = function() {
+	VariantManagement.prototype._openManagementDialog = function () {
+		this._clearDeletedItems();
+		this._clearRenamedItems();
 		this._createManagementDialog();
+
+		//Lazy loading of variants
+		if (!this.oManagementDialog.isOpen()){
+			this._executeDynamicVariantsLoadedCallback(this.oManagementTable, function() {
+				//Rebind table to display refreshed data after lazy loading variants
+				this._rebindVMTable(true);
+			}.bind(this));
+		}
+
+		this.oManagementDialog.open();
 
 		if (this.oVariantPopOver) {
 			this.oVariantPopOver.close();
@@ -2299,11 +2636,8 @@ sap.ui.define([
 
 		this._suspendManagementTableBinding();
 
-		this._clearDeletedItems();
-		this._clearRenamedItems();
 		this._sDefaultKey = this.getDefaultKey();
 		this._sOriginalDefaultKey = this._sDefaultKey;
-
 
 		this._oSearchFieldOnMgmtDialog.setValue("");
 
@@ -2313,21 +2647,43 @@ sap.ui.define([
 		// not invalidated....
 		// WA: Always do the binding while opening the dialog.
 		if (this._bRebindRequired) {
-			this._bRebindRequired = false;
-
-			if (!this.oManagementTable.getBinding("items")) {
-				this.oManagementTable.bindAggregation("items", {
-					path: "/items",
-					model: "$mVariants",
-					factory: this._templateFactoryManagementDialog.bind(this),
-					filters: this._getVisibleFilter()
-				});
-			} else {
-				this.oManagementTable.getBinding("items").filter(this._getVisibleFilter());
-			}
+			this._rebindVMTable();
 		}
 
-		this.oManagementDialog.open();
+		this._aManageDialogContexts = null;
+		const oBinding = this.oManagementTable.getBinding("items");
+		if (oBinding) {
+			const oVisibleFilter = this._getVisibleFilter();
+			oBinding.filter(oVisibleFilter ? [oVisibleFilter] : []);
+		}
+
+		if (this.oManagementTable.getItems().length < 1) {
+			this.oManagementTable.setNoData(this._oNoDataIllustratedMessage);
+		}
+	};
+
+	/**
+	 * Executes the <code>dynamicVariantsLoadedCallback</code> if provided, managing the busy state of the given control.
+	 * The control will be set to busy until the returned <code>Promise</code> is settled.
+	 *
+	 * @param {sap.ui.core.Control} oControl - The control to set busy during loading
+	 * @param {function} [fnAfterLoad] - Optional callback to execute after the promise is settled
+	 * @private
+	 */
+	VariantManagement.prototype._executeDynamicVariantsLoadedCallback = function(oControl, fnAfterLoad) {
+		const fnCallback = this.getDynamicVariantsLoadedCallback();
+		if (typeof fnCallback === "function") {
+			const oResult = fnCallback();
+			if (oResult instanceof Promise && !oControl.isDestroyed()) {
+				oControl.setBusy(true);
+				oResult.finally(function() {
+					oControl.setBusy(false);
+					if (fnAfterLoad) {
+						fnAfterLoad();
+					}
+				});
+			}
+		}
 	};
 
 	VariantManagement.prototype._toggleIconActivityState = function(oIcon, oItem, bToInActive) {
@@ -2421,8 +2777,7 @@ sap.ui.define([
 		this._clearRenamedItems();
 
 		this._bRebindRequired = true;
-		this.oManagementTable.unbindItems();
-
+		//this.oManagementTable.unbindItems();
 
 		if (this._oManagedObjectModel) {
 			this._oManagedObjectModel.checkUpdate();
@@ -2443,18 +2798,21 @@ sap.ui.define([
 		oItem.setFavorite(!oItem.getFavorite());
 		var oRow = this._getRowForKey(oItem.getKey());
 		if (oRow) {
-			oRow.getCells()[VariantManagement.COLUMN_FAV_IDX].focus();
+			const oIconCell = oRow.getCells()[VariantManagement.COLUMN_FAV_IDX];
+			this._setFavoriteIcon(oIconCell, oItem.getFavorite());
+			oIconCell.focus();
 		}
 	};
-
 
 	VariantManagement.prototype._handleManageDeletePressed = function(oItem) {
 		var sKey = oItem.getKey();
 
 		// do not allow the deletion of the standard
-		if (this.getStandardVariantKey() === sKey) {
+		if (!oItem.getRemove()) {
 			return;
 		}
+
+		const oNextFocusTarget = this._findNextFocusTargetAfterDelete(oItem);
 
 		this._addDeletedItem(oItem);
 
@@ -2477,10 +2835,67 @@ sap.ui.define([
 			oListItem.setVisible(false);
 		}
 
-		//this.oManagementTable.getBinding("items").filter(this._getVisibleFilter());
-
-		this.oManagementCancel.focus();
+		if (oNextFocusTarget) {
+			oNextFocusTarget.focus();
+		}
 	};
+
+	VariantManagement.prototype._findNextFocusTargetAfterDelete = function(oVariantItem) {
+		if (!this.oManagementTable || !oVariantItem) {
+			return this.oManagementCancel;
+		}
+
+		// Get all visible table items
+		const aTableItems = this.oManagementTable.getItems();
+		const sCurrentKey = oVariantItem.getKey();
+		let nCurrentIndex = -1;
+
+		// Find the current row index based on the variant item key
+		for (let i = 0; i < aTableItems.length; i++) {
+			const oRow = aTableItems[i];
+			if (oRow.getVisible()) {
+				const oBindingContext = oRow.getBindingContext(this._sModelName);
+				if (oBindingContext) {
+					const oRowItem = this._findVariantItem(oBindingContext);
+					if (oRowItem && oRowItem.getKey() === sCurrentKey) {
+						nCurrentIndex = i;
+						break;
+					}
+				}
+			}
+		}
+
+		if (nCurrentIndex === -1) {
+			return this.oManagementCancel;
+		}
+
+		// Try to find the next visible row
+		let oFoundRow = _findVisibleRowFromIndex(aTableItems, nCurrentIndex + 1, aTableItems.length, 1, this._sModelName);
+		if (oFoundRow) {
+			return oFoundRow;
+		}
+
+		// If no next row found, try to find the previous visible row
+		oFoundRow = _findVisibleRowFromIndex(aTableItems, nCurrentIndex - 1, -1, -1, this._sModelName);
+		if (oFoundRow) {
+			return oFoundRow;
+		}
+
+		return this.oManagementCancel;
+	};
+
+	/**
+	 * Helper function to find a visible row with valid binding context in a given direction
+	 */
+	function _findVisibleRowFromIndex(aTableItems, nStartIndex, nEndIndex, nStep, sModelName) {
+		for (let i = nStartIndex; (nStep > 0 ? i < nEndIndex : i > nEndIndex); i += nStep) {
+			const oRow = aTableItems[i];
+			if (oRow && oRow.getVisible() && oRow.getBindingContext(sModelName)) {
+				return oRow;
+			}
+		}
+		return null;
+	}
 
 	VariantManagement.prototype._collectManageData = function() {
 
@@ -2492,15 +2907,16 @@ sap.ui.define([
 		}
 
 		this.getItems().forEach(function(oItem) {
+			const bDeleted = this._isItemDeleted(oItem);
 
-			if (!oItem.getVisible()) {
+			if (bDeleted) {
 				if (!oVariantInfo.deleted) {
 					oVariantInfo.deleted = [];
 				}
 				oVariantInfo.deleted.push(oItem.getKey());
 			}
 
-			if (oItem.getVisible() && (oItem.getFavorite() !== oItem._getOriginalFavorite())) {
+			if (!bDeleted && (oItem.getFavorite() !== oItem._getOriginalFavorite())) {
 				if (!oVariantInfo.fav) {
 					oVariantInfo.fav = [];
 				}
@@ -2508,7 +2924,7 @@ sap.ui.define([
 				oItem._setOriginalFavorite(oItem.getFavorite());
 			}
 
-			if (oItem.getVisible() && (oItem.getTitle() !== oItem._getOriginalTitle())) {
+			if (!bDeleted && (oItem.getTitle() !== oItem._getOriginalTitle())) {
 				if (!oVariantInfo.renamed) {
 					oVariantInfo.renamed = [];
 				}
@@ -2516,7 +2932,7 @@ sap.ui.define([
 				oItem._setOriginalTitle(oItem.getTitle());
 			}
 
-			if (oItem.getVisible()  && (oItem.getExecuteOnSelect() !== oItem._getOriginalExecuteOnSelect())) {
+			if (!bDeleted && (oItem.getExecuteOnSelect() !== oItem._getOriginalExecuteOnSelect())) {
 				if (!oVariantInfo.exe) {
 					oVariantInfo.exe = [];
 				}
@@ -2524,7 +2940,7 @@ sap.ui.define([
 				oItem._setOriginalExecuteOnSelect(oItem.getExecuteOnSelect());
 			}
 
-			if (oItem.getVisible() && this._hasContextsChanged(oItem)) {
+			if (!bDeleted && this._hasContextsChanged(oItem)) {
 				if (!oVariantInfo.contexts) {
 					oVariantInfo.contexts = [];
 				}
@@ -2552,17 +2968,11 @@ sap.ui.define([
 
 	VariantManagement.prototype._handleManageSavePressed = function() {
 		if (this._anyInErrorState(this.oManagementTable)) {
-			return;
+			return false;
 		}
 
 		if (this._getDeletedItems().length > 0) {
 			this._bRebindRequired = true;
-			this._getDeletedItems().forEach(function(sKey) {
-				var oItem = this._getItemByKey(sKey);
-				if (oItem) {
-					oItem.setVisible(false);
-				}
-			}.bind(this));
 		}
 
 		if (this._getRenamedItems().length > 0) {
@@ -2581,10 +2991,11 @@ sap.ui.define([
 
 		this.fireManage(this._collectManageData());
 
-		// the manage views dialog may be deleted.
 		if (this.oManagementDialog) {
 			this._resumeManagementTableBinding();
 		}
+
+		return true;
 	};
 
 	VariantManagement.prototype._resumeManagementTableBinding = function() {
@@ -2620,15 +3031,24 @@ sap.ui.define([
 		}
 	};
 
+	VariantManagement.prototype._isItemDeleted = function(oItem) {
+		const aItemsDeleted = this._getDeletedItems();
+		if (!oItem || !aItemsDeleted) {
+			return false;
+		}
+		return (aItemsDeleted.indexOf(oItem.getKey()) > -1);
+	};
+
 	VariantManagement.prototype._anyInErrorStateManageTable = function(oManagementTable) {
-		var oInput;
 		var bInError = false;
 
 		if (oManagementTable) {
-			oManagementTable.getItems().some(function(oItem) {
-				oInput = oItem.getCells()[VariantManagement.COLUMN_NAME_IDX];
-				if (oInput && oInput.getValueState && (oInput.getValueState() === ValueState.Error)) {
-					bInError = true;
+			oManagementTable.getItems().some(function(oRow) {
+				if (oRow.getVisible()) {
+					var oInput = oRow.getCells()[VariantManagement.COLUMN_NAME_IDX];
+					if (oInput && oInput.getValueState && (oInput.getValueState() === ValueState.Error)) {
+						bInError = true;
+					}
 				}
 				return bInError;
 			});
@@ -2676,11 +3096,13 @@ sap.ui.define([
 	// UTILS
 
 	VariantManagement.prototype._getRowForKey = function(sKey) {
-		var oRowForKey = null;
+		let oRowForKey = null;
 		if (this.oManagementTable) {
 			this.oManagementTable.getItems().some(function(oRow) {
-				var oColumnItem = oRow.getCells()[0].getParent();
-				var oItem = this.getModel("$mVariants").getObject(oColumnItem.getBindingContextPath());
+				const oColumnItem = oRow.getCells()[0].getParent();
+				const oBindingContext = oColumnItem.getBindingContext(this._sModelName);
+
+				const oItem = this._findVariantItem(oBindingContext);
 				if (sKey === oItem.getKey()) {
 					oRowForKey = oRow;
 				}
@@ -2694,7 +3116,7 @@ sap.ui.define([
 
 	VariantManagement.prototype._determineIndex = function(sPath) {
 		var nIdx = -1;
-		var nPos = sPath.indexOf('/', 1);
+		var nPos = sPath.lastIndexOf('/');
 		if (nPos > 0) {
 			nIdx = parseInt(sPath.substring(nPos + 1));
 		}
@@ -2703,35 +3125,80 @@ sap.ui.define([
 	};
 
 	VariantManagement.prototype._getFilters = function(oFilter) {
-		var aFilters = [];
+		const aFilters = [];
 
 		if (oFilter) {
 			aFilters.push(oFilter);
 		}
 
-		aFilters.push(this._getVisibleFilter());
+		const oVisibleFilter = this._getVisibleFilter();
+		if (oVisibleFilter) {
+			aFilters.push(oVisibleFilter);
+		}
 
 		if (this.getSupportFavorites()) {
-			aFilters.push(this._getFavoriteFilter());
+			const oFavoriteFilter = this._getFavoriteFilter();
+			if (oFavoriteFilter) {
+				aFilters.push(oFavoriteFilter);
+			}
 		}
 
 		return aFilters;
 	};
 
+	/**
+	 * Classifies a property of the items template into a filter-relevant shape.
+	 * Returns one of:
+	 *   { path: "<modelPath>" }                 — bound with a single path, no formatter; suitable for path-based filtering
+	 *   { value: <static> }                     — set as a static value on the template
+	 *   { complex: true, bindingInfo: <BI> }    — bound with a formatter or multiple parts; needs formatter evaluation
+	 * If no external items binding exists, falls back to { path: sProperty } for the legacy $mVariants layout.
+	 *
+	 * @param {string} sProperty The property to classify
+	 * @returns {object} One of <code>{ path: string }</code>, <code>{ value: any }</code>, or <code>{ complex: true, bindingInfo: object }</code>
+	 * @private
+	 */
+	VariantManagement.prototype._resolveTemplatePath = function(sProperty) {
+		const oTemplate = this.getBindingInfo("items")?.template;
+		if (!oTemplate) {
+			return { path: sProperty };
+		}
+		// VariantItem extends Item; consumers may bind 'text' instead of 'title'.
+		// Mirrors the renderer fallback in _templateFactoryManagementDialog.
+		let oBI = oTemplate.getBindingInfo(sProperty);
+		if (!oBI && sProperty === "title") {
+			oBI = oTemplate.getBindingInfo("text");
+		}
+		if (!oBI) {
+			return { value: oTemplate.getProperty(sProperty) };
+		}
+		if (!oBI.formatter && (!oBI.parts || oBI.parts.length === 1)) {
+			return { path: oBI.parts ? oBI.parts[0].path : oBI.path };
+		}
+		return { complex: true, bindingInfo: oBI };
+	};
+
+	VariantManagement.prototype._getFilterForPath = function(sPath) {
+		const oResolved = this._resolveTemplatePath(sPath);
+		if (oResolved.path) {
+			return new Filter({ path: oResolved.path, operator: FilterOperator.EQ, value1: true });
+		}
+		if ("value" in oResolved) {
+			if (oResolved.value === true || oResolved.value == null) {
+				return null;
+			}
+			return new Filter({ path: "/", test: () => false });
+		}
+		Log.warning(`VariantManagement: '${sPath}' has a complex binding; filter is not applied.`);
+		return null;
+	};
+
 	VariantManagement.prototype._getVisibleFilter = function() {
-		return new Filter({
-			path: "visible",
-			operator: FilterOperator.EQ,
-			value1: true
-		});
+		return this._getFilterForPath("visible");
 	};
 
 	VariantManagement.prototype._getFavoriteFilter = function() {
-		return new Filter({
-			path: "favorite",
-			operator: FilterOperator.EQ,
-			value1: true
-		});
+		return this._getFilterForPath("favorite");
 	};
 
 
@@ -2782,13 +3249,13 @@ sap.ui.define([
 	};
 
 	VariantManagement.prototype._reCheckVariantNameConstraints = function() {
-		var aItems;
-		var bInError = false;
+		let aItems;
+		let bInError = false;
 
 		if (this.oManagementTable) {
 			aItems = this.oManagementTable.getItems();
 			aItems.some(function(oItem) {
-				var oObject = oItem.getBindingContext("$mVariants").getObject();
+				const oObject = this._findVariantItem(oItem.getBindingContext(this._sModelName));
 				if (oObject && oObject.getVisible()) {
 					var oInput = oItem.getCells()[VariantManagement.COLUMN_NAME_IDX];
 					if (oInput && oInput.getValueState && (oInput.getValueState() === ValueState.Error)) {
@@ -2836,19 +3303,19 @@ sap.ui.define([
 	};
 
 	VariantManagement.prototype._checkIsDuplicateInManageTable = function(sValue, sKey) {
-		var aItems;
-		var bInError = false;
-		var sLowerCaseValue = sValue.toLowerCase();
+		let aItems;
+		let bInError = false;
+		const sLowerCaseValue = sValue.toLowerCase();
 
 		if (this.oManagementTable) {
 			aItems = this.oManagementTable.getItems();
-			aItems.some(function(oItem) {
-				var sTitleLowerCase;
-				var oObject = oItem.getBindingContext("$mVariants").getObject();
-				if (oObject && oObject.getVisible()) {
+			aItems.some((oItem) => {
+				let sTitleLowerCase;
+				const oVariantItem = this._findVariantItem(oItem.getBindingContext(this._sModelName));
+				if (oVariantItem && oVariantItem.getVisible()) {
 					var oInput = oItem.getCells()[VariantManagement.COLUMN_NAME_IDX];
 
-					if (oInput && (oObject.getKey() !== sKey)) {
+					if (oInput && (oVariantItem.getKey() !== sKey)) {
 						if (oInput.isA("sap.m.Input")) {
 							sTitleLowerCase = oInput.getValue().toLowerCase();
 						} else {
@@ -2873,10 +3340,97 @@ sap.ui.define([
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	 VariantManagement.prototype._getToolbarInteractive = function () {
 		return true;
+	};
+
+	VariantManagement.prototype._rebindVMTable = function(bForceRebind) {
+		const bHasExternalBinding = !!this.getBindingInfo("items");
+		const oVisibleFilter = this._getVisibleFilter();
+		const oItemsBindingInfos = this.getBindingInfo("items") ?? {
+			path: "/items",
+			model: "$mVariants",
+			factory: this._templateFactoryManagementDialog.bind(this, null),
+			filters: oVisibleFilter ?? []
+		};
+
+		if (!this.oManagementTable.getBinding("items") || bForceRebind) {
+			const oBindingInfo = Object.assign({}, {
+				path: oItemsBindingInfos.path,
+				model: oItemsBindingInfos.model,
+				parameters: oItemsBindingInfos.parameters
+			}, {
+				factory: this._templateFactoryManagementDialog.bind(this, oItemsBindingInfos.template),
+				filters: oVisibleFilter ?? []
+			});
+
+			this._sModelName = oBindingInfo.model;
+			this.oManagementTable.bindAggregation("items", oBindingInfo);
+		} else if (!bHasExternalBinding) {
+			this.oManagementTable.getBinding("items").filter(oVisibleFilter ? [oVisibleFilter] : []);
+		}
+
+		this._bRebindRequired = false;
+	};
+
+	VariantManagement.prototype._findVariantItem = function (oContext) {
+		const vObject = oContext.getObject();
+		if (vObject.isA?.("sap.m.VariantItem")) {
+			return vObject;
+		}
+
+		const sKeyProperty = this.getBindingInfo("items")?.template?.getBindingPath("key") ?? "key";
+
+		return this.getItems().find((oVariantItem) => oVariantItem.getKey() === vObject[sKeyProperty]);
+	};
+
+	VariantManagement.prototype._createRolesCell = function (oItem, oContext, sIdPrefix = `${this.getId()}-manage`) {
+		const fRolesPressed = function(oEvent) {
+			const oContext = oEvent.oSource.getBindingContext(this._sModelName);
+			const oItem = this._findVariantItem(oContext);
+			this._openRolesDialog(oItem, oEvent.oSource.getParent().getItems()[0]);
+		}.bind(this);
+
+		const nPos = this._determineIndex(oContext.getPath());
+		if (this._sStyleClass && this.getSupportContexts() && (oItem.getKey() !== this.getStandardVariantKey())) {
+			const oText = new Text(sIdPrefix + "-role-" + nPos + "-text", { wrapping: false });
+			this._determineRolesSpecificText(oItem, oText);
+			var oIcon = new Icon(sIdPrefix + "-role-" + nPos + "-icon", {
+				src: "sap-icon://edit",
+				press: fRolesPressed
+			});
+			oIcon.addStyleClass("sapMVarMngmtRolesEdit");
+			oIcon.setTooltip(this._oRb.getText("VARIANT_MANAGEMENT_VISIBILITY_ICON_TT"));
+			return new HBox(sIdPrefix + "-role-" + nPos, {
+				items: [oText, oIcon]
+			});
+
+		} else {
+			return new Text(sIdPrefix + "-role-" + nPos + "-text");
+		}
+	};
+
+	VariantManagement.prototype._updateContextsDependencies = function (oRow) {
+		const oContext = oRow.getBindingContext(this._sModelName);
+		const oItem = this._findVariantItem(oContext);
+
+		// Update the roles
+		const oOldCell = oRow.removeCell(VariantManagement.COLUMN_ROLES_IDX);
+		oOldCell?.destroy();
+		const oRoleCell = this._createRolesCell(this._findVariantItem(oContext), oContext);
+		oRow.insertCell(oRoleCell, VariantManagement.COLUMN_ROLES_IDX);
+
+		// Update the default state of the button and the default key
+		if (oRoleCell.isA("sap.m.HBox") && this._isRestricted(oItem.getContexts())) {
+			const oDefaultRadioButton = oRow.getCells()[VariantManagement.COLUMN_DEFAULT_IDX];
+			oDefaultRadioButton.setEnabled(false);
+
+			if (this.getDefaultKey() === oItem.getKey())  {
+				this.setDefaultKey(this.getStandardVariantKey());
+			}
+		}
 	};
 
 	// exit destroy all controls created in init
@@ -2893,6 +3447,10 @@ sap.ui.define([
 		if (this.oVariantInvisibleText && !this.oVariantInvisibleText._bIsBeingDestroyed) {
 			this.oVariantInvisibleText.destroy(true);
 			this.oVariantInvisibleText = undefined;
+		}
+		if (this.oVariantListInvisibleText && !this.oVariantListInvisibleText._bIsBeingDestroyed) {
+			this.oVariantListInvisibleText.destroy(true);
+			this.oVariantListInvisibleText = undefined;
 		}
 
 		if (this.oDefault && !this.oDefault._bIsBeingDestroyed) {
@@ -2926,6 +3484,21 @@ sap.ui.define([
 		this._oSearchFieldOnMgmtDialog = undefined;
 		this._sDefaultKey = undefined;
 		this._oCtrlRef = undefined;
+
+		if (this._oVMTableModel) {
+			this._oVMTableModel.destroy();
+			this._oVMTableModel = undefined;
+		}
+
+		if (this._oNoDataIllustratedMessage && !this._oNoDataIllustratedMessage.bIsDestroyed) {
+			this._oNoDataIllustratedMessage.destroy();
+		}
+		if (this._oNoDataFoundIllustratedMessage && !this._oNoDataFoundIllustratedMessage.bIsDestroyed) {
+			this._oNoDataFoundIllustratedMessage.destroy();
+		}
+
+		this._oNoDataIllustratedMessage = undefined;
+		this._oNoDataFoundIllustratedMessage = undefined;
 
 		oModel = this.getModel(VariantManagement.INNER_MODEL_NAME);
 		if (oModel) {

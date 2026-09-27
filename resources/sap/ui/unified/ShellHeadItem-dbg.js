@@ -1,18 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.ShellHeadItem.
 sap.ui.define([
 	'sap/ui/core/Element',
-	'sap/ui/core/IconPool',
 	'./library',
-	"sap/base/security/encodeXML",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(Element, IconPool, library, encodeXML, jQuery) {
+	function(Element, library, jQuery) {
 	"use strict";
 
 
@@ -28,13 +26,13 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.15.1
 	 * @alias sap.ui.unified.ShellHeadItem
-	 * @deprecated Since version 1.44.0.
+	 * @deprecated As of version 1.44.0, the concept has been discarded.
 	 */
 	var ShellHeadItem = Element.extend("sap.ui.unified.ShellHeadItem", /** @lends sap.ui.unified.ShellHeadItem.prototype */ { metadata : {
 
@@ -173,32 +171,6 @@ sap.ui.define([
 		return this;
 	};
 
-
-	ShellHeadItem.prototype.setIcon = function(sIcon){
-		this.setProperty("icon", sIcon, true);
-		if (this.getDomRef()) {
-			this._refreshIcon();
-		}
-		return this;
-	};
-
-
-	ShellHeadItem.prototype._refreshIcon = function(){
-		var $Ico = jQuery(this.$().children()[0]);
-		var sIco = this.getIcon();
-		if (IconPool.isIconURI(sIco)) {
-			var oIconInfo = IconPool.getIconInfo(sIco);
-			$Ico.html("").attr("style", "");
-			if (oIconInfo) {
-				$Ico.text(oIconInfo.content).attr("role", "presentation").attr("aria-label", oIconInfo.text || oIconInfo.name).css("font-family", "'" + oIconInfo.fontFamily + "'");
-			}
-		} else {
-			var $Image = this.$("img-inner");
-			if ($Image.length == 0 || $Image.attr("src") != sIco) {
-				$Ico.attr("style", "").attr("aria-label", null).html("<img role='presentation' id='" + this.getId() + "-img-inner' src='" + encodeXML(sIco) + "'>");
-			}
-		}
-	};
 
 	return ShellHeadItem;
 

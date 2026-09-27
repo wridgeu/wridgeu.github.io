@@ -8,22 +8,11 @@
 			"version": "1.0.0"
 		},
 		"tags": {
-			"keywords": [
-                "JavaScript",
-                "SAP ABAP",
-                "PHP",
-                "Doctrine",
-                "Symfony",
-                "Twig",
-                "Smarty",
-                "Rollup",
-                "HTML",
-                "CSS"
-			]
+			"keywords": ["JavaScript", "SAP ABAP", "PHP", "Doctrine", "Symfony", "Twig", "Smarty", "Rollup", "HTML", "CSS"]
 		}
 	},
 	"sap.ui": {
-		"deviceTypes":{
+		"deviceTypes": {
 			"desktop": true,
 			"phone": true,
 			"tablet": true
@@ -35,7 +24,7 @@
 		"header": {
 			"title": "Languages",
 			"icon": {
-                "shape": "Square",
+				"shape": "Square",
 				"src": "../resources/img/src-images/code.png"
 			}
 		},
@@ -47,21 +36,21 @@
 						"Description": "ABAP OO, BOPF, RAP",
 						"Icon": "../resources/img/webp/abap_wand.webp",
 						"Initials": "ABAP",
-                        "Alt": "Everything around ABAP"
+						"Alt": "Everything around ABAP"
 					},
 					{
 						"Name": "JavaScript/TS",
 						"Description": "WebDev (HTML, CSS)",
 						"Icon": "../resources/img/svg/Logo_JS.svg",
 						"Initials": "JS",
-                        "Alt": "Web-Development"
+						"Alt": "Web-Development"
 					},
 					{
 						"Name": "PHP",
 						"Description": "Symfony, Doctrine, Twig",
 						"Icon": "../resources/img/webp/php_logo.webp",
-                        "Initials": "PHP",
-                        "Alt": "PHP"
+						"Initials": "PHP",
+						"Alt": "PHP"
 					}
 				]
 			},
@@ -72,7 +61,7 @@
 				"icon": {
 					"src": "{Icon}",
 					"shape": "Circle",
-                    "alt": "{Alt}"
+					"alt": "{Alt}"
 				}
 			}
 		}

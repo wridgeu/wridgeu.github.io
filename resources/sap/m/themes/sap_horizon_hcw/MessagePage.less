@@ -1,11 +1,17 @@
+/**
+ * @file
+ * @deprecated as of version 1.112, together with sap.m.MessagePage
+ */
 /* ================================== */
 /* CSS for control sap.m/MessagePage  */
 /* Horizon High Contrast White theme  */
 /* ================================== */
 
-/* MessagePage inner controls styles*/
+/* MessagePage inner controls styles */
 .sapMMessagePage {
+
 	.sapMMessagePageInner {
+
 		.sapMMessagePageIcon.sapUiIcon::before {
 			color: fade(@sapUiContentNonInteractiveIconColor,50);
 		}
@@ -24,7 +30,7 @@
 		}
 
 		.sapMLnk {
-			font-size: @sapMFontHeader5Size;
+			font-size: var(--sapFontHeader5Size);
 		}
 	}
 

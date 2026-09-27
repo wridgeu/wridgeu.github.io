@@ -1,15 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/Core",
+	"sap/ui/core/ControlBehavior",
 	"sap/ui/core/ValueStateSupport",
 	"sap/ui/core/library",
 	"sap/ui/Device"
-], function (Core, ValueStateSupport, coreLibrary, Device) {
+], function (ControlBehavior, ValueStateSupport, coreLibrary, Device) {
 	"use strict";
 
 	// shortcut for sap.ui.core.ValueState
@@ -55,6 +55,10 @@ sap.ui.define([
 		oRM.openStart("div", oRadioButton)
 			.class("sapMRb");
 
+		if (oRadioButton.getWrapping()) {
+			oRM.class("sapMRbWrapped");
+		}
+
 		if (oRadioButton.getUseEntireWidth()) {
 			oRM.style("width", oRadioButton.getWidth());
 		}
@@ -80,9 +84,7 @@ sap.ui.define([
 
 		if (!bEnabled) {
 			oRM.class("sapMRbDis");
-		}
-
-		if (bNonEditable) {
+		} else if (bNonEditable) {
 			oRM.class("sapMRbRo");
 		}
 
@@ -144,9 +146,11 @@ sap.ui.define([
 			oRM.attr("checked", "checked");
 		}
 
-		if (this.isButtonReadOnly(oRadioButton)) {
-			oRM.attr("readonly", "readonly");
+		// if the radio button is disabled, it should be displayed as disabled only
+		if (!oRadioButton.getEnabled()) {
 			oRM.attr("disabled", "disabled");
+		} else if (this.isButtonReadOnly(oRadioButton)) {
+			oRM.attr("readonly", "readonly");
 		}
 
 		oRM.voidEnd();
@@ -155,7 +159,7 @@ sap.ui.define([
 	RadioButtonRenderer.renderTooltip = function (oRM, oRadioButton) {
 		var sTooltipWithStateMessage = this.getTooltipText(oRadioButton);
 
-		if (sTooltipWithStateMessage && Core.getConfiguration().getAccessibility()) {
+		if (sTooltipWithStateMessage && ControlBehavior.isAccessibilityEnabled()) {
 			// for ARIA, the tooltip must be in a separate SPAN and assigned via aria-describedby.
 			// otherwise, JAWS does not read it.
 			oRM.openStart("span", oRadioButton.getId() + "-Descr")

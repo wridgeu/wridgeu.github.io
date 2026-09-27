@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,6 +12,7 @@ sap.ui.define([
 	"sap/ui/base/EventProvider",
 	"sap/ui/base/ManagedObjectObserver",
 	"sap/ui/Device",
+	"sap/ui/core/Lib",
 	"sap/ui/core/ShortcutHintsMixin",
 	"sap/ui/core/library",
 	"sap/m/library",
@@ -23,12 +24,14 @@ sap.ui.define([
 	EventProvider,
 	ManagedObjectObserver,
 	Device,
+	Library,
 	ShortcutHintsMixin,
 	coreLibrary,
 	mobileLibrary,
 	OverflowToolbarButton,
 	OverflowToolbarLayoutData,
-	SemanticContainer) {
+	SemanticContainer
+) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -298,16 +301,11 @@ sap.ui.define([
 	* @returns {sap.m.Button}
 	*/
 	SemanticShareMenu.prototype._getShareMenuButton = function() {
-		var oContainer, oResourceBundle, sShortcutKey;
+		var oContainer, oResourceBundle;
 
 		if (!this._oShareMenuBtn) {
 			oContainer = this._getContainer();
-			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.f");
-			sShortcutKey = "SEMANTIC_CONTROL_ACTION_SHARE_SHORTCUT"; // Ctrl+Shift+S
-
-			if (Device.os.macintosh) {
-				sShortcutKey += "_MAC"; // Cmd+Shift+S
-			}
+			oResourceBundle = Library.getResourceBundleFor("sap.f");
 
 			this._oShareMenuBtn = new OverflowToolbarButton(oContainer.getId() + "-shareButton", {
 				ariaHasPopup: AriaHasPopup.Menu,
@@ -323,7 +321,7 @@ sap.ui.define([
 
 			ShortcutHintsMixin.addConfig(this._oShareMenuBtn, {
 				addAccessibilityLabel: true,
-				message: oResourceBundle.getText(sShortcutKey)
+				shortcut: "Ctrl+Shift+S" // ShortcutHintsMixin takes care of normalizing and localizing
 			});
 		}
 

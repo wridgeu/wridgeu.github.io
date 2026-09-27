@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,11 +8,12 @@
 sap.ui.define([
 	'sap/ui/core/Control',
 	'./library',
+	"sap/ui/core/Element",
 	'sap/ui/core/library',
 	'./TitleRenderer',
 	"sap/m/HyphenationSupport"
 ],
-	function(Control, library, coreLibrary, TitleRenderer, HyphenationSupport) {
+	function(Control, library, Element, coreLibrary, TitleRenderer, HyphenationSupport) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
@@ -70,10 +71,10 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.IShrinkable
+	 * @implements sap.ui.core.ITitle, sap.ui.core.IShrinkable
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 1.27.0
 	 *
 	 * @constructor
@@ -86,9 +87,10 @@ sap.ui.define([
 
 			library : "sap.m",
 			interfaces : [
-				 "sap.ui.core.IShrinkable",
-				 "sap.m.IHyphenation",
-				 "sap.m.IToolbarInteractiveControl"
+				"sap.ui.core.ITitle",
+				"sap.ui.core.IShrinkable",
+				"sap.m.IHyphenation",
+				"sap.m.IToolbarInteractiveControl"
 			],
 			properties : {
 
@@ -204,7 +206,7 @@ sap.ui.define([
 		var sTitle = this.getTitle();
 
 		if (sTitle) {
-			var oTitle = sap.ui.getCore().byId(sTitle);
+			var oTitle = Element.getElementById(sTitle);
 			if (oTitle && oTitle.isA("sap.ui.core.Title")) {
 				return oTitle;
 			}
@@ -226,7 +228,7 @@ sap.ui.define([
 	 * Sets the title for a <code>sap.m.Title</code> or <code>sap.ui.core.Title</code>
 	 *
 	 * @public
-	 * @param {sap.m.Title|sap.ui.core.Title} vTitle Given variant of the a title which can be <code>sap.m.Title</code> or <code>sap.ui.core.Title</code>.
+	 * @param {sap.m.Title|sap.ui.core.Title} vTitle Given variant of a title which can be <code>sap.m.Title</code> or <code>sap.ui.core.Title</code>.
 	 * @returns {this} this Title reference for chaining.
 	 */
 	Title.prototype.setTitle = function(vTitle){
@@ -329,12 +331,64 @@ sap.ui.define([
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	Title.prototype._getToolbarInteractive = function () {
 		return false;
 	};
 
+	/**
+	* Get tooltip text
+	* @returns {string} Tooltip text
+	* @private
+	*/
+	Title.prototype._getTooltipText = function () {
+		const oAssoTitle = this._getTitle();
+
+		return oAssoTitle && !this.getContent() ? oAssoTitle.getTooltip_AsString() : this.getTooltip_AsString();
+	};
+
+	/**
+	* Handle the mouseover event
+	* @param {jQuery.Event} oEvent The event that occurred in the callout
+	* @private
+	*/
+	Title.prototype.onmouseover = function (oEvent) {
+		const oTarget = this.getDomRef();
+
+		if (!oTarget || oTarget.offsetWidth >= oTarget.scrollWidth) {
+			return;
+		}
+
+		const sTooltip = this._getTooltipText();
+		let sText = this.getText();
+
+		if (sTooltip) {
+			sText += " - " + sTooltip;
+		}
+
+		oTarget.setAttribute("title", sText);
+	};
+
+	/**
+	* Handle the onmouseout event
+	* @param {jQuery.Event} oEvent The event that occurred in the callout
+	* @private
+	*/
+	Title.prototype.onmouseout = function (oEvent) {
+		const oTarget = this.getDomRef();
+		const sTooltip = this._getTooltipText();
+
+		if (!oTarget) {
+			return;
+		}
+
+		if (sTooltip) {
+			oTarget.setAttribute("title", sTooltip);
+		} else {
+			oTarget.removeAttribute("title");
+		}
+	};
 
 	// Add hyphenation to Title functionality
 	HyphenationSupport.mixInto(Title.prototype);

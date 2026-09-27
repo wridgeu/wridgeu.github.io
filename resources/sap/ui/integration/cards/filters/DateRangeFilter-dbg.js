@@ -1,18 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseFilter",
 	"sap/base/Log",
 	"sap/ui/core/library",
-	"sap/ui/integration/util/DateRangeHelper"
+	"sap/ui/integration/util/DateRangeHelper",
+	"sap/base/util/merge"
 ], function (
 	BaseFilter,
 	Log,
 	coreLibrary,
-	DateRangeHelper
+	DateRangeHelper,
+	merge
 ) {
 	"use strict";
 
@@ -29,7 +31,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.filters.BaseFilter
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -62,7 +64,8 @@ sap.ui.define([
 	 * @override
 	 */
 	DateRangeFilter.prototype.setValueFromOutside = function (vValue) {
-		Log.error("Setting a filter value programatically on a DateRangeFilter is currently unsupported.", null, "sap.ui.integration.widgets.Card");
+		DateRangeHelper.setValue(this.getField(), vValue, this.getCardInstance());
+		this._syncValue();
 	};
 
 	/**
@@ -70,6 +73,29 @@ sap.ui.define([
 	 */
 	DateRangeFilter.prototype.getValueForModel = function () {
 		return DateRangeHelper.getValueForModel(this._getDdr());
+	};
+
+	/**
+	 * @returns {object} Filter configuration with static items
+	 */
+	DateRangeFilter.prototype.getStaticConfiguration = function () {
+		const oStaticConfiguration = merge({}, this.getParsedConfiguration());
+		oStaticConfiguration.value = this.getValueForModel().value;
+		return oStaticConfiguration;
+	};
+
+	/**
+	 * @override
+	 */
+	DateRangeFilter.prototype.writeValueToConfiguration = function (oConfiguration) {
+		const oValueForModel = this.getValueForModel();
+
+		if (!oValueForModel.value) {
+			return;
+		}
+
+		oConfiguration.value.option = oValueForModel.value.option;
+		oConfiguration.value.values = oValueForModel.value.values;
 	};
 
 	DateRangeFilter.prototype._getDdr = function () {

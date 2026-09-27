@@ -1,24 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseHeader",
 	"sap/m/library",
 	"sap/f/library",
+	"sap/ui/core/library",
 	"sap/m/Text",
 	"sap/m/Avatar",
 	"sap/f/cards/HeaderRenderer",
-	"sap/ui/core/InvisibleText"
+	"sap/ui/core/InvisibleText",
+	"sap/base/Log"
 ], function (
 	BaseHeader,
 	mLibrary,
 	library,
+	coreLibrary,
 	Text,
 	Avatar,
 	HeaderRenderer,
-	InvisibleText
+	InvisibleText,
+	Log
 ) {
 	"use strict";
 
@@ -26,6 +30,7 @@ sap.ui.define([
 	const AvatarColor = mLibrary.AvatarColor;
 	const AvatarImageFitType = mLibrary.AvatarImageFitType;
 	const AvatarSize = mLibrary.AvatarSize;
+	const ValueState = coreLibrary.ValueState;
 
 	/**
 	 * Constructor for a new <code>Header</code>.
@@ -48,7 +53,7 @@ sap.ui.define([
 	 * @implements sap.f.cards.IHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -68,7 +73,7 @@ sap.ui.define([
 
 				/**
 				 * Limits the number of lines for the title.
-				 * @experimental since 1.101
+				 * @since 1.101
 				 */
 				titleMaxLines: { type: "int", defaultValue: 3 },
 
@@ -79,7 +84,7 @@ sap.ui.define([
 
 				/**
 				 * Limits the number of lines for the subtitle.
-				 * @experimental since 1.101
+				 * @since 1.101
 				 */
 				subtitleMaxLines: { type: "int", defaultValue: 2 },
 
@@ -106,30 +111,46 @@ sap.ui.define([
 				/**
 				 * Defines an alt text for the avatar or icon.
 				 *
-				 * @experimental Since 1.81 this feature is experimental and the API may change.
+				 * @since 1.81
 				 */
 				iconAlt: { type: "string", defaultValue: "" },
 
 				/**
 				 * Defines a background color for the avatar or icon.
 				 *
-				 * @experimental Since 1.83 this feature is experimental and the API may change.
+				 * @since 1.83
 				 */
 				iconBackgroundColor: { type: "sap.m.AvatarColor", defaultValue: AvatarColor.Transparent },
 
 				/**
 				 * Defines whether the card icon is visible.
 				 *
-				 * @experimental Since 1.83 this feature is experimental and the API may change.
+				 * @private
+				 * @ui5-restricted sap.ui.integration
+				 * @since 1.83
 				 */
 				iconVisible: { type: "boolean", defaultValue: true },
 
 				/**
 				 * Defines the size of the icon.
 				 *
-				 * @experimental Since 1.119 this feature is experimental and the API may change.
+				 * @since 1.119
 				 */
-				iconSize: { type: "sap.m.AvatarSize", defaultValue: AvatarSize.S }
+				iconSize: { type: "sap.m.AvatarSize", defaultValue: AvatarSize.S },
+
+				/**
+				 * Defines how the image fits in the icon area.
+				 *
+				 * @since 1.130
+				 */
+				iconFitType: { type: "sap.m.AvatarImageFitType", defaultValue: AvatarImageFitType.Cover },
+
+				/**
+				 * Defines a status-colored, non-interactive message icon in the icon area.
+				 *
+				 * @since 1.141
+				 */
+				iconState: { type: "sap.ui.core.ValueState", defaultValue: ValueState.None }
 			},
 			aggregations: {
 
@@ -147,13 +168,6 @@ sap.ui.define([
 				 * Defines the inner avatar control.
 				 */
 				_avatar: { type: "sap.m.Avatar", multiple: false, visibility: "hidden" }
-			},
-			events: {
-
-				/**
-				 * Fires when the user presses the control.
-				 */
-				press: {}
 			}
 		},
 		renderer: HeaderRenderer
@@ -167,16 +181,10 @@ sap.ui.define([
 		BaseHeader.prototype.init.apply(this, arguments);
 
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
-
-		this._oAriaAvatarText = new InvisibleText({id: this.getId() + "-ariaAvatarText"});
-		this._oAriaAvatarText.setText(this._oRb.getText("ARIA_HEADER_AVATAR_TEXT"));
 	};
 
 	Header.prototype.exit = function () {
 		BaseHeader.prototype.exit.apply(this, arguments);
-
-		this._oAriaAvatarText.destroy();
-		this._oAriaAvatarText = null;
 	};
 
 	/**
@@ -201,7 +209,7 @@ sap.ui.define([
 	Header.prototype._getSubtitle = function () {
 		var oSubtitle = this.getAggregation("_subtitle");
 		if (!oSubtitle) {
-			oSubtitle = new Text().addStyleClass("sapFCardSubtitle");
+			oSubtitle = new Text(this.getId() + "-subtitle").addStyleClass("sapFCardSubtitle");
 			this.setAggregation("_subtitle", oSubtitle);
 		}
 		return oSubtitle;
@@ -215,9 +223,7 @@ sap.ui.define([
 	Header.prototype._getAvatar = function () {
 		var oAvatar = this.getAggregation("_avatar");
 		if (!oAvatar) {
-			oAvatar = new Avatar({
-				imageFitType: AvatarImageFitType.Contain
-			}).addStyleClass("sapFCardIcon");
+			oAvatar = new Avatar().addStyleClass("sapFCardIcon");
 			this.setAggregation("_avatar", oAvatar);
 		}
 		return oAvatar;
@@ -232,19 +238,62 @@ sap.ui.define([
 
 		this._getTitle()
 			.setText(this.getTitle())
-			.setMaxLines(this.getTitleMaxLines());
+			.setMaxLines(this.getTitleMaxLines())
+			.setWrappingType(this.getWrappingType());
+
+		this._enhanceText(this._getTitle());
 
 		this._getSubtitle()
 			.setText(this.getSubtitle())
-			.setMaxLines(this.getSubtitleMaxLines());
+			.setMaxLines(this.getSubtitleMaxLines())
+			.setWrappingType(this.getWrappingType());
 
-		this._getAvatar()
-			.setDisplayShape(this.getIconDisplayShape())
-			.setSrc(this.getIconSrc())
-			.setInitials(this.getIconInitials())
-			.setTooltip(this.getIconAlt())
-			.setBackgroundColor(this.getIconBackgroundColor())
-			.setDisplaySize(this.getIconSize());
+		this._enhanceText(this._getSubtitle());
+
+		if (this.getIconState() != ValueState.None) {
+			const icon = this._getIconForState();
+			this._getAvatar()
+				.setSrc(icon)
+				.setTooltip(this.getIconAlt());
+		} else {
+			this._getAvatar()
+				.setDisplayShape(this.getIconDisplayShape())
+				.setSrc(this.getIconSrc())
+				.setInitials(this.getIconInitials())
+				.setTooltip(this.getIconAlt())
+				.setBackgroundColor(this.getIconBackgroundColor())
+				.setDisplaySize(this.getIconSize())
+				.setImageFitType(this.getIconFitType());
+		}
+
+		this._validateIconProperties();
+	};
+
+	/**
+	 * Helper function used to get the appropriate icon for the state.
+	 *
+	 * @private
+	 * @returns {string} The URI of the icon corresponding to the state.
+	 */
+	Header.prototype._getIconForState = function () {
+		switch (this.getIconState()) {
+			case ValueState.Success:
+				return "sap-icon://sys-enter-2";
+			case ValueState.Error:
+				return "sap-icon://error";
+			case ValueState.Warning:
+				return "sap-icon://warning";
+			case ValueState.Information:
+				return "sap-icon://information";
+			default:
+				return "";
+		}
+	};
+
+	Header.prototype._validateIconProperties = function () {
+		if ((this.getIconSrc() || this.getIconInitials()) && this.getIconState() != ValueState.None) {
+			Log.warning("Invalid Icon configuration: You cannot set an icon with both src/initials and a state simultaneously. The Icon supports only one at a time. Remove either the src/initials or the state.");
+		}
 	};
 
 	/**
@@ -285,7 +334,9 @@ sap.ui.define([
 			aIds.push(this.getParent()._ariaText.getId());
 		}
 
-		if (this.getTitle()) {
+		if (this.getTitle()
+			&& this.isParentCard()
+			&& this.getParent().isTileDisplayVariant()) {
 			aIds.push(this._getTitle().getId());
 		}
 
@@ -297,13 +348,24 @@ sap.ui.define([
 			aIds.push(this.getId() + "-status");
 		}
 
-		if (this.getIconSrc() || this.getIconInitials()) {
-			aIds.push(this.getId() + "-ariaAvatarText");
+		if (this.getDataTimestamp()) {
+			aIds.push(this.getId() + "-dataTimestamp");
+		}
+
+		if (this.getIconSrc() || this.getIconInitials() || this.getIconState() !== ValueState.None) {
+			aIds.push(this._getAvatar().getId());
 		}
 
 		aIds.push(this._getBannerLinesIds());
 
 		return aIds.filter((sElement) => { return !!sElement; }).join(" ");
+	};
+
+	/**
+	 * @override
+	 */
+	Header.prototype.getTitleId = function () {
+		return this._getTitle().getId();
 	};
 
 	Header.prototype.isLoading = function () {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,12 +10,16 @@ sap.ui.define([
 	"./BindingMode",
 	"./StaticBinding",
 	"./CompositeBinding",
+	"./FilterType",
 	"./FormatException",
 	"./ParseException",
 	"./ValidateException",
 	"./Context",
+	"./Type",
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/base/assert",
+	"sap/ui/base/BindingInfo",
 	"sap/ui/base/Object",
 	"sap/base/util/ObjectPath",
 	"sap/ui/base/SyncPromise",
@@ -24,17 +28,30 @@ sap.ui.define([
 	BindingMode,
 	StaticBinding,
 	CompositeBinding,
+	FilterType,
 	FormatException,
 	ParseException,
 	ValidateException,
 	Context,
+	Type,
+	future,
 	Log,
 	assert,
+	BindingInfo,
 	BaseObject,
 	ObjectPath,
 	SyncPromise,
-	ManagedObjectMetadata) {
+	ManagedObjectMetadata
+) {
 	"use strict";
+
+	const makeArray = (vFilter) => {
+		if (vFilter === undefined) {
+			return [];
+		}
+
+		return Array.isArray(vFilter) ? vFilter : [vFilter];
+	};
 
 	/**
 	 * Mixin for data binding support on the ManagedObject class.
@@ -158,30 +175,6 @@ sap.ui.define([
 			}
 
 			/*
-			 * Checks whether a binding can be created for the given oBindingInfo.
-			 *
-			 * @param {object} oBindingInfo
-			 * @returns {boolean} Whether a binding can be created
-			 * @private
-			 */
-			function canCreate(oBindingInfo) {
-				var aParts = oBindingInfo.parts,
-					i;
-
-				if (aParts) {
-					for (i = 0; i < aParts.length; i++) {
-						// check if model exists - ignore static bindings
-						if ( !that.getModel(aParts[i].model) && aParts[i].value === undefined) {
-							return false;
-						}
-					}
-					return true;
-				} else { // List or object binding
-					return !!that.getModel(oBindingInfo.model);
-				}
-			}
-
-			/*
 			 * Remove binding, detach all events and destroy binding object
 			 */
 			function removeBinding(oBindingInfo) {
@@ -196,6 +189,7 @@ sap.ui.define([
 					oBinding.detachRefresh(oBindingInfo.modelRefreshHandler);
 				}
 				oBinding.detachEvents(oBindingInfo.events);
+				that._removeBoundFilters(oBinding);
 				oBinding.destroy();
 				// remove all binding related data from the binding info
 				delete oBindingInfo.binding;
@@ -207,7 +201,7 @@ sap.ui.define([
 			// create object bindings if they don't exist yet
 			for ( sName in this.mObjectBindingInfos ) {
 				oBindingInfo = this.mObjectBindingInfos[sName];
-				bCanCreate = canCreate(oBindingInfo);
+				bCanCreate = BindingInfo.isReady(oBindingInfo, this);
 				// if there is a binding and if it became invalid through the current model change, then remove it
 				if ( oBindingInfo.binding && becameInvalid(oBindingInfo) ) {
 					removeBinding(oBindingInfo);
@@ -239,7 +233,7 @@ sap.ui.define([
 				}
 
 				// if there is no binding and if all required information is available, create a binding object
-				if ( !oBindingInfo.binding && canCreate(oBindingInfo) ) {
+				if ( !oBindingInfo.binding && BindingInfo.isReady(oBindingInfo, this) ) {
 					if (oBindingInfo.factory) {
 						this._bindAggregation(sName, oBindingInfo);
 					} else {
@@ -440,7 +434,7 @@ sap.ui.define([
 							oClone.destroy("KeepDom");
 							break;
 						default:
-							Log.error("Unknown diff type \"" + oDiff.type + "\"");
+							future.errorThrows("Unknown diff type \"" + oDiff.type + "\"");
 					}
 				}
 
@@ -566,15 +560,18 @@ sap.ui.define([
 						}
 						if (oBinding instanceof CompositeBinding) {
 							oBinding.setContext(oContext, {fnIsBindingRelevant : isPartForModel});
+							this.updateFieldHelp?.(sName);
 						} else if (oBindingInfo.factory) {
 							// list binding: update required when the model has the same name (or updateall)
 							if ( oBindingInfo.model == sModelName) {
 								oBinding.setContext(oContext);
+								this.updateFieldHelp?.(sName);
 							}
 
 						} else if (isPartForModel(0)) {
 							// simple property binding: update required when the model has the same name
 							oBinding.setContext(oContext);
+							this.updateFieldHelp?.(sName);
 						}
 					}
 				}
@@ -619,8 +616,6 @@ sap.ui.define([
 				oBinding,
 				sMode,
 				sCompositeMode = BindingMode.TwoWay,
-				oType,
-				clType,
 				oPropertyInfo = this.getMetadata().getPropertyLikeSetting(sName), // TODO fix handling of hidden entities?
 				sInternalType = oPropertyInfo._iKind === /* PROPERTY */ 0 ? oPropertyInfo.type : oPropertyInfo.altTypes[0],
 				that = this,
@@ -659,22 +654,47 @@ sap.ui.define([
 						that.refreshDataState(sName, oDataState);
 					}
 				},
-				fnResolveTypeClass = function(sTypeName) {
+				fnResolveTypeClass = function(sTypeName, oInstance) {
 					var sModulePath = sTypeName.replace(/\./g, "/");
 					// 1. require probing
 					var TypeClass = sap.ui.require(sModulePath);
+
+					/**
+					 * @deprecated
+					 */
 					if (!TypeClass) {
 						// 2. Global lookup
 						TypeClass = ObjectPath.get(sTypeName);
 						if (typeof TypeClass === "function" && !TypeClass._sapUiLazyLoader) {
-							Log.error("[FUTURE] The type class '" + sTypeName + "' is exported to the global namespace without being set as an export value of a UI5 module. " +
+							future.errorThrows("The type class '" + sTypeName + "' is exported to the global namespace without being set as an export value of a UI5 module. " +
 							"This scenario will not be supported in the future and a separate UI5 module needs to be created which exports this type class.");
 						} else {
 							// 3. requireSync fallback
 							TypeClass = sap.ui.requireSync(sModulePath); // legacy-relevant
 						}
 					}
+
+					if (typeof TypeClass !== "function") {
+						throw new Error(`Cannot find type "${sTypeName}" used in control "${oInstance.getId()}"!`);
+					}
+
 					return TypeClass;
+				},
+				fnCreateTypeInstance = function(oBindingInfo) {
+					const vType = oBindingInfo.type;
+					let clType;
+
+					if (typeof vType == "string") {
+						clType = fnResolveTypeClass(vType, that);
+					} else if (typeof vType === "function" && vType.prototype instanceof Type) {
+						clType = vType;
+					}
+
+					if (clType) {
+						return new clType(oBindingInfo.formatOptions, oBindingInfo.constraints);
+					} else {
+						return vType;
+					}
 				};
 
 			oBindingInfo.parts.forEach(function(oPart) {
@@ -683,14 +703,7 @@ sap.ui.define([
 				oModel = that.getModel(oPart.model);
 
 				// Create type instance if needed
-				oType = oPart.type;
-				if (typeof oType == "string") {
-					clType = fnResolveTypeClass(oType);
-					if (typeof clType !== "function") {
-						throw new Error("Cannot find type \"" + oType + "\" used in control \"" + that.getId() + "\"!");
-					}
-					oType = new clType(oPart.formatOptions, oPart.constraints);
-				}
+				const oType = fnCreateTypeInstance(oPart);
 
 				if (oPart.value !== undefined) {
 					oBinding = new StaticBinding(oPart.value);
@@ -710,18 +723,15 @@ sap.ui.define([
 				if (sMode !== BindingMode.TwoWay) {
 					sCompositeMode = BindingMode.OneWay;
 				}
-
+				oBinding.attachEvents(oPart.events);
 				aBindings.push(oBinding);
 			});
 
 			// check if we have a composite binding or a formatter function created by the BindingParser which has property textFragments
 			if (aBindings.length > 1 || ( oBindingInfo.formatter && oBindingInfo.formatter.textFragments )) {
 				// Create type instance if needed
-				oType = oBindingInfo.type;
-				if (typeof oType == "string") {
-					clType = fnResolveTypeClass(oType);
-					oType = new clType(oBindingInfo.formatOptions, oBindingInfo.constraints);
-				}
+				const oType = fnCreateTypeInstance(oBindingInfo);
+
 				oBinding = new CompositeBinding(aBindings, oBindingInfo.useRawValues, oBindingInfo.useInternalValues);
 				oBinding.setType(oType, oBindingInfo.targetType || sInternalType);
 				oBinding.setBindingMode(oBindingInfo.mode || sCompositeMode);
@@ -749,6 +759,7 @@ sap.ui.define([
 			oBinding.attachEvents(oBindingInfo.events);
 
 			oBinding.initialize();
+			this.updateFieldHelp?.(sName);
 
 			if (this._observer) {
 				this._observer.bindingChange(this, sName, "ready", oBindingInfo, "property");
@@ -769,6 +780,7 @@ sap.ui.define([
 				if (this.refreshDataState && !this._bIsBeingDestroyed) {
 					oBinding.detachAggregatedDataStateChange(oBindingInfo.dataStateChangeHandler);
 				}
+				this.updateFieldHelp?.(sName);
 			}
 		},
 
@@ -786,7 +798,103 @@ sap.ui.define([
 						oBinding.detachAggregatedDataStateChange(oBindingInfo.dataStateChangeHandler);
 					}
 				}
+				// For CompositeBindings the part bindings are kept in aBindings not in the BindingInfos.
+				const aBindings = oBindingInfo.aBindings;
+				aBindings?.forEach(function(oPartBinding, i) {
+					oPartBinding.detachEvents(oBindingInfo.parts[i].events);
+				});
 			}
+		},
+
+		/**
+		 * Creates a bound filter control for the given filter and the given binding.
+		 *
+		 * @param {sap.ui.model.Filter} oFilter The filter
+		 * @param {function} fnGetBinding The function returning the aggregation binding
+ 		 */
+		_createBoundFilter: function (oFilter, fnGetBinding) {
+			oFilter.setBound();
+			if (oFilter.isMultiFilter()) {
+				oFilter.aFilters.forEach((oFilter) => {
+					this._createBoundFilter(oFilter, fnGetBinding);
+				});
+				return;
+			}
+
+			const oValue1BindingInfo = BindingInfo.extract(oFilter.oValue1, /*oScope*/ undefined,
+				/*bDetectValue*/ true);
+			const oValue2BindingInfo = BindingInfo.extract(oFilter.oValue2, /*oScope*/ undefined,
+				/*bDetectValue*/ true);
+			if (!oValue1BindingInfo && !oValue2BindingInfo) {
+				return;
+			}
+
+			oFilter.setResolved(false);
+			sap.ui.require(["sap/ui/base/BoundFilter"], (BoundFilter) => {
+				const oBoundFilter = new BoundFilter({
+						value1: oFilter.oValue1,
+						value2: oFilter.oValue2
+					}, oFilter, fnGetBinding());
+				this.addDependent(oBoundFilter);
+			});
+		},
+
+		/**
+		 * Creates bound filter controls for the bound filters in the given binding info in the dependents
+		 * aggregation of this control to allow for resolution of binding expressions in these filters.
+		 *
+		 * @param {object} oFilters The filters as defined for sap.ui.base.ManagedObject.AggregationBindingInfo
+		 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter|undefined} oFilters.boundFilters The bound filters
+		 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter|undefined} oFilters.filters The constant filters
+		 * @param {function} fnGetBinding The function returning the aggregation binding
+		 * @returns {sap.ui.model.Filter[]|sap.ui.model.Filter|undefined}
+		 *   The filters to be used when the binding is created
+		 */
+		_processFilters: function (oFilters, fnGetBinding) {
+			// keep behavior before introduction of bound filters in case there are none
+			if (oFilters.boundFilters === undefined) {
+				return oFilters.filters;
+			}
+
+			const aBoundFilters = makeArray(oFilters.boundFilters);
+			aBoundFilters.forEach((oBoundFilter) => this._createBoundFilter(oBoundFilter, fnGetBinding));
+
+			return makeArray(oFilters.filters).concat(aBoundFilters);
+		},
+
+		/**
+		 * Computes the given list binding's application filters by replacing application filters of the given type
+		 * with the given filters, see {@link ListBinding#computeApplicationFilters}.
+		 *
+		 * @param {sap.ui.model.ListBinding} oBinding The list binding
+		 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [vFilters] The filters to be applied
+		 * @param {sap.ui.model.FilterType} [sFilterType=sap.ui.model.FilterType.Application] The type of the filters
+		 * @returns {sap.ui.model.Filter[]|sap.ui.model.Filter|undefined} The filters to be used for the binding after
+		 *   the update
+		 * @throws {Error} For filter type <code>sap.ui.model.FilterType.Control</code>
+		 */
+		computeApplicationFilters: function (oBinding, vFilters, sFilterType) {
+			if (sFilterType === FilterType.Control) {
+				throw new Error("Must not use filter type Control");
+			}
+
+			if (oBinding._isBoundFilterUpdate()) {
+				return vFilters;
+			}
+
+			if (sFilterType === FilterType.ApplicationBound) {
+				this._removeBoundFilters(oBinding);
+				const aConstantFilters = oBinding.aApplicationFilters.filter((oFilter) => !oFilter.isBound());
+				return this._processFilters({boundFilters: vFilters, filters: aConstantFilters}, () => oBinding,
+					/*bIsTreeBinding*/ false);
+			}
+
+			const aBoundFilters = oBinding.aApplicationFilters.filter((oFilter) => oFilter.isBound());
+			if (aBoundFilters.length === 0) {
+				return vFilters;
+			}
+
+			return makeArray(vFilters).concat(aBoundFilters);
 		},
 
 		/*
@@ -815,16 +923,20 @@ sap.ui.define([
 					}
 				};
 
-				var oModel = this.getModel(oBindingInfo.model);
-				if (this.isTreeBinding(sName)) {
-					oBinding = oModel.bindTree(oBindingInfo.path, this.getBindingContext(oBindingInfo.model), oBindingInfo.filters, oBindingInfo.parameters, oBindingInfo.sorter);
-				} else {
-					oBinding = oModel.bindList(oBindingInfo.path, this.getBindingContext(oBindingInfo.model), oBindingInfo.sorter, oBindingInfo.filters, oBindingInfo.parameters);
-					if (this.bUseExtendedChangeDetection) {
-						assert(!this.oExtendedChangeDetectionConfig || !this.oExtendedChangeDetectionConfig.symbol, "symbol function must not be set by controls");
-						oBinding.enableExtendedChangeDetection(!oBindingInfo.template, oBindingInfo.key, this.oExtendedChangeDetectionConfig);
-					}
+			const getBinding = () => oBinding;
+			const aFilters = this._processFilters(oBindingInfo, getBinding);
+
+			var oModel = this.getModel(oBindingInfo.model);
+			if (this.isTreeBinding(sName)) {
+				oBinding = oModel.bindTree(oBindingInfo.path, this.getBindingContext(oBindingInfo.model), aFilters, oBindingInfo.parameters, oBindingInfo.sorter);
+			} else {
+				oBinding = oModel.bindList(oBindingInfo.path, this.getBindingContext(oBindingInfo.model), oBindingInfo.sorter, aFilters, oBindingInfo.parameters);
+				if (this.bUseExtendedChangeDetection) {
+					assert(!this.oExtendedChangeDetectionConfig || !this.oExtendedChangeDetectionConfig.symbol, "symbol function must not be set by controls");
+					oBinding.enableExtendedChangeDetection(!oBindingInfo.template, oBindingInfo.key, this.oExtendedChangeDetectionConfig);
 				}
+			}
+			oBinding.computeApplicationFilters = this.computeApplicationFilters.bind(this, oBinding);
 
 			if (oBindingInfo.suspended) {
 				oBinding.suspend(true);
@@ -852,10 +964,29 @@ sap.ui.define([
 			}
 		},
 
+		/**
+		 * Removes bound filters for the given binding from the dependents aggregation.
+		 *
+		 * @param {sap.ui.model.Binding} oBinding The binding
+		 */
+		_removeBoundFilters: function (oBinding) {
+			if (!oBinding.isA(["sap.ui.model.ListBinding", "sap.ui.model.TreeBinding"])) {
+				return;
+			}
+
+			this.getDependents?.().forEach((oDependent) => {
+				if (oDependent.isA("sap.ui.base.BoundFilter") && oDependent.getBinding() === oBinding) {
+					this.removeDependent(oDependent);
+					oDependent.destroy();
+				}
+			});
+		},
+
 		_unbindAggregation: function(oBindingInfo, sName){
 			if (oBindingInfo.binding) {
 				if (!this._bIsBeingDestroyed) {
 					this._detachAggregationBindingHandlers(sName);
+					this._removeBoundFilters(oBindingInfo.binding);
 				}
 				oBindingInfo.binding.destroy();
 			}

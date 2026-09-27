@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -59,8 +59,9 @@ sap.ui.define([
 	 * (center top of the popup appears at center bottom of the referring DOM node)- e.g. "5 0"
 	 * @param {boolean} [oConfig.addAccessibilityLabel] Whether we add an area-describedby label - ID to a hidden
 	 * label with the content of the replaced native tooltip (for screen readers)
-	 * @param {boolean} [oConfig.message] The string to be used as a shortcut hint
-	 * @param {boolean} [oConfig.messageBundleKey] A message bundle key in the hint
+	 * @param {string} [oConfig.message] The string to be used as a shortcut hint
+	 * @param {string} [oConfig.messageBundleKey] A message bundle key in the hint
+	 * @param {string} [oConfig.shortcut] The raw shortcut text. The text will be normalized and localized and used as a shortcut hint.
 	 * provider's library to be used as a translatable shortcut hint
 	 * @param {boolean} [oConfig.event] Event name - to show a shortcut hint for a command
 	 * attached to that event
@@ -181,6 +182,10 @@ sap.ui.define([
 			this.register(oHintInfo.id,
 				{ messageBundleKey: oHintInfo.messageBundleKey },
 				oHintProviderControl);
+		} else if (oHintInfo.shortcut) {
+			this.register(oHintInfo.id,
+				{ shortcut: oHintInfo.shortcut },
+				oHintProviderControl);
 		} else if (oHintInfo.event) {
 			var oEventListeners = EventProvider.getEventList(oHintProviderControl)[oHintInfo.event],
 				aAttachedCommands = [];
@@ -253,6 +258,7 @@ sap.ui.define([
 			position: option.position,
 			messageBundleKey: option.messageBundleKey,
 			message: option.message,
+			shortcut: option.shortcut,
 			addAccessibilityLabel: option.addAccessibilityLabel
 		};
 	};
@@ -380,7 +386,9 @@ sap.ui.define([
 	ShortcutHintsMixin.prototype._updateShortcutHintAccLabel = function(oHintInfo) {
 		var oInvText,
 			sInvTextId,
-			oControl;
+			oControl,
+			oDOMElement,
+			bHasAriaKeyshortcuts;
 
 		if (!oHintInfo.addAccessibilityLabel) {
 			return;
@@ -392,6 +400,16 @@ sap.ui.define([
 			return;
 		}
 
+		// Check if the target DOM element already has aria-keyshortcuts
+		oDOMElement = document.getElementById(oHintInfo.id);
+		bHasAriaKeyshortcuts = oDOMElement && oDOMElement.hasAttribute("aria-keyshortcuts");
+
+		// If aria-keyshortcuts is present, don't add aria-describedby to avoid duplication
+		if (bHasAriaKeyshortcuts) {
+			return;
+		}
+
+		// Only add aria-describedby if aria-keyshortcuts is not available
 		oInvText = getInvisibleText(oControl);
 		sInvTextId = oInvText.getId();
 
@@ -459,6 +477,11 @@ sap.ui.define([
 				return;
 			}
 
+			// add native tooltip to element so it can override the native tooltip of the container / parent element
+			if (!oDOMRef.getAttribute('title')) {
+				oDOMRef.setAttribute('title', '');
+			}
+
 			if (checkMouseEnterOrLeave(oEvent, oDOMRef)) {
 				ShortcutHintsMixin.hideAll();
 
@@ -477,11 +500,10 @@ sap.ui.define([
 			}
 
 			if (checkMouseEnterOrLeave(oEvent, oShortcutHintRefs[0].ref)) {
-				// do not hide if the element is focused
-				if (oShortcutHintRefs[0].ref.contains(document.activeElement)) {
-					return;
+				// remove the native tooltip that was set onmouseover
+				if (oShortcutHintRefs[0].ref.getAttribute('title') === '') {
+					oShortcutHintRefs[0].ref.removeAttribute('title');
 				}
-
 				this.hideShortcutHint();
 			}
 		},
@@ -497,7 +519,7 @@ sap.ui.define([
 			for (var i = 0; i < aInfos.length; i++) {
 				sDOMRefID = aInfos[i].id;
 				oElement = document.getElementById(sDOMRefID);
-				oElement.setAttribute("aria-keyshortcuts", _getShortcutHintText(sDOMRefID));
+				oElement && oElement.setAttribute("aria-keyshortcuts", _getShortcutHintText(sDOMRefID));
 			}
 		}
 	};

@@ -1,15 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.DynamicDateRange.
 sap.ui.define([
 	'sap/base/Log',
+	'sap/base/i18n/date/CalendarWeekNumbering',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/Element',
 	'sap/ui/core/Control',
+	"sap/ui/core/Lib",
 	'sap/ui/core/ListItem',
 	'sap/ui/core/library',
 	'sap/ui/core/Renderer',
@@ -20,7 +22,6 @@ sap.ui.define([
 	'sap/ui/core/LabelEnablement',
 	"sap/ui/core/date/UniversalDate",
 	'sap/ui/core/format/DateFormat',
-	'sap/ui/core/format/TimezoneUtil',
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/Device',
 	'./Label',
@@ -39,47 +40,46 @@ sap.ui.define([
 	'./StandardDynamicDateOption',
 	'./library',
 	'sap/ui/thirdparty/jquery',
-	'sap/ui/core/Configuration',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/core/CustomData'
 ], function(
-		Log,
-		InvisibleText,
-		Element,
-		Control,
-		ListItem,
-		coreLibrary,
-		Renderer,
-		MessageMixin,
-		DynamicDateFormat,
-		IconPool,
-		Icon,
-		LabelEnablement,
-		UniversalDate,
-		DateFormat,
-		TimezoneUtil,
-		ManagedObjectObserver,
-		Device,
-		Label,
-		GroupHeaderListItem,
-		StandardListItem,
-		StandardListItemRenderer,
-		Button,
-		List,
-		Input,
-		InputRenderer,
-		Toolbar,
-		ResponsivePopover,
-		Page,
-		NavContainer,
-		DynamicDateRangeRenderer,
-		StandardDynamicDateOption,
-		library,
-		jQuery,
-		Configuration,
-		CalendarUtils,
-		CustomData
-	) {
+	Log,
+	_CalendarWeekNumbering, // implicitly required as type of `calendarWeekNumbering`
+	InvisibleText,
+	Element,
+	Control,
+	Library,
+	ListItem,
+	coreLibrary,
+	Renderer,
+	MessageMixin,
+	DynamicDateFormat,
+	IconPool,
+	Icon,
+	LabelEnablement,
+	UniversalDate,
+	DateFormat,
+	ManagedObjectObserver,
+	Device,
+	Label,
+	GroupHeaderListItem,
+	StandardListItem,
+	StandardListItemRenderer,
+	Button,
+	List,
+	Input,
+	InputRenderer,
+	Toolbar,
+	ResponsivePopover,
+	Page,
+	NavContainer,
+	DynamicDateRangeRenderer,
+	StandardDynamicDateOption,
+	library,
+	jQuery,
+	CalendarUtils,
+	CustomData
+) {
 		"use strict";
 
 		// shortcut for sap.ui.core.ValueState
@@ -89,7 +89,7 @@ sap.ui.define([
 			ListType = library.ListType,
 			ListMode = library.ListMode,
 			ListSeparators = library.ListSeparators,
-			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 			var oStandardOptionsObjects = {
 				"TODAY": new StandardDynamicDateOption({ key: "TODAY", valueTypes: [] }),
@@ -129,6 +129,20 @@ sap.ui.define([
 				"NEXTMONTHS": new StandardDynamicDateOption({ key: "NEXTMONTHS", valueTypes: ["int"] }),
 				"NEXTQUARTERS": new StandardDynamicDateOption({ key: "NEXTQUARTERS", valueTypes: ["int"] }),
 				"NEXTYEARS": new StandardDynamicDateOption({ key: "NEXTYEARS", valueTypes: ["int"] }),
+				"LASTMINUTESINCLUDED": new StandardDynamicDateOption({ key: "LASTMINUTESINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTHOURSINCLUDED": new StandardDynamicDateOption({ key: "LASTHOURSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTDAYSINCLUDED": new StandardDynamicDateOption({ key: "LASTDAYSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTWEEKSINCLUDED": new StandardDynamicDateOption({ key: "LASTWEEKSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTMONTHSINCLUDED": new StandardDynamicDateOption({ key: "LASTMONTHSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTQUARTERSINCLUDED": new StandardDynamicDateOption({ key: "LASTQUARTERSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTYEARSINCLUDED": new StandardDynamicDateOption({ key: "LASTYEARSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTMINUTESINCLUDED": new StandardDynamicDateOption({ key: "NEXTMINUTESINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTHOURSINCLUDED": new StandardDynamicDateOption({ key: "NEXTHOURSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTDAYSINCLUDED": new StandardDynamicDateOption({ key: "NEXTDAYSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTWEEKSINCLUDED": new StandardDynamicDateOption({ key: "NEXTWEEKSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTMONTHSINCLUDED": new StandardDynamicDateOption({ key: "NEXTMONTHSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTQUARTERSINCLUDED": new StandardDynamicDateOption({ key: "NEXTQUARTERSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTYEARSINCLUDED": new StandardDynamicDateOption({ key: "NEXTYEARSINCLUDED", valueTypes: ["int", "included"] }),
 				"FROM": new StandardDynamicDateOption({ key: "FROM", valueTypes: ["date"] }),
 				"TO": new StandardDynamicDateOption({ key: "TO", valueTypes: ["date"] }),
 				"FROMDATETIME": new StandardDynamicDateOption({ key: "FROMDATETIME", valueTypes: ["datetime"] }),
@@ -183,6 +197,20 @@ sap.ui.define([
 				"NEXTMONTHS",
 				"NEXTQUARTERS",
 				"NEXTYEARS",
+				"LASTMINUTESINCLUDED",
+				"LASTHOURSINCLUDED",
+				"LASTDAYSINCLUDED",
+				"LASTWEEKSINCLUDED",
+				"LASTMONTHSINCLUDED",
+				"LASTQUARTERSINCLUDED",
+				"LASTYEARSINCLUDED",
+				"NEXTMINUTESINCLUDED",
+				"NEXTHOURSINCLUDED",
+				"NEXTDAYSINCLUDED",
+				"NEXTWEEKSINCLUDED",
+				"NEXTMONTHSINCLUDED",
+				"NEXTQUARTERSINCLUDED",
+				"NEXTYEARSINCLUDED",
 				"TODAYFROMTO",
 				"THISWEEK",
 				"LASTWEEK",
@@ -249,6 +277,9 @@ sap.ui.define([
 		 * In order for a specific option to be used its key should be added into the <code>standardOptions</code> property
 		 * of the control. No options are added by default.
 		 *
+		 * <b>Note:</b> Property binding with the <code>value</code> and <code>formatter</code> properties is not supported.
+		 * Instead, you should use their public getter and setter methods.
+		 *
 		 * Suggestions are available when the user types in the control input field.
 		 *
 		 * <h3>Responsive behavior</h3>
@@ -257,7 +288,7 @@ sap.ui.define([
 		 * is opened. The dialog is closed via a date time period value selection or by pressing the "Cancel" button.
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
@@ -276,10 +307,14 @@ sap.ui.define([
 					 * The control uses a special wrong-value object, when the input receives
 					 * an unrecognized string - { operator: "PARSEERROR", values: [...]}
 					 *
+					 *  <b>Note:</b> Data binding for the <code>value</code> property is not supported. Instead,
+					 *  you should use DynamicDateRange's <code>getValue</code> and <code>setValue</code> methods.
+					 *
 					 * @since 1.92
 					 * @private
+					 * @ui5-restricted sap.m.DynamicDateRange
 					 */
-					value: { type: "object" },
+					value: { type: "object", group: "Data"},
 
 					/**
 					 * Defines the width of the control.
@@ -352,8 +387,12 @@ sap.ui.define([
 					 * An instance of sap.m.DynamicDateFormat or a user defined format object with the
 					 * corresponding formatting and parsing functionality.
 					 *
+					 * <b>Note:</b> Data binding for the <code>formatter</code> property is not supported. Instead,
+					 * you should use DynamicDateRange's <code>getFormatter</code> and <code>setFormatter</code> methods.
+					 *
 					 * @since 1.92
 					 * @private
+					 * @ui5-restricted sap.m.DynamicDateRange
 					 */
 					formatter: { type: "object" },
 
@@ -392,6 +431,13 @@ sap.ui.define([
 							"LASTMONTHS",
 							"LASTQUARTERS",
 							"LASTYEARS",
+							"LASTMINUTESINCLUDED",
+							"LASTHOURSINCLUDED",
+							"LASTDAYSINCLUDED",
+							"LASTWEEKSINCLUDED",
+							"LASTMONTHSINCLUDED",
+							"LASTQUARTERSINCLUDED",
+							"LASTYEARSINCLUDED",
 							"NEXTMINUTES",
 							"NEXTHOURS",
 							"NEXTDAYS",
@@ -399,6 +445,13 @@ sap.ui.define([
 							"NEXTMONTHS",
 							"NEXTQUARTERS",
 							"NEXTYEARS",
+							"NEXTMINUTESINCLUDED",
+							"NEXTHOURSINCLUDED",
+							"NEXTDAYSINCLUDED",
+							"NEXTWEEKSINCLUDED",
+							"NEXTMONTHSINCLUDED",
+							"NEXTQUARTERSINCLUDED",
+							"NEXTYEARSINCLUDED",
 							"TODAYFROMTO",
 							"THISWEEK",
 							"LASTWEEK",
@@ -437,13 +490,12 @@ sap.ui.define([
 					 */
 					 hideInput: { type: "boolean", group: "Misc", defaultValue: false },
 
-					  /**
+					/**
 					 * If set, the calendar week numbering is used for display.
 					 * If not set, the calendar week numbering of the global configuration is used.
 					 * @since 1.111.0
 					 */
-
-					calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
+					calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
 
 					/**
 					 * Specifies whether clear icon is shown.
@@ -498,22 +550,29 @@ sap.ui.define([
 
 		var aLastDateTimeOperators = [
 			"LASTMINUTES",
-			"LASTHOURS"
+			"LASTHOURS",
+			"LASTMINUTESINCLUDED",
+			"LASTHOURSINCLUDED"
 		];
 
 		var aNextDateTimeOperators = [
 			"NEXTMINUTES",
-			"NEXTHOURS"
+			"NEXTHOURS",
+			"NEXTMINUTESINCLUDED",
+			"NEXTHOURSINCLUDED"
 		];
 
 		var aDateTimeOperators = aLastDateTimeOperators.concat(aNextDateTimeOperators);
 		var aLastOptions = ["LASTMINUTES", "LASTHOURS", "LASTDAYS", "LASTWEEKS", "LASTMONTHS", "LASTQUARTERS", "LASTYEARS"];
 		var aNextOptions = ["NEXTMINUTES", "NEXTHOURS", "NEXTDAYS", "NEXTWEEKS", "NEXTMONTHS", "NEXTQUARTERS", "NEXTYEARS"];
+		var aLastIncludedOptions = ["LASTMINUTESINCLUDED", "LASTHOURSINCLUDED", "LASTDAYSINCLUDED", "LASTWEEKSINCLUDED", "LASTMONTHSINCLUDED", "LASTQUARTERSINCLUDED", "LASTYEARSINCLUDED"];
+		var aNextIncludedOptions = ["NEXTMINUTESINCLUDED", "NEXTHOURSINCLUDED", "NEXTDAYSINCLUDED", "NEXTWEEKSINCLUDED", "NEXTMONTHSINCLUDED", "NEXTQUARTERSINCLUDED", "NEXTYEARSINCLUDED"];
+
+		const POPUP_MAX_HEIGHT = 512;
 
 		DynamicDateRange.prototype.init = function() {
 			var bValueHelpDecorative = !Device.support.touch || Device.system.desktop ? true : false;
 			this._oInput = new DynamicDateRangeInput(this.getId() + "-input", {
-				showValueHelp: true,
 				valueHelpIconSrc: IconPool.getIconURI("sap-icon://check-availability"),
 				valueHelpRequest: this._toggleOpen.bind(this),
 				showSuggestion: true,
@@ -529,6 +588,7 @@ sap.ui.define([
 			};
 
 			this._oInput._getValueHelpIcon().setDecorative(bValueHelpDecorative);
+			this._oInput._getValueHelpIcon().setTooltip(oResourceBundle.getText("OPEN_PICKER_TEXT"));
 
 			this._oInput.addDelegate(this._onBeforeInputRenderingDelegate, this);
 
@@ -550,6 +610,11 @@ sap.ui.define([
 			this._onBeforeInputRenderingDelegate = undefined;
 			this.oValueObserver.destroy();
 
+			if (this._oInvisibleLabelText) {
+				this._oInvisibleLabelText.destroy();
+				this._oInvisibleLabelText = undefined;
+			}
+
 			this._infoDatesFooter = undefined;
 			this.aInputControls = undefined;
 
@@ -567,6 +632,7 @@ sap.ui.define([
 		/**
 		 * Getter for the <code>value</code> of the control.
 		 * @returns {sap.m.DynamicDateRangeValue} A <code>sap.m.DynamicDateRangeValue</code>
+		 * @public
 		 */
 		DynamicDateRange.prototype.getValue = function() {
 			return this.getProperty("value");
@@ -575,6 +641,7 @@ sap.ui.define([
 		/**
 		 * Getter for the <code>formatter</code> of the control.
 		 * @returns {sap.m.DynamicDateFormat} A <code>sap.m.DynamicDateFormat</code>
+		 * @public
 		 */
 		 DynamicDateRange.prototype.getFormatter = function() {
 			return this.getProperty("formatter");
@@ -585,6 +652,7 @@ sap.ui.define([
 		 * @returns {sap.m.DynamicDateFormat} A <code>sap.m.DynamicDateFormat</code>
 		 * @param {sap.m.DynamicDateFormat} oFormatter A <code>sap.m.DynamicDateFormat</code>
 		 * @returns {this} Reference to <code>this</code> for method chaining
+		 * @public
 		 */
 		 DynamicDateRange.prototype.setFormatter = function(oFormatter) {
 			this.setProperty("formatter", oFormatter);
@@ -635,6 +703,7 @@ sap.ui.define([
 		 * Setter for the <code>value</code> control property.
 		 * @param {sap.m.DynamicDateRangeValue} oValue A <code>sap.m.DynamicDateRangeValue</code>
 		 * @returns {this} Reference to <code>this</code> for method chaining
+		 * @public
 		 */
 		DynamicDateRange.prototype.setValue = function(oValue) {
 			var sOptionKey = oValue && oValue.operator;
@@ -643,6 +712,7 @@ sap.ui.define([
 			oValue = this._substituteValue(oValue);
 
 			this.setProperty("value", oValue);
+
 			this._oSelectedOption = this.getOption(sOptionKey);
 
 			// Forward Dynamic Date Range control property values to inner sap.m.Input instance.
@@ -685,30 +755,44 @@ sap.ui.define([
 				this._removeAllListItemDelegates();
 				this._oOptionsList.destroyAggregation("items");
 
-				this._collectValueHelpItems(this._getOptions(), true).map(function(vOption) {
+				let oCurrentGroupHeader;
+
+				this._collectValueHelpItems(this._getOptions(), true).forEach(function(vOption) {
+					let oItem;
 					// check if it's a group header
 					if (typeof (vOption) === "string") {
-						return this._createHeaderListItem(vOption);
+						// Create and add group header using ListBase.addItemGroup
+						const oGroupData = { text: vOption };
+						oCurrentGroupHeader = this._oOptionsList.addItemGroup(oGroupData, null, true);
+						oCurrentGroupHeader.addDelegate(this._oListItemDelegate, this);
+					} else {
+						if (vOption.getKey() === "FROMDATETIME") {
+							vOption._bAdditionalTimeText = !!this._findOption("FROM");
+						} else if (vOption.getKey() === "TODATETIME") {
+							vOption._bAdditionalTimeText = !!this._findOption("TO");
+						} else if (vOption.getKey() === "DATETIMERANGE") {
+							vOption._bAdditionalTimeText = !!this._findOption("DATERANGE");
+						}
+						oItem = this._createListItem(vOption);
+						oItem.addDelegate(this._oListItemDelegate, this);
+						this._oOptionsList.addItem(oItem);
 					}
-					if (vOption.getKey() === "FROMDATETIME") {
-						vOption._bAdditionalTimeText = !!this._findOption("FROM");
-					} else if (vOption.getKey() === "TODATETIME") {
-						vOption._bAdditionalTimeText = !!this._findOption("TO");
-					} else if (vOption.getKey() === "DATETIMERANGE") {
-						vOption._bAdditionalTimeText = !!this._findOption("DATERANGE");
-					}
-					return this._createListItem(vOption);
-				}, this).forEach(function(oItem) {
-					oItem.addDelegate(this._oListItemDelegate, this);
-					this._oOptionsList.addItem(oItem);
 				}, this);
 
 				//reset value help page
 				this._oNavContainer.to(this._oNavContainer.getPages()[0]);
 
+				// Enable auto-sizing for the options list page
+				if (!Device.system.phone) {
+					this._oPopup.addStyleClass("sapMDDRAutoSize");
+					this._oPopup.setContentHeight("");
+				}
+
 				this._openPopup(oDomRef);
 			}
 		};
+
+
 
 		/**
 		 * Searches if there is an option with the given key included.
@@ -841,7 +925,7 @@ sap.ui.define([
 		/**
 		 * Calculates a date range from a provided object in the format of the DynamicDateRange's value.
 		 *
-		 * @param {string} oValue The provided value
+		 * @param {sap.m.DynamicDateRangeValue} oValue A <code>sap.m.DynamicDateRangeValue</code>
 		 * @returns {sap.ui.core.date.UniversalDate[]} An array of two date objects - start and end date
 		 * @public
 		 */
@@ -950,10 +1034,10 @@ sap.ui.define([
 
 		DynamicDateRange.prototype._getValueHelpTypeForFormatter = function() {
 			var	sOptionKey = this._oSelectedOption ? this._oSelectedOption.getKey() : '',
-				aLastOptionsSelectedIndex = aLastOptions.indexOf(sOptionKey),
-				aNextOptionsSelectedIndex = aNextOptions.indexOf(sOptionKey),
+				aLastOptionsSelectedIndex = this.lastOptionsIndex(sOptionKey),
+				aNextOptionsSelectedIndex = this.nextOptionsIndex(sOptionKey),
 				aPopupContent = this._oNavContainer ? this._oNavContainer.getPages()[1].getContent()[3] || [] : [],
-				aButtons = aPopupContent.getButtons ? aPopupContent.getButtons() : [],
+				oSelect = aPopupContent,
 				aSuggestionItems = this.getAggregation('_input').getAggregation('suggestionItems'),
 				oValue = this.getValue(),
 				aOptionKeys = this.getStandardOptions(),
@@ -963,12 +1047,16 @@ sap.ui.define([
 				oCustomData,
 				aValueHelpTypes,
 				sType,
-				iButtonSelectedIndex,
 				sSuggestionOptionKey;
+
+			const sFooterType = this._oSelectedOption && this._oSelectedOption.getValueHelpUIFooterFormatTypes();
+			if (sFooterType) {
+				return sFooterType;
+			}
 
 			if (
 				!oValue &&
-				(!aButtons[0] || !aButtons[0].getDomRef()) &&
+				!oSelect &&
 				aSuggestionItems && aSuggestionItems.length &&
 				aSuggestionItems[aSuggestionItems.length - 1].getCustomData
 			) {
@@ -984,12 +1072,12 @@ sap.ui.define([
 			}
 
 			aOptionKeys.forEach(function(sOption) {
-				if (aLastOptions.indexOf(sOption) > -1) {
+				if (this.lastOptionsIndex(sOption) > -1) {
 					aLastActualOrder.push(sOption);
-				} else if (aNextOptions.indexOf(sOption) > -1) {
+				} else if (this.nextOptionsIndex(sOption) > -1) {
 					aNextActualOrder.push(sOption);
 				}
-			});
+			}.bind(this));
 
 			if (oCustomData) {
 				sSuggestionOptionKey = oCustomData.getValue();
@@ -1006,14 +1094,11 @@ sap.ui.define([
 
 			//if option requires extra formatting.
 			if (
-				this._oNavContainer && !aButtons.length ||
-				(this._oNavContainer && aButtons.length && (aLastOptionsSelectedIndex > -1 || aNextOptionsSelectedIndex > -1))
+				this._oNavContainer ||
+				(this._oNavContainer && (aLastOptionsSelectedIndex > -1 || aNextOptionsSelectedIndex > -1))
 			) {
-				iButtonSelectedIndex = aButtons[0] ? aButtons[0].getParent().getSelectedIndex() : 0;
-				if (aLastDateTimeOperators.indexOf(sOptionKey) > -1) {
-					sActualSelectedOptionKey = aLastActualOrder[iButtonSelectedIndex];
-				} else if (aNextDateTimeOperators.indexOf(sOptionKey) > -1) {
-					sActualSelectedOptionKey = aNextActualOrder[iButtonSelectedIndex];
+				if ((aLastDateTimeOperators.indexOf(sOptionKey) > -1 || aNextDateTimeOperators.indexOf(sOptionKey) > -1) && oSelect) {
+					sActualSelectedOptionKey = this._oSelectedOption.getKey().slice(0, 4) + oSelect.getSelectedKey();
 				}
 
 				if (aDateTimeOperators.indexOf(sActualSelectedOptionKey) > -1) {
@@ -1086,7 +1171,9 @@ sap.ui.define([
 			this._oInput.addSuggestionItem(oItem);
 
 			// Called after addSuggestionItem because the suggested items are needed in _getDatesLabelFormatter.
-			oItem.setAdditionalText(this._getDatesLabelFormatter().format(aResultingDates));
+			if (aResultingDates.length > 0) {
+				oItem.setAdditionalText(this._getDatesLabelFormatter().format(aResultingDates));
+			}
 		};
 
 		/**
@@ -1108,7 +1195,7 @@ sap.ui.define([
 		DynamicDateRange.prototype._handleInputChange = function(oEvent) {
 			var sInputValue = oEvent.getParameter("value");
 
-			var oVal = this._parseValue(this._stripValue(sInputValue));
+			var oVal = this._parseValue(sInputValue);
 			var oPrevValue = this.getValue();
 			var bValid = sInputValue.trim() === "" || !!oVal;
 
@@ -1197,8 +1284,6 @@ sap.ui.define([
 		DynamicDateRange.prototype._createPopup = function() {
 			if (!this._oPopup) {
 				this._oPopup = new ResponsivePopover(this.getId() + "-RP", {
-					//read the documentation about those two - the page addapts its size to its container...
-					contentHeight: '512px',
 					contentWidth: '320px',
 					showCloseButton: false,
 					showArrow: false,
@@ -1228,16 +1313,26 @@ sap.ui.define([
 					};
 				}
 
+				this._oPopup.attachBeforeOpen(function() {
+					var oValue = this.getValue(),
+						oItem;
+					if (!oValue) {
+						return;
+					}
+					oItem = this._determineOptionFocus(oValue);
+					if (oItem && oValue.operator !== "PARSEERROR") {
+						oItem.setSelected(true);
+					}
+				}, this);
+
 				this._oPopup.attachAfterOpen(function() {
 					var oToPage = this._oNavContainer.getPages()[0];
 					this._applyNavContainerPageFocus(oToPage);
-					this.invalidate();
 				}, this);
 
 				this._oPopup.attachAfterClose(function() {
 					this._oPreviousSelectedOption = this._oSelectedOption;
 					this._setFooterVisibility(false);
-					this.invalidate();
 				}, this);
 
 				this._oPopup.setBeginButton(new Button({
@@ -1368,13 +1463,6 @@ sap.ui.define([
 			});
 		};
 
-		DynamicDateRange.prototype._createHeaderListItem = function(sHeader) {
-			var oHeader = new GroupHeaderListItem();
-			oHeader.setTitle(sHeader);
-			oHeader._bGroupHeader = true;
-
-			return oHeader;
-		};
 
 		DynamicDateRange.prototype._handleOptionPress = function(oEvent) {
 			var sOptionKey = oEvent.getSource().getOptionKey(),
@@ -1405,6 +1493,12 @@ sap.ui.define([
 				oSecondPage.setFooter(oToolbar);
 				oSecondPage.setTitle(oOption.getText(this));
 
+				// Switch to fixed height for value help page
+				if (!Device.system.phone) {
+					this._oPopup.removeStyleClass("sapMDDRAutoSize");
+					this._oPopup.setContentHeight(POPUP_MAX_HEIGHT + "px");
+				}
+
 				this._setFooterVisibility(true);
 				this._updateInternalControls(oOption);
 
@@ -1420,6 +1514,7 @@ sap.ui.define([
 			this._infoDatesFooter = new Toolbar({
 				design: ToolbarDesign.Info,
 				style: ToolbarStyle.Clear,
+				height: "auto",
 				content: [
 					new Label({
 						text: oResourceBundle.getText("DDR_INFO_DATES_EMPTY_HINT")
@@ -1489,7 +1584,12 @@ sap.ui.define([
 		DynamicDateRange.prototype._updateInternalControls = function(oOption) {
 			var bValidValueHelpUI = oOption.validateValueHelpUI(this);
 			if (bValidValueHelpUI) {
+				if (oOption.alignValueHelpUI) {
+					oOption.alignValueHelpUI(this);
+				}
 				this._updateDatesLabel();
+			} else {
+				this._getDatesLabel().setText(oResourceBundle.getText("DDR_INFO_DATES_EMPTY_HINT"));
 			}
 			this._setApplyButtonEnabled(bValidValueHelpUI);
 		};
@@ -1514,7 +1614,7 @@ sap.ui.define([
 				oPopover.getFooter().setVisible(bVisible);
 			}
 
-			oPopover.invalidate();
+			bVisible && oPopover.invalidate();
 
 			return this;
 		};
@@ -1544,6 +1644,7 @@ sap.ui.define([
 					showSeparators: ListSeparators.None,
 					mode: ListMode.SingleSelectMaster
 				});
+
 			}
 
 			if (!this._oNavContainer) {
@@ -1575,13 +1676,13 @@ sap.ui.define([
 				)[0];
 
 			if (!oOption) {
-				if (aLastOptions.indexOf(oValue.operator) > -1) {
+				if (this.lastOptionsIndex(oValue.operator) > -1) {
 					oOption = aOptions.filter(
-						function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === aLastOptions[0];}
+						function (oItem) { return oItem.getOptionKey && StandardDynamicDateOption.LastXKeys.indexOf(oItem.getOptionKey()) !== -1;}
 					)[0];
-				} else if (aNextOptions.indexOf(oValue.operator) > -1) {
+				} else if (this.nextOptionsIndex(oValue.operator) > -1) {
 					oOption = aOptions.filter(
-						function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === aNextOptions[0];}
+						function (oItem) { return oItem.getOptionKey && StandardDynamicDateOption.NextXKeys.indexOf(oItem.getOptionKey()) !== -1;}
 					)[0];
 				}
 			}
@@ -1612,10 +1713,6 @@ sap.ui.define([
 				oElementToFocus = jQuery(oToPage.getDomRef().querySelector("section")).firstFocusableDomRef();
 			}
 
-			if (oValue && oValue.operator !== "PARSEERROR" && oElementToFocus) {
-				oElementToFocus.setSelected && oElementToFocus.setSelected(true);
-			}
-
 			if (oElementToFocus) {
 				oElementToFocus.focus();
 			}
@@ -1632,6 +1729,59 @@ sap.ui.define([
 		DynamicDateRange.prototype._reApplyFocusToElement = function (oToPage, oValue) {};
 
 		/**
+		 * Returns the invisible label text for the DynamicDateRange options page.
+		 * @private
+		 * @returns {sap.ui.core.InvisibleText} The invisible label text
+		 */
+		DynamicDateRange.prototype._getInvisibleLabelText = function() {
+			if (!this._oInvisibleLabelText) {
+				this._oInvisibleLabelText = new InvisibleText({
+					text: ""
+				}).toStatic();
+			}
+
+			return this._oInvisibleLabelText;
+		};
+
+		/**
+		 * Updates the invisible label text with the options page title.
+		 * @param {sap.m.Page} oToPage The options page
+		 * @private
+		 */
+		DynamicDateRange.prototype._updateInvisibleLabelText = function(oToPage) {
+			// Ensure the invisible label is created first
+			this._getInvisibleLabelText();
+
+			if (this._oInvisibleLabelText && oToPage && oToPage.getTitle) {
+				this._oInvisibleLabelText.setText(oToPage.getTitle());
+			}
+		};
+
+		/**
+		 * Adds the invisible label to the popover's ariaLabelledBy association.
+		 * @private
+		 */
+		DynamicDateRange.prototype._addInvisibleLabelToPopover = function() {
+			if (this._oPopup && this._oInvisibleLabelText) {
+				var aCurrentLabels = this._oPopup.getAriaLabelledBy();
+				var sInvisibleLabelId = this._oInvisibleLabelText.getId();
+				if (aCurrentLabels.indexOf(sInvisibleLabelId) === -1) {
+					this._oPopup.addAriaLabelledBy(sInvisibleLabelId);
+				}
+			}
+		};
+
+		/**
+		 * Removes the invisible label from the popover's ariaLabelledBy association.
+		 * @private
+		 */
+		DynamicDateRange.prototype._removeInvisibleLabelFromPopover = function() {
+			if (this._oPopup && this._oInvisibleLabelText) {
+				this._oPopup.removeAriaLabelledBy(this._oInvisibleLabelText.getId());
+			}
+		};
+
+		/**
 		 * Creates the title text for the options page.
 		 *
 		 * @returns {string} title text
@@ -1640,7 +1790,7 @@ sap.ui.define([
 			return LabelEnablement.getReferencingLabels(this)
 				.concat(this.getAriaLabelledBy())
 				.reduce(function(sAccumulator, sCurrent) {
-					var oCurrentControl = Element.registry.get(sCurrent);
+					var oCurrentControl = Element.getElementById(sCurrent);
 					return sAccumulator + " " + (oCurrentControl.getText ? oCurrentControl.getText() : "");
 				}, "")
 				.trim();
@@ -1654,18 +1804,27 @@ sap.ui.define([
 		 */
 		DynamicDateRange.prototype._navContainerAfterNavigate = function(oEvent) {
 			var oOptionDetailsPage = this._oNavContainer.getPages()[1],
-				oToPage = oEvent.getParameters()["to"];
+				oToPage = oEvent.getParameters()["to"],
+				oOptionsListPage = this._oNavContainer.getPages()[0];
 
 			if (oToPage === oOptionDetailsPage) {
-				this.aInputControls.forEach(function(oControl) {
-					if (oControl.$().firstFocusableDomRef()) {
-						oControl.addAriaLabelledBy && oControl.addAriaLabelledBy(oToPage.getId() + "-title");
+				// Update the invisible label text with the page title and add it to popover
+				this._updateInvisibleLabelText(oToPage);
+				this._addInvisibleLabelToPopover();
 
-						if (!this._isCalendarBasedControl(oControl) && oControl.addAriaDescribedBy) {
-							oControl.addAriaDescribedBy(oToPage.getFooter().getContent()[0]);
-						}
+				this.aInputControls.forEach(function(oControl) {
+					if (oControl.$().firstFocusableDomRef() && !this._isCalendarBasedControl(oControl) && oControl.addAriaDescribedBy) {
+						oControl.addAriaDescribedBy(oToPage.getFooter().getContent()[0]);
 					}
 				}, this);
+			} else if (oToPage === oOptionsListPage) {
+				// Switch back to auto-sizing for options list page
+				if (!Device.system.phone) {
+					this._oPopup.addStyleClass("sapMDDRAutoSize");
+					this._oPopup.setContentHeight("");
+				}
+				// Remove the invisible label from popover when navigating back to options list
+				this._removeInvisibleLabelFromPopover();
 			}
 
 			if (this._oPopup && this._oPopup.isOpen()) {
@@ -1808,19 +1967,27 @@ sap.ui.define([
 		 * @static
 		 * @public
 		 */
-		 DynamicDateRange.prototype.parse = function(sValue, oFormatter) {
+		DynamicDateRange.prototype.parse = function(sValue, oFormatter) {
 			if (typeof sValue !== 'string') {
 				Log.error("DynamicDateFormat can only parse a String.");
 				return [];
 			}
 
 			var aResults = [],
-				oResult;
+				oResult,
+				sParseValue;
 
 			var aOptions = this._getOptions();
 
 			for (var i = 0; i < aOptions.length; i++) {
-				oResult = aOptions[i] && aOptions[i].parse(sValue.trim(), oFormatter);
+				// Only strip parenthetical text for options that add enhanced formatted values
+				if (aOptions[i].enhanceFormattedValue && aOptions[i].enhanceFormattedValue()) {
+					sParseValue = this._stripValue(sValue.trim());
+				} else {
+					sParseValue = sValue.trim();
+				}
+
+				oResult = aOptions[i] && aOptions[i].parse(sParseValue, oFormatter);
 
 				if (oResult) {
 					oResult.operator = aOptions[i].getKey();
@@ -1908,6 +2075,28 @@ sap.ui.define([
 			}
 
 			return oNewValue;
+		};
+
+		/**
+		 * Find the index of the last X period option
+		 *
+		 * @param {string} sOption The key of the option.
+		 * @private
+		 * @returns {number} The index of the option.
+		 */
+		DynamicDateRange.prototype.lastOptionsIndex = function(sOption) {
+			return aLastOptions.concat(aLastIncludedOptions).indexOf(sOption) % aLastOptions.length;
+		};
+
+		/**
+		 * Find the index of the next X period option
+		 *
+		 * @param {string} sOption The key of the option.
+		 * @private
+		 * @returns {number} The index of the option.
+		 */
+		DynamicDateRange.prototype.nextOptionsIndex = function(sOption) {
+			return aNextOptions.concat(aNextIncludedOptions).indexOf(sOption) % aNextOptions.length;
 		};
 
 		/**
@@ -2021,6 +2210,19 @@ sap.ui.define([
 			return this.bFocusoutDueRendering;
 		};
 
+		DynamicDateRangeInput.prototype.onsapshow = function(oEvent) {
+			if (!this.getEnabled() || !this.getEditable()) {
+				return;
+			}
+
+			this.bValueHelpRequested = true;
+			this._fireValueHelpRequest(false);
+			oEvent.preventDefault();
+			oEvent.stopPropagation();
+		};
+
+		DynamicDateRangeInput.prototype.onsaphide = DynamicDateRangeInput.prototype.onsapshow;
+
 		DynamicDateRangeInput.prototype.shouldSuggetionsPopoverOpenOnMobile = function(oEvent) {
 			var bIsClickedOnIcon = oEvent.srcControl instanceof Icon;
 			return this.isMobileDevice()
@@ -2075,11 +2277,12 @@ sap.ui.define([
 			if (bDateOption || bDateTimeOption) {
 				oNavControl.addStyleClass("sapMDDRDateOption");
 				sNavgationIconURI = bDateOption ? IconPool.getIconURI("appointment-2") : IconPool.getIconURI("date-time");
+				oNavControl.setTooltip(oResourceBundle.getText("OPEN_PICKER_TEXT"));
 			} else {
 				sNavgationIconURI = IconPool.getIconURI("slim-arrow-right");
 			}
 
-			oNavControl.setSrc(sNavgationIconURI);
+			oNavControl.setIcon(sNavgationIconURI);
 
 			return oNavControl;
 		};

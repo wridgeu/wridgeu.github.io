@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,6 +19,20 @@ sap.ui
 		function(Log, isEmptyObject, ManagedObject, DraftEnabledMockServer, ODataMetadata, jQuery, sinon) {
 			"use strict";
 
+			// Extract from OData ABNF:
+			//   dateTime = "datetime" SQUOTE dateTimeBody SQUOTE
+			//   dateTimeOffset = "datetimeoffset" SQUOTE dateTimeOffsetBody SQUOTE
+			//   dateTimeBody = year "-" month "-" day "T" hour ":" minute [ ":" second [ "." nanoSeconds ] ]
+			//   dateTimeOffsetBody = dateTimeBody "Z" /
+			//   dateTimeBody sign zeroToThirteen [ ":00" ] /
+			//   dateTimeBody sign zeroToTwelve [ ":" zeroToSixty ]
+			// Valid timestamps must start with: year "-" month "-" day "T" hour ":" minute, so it is enough to check
+			// only Z|+|- after T whether a timezone offset is given
+			const rHasTimezoneOffset = /T.*(\+|\-|Z)/;
+			// A regular expression that can be used to truncate the nanoseconds part of a timestamp to avoid rounding
+			// issues in some browsers (e.g. Safari) when creating a JavaScript Date; $1 contains the milliseconds part
+			const rTruncateNanoseconds = /(\.\d{3})\d+/;
+
 			/**
 			 * Creates a mocked server. This helps to mock some back-end calls, e.g. for OData V2/JSON Models or simple XHR calls, without
 			 * changing the application code. This class can also be used for qunit tests.
@@ -31,9 +45,8 @@ sap.ui
 			 *
 			 * @class Class to mock http requests made to a remote server supporting the OData V2 REST protocol.
 			 * @extends sap.ui.base.ManagedObject
-			 * @abstract
 			 * @author SAP SE
-			 * @version 1.120.0
+			 * @version 1.152.0
 			 * @public
 			 * @alias sap.ui.core.util.MockServer
 			 */
@@ -191,11 +204,14 @@ sap.ui
 						 *    All regular expression groups are forwarded as arguments to the <code>response</code> function.
 						 *    In addition to this, parameters can be written in this notation: <code>:param</code>.
 						 *    These placeholders will be replaced by regular expression groups.
-						 * @property {function(sap.ui.core.util.MockServer.Response,...any)} response
+						 * @property {function(sap.ui.core.util.MockServer.Response,...any): boolean} response
 						 *    A response handler function that will be called when an incoming request
 						 *    matches <code>method</code> and <code>path</code>.
 						 *    The first parameter of the handler will be a <code>Response</code> object which can be used
 						 *    to respond on the request.
+						 *    A truthy return value indicates that the request handler has processed the request,
+						 *    meaning that no further request handlers are called.
+						 *    A falsy return value means that further request handlers with a matching path are called.
 						 * @public
 						 */
 
@@ -1224,7 +1240,8 @@ sap.ui
 						"type": aEntityTypeParts[3],
 						"keys": [],
 						"keysType": {},
-						"navprops": {}
+						"navprops": {},
+						"props": {}
 					};
 				});
 
@@ -1269,6 +1286,15 @@ sap.ui
 						var sKeyName = jQuery(oPropRef).attr("Name");
 						oEntitySet.keys.push(sKeyName);
 						oEntitySet.keysType[sKeyName] = jQuery($EntityType).find("Property[Name='" + sKeyName + "']").attr("Type");
+					});
+					// find the props
+					var aProps = jQuery(oMetadata).find("EntityType[Name='" + oEntitySet.type + "'] Property");
+					jQuery.each(aProps, function(iIndex, oProp) {
+						var $Prop = jQuery(oProp);
+						oEntitySet.props[$Prop.attr("Name")] = {
+							"name": $Prop.attr("Name"),
+							"type": $Prop.attr("Type")
+						};
 					});
 					// resolve the navigation properties
 					var aNavProps = jQuery(oMetadata).find("EntityType[Name='" + oEntitySet.type + "'] NavigationProperty");
@@ -1516,9 +1542,30 @@ sap.ui
 				});
 				//enhance the mock data with metadata
 				jQuery.each(mEntitySets, function(sEntitySetName, oEntitySet) {
-					// enhance with OData metadata if exists
 					if (that._oMockdata[sEntitySetName].length > 0) {
+						// enhance with OData metadata if exists
 						that._enhanceWithMetadata(oEntitySet, that._oMockdata[sEntitySetName]);
+						// allow to specify the Edm.DateTime as "2023-11-13T09:36" and the
+						// Edm.DateTimeOffset as "2023-11-13T09:36Z" to simplfy definition
+						// in mockdata - if format is already /Date(%timestamp%)/ it is not
+						// handled by this function as the mock data string must be a Date
+						that._oMockdata[sEntitySetName].forEach(function(oRecord) {
+							Object.keys(oEntitySet.props).forEach(function(sPropName) {
+								switch (oEntitySet.props[sPropName].type) {
+									case "Edm.DateTime":
+									case "Edm.DateTimeOffset":
+										if (oRecord[sPropName] != null) {
+											var oDate = new Date(oRecord[sPropName]);
+											if (oDate && !isNaN(oDate)) {
+												oRecord[sPropName] = "/Date(" + oDate.getTime() + ")/";
+											}
+										}
+										break;
+									default:
+										// do nothing
+								}
+							});
+						});
 					}
 				});
 				// return the new mockdata
@@ -2221,7 +2268,7 @@ sap.ui
 				// add the service request (HEAD request for CSRF Token)
 				aRequests.push({
 					method: "HEAD",
-					path: new RegExp("$"),
+					path: new RegExp("(\\?.*)?$"),
 					response: function(oXhr) {
 						Log.debug("MockServer: incoming request for url: " + oXhr.url);
 						var mHeaders = {
@@ -3571,18 +3618,14 @@ sap.ui
 					return;
 				}
 				var fnNoOffset = function(s) {
-					var day = jQuery.map(s.slice(0, -5).split(/\D/), function(itm) {
-						return parseInt(itm) || 0;
-					});
-					day[1] -= 1;
-					day = new Date(Date.UTC.apply(Date, day));
-					var offsetString = s.slice(-5);
-					var offset = parseInt(offsetString) / 100;
-					if (offsetString.slice(0, 1) === "+") {
-						offset *= -1;
+					// treat all date time strings as UTC timestamps
+					if (!rHasTimezoneOffset.test(s)) {
+						s += "Z";
 					}
-					day.setHours(day.getHours() + offset);
-					return day.getTime();
+					// to avoid rounding issues truncate the nanoseconds part of the timestamp
+					s = s.replace(rTruncateNanoseconds, "$1");
+
+					return new Date(s).getTime();
 				};
 
 				if (sString.indexOf("datetimeoffset") > -1) {
@@ -3756,26 +3799,32 @@ sap.ui
 			 */
 			MockServer.HTTPMETHOD = {
 				/**
+				 * HTTP GET method.
 				 * @public
 				 */
 				GET: "GET",
 				/**
+				 * HTTP POST method.
 				 * @public
 				 */
 				POST: "POST",
 				/**
+				 * HTTP DELETE method.
 				 * @public
 				 */
 				DELETE: "DELETE",
 				/**
+				 * HTTP PUT method.
 				 * @public
 				 */
 				PUT: "PUT",
 				/**
+				 * HTTP MERGE method.
 				 * @public
 				 */
 				MERGE: "MERGE",
 				/**
+				 * HTTP PATCH method.
 				 * @public
 				 */
 				PATCH: "PATCH"

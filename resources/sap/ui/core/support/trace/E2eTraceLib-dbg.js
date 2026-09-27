@@ -1,18 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/Log', 'sap/ui/thirdparty/URI'],
-	function(Device, Passport, Log, URI) {
+sap.ui.define([
+	'sap/base/Log',
+	'sap/ui/Device',
+	'sap/ui/performance/trace/Passport',
+	'sap/ui/util/isCrossOriginURL'
+], function(
+	Log,
+	Device,
+	Passport,
+	isCrossOriginURL
+) {
 		"use strict";
-
-		/*global alert, confirm, performance */
 
 		//initializing module (single global variable pattern)
 		var E2eTraceLib1 = (function() {
 
-			var traceLevelRegEx = /sap-ui-xx-e2e-trace-level=(low|medium|high)/.exec(location.search);
+			var traceLevelRegEx = /sap-ui-xx-e2e-trace-level=(low|medium|high)/.exec(window.location.search);
 
 			var defaultTraceLevel;
 
@@ -275,17 +282,17 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 					return tstmp;
 				};
 				//check if browser supports PerformanceTiming
-				if (window.performance && performance.timing && performance.timing.navigationStart) {
+				if (performance && performance.timeOrigin) {
 					// handle browser dependencies in (hires) time stamps
 					if (Device.browser.chrome && Device.browser.version >= 49) {
 						getTstmp = function(tstmp) {
 							Log.info(tstmp, "", "E2ETraceLibCR");
-							return performance.timing.navigationStart + tstmp;
+							return performance.timeOrigin + tstmp;
 						};
 					} else if (Device.browser.firefox && Device.browser.version >= 48) {
 						getTstmp = function(tstmp) {
 							Log.info(tstmp, "", "E2ETraceLibFF");
-							return performance.timing.navigationStart + tstmp;
+							return performance.timeOrigin + tstmp;
 						};
 					}
 				}
@@ -354,8 +361,8 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 
 						//add tracing attributes
 						this.xidx = idx;
-						if (window.performance && performance.timing.navigationStart && performance.now !== undefined) {
-							this.xstartTimestamp = performance.timing.navigationStart + performance.now();
+						if (performance && performance.timeOrigin && performance.now !== undefined) {
+							this.xstartTimestamp = performance.timeOrigin + performance.now();
 						} else {
 							this.xstartTimestamp = Date.now();
 						}
@@ -367,8 +374,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 						//do not set passport as this is done already in sap/ui/performance/Passport
 						//this.setRequestHeader("SAP-PASSPORT", EppLib.passportHeader(busTrx.getCurrentTransactionStep().trcLvl, busTrx.id, this.xDsrGuid));
 						//matching function isCORSRequest from FESR.js
-						var sHOST = (new URI(this.xurl)).host();
-						if (!(sHOST && (sHOST != window.location.host))) {
+						if (!(isCrossOriginURL(this.xurl))) {
 						//if ((this.xRequestHeaders != undefined) && (this.xRequestHeaders[0][0] == "SAP-PASSPORT")) {
 							this.setRequestHeader("X-CorrelationID", busTrx.getCurrentTransactionStep().getId() + "-" + idx);
 						} else if (Log.isLoggable()) {

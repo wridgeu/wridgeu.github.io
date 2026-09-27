@@ -1,19 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Table.
 sap.ui.define([
-	"sap/ui/events/KeyCodes",
-	"sap/ui/core/Core",
 	"sap/ui/core/ControlBehavior",
 	"./library",
 	"./ListBase",
 	"./ListItemBase",
 	"./CheckBox",
 	"./TableRenderer",
+	"./plugins/PluginBase",
 	"sap/ui/base/Object",
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/core/util/PasteHelper",
@@ -26,7 +25,7 @@ sap.ui.define([
     // jQuery custom selectors ":sapTabbable"
 	"sap/ui/dom/jquery/Selectors"
 ],
-	function(KeyCodes, Core, ControlBehavior, library, ListBase, ListItemBase, CheckBox, TableRenderer, BaseObject, ResizeHandler, PasteHelper, jQuery, ListBaseRenderer, Icon, Util, Library, Log) {
+	function(ControlBehavior, library, ListBase, ListItemBase, CheckBox, TableRenderer, PluginBase, BaseObject, ResizeHandler, PasteHelper, jQuery, ListBaseRenderer, Icon, Util, Library, Log) {
 	"use strict";
 
 
@@ -39,7 +38,7 @@ sap.ui.define([
 	// shortcut for sap.m.PopinLayout
 	var PopinLayout = library.PopinLayout;
 
-	// shortcut for sap.m.Screensize
+	// shortcut for sap.m.ScreenSizes
 	var ScreenSizes = library.ScreenSizes;
 
 	/**
@@ -67,7 +66,7 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -119,8 +118,6 @@ sap.ui.define([
 
 				/**
 				 * Enables alternating table row colors.
-				 * <b>Note:</b> This property can only be used with the Belize and Belize Deep themes.
-				 * Alternate row coloring is not available for the High Contrast Black/White themes.
 				 * @since 1.52
 				 */
 				alternateRowColors : {type : "boolean", group : "Appearance", defaultValue : false},
@@ -335,15 +332,7 @@ sap.ui.define([
 	};
 
 	Table.prototype._applyContextualWidth = function(iWidth) {
-		iWidth = parseFloat(iWidth) || 0;
-
-		// when hiddenInPopin is configured, the table size increases due to popins and later decreases as popins are removed due to hiddenInPopin
-		// this can cause scrollbar to appear and disappear causing popin and popout jumping
-		// hence, the table does not change the contextual width if it is less than or equal to 16 (approx. scrollbar size)
-		if (Math.abs(this._oContextualSettings.contextualWidth - iWidth) <= 16) {
-			return;
-		}
-
+		iWidth = parseFloat(iWidth);
 		if (iWidth && this._oContextualSettings.contextualWidth != iWidth) {
 			this._applyContextualSettings({
 				contextualWidth : iWidth
@@ -443,7 +432,7 @@ sap.ui.define([
 			}
 		}
 
-		if (this._bCheckLastColumnWidth && Core.isThemeApplied()) {
+		if (this._bCheckLastColumnWidth && Util.isThemeApplied()) {
 			window.requestAnimationFrame(this._checkLastColumnWidth.bind(this));
 		}
 	};
@@ -530,9 +519,9 @@ sap.ui.define([
 			this._selectAllCheckBox.destroy();
 			this._selectAllCheckBox = null;
 		}
-		if (this._clearAllButton) {
-			this._clearAllButton.destroy();
-			this._clearAllButton = null;
+		if (this._clearAllIcon) {
+			this._clearAllIcon.destroy();
+			this._clearAllIcon = null;
 		}
 		if (this._aPopinHeaders) {
 			this._aPopinHeaders.forEach(function(oPopinHeader) {
@@ -653,6 +642,13 @@ sap.ui.define([
 		ListBase.prototype.onItemSelectedChange.apply(this, arguments);
 	};
 
+	// this gets called when item's rendering is completed
+	Table.prototype.onItemAfterRendering = function(oItem) {
+		if (this.hasListeners("afterItemRendering")) {
+			this.fireEvent("afterItemRendering", {listItem: oItem});
+		}
+	};
+
 	/*
 	 * Returns the <table> DOM reference
 	 * @protected
@@ -672,11 +668,12 @@ sap.ui.define([
 	Table.prototype.onmousedown = function(oEvent) {
 		this._bMouseDown = true;
 		var sOldTabIndex;
-		var oFocusableCell = oEvent.target.closest(".sapMTblCellFocusable:not([aria-haspopup])");
+		var oFocusableCell = oEvent.target.closest(".sapMTblCellFocusable:not([aria-haspopup],.sapMListTblSubCnt)");
 		if (oFocusableCell && !document.activeElement.classList.contains("sapMTblCellFocusable")) {
 			sOldTabIndex = oFocusableCell.getAttribute("tabindex");
 			oFocusableCell.removeAttribute("tabindex");
 		}
+
 		setTimeout(function() {
 			this._bMouseDown = false;
 			sOldTabIndex && oFocusableCell.setAttribute("tabindex", sOldTabIndex);
@@ -684,17 +681,33 @@ sap.ui.define([
 		ListBase.prototype.onmousedown.apply(this, arguments);
 	};
 
+	Table.prototype.onclick = function(oEvent) {
+		if (this.getMultiSelectMode() == "ClearAll" && this.getDomRef("tblHeadModeCol")?.contains(oEvent.target) && !this._clearAllIcon?.hasStyleClass("sapMTableDisableClearAll")) {
+			this.removeSelections(false, true, false);
+			this._fireHeaderSelectorPress();
+		}
+	};
+
 	Table.prototype._onItemNavigationBeforeFocus = function(oUI5Event) {
 		var oEvent = oUI5Event.getParameter("event");
+		var oItemNavigation = oUI5Event.getSource();
+		var iIndex = oUI5Event.getParameter("index");
+
+		if (oEvent.type == "mousedown" && this.getDomRef("tblHeadModeCol")?.contains(oEvent.target)) {
+			oUI5Event.preventDefault();
+
+			oItemNavigation.setFocusedIndex(iIndex + 1);
+			oItemNavigation.getItemDomRefs()[iIndex + 1].focus();
+			return;
+		}
+
 		if (this._bMouseDown && !oEvent.target.hasAttribute("tabindex")) {
 			return;
 		}
 
 		var iFocusedIndex;
 		var iForwardIndex = -1;
-		var iIndex = oUI5Event.getParameter("index");
 		var iColumnCount = this._colHeaderAriaOwns.length + 1;
-		var oItemNavigation = oUI5Event.getSource();
 
 		if (this._bMouseDown) {
 			var iRowIndex = iIndex - iIndex % iColumnCount;
@@ -716,6 +729,9 @@ sap.ui.define([
 			} else if (oEvent.target.classList.contains("sapMLIBFocusable")) {
 				if (oEvent.type.startsWith("sappage")) {
 					iForwardIndex = iIndex - iIndex % iColumnCount;
+					if (oEvent.type == "sappageup" && iForwardIndex == 0 && oItemNavigation.getFocusedIndex() > iColumnCount) {
+						iForwardIndex = iColumnCount;
+					}
 				} else if (oEvent.type == "saphome") {
 					iForwardIndex = 0;
 				} else if (oEvent.type == "sapend") {
@@ -732,7 +748,9 @@ sap.ui.define([
 			oEvent.preventDefault();
 			oUI5Event.preventDefault();
 			oItemNavigation.setFocusedIndex(iForwardIndex);
-			oItemNavigation.getItemDomRefs()[iForwardIndex].focus();
+			oItemNavigation.getItemDomRefs()[iForwardIndex].focus({
+				preventScroll: this._bMouseDown // avoid scroll jump when focus is forwarded due to a mouse click
+			});
 			iFocusedIndex && oItemNavigation.setFocusedIndex(iFocusedIndex);
 		}
 	};
@@ -746,6 +764,7 @@ sap.ui.define([
 		var aItemDomRefs = oNavigationRoot.querySelectorAll(".sapMListTblRow,.sapMGHLI,.sapMTblCellFocusable,.sapMTblItemNav");
 		oItemNavigation.setItemDomRefs(Array.from(aItemDomRefs));
 
+		var iItemNavigationColumns = oItemNavigation.iColumns;
 		var iColumns = this._colHeaderAriaOwns.length + 1;
 		var iPageSize = Math.min(this.getVisibleItems().length, this.getGrowingThreshold());
 		oItemNavigation.setTableMode(true, false);
@@ -765,6 +784,8 @@ sap.ui.define([
 			} else {
 				oItemNavigation.setFocusedIndex(this._headerHidden ? 0 : iColumns);
 			}
+		} else if (oItemNavigation.getFocusedIndex() >= iItemNavigationColumns) {
+			oItemNavigation.setFocusedIndex(oItemNavigation.getFocusedIndex() + iColumns - iItemNavigationColumns);
 		}
 	};
 
@@ -828,23 +849,18 @@ sap.ui.define([
 	 * @private
 	 * @return {sap.ui.core.Icon} reference to the internal select all checkbox
 	 */
-	Table.prototype._getClearAllButton = function() {
-		if (!this._clearAllButton) {
-			this._clearAllButton = new Icon({
+	Table.prototype._getClearAllIcon = function() {
+		if (!this._clearAllIcon) {
+			this._clearAllIcon = new Icon({
 				id: this.getId() + "-clearSelection",
 				src: "sap-icon://clear-all",
-				tooltip: Library.getResourceBundleFor("sap.m").getText("TABLE_CLEARBUTTON_TOOLTIP"),
-				decorative: false,
-				press: this.removeSelections.bind(this, false, true, false)
-			}).setParent(this, null, true).addEventDelegate({
-				onAfterRendering: function() {
-					this._clearAllButton.getDomRef().setAttribute("tabindex", -1);
-				}
-			}, this);
+				decorative: true,
+				noTabStop: true
+			}).setParent(this, null, true);
 			this.updateSelectAllCheckbox();
 		}
 
-		return this._clearAllButton;
+		return this._clearAllIcon;
 	};
 
 	/**
@@ -870,6 +886,7 @@ sap.ui.define([
 				} else {
 					this.removeSelections(false, true);
 				}
+				this._fireHeaderSelectorPress();
 			}, this);
 			this._selectAllCheckBox.useEnabledPropagator(false);
 			this.updateSelectAllCheckbox();
@@ -893,36 +910,22 @@ sap.ui.define([
 		Util.hideSelectionLimitPopover();
 
 		if (this._selectAllCheckBox && this.getMultiSelectMode() != "ClearAll") {
-			var aItems = this.getItems(),
+			const aItems = this.getItems(),
 				iSelectedItemCount = this.getSelectedItems().length,
 				iSelectableItemCount = aItems.filter(function(oItem) {
 					return oItem.isSelectable();
 				}).length;
 
 			// set state of the checkbox by comparing item length and selected item length
-			var bSelected = aItems.length > 0 && iSelectedItemCount == iSelectableItemCount;
+			const bSelected = aItems.length > 0 && iSelectedItemCount == iSelectableItemCount;
 			this.$("tblHeader").find(".sapMTblCellFocusable").addBack().attr("aria-selected", bSelected);
 			this._selectAllCheckBox.setSelected(bSelected);
-		} else if (this._clearAllButton) {
-			this._clearAllButton.toggleStyleClass("sapMTableDisableClearAll", !this.getSelectedItems().length);
-		}
-	};
 
-	/**
-	 * This method is a hook for the RenderManager that gets called
-	 * during the rendering of child Controls. It allows to add,
-	 * remove and update existing accessibility attributes (ARIA) of
-	 * those controls.
-	 *
-	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
-	 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
-	 * @protected
-	 */
-	Table.prototype.enhanceAccessibilityState = function(oElement, mAriaProps) {
-		if (oElement == this._clearAllButton) {
-			mAriaProps.label = Library.getResourceBundleFor("sap.m").getText("TABLE_ICON_DESELECT_ALL");
-		} else if (oElement == this._selectAllCheckBox) {
-			mAriaProps.label = Library.getResourceBundleFor("sap.m").getText("TABLE_CHECKBOX_SELECT_ALL");
+			const oBundle = Library.getResourceBundleFor("sap.m");
+			const sCheckedState = bSelected ? oBundle.getText("ACC_CTR_STATE_CHECKED") : oBundle.getText("ACC_CTR_STATE_NOT_CHECKED");
+			this.$("tblHeadModeCol").attr("aria-description", oBundle.getText("TABLE_SELECTION_COLUMNHEADER_DESCRIPTION") + " " + sCheckedState);
+		} else if (this._clearAllIcon) {
+			this._clearAllIcon.toggleStyleClass("sapMTableDisableClearAll", !this.getSelectedItems().length);
 		}
 	};
 
@@ -1000,31 +1003,52 @@ sap.ui.define([
 		return mPosition;
 	};
 
+	Table.prototype.updateAccessbilityOfItems = function() {
+		const iStartIndex = this.hasHeaderRow() ? 1 : 0;
+		this.getVisibleItems().forEach((oItem, iIndex) => {
+			oItem.getFocusDomRef()?.setAttribute("aria-rowindex", iStartIndex + iIndex + 1);
+		});
+	};
+
 	Table.prototype._setHeaderAnnouncement = function() {
 		var oBundle = Library.getResourceBundleFor("sap.m"),
-			sAnnouncement = oBundle.getText("ACC_CTR_TYPE_HEADER_ROW") + " ";
+			sAnnouncement = oBundle.getText("ACC_CTR_TYPE_HEADER_ROW") + " . ";
 
-		if (this.isAllSelectableSelected()) {
-			sAnnouncement += oBundle.getText("LIST_ALL_SELECTED");
+		if (this.getMode() === "MultiSelect") {
+			if (this.getMultiSelectMode() !== "ClearAll") {
+				if (this.isAllSelectableSelected()) {
+					sAnnouncement += oBundle.getText("LIST_ALL_SELECTED") + " . ";
+				} else {
+					sAnnouncement += oBundle.getText("TABLE_SELECT_ALL_ROWS") + " . ";
+				}
+			} else {
+				sAnnouncement += oBundle.getText("TABLE_DESELECT_ALL_ROWS");
+				if (this.getSelectedItems().length === 0) {
+					sAnnouncement += " " + oBundle.getText("CONTROL_DISABLED");
+				}
+				sAnnouncement += " . ";
+			}
 		}
 
-		this.getColumns(true).forEach(function(oColumn, i) {
+		this.getColumns(true).forEach(function(oColumn) {
 			if (!oColumn.getVisible() || oColumn.isHidden()) {
 				return;
 			}
 
-			var oHeader = oColumn.getHeader();
-			if (oHeader && oHeader.getVisible()) {
-				sAnnouncement += ListItemBase.getAccessibilityText(oHeader, false /* bDetectEmpty */, true /* bHeaderAnnouncement */) + " . ";
-			}
+			sAnnouncement += oColumn.getAccessibilityDescription(true) + " . ";
 		});
+
+		const oRowAction = this.getDomRef("tblHeader").querySelector(".sapMTableScreenReaderOnly");
+		if (oRowAction) {
+			sAnnouncement += oRowAction.textContent;
+		}
 
 		this.updateInvisibleText(sAnnouncement);
 	};
 
 	Table.prototype._setFooterAnnouncement = function() {
 		var sAnnouncement = Library.getResourceBundleFor("sap.m").getText("ACC_CTR_TYPE_FOOTER_ROW") + " ";
-		this.getColumns(true).forEach(function(oColumn, i) {
+		this.getColumns(true).forEach(function(oColumn) {
 			if (!oColumn.getVisible() || oColumn.isHidden()) {
 				return;
 			}
@@ -1032,11 +1056,7 @@ sap.ui.define([
 			var oFooter = oColumn.getFooter();
 			if (oFooter && oFooter.getVisible()) {
 				// announce header as well
-				var oHeader = oColumn.getHeader();
-				if (oHeader && oHeader.getVisible()) {
-					sAnnouncement += ListItemBase.getAccessibilityText(oHeader) + " ";
-				}
-
+				sAnnouncement += oColumn.getAccessibilityDescription(true) + " ";
 				sAnnouncement += ListItemBase.getAccessibilityText(oFooter) + " ";
 			}
 		});
@@ -1047,7 +1067,7 @@ sap.ui.define([
 	Table.prototype._setNoColumnsMessageAnnouncement = function (oTarget) {
 		if (!this.shouldRenderItems()) {
 			var oNoData = this.getNoData();
-			var sDescription = Core.getLibraryResourceBundle("sap.m").getText("TABLE_NO_COLUMNS");
+			var sDescription = Library.getResourceBundleFor("sap.m").getText("TABLE_NO_COLUMNS");
 			if (oNoData && typeof oNoData !== "string" && oNoData.isA("sap.m.IllustratedMessage")) {
 				sDescription = ListItemBase.getAccessibilityText(this.getAggregation("_noColumnsMessage"));
 			}
@@ -1070,9 +1090,13 @@ sap.ui.define([
 			var sMultiSelectMode = this.getMultiSelectMode();
 			if (this._selectAllCheckBox && sMultiSelectMode != "ClearAll") {
 				this._selectAllCheckBox.setSelected(!this._selectAllCheckBox.getSelected()).fireSelect();
-			} else if (this._clearAllButton && sMultiSelectMode == "ClearAll" && !this._clearAllButton.hasStyleClass("sapMTableDisableClearAll")) {
-				this._clearAllButton.firePress();
+			} else if (this._clearAllIcon && sMultiSelectMode == "ClearAll" && !this._clearAllIcon.hasStyleClass("sapMTableDisableClearAll")) {
+				this.removeSelections(false, true, false);
+				this._fireHeaderSelectorPress();
 			}
+		} else if (oEvent.target.classList.contains("sapMTblCellFocusable")) {
+			// prevent from scrolling
+			oEvent.preventDefault();
 		}
 	};
 
@@ -1132,15 +1156,15 @@ sap.ui.define([
 		} else if (oTarget.id == this.getId("tblFooter")) {
 			this._setFooterAnnouncement();
 			this._setFirstLastVisibleCells(oTarget);
-		} else if (oTarget.id == this.getId("nodata")) {
-			this._setFirstLastVisibleCells(oTarget);
 		} else if (!this._bIgnoreFocusIn && this.getShowOverlay()) {
 			this._bIgnoreFocusIn = true;
 			this.$("overlay").trigger("focus");
 		}
 
 		ListBase.prototype.onfocusin.call(this, oEvent);
-		this._setNoColumnsMessageAnnouncement(oTarget);
+		if (oTarget.id === this.getId("nodata")) {
+			this._setNoColumnsMessageAnnouncement(oTarget);
+		}
 	};
 
 	// event listener for theme changed
@@ -1159,7 +1183,7 @@ sap.ui.define([
 	Table.prototype.onpaste = function(oEvent) {
 
 		// Check whether the paste event is already handled by input enabled control and avoid pasting into this input-enabled control when focus is in there.
-		if (oEvent.isMarked() || (/^(input|textarea)$/i.test(oEvent.target.tagName))) {
+		if (oEvent.isMarked() || (/^(input|textarea)$/i.test(document.activeElement.tagName)) /*see DINC0096526*/) {
 			return;
 		}
 
@@ -1169,7 +1193,7 @@ sap.ui.define([
 			return; // no pasted data
 		}
 
-		//var oRow = sap.ui.getCore().byId(jQuery(oEvent.target).closest(".sapMLIB").attr("id"));
+		// var oRow = Element.getElementById(jQuery(oEvent.target).closest(".sapMLIB").attr("id"));
 		this.firePaste({data: aData});
 	};
 
@@ -1228,41 +1252,41 @@ sap.ui.define([
 	 * Returns the sum of internal columns that are created by the table like "Mode" & "Type" as a float value.
 	 * This is required for accurately calculating the <code>minScreenWidth</code> property of the columns when the <code>autoPopinMode=true</code>.
 	 *
-	 * @param {sap.m.ColumnListItem[]} aItems - table items
 	 * @returns {float} initial accumulated width
 	 * @private
 	 */
-	Table.prototype._getInitialAccumulatedWidth = function(aItems) {
-		// check if table has inset
-		var iInset = this.getInset() ? 4 : 0;
+	Table.prototype._getInitialAccumulatedWidth = function() {
+		const fInsetWidth = this.getInset() ? 4 : 0;
+		const fTypeWidth = this.doItemsNeedTypeColumn() ? 2.75 : 0;
+		const iModeOrder = ListBaseRenderer.ModeOrder[this.getMode()];
+		const bCompact = this.$().closest(".sapUiSizeCompact").length > 0;
 
-		var $this = this.$(),
-			iThemeDensityWidth = 3;
-
-		if ($this.closest(".sapUiSizeCompact").length || jQuery(document.body).hasClass("sapUiSizeCompact")) {
-			iThemeDensityWidth = 2;
-		} else {
-			var bThemeDensityWidthFound = false;
-			$this.find(".sapMTableTH[aria-hidden=true]:not(.sapMListTblHighlightCol):not(.sapMListTblDummyCell):not(.sapMListTblNavigatedCol)").get().forEach(function(oTH) {
-				var iWidth = jQuery(oTH).width();
-				if (!bThemeDensityWidthFound && iWidth > 0) {
-					iThemeDensityWidth = iWidth / parseFloat(library.BaseFontSize);
-					bThemeDensityWidthFound = true;
-				}
-			});
+		let fGap = 0.75; // highlight and navigated column tolerance + border and padding
+		let fModeWidth = Math.abs(iModeOrder) * (bCompact ? 2 : 2.75);
+		if (iModeOrder > -1) {
+			fGap += 0.5; // if the selection column is not the first column then we add 0.5rem padding
 		}
 
-		// check if selection control is available
-		var iSelectionWidth = ListBaseRenderer.ModeOrder[this.getMode()] ? iThemeDensityWidth : 0;
+		const oColumnResizer = PluginBase.getPlugin(this, "sap.m.plugins.ColumnResizer");
+		if (oColumnResizer?.getEnabled()) {
+			const aResizableColumns = this.getColumns().filter((oColumn) => oColumn.getVisible() && !oColumn.isHidden());
+			const fBaseFontSize = parseFloat(library.BaseFontSize) || 16;
+			fGap += aResizableColumns.length / fBaseFontSize; // 1px border per resizable column
+		}
 
-		// check if actions are available on the item
-		var iActionWidth = aItems.some(function(oItem) {
-			var sType = oItem.getType();
-			return sType === "Detail" || sType === "DetailAndActive" || sType === "Navigation";
-		}) ? iThemeDensityWidth : 0;
+		let fItemActionWidth = 0;
+		const iItemActionCount = this._getItemActionCount();
+		if (iItemActionCount > -1) {
+			fItemActionWidth = iItemActionCount * (bCompact ? 2.5 : 2.75);
+			if (iItemActionCount === 2) {
+				fItemActionWidth -= 0.375;
+			}
+			if (this.getMode() === "Delete") {
+				fModeWidth = 0; // delete mode is inactive when custom actions are present
+			}
+		}
 
-		// borders = ~0.25rem
-		return iInset + iSelectionWidth + iActionWidth + 0.25;
+		return fInsetWidth + fModeWidth + fItemActionWidth + fTypeWidth + fGap;
 	};
 
 	/**
@@ -1404,9 +1428,9 @@ sap.ui.define([
 	Table.prototype.validateAggregation = function(sAggregationName, oObject, bMultiple) {
 		var oResult = ListBase.prototype.validateAggregation.apply(this, arguments);
 
-		/*
-         * @deprecated as of version 1.120
-        */
+		/**
+		 * @deprecated as of version 1.120
+		 */
 		if (sAggregationName === "items" && !BaseObject.isA(oObject, "sap.m.ITableItem")) {
 			Log.error(oObject + " is not a valid items aggregation of " + this + ". Items aggregation in ResponsiveTable control only supports ITableItem.");
 			return oResult;

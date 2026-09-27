@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,12 +31,16 @@ sap.ui.define([
 	 * and allows the configuration of the application's home icon via the <code>homeIcon</code> property.
 	 *
 	 * <h3>Usage</h3>
-	 * SplitApp should take the full width of the page and be used as the root of the application, not as child of another container.
+	 * <ul>
+	 *   <li>Use SplitApp as the root control of your application. It should not be nested inside or alongside other controls.</li>
+	 *   <li>SplitApp requires its parent elements (including <code>body</code> and <code>html</code>) to have a height set to 100% for proper layout. If this is not set, <code>SplitApp</code> will attempt to set the height itself.</li>
+	 *   <li>SplitApp requires 100% of the page width for proper layout.<li>
+	 * </ul>
 	 *
 	 * @extends sap.m.SplitContainer
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -116,9 +120,7 @@ sap.ui.define([
 		Mobile.init({
 			viewport: !this._debugZoomAndScroll,
 			statusBar: "default",
-			hideBrowser: true,
-			preventScroll: !this._debugZoomAndScroll,
-			rootId: this.getId()
+			preventScroll: !this._debugZoomAndScroll
 		});
 	};
 
@@ -167,6 +169,7 @@ sap.ui.define([
 	/**
 	 * Fires the orientationChange event after SplitApp has reacted to the browser orientationChange event.
 	 *
+	 * @deprecated As of version 1.87
 	 * @private
 	 */
 	SplitApp.prototype._onOrientationChange = function(){

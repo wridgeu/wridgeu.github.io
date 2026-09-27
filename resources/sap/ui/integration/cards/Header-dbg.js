@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/model/json/JSONModel",
 	"sap/base/util/merge",
 	"sap/f/cards/Header",
@@ -15,9 +15,10 @@ sap.ui.define([
 	"sap/ui/integration/util/BindingResolver",
 	"sap/ui/integration/util/LoadingProvider",
 	"sap/ui/integration/util/Utils",
+	"sap/ui/integration/util/subtitleToSubTitle",
 	"sap/ui/integration/formatters/IconFormatter"
 ], function (
-	Core,
+	Element,
 	JSONModel,
 	merge,
 	FHeader,
@@ -28,6 +29,7 @@ sap.ui.define([
 	BindingResolver,
 	LoadingProvider,
 	Utils,
+	subtitleToSubTitle,
 	IconFormatter
 ) {
 	"use strict";
@@ -46,7 +48,7 @@ sap.ui.define([
 	 * @extends sap.f.cards.Header
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -54,66 +56,6 @@ sap.ui.define([
 	 * @alias sap.ui.integration.cards.Header
 	 */
 	var Header = FHeader.extend("sap.ui.integration.cards.Header", {
-
-		constructor: function (sId, mConfiguration, oActionsToolbar, oIconFormatter) {
-
-			mConfiguration = mConfiguration || {};
-
-			var mSettings = {
-				title: mConfiguration.title,
-				titleMaxLines: mConfiguration.titleMaxLines,
-				subtitle: mConfiguration.subTitle,
-				subtitleMaxLines: mConfiguration.subTitleMaxLines,
-				dataTimestamp: mConfiguration.dataTimestamp,
-				visible: mConfiguration.visible
-			};
-
-			if (mConfiguration.status && mConfiguration.status.text && !mConfiguration.status.text.format) {
-				mSettings.statusText = mConfiguration.status.text;
-				mSettings.statusVisible = mConfiguration.status.visible;
-			}
-
-			if (mConfiguration.icon) {
-				var vInitials = mConfiguration.icon.initials || mConfiguration.icon.text;
-				var sBackgroundColor = mConfiguration.icon.backgroundColor || (vInitials ? AvatarColor.Accent6 : AvatarColor.Transparent);
-
-				mSettings.iconSrc = mConfiguration.icon.src;
-				mSettings.iconDisplayShape = mConfiguration.icon.shape;
-				mSettings.iconInitials = vInitials;
-				mSettings.iconAlt = mConfiguration.icon.alt;
-				mSettings.iconBackgroundColor = sBackgroundColor;
-				mSettings.iconVisible = mConfiguration.icon.visible;
-			}
-
-			if (mSettings.iconSrc) {
-				mSettings.iconSrc = BindingHelper.formattedProperty(mSettings.iconSrc, function (sValue) {
-					return oIconFormatter.formatSrc(sValue);
-				});
-			}
-
-			if (mConfiguration.banner) {
-				mSettings.bannerLines = mConfiguration.banner.map(function (mBannerLine) { // TODO validate that it is an array and with no more than 2 elements
-					var oBannerLine = new Text({
-						text: mBannerLine.text,
-						visible: mBannerLine.visible
-					});
-
-					if (mBannerLine.diminished) {
-						oBannerLine.addStyleClass("sapFCardHeaderBannerLineDiminished");
-					}
-
-					return oBannerLine;
-				});
-			}
-
-			mSettings.toolbar = oActionsToolbar;
-
-			FHeader.call(this, sId, mSettings);
-
-			this._oConfiguration = mConfiguration;
-			this._oIconFormatter = oIconFormatter;
-		},
-
 		metadata: {
 			library: "sap.ui.integration",
 			properties: {
@@ -135,6 +77,69 @@ sap.ui.define([
 		renderer: FHeaderRenderer
 	});
 
+	Header.create = function (sId, mConfiguration, oActionsToolbar, oIconFormatter) {
+		mConfiguration = mConfiguration || {};
+
+		var mSettings = {
+			title: mConfiguration.title,
+			titleMaxLines: mConfiguration.titleMaxLines,
+			subtitle: mConfiguration.subtitle || mConfiguration.subTitle,
+			subtitleMaxLines: mConfiguration.subtitleMaxLines || mConfiguration.subTitleMaxLines,
+			dataTimestamp: mConfiguration.dataTimestamp,
+			visible: mConfiguration.visible,
+			wrappingType: mConfiguration.wrappingType
+		};
+
+		if (mConfiguration.status && mConfiguration.status.text && !mConfiguration.status.text.format) {
+			mSettings.statusText = mConfiguration.status.text;
+			mSettings.statusVisible = mConfiguration.status.visible;
+		}
+
+		if (mConfiguration.icon) {
+			var vInitials = mConfiguration.icon.initials || mConfiguration.icon.text;
+			var sBackgroundColor = mConfiguration.icon.backgroundColor || (vInitials ? AvatarColor.Accent6 : AvatarColor.Transparent);
+
+			mSettings.iconSrc = mConfiguration.icon.src;
+			mSettings.iconDisplayShape = mConfiguration.icon.shape;
+			mSettings.iconInitials = vInitials;
+			mSettings.iconAlt = mConfiguration.icon.alt;
+			mSettings.iconBackgroundColor = sBackgroundColor;
+			mSettings.iconVisible = mConfiguration.icon.visible;
+			mSettings.iconFitType = mConfiguration.icon.fitType;
+			mSettings.iconState = mConfiguration.icon.state;
+		}
+
+		if (mSettings.iconSrc) {
+			mSettings.iconSrc = BindingHelper.formattedProperty(mSettings.iconSrc, function (sValue) {
+				return oIconFormatter.formatSrc(sValue);
+			});
+		}
+
+		if (mConfiguration.banner) {
+			mSettings.bannerLines = mConfiguration.banner.map(function (mBannerLine) { // TODO validate that it is an array and with no more than 2 elements
+				var oBannerLine = new Text({
+					text: mBannerLine.text,
+					visible: mBannerLine.visible
+				});
+
+				if (mBannerLine.diminished) {
+					oBannerLine.addStyleClass("sapFCardHeaderBannerLineDiminished");
+				}
+
+				return oBannerLine;
+			});
+		}
+
+		mSettings.toolbar = oActionsToolbar;
+
+		const oHeader = new Header(sId, mSettings);
+
+		oHeader._oConfiguration = mConfiguration;
+		oHeader._oIconFormatter = oIconFormatter;
+
+		return oHeader;
+	};
+
 	Header.prototype.init = function () {
 		FHeader.prototype.init.call(this);
 
@@ -146,7 +151,6 @@ sap.ui.define([
 
 		// So far the ready event will be fired when the data is ready. But this can change in the future.
 		this._awaitEvent("_dataReady");
-		this._awaitEvent("_actionHeaderReady");
 
 		Promise.all(this._aReadyPromises).then(function () {
 			this._bReady = true;
@@ -157,7 +161,6 @@ sap.ui.define([
 	Header.prototype.exit = function () {
 		FHeader.prototype.exit.call(this);
 
-		this._oServiceManager = null;
 		this._oDataProviderFactory = null;
 
 		if (this._oDataProvider) {
@@ -225,11 +228,6 @@ sap.ui.define([
 		}.bind(this)));
 	};
 
-	Header.prototype.setServiceManager = function (oServiceManager) {
-		this._oServiceManager = oServiceManager;
-		return this;
-	};
-
 	Header.prototype.setDataProviderFactory = function (oDataProviderFactory) {
 		this._oDataProviderFactory = oDataProviderFactory;
 		return this;
@@ -255,6 +253,8 @@ sap.ui.define([
 			oConfiguration.icon.src = this._oIconFormatter.formatSrc(BindingResolver.resolveValue(oConfiguration.icon.src, this));
 		}
 
+		subtitleToSubTitle(oConfiguration);
+
 		return oConfiguration;
 	};
 
@@ -269,6 +269,11 @@ sap.ui.define([
 			sPath = "/",
 			oModel;
 
+		if (!oDataSettings) {
+			this.fireEvent("_dataReady");
+			return;
+		}
+
 		if (oDataSettings && oDataSettings.path) {
 			sPath = BindingResolver.resolveValue(oDataSettings.path, this.getCardInstance());
 		}
@@ -279,7 +284,7 @@ sap.ui.define([
 			this._oDataProvider.destroy();
 		}
 
-		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings, this._oServiceManager);
+		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings);
 
 		if (oDataSettings && oDataSettings.name) {
 			oModel = oCard.getModel(oDataSettings.name);
@@ -301,7 +306,7 @@ sap.ui.define([
 			this._oDataProvider.attachError(function (oEvent) {
 				this._handleError({
 					requestErrorParams: oEvent.getParameters(),
-					requestSettings: this._oDataProvider.getSettings()
+					requestSettings: this._oDataProvider.getResolvedConfiguration()
 				});
 				this.onDataRequestComplete();
 			}.bind(this));
@@ -353,11 +358,11 @@ sap.ui.define([
 	 * @returns {sap.ui.integration.widgets.Card} The card instance.
 	 */
 	Header.prototype.getCardInstance = function () {
-		return Core.byId(this.getCard());
+		return Element.getElementById(this.getCard());
 	};
 
 	Header.prototype._isDataProviderJson = function () {
-		return this._oDataProvider && this._oDataProvider.getSettings() && this._oDataProvider.getSettings()["json"];
+		return !!this._oDataProvider?.getConfiguration()?.json;
 	};
 
 	return Header;

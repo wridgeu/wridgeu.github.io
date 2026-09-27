@@ -1,10 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
 	"sap/ui/integration/designtime/baseEditor/util/findClosestInstance",
 	"sap/ui/integration/designtime/baseEditor/util/createPromise",
 	"sap/ui/integration/designtime/baseEditor/util/escapeParameter",
@@ -12,8 +13,9 @@ sap.ui.define([
 	"sap/base/util/restricted/_merge",
 	"sap/base/util/restricted/_omit",
 	"sap/base/util/deepEqual"
-], function (
+], function(
 	Control,
+	Element,
 	findClosestInstance,
 	createPromise,
 	escapeParameter,
@@ -35,9 +37,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.PropertyEditor
 	 * @author SAP SE
 	 * @since 1.73.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.73.0
 	 * @ui5-restricted
 	 */
 	var PropertyEditor = Control.extend("sap.ui.integration.designtime.baseEditor.PropertyEditor", {
@@ -166,7 +167,7 @@ sap.ui.define([
 				/**
 				 * Fires when the error state of the nested property editor changes
 				 */
-				 validationErrorChange: {
+				validationErrorChange: {
 					parameters: {
 						/**
 						 * Whether there is an error in the nested editor
@@ -327,7 +328,7 @@ sap.ui.define([
 	};
 
 	PropertyEditor.prototype.getEditor = function () {
-		return sap.ui.getCore().byId(this.getAssociation("editor"));
+		return Element.getElementById(this.getAssociation("editor"));
 	};
 
 	PropertyEditor.prototype._prepareConfig = function(oConfig) {
@@ -372,7 +373,7 @@ sap.ui.define([
 
 	PropertyEditor.prototype.setEditor = function (vEditor) {
 		var oPreviousEditor = this.getEditor();
-		var oEditor = typeof vEditor === "string" ? sap.ui.getCore().byId(vEditor) : vEditor;
+		var oEditor = typeof vEditor === "string" ? Element.getElementById(vEditor) : vEditor;
 		if (oPreviousEditor !== oEditor) {
 			this.setAssociation("editor", vEditor);
 			var oEditor = this.getEditor();
@@ -496,7 +497,7 @@ sap.ui.define([
 			}
 
 			mPromise.promise.then(function (oPropertyEditor) {
-				oPropertyEditor.setModel(this.getEditor().getModel("i18n"), "i18n");
+				oPropertyEditor.initI18n(this.getEditor().getModel("i18n"));
 				oPropertyEditor.setConfig(_omit(_merge({}, this._mConfig), "__propertyName")); // deep clone to avoid editor modifications to influence the outer config
 
 				oPropertyEditor.attachBeforeValueChange(function (oEvent) {

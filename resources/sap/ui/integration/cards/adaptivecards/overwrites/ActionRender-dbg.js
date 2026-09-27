@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (AdaptiveCards) {
@@ -12,7 +12,7 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 		}
 		// Cache hostConfig for perf
 		var hostConfig = this.parent.hostConfig;
-		var buttonElement = document.createElement("ui5-button");
+		var buttonElement = document.createElement("ui5-button-ac");
 		this.addCssClasses(buttonElement);
 		buttonElement.setAttribute("aria-label", this.title);
 		buttonElement.type = "button";

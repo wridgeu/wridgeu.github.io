@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,7 @@
  */
 
 /**
- * An object representing a "14.5.11 Expression edm:NavigationPropertyPath". Its shape corresponds
+ * An object representing a "14.4.1.5 Expression edm:NavigationPropertyPath". Its shape corresponds
  * exactly to the shape of such an expression in the
  * {@link topic:87aac894a40640f89920d7b2a414499b OData V4 Metadata JSON Format} as returned by
  * {@link sap.ui.model.odata.v4.ODataMetaModel#requestObject}.
@@ -29,7 +29,7 @@
  */
 
 /**
- * An object representing a "14.5.13 Expression edm:PropertyPath". Its shape corresponds exactly to
+ * An object representing a "14.4.1.6 Expression edm:PropertyPath". Its shape corresponds exactly to
  * the shape of such an expression in the
  * {@link topic:87aac894a40640f89920d7b2a414499b OData V4 Metadata JSON Format} as returned by
  * {@link sap.ui.model.odata.v4.ODataMetaModel#requestObject}.

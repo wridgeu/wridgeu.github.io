@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.filters.BaseFilter
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -84,6 +84,10 @@ sap.ui.define([
 	SelectFilter.prototype.getValueForModel = function () {
 		var oSelectedItem = this._getSelect().getSelectedItem();
 
+		if (!oSelectedItem) {
+			oSelectedItem = this._getSelect().getItems()[0];
+		}
+
 		if (oSelectedItem) {
 			return {
 				value: oSelectedItem.getKey(),
@@ -111,7 +115,7 @@ sap.ui.define([
 	 * @returns {object} Filter configuration with static items
 	 */
 	SelectFilter.prototype.getStaticConfiguration = function () {
-		var oConfiguration =  this.getConfig();
+		var oConfiguration = this.getParsedConfiguration();
 		var sPath = "/";
 		var aItems;
 		var aResolvedItems = [];
@@ -146,6 +150,13 @@ sap.ui.define([
 		oStaticConfiguration.value = this.getValueForModel().value;
 
 		return oStaticConfiguration;
+	};
+
+	/**
+	 * @override
+	 */
+	SelectFilter.prototype.writeValueToConfiguration = function (oConfiguration) {
+		oConfiguration.value = this.getValueForModel().value;
 	};
 
 	SelectFilter.prototype._getSelect = function () {
@@ -191,7 +202,7 @@ sap.ui.define([
 			sItemTemplateKey = "{key}";
 			sItemTemplateTitle = "{title}";
 
-			oModel = new JSONModel(oConfig.items);
+			oModel = new JSONModel(BindingResolver.resolveValue(oConfig.items, oCard));
 			oModel.setSizeLimit(oCard.getModelSizeLimit());
 
 			this.setModel(oModel);

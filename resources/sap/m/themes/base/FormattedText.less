@@ -4,7 +4,7 @@
 /* ==================================== */
 
 .sapMFT {
-	font-family: @sapUiFontFamily;
+	font-family: var(--sapFontFamily);
 	vertical-align: top;
 	font-size: @sapMFontMediumSize;
 
@@ -16,6 +16,11 @@
 		overflow: initial;
 		text-overflow: initial;
 		word-wrap: initial;
+	}
+
+	/* BCP: 002075129400010494822023 - preserve H* tags default 'display' property */
+	.sapMTitle {
+		display: inherit;
 	}
 }
 
@@ -29,10 +34,10 @@
 
 /* If control is used on black/dark background */
 .sapUiInverted-CTX .sapMFT {
-	color: @sapUiContentContrastTextColor;
+	color: var(--sapContent_ContrastTextColor);
 }
 
 /* Do not invert for table */
 .sapUiInverted-CTX .sapUiTable .sapMFT {
-	color: @sapUiBaseText;
+	color: var(--sapTextColor);
 }

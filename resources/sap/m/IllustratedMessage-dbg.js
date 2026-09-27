@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,10 +13,13 @@ sap.ui.define([
 	"sap/m/Illustration",
 	"sap/base/Log",
 	"sap/ui/core/Control",
-	"sap/ui/core/Core",
+	"sap/ui/core/EventBus",
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	"sap/ui/core/ResizeHandler",
+	"sap/ui/dom/getScrollbarSize",
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/thirdparty/URI",
 	"./IllustratedMessageRenderer"
 ], function(
 	library,
@@ -26,10 +29,13 @@ sap.ui.define([
 	Illustration,
 	Log,
 	Control,
-	Core,
+	EventBus,
+	Library,
 	coreLibrary,
 	ResizeHandler,
+	getScrollbarSize,
 	jQuery,
+	URI,
 	IllustratedMessageRenderer
 ) {
 	"use strict";
@@ -40,7 +46,7 @@ sap.ui.define([
 	// shortcut for sap.m.IllustratedMessageType
 	var IllustratedMessageType = library.IllustratedMessageType;
 
-	// shortcut for sap.ui.core.IllustratedMessageType
+	// shortcut for sap.ui.core.TextAlign
 	var TextAlign = coreLibrary.TextAlign;
 
 	// shortcut for sap.ui.core.TitleLevel
@@ -83,10 +89,14 @@ sap.ui.define([
 	 * and the available space of its parent container. Some of the structural elements are displayed differently or
 	 * are omitted in the different breakpoint sizes (XS, S, M, L).
 	 *
+	 * <b>Note:</b> When using automatic sizing (see {@link #getIllustrationSize illustrationSize} property), ensure the parent container has a constrained width
+	 * (for example, an explicit <code>width</code>, a <code>max-width</code>, or a width inherited from its parent).
+	 * Containers without width constraints can cause flickering during resize operations.
+	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -140,6 +150,11 @@ sap.ui.define([
 				 * As <code>IllustratedMessage</code> adapts itself around the <code>Illustration</code>, the other
 				 * elements of the control are displayed differently on the different breakpoints/illustration sizes.
 				 *
+				 * When set to <code>Auto</code> (default), the illustration size is determined by the available space in the parent container.
+				 *
+				 * <b>Note:</b> Auto sizing requires the parent container to have a width constraint — for example, an explicit <code>width</code>, a <code>max-width</code>, or a width inherited from its parent.
+				 * Containers without width constraints may cause flickering during resize operations.
+				 *
 				 * @since 1.98
 				 */
 				illustrationSize : {type: "sap.m.IllustratedMessageSize", group: "Appearance", defaultValue: IllustratedMessageSize.Auto},
@@ -155,11 +170,28 @@ sap.ui.define([
 				 * <ul>
 				 * <li>First is the the illustration set - sapIllus</li>
 				 * <li>Second is the illustration type - UnableToLoad</li>
+				 * <li>The <code>src</code> property takes precedence over this property.</li>
 				 * </ul>
 				 *
 				 * @since 1.98
 				 */
 				illustrationType : {type: "string", group: "Appearance", defaultValue: IllustratedMessageType.NoSearchResults},
+
+				/**
+				 * Defines the illustration to be displayed as graphical element within the <code>IllustratedMessage</code>.
+				 * It can be an illustration from the illustration set described in the URI.
+				 *
+				 * <b>Notes:</b>
+				 * <ul>
+				 * <li>The <code>sap-illustration://name</code> syntax supports only the default illustration set.
+				 * If you want to include another illustration set in the URI <code>sap-illustration://tnt/name</code>, you
+				 * have to register it in the {@link sap.m.IllustrationPool}.</li>
+				 * <li>This property takes precedence over the <code>illustrationType</code> property.</li>
+				 * </ul>
+				 *
+				 * @since 1.132
+				 */
+				src : {type : "sap.ui.core.URI", group : "Data", defaultValue: "" },
 
 				/**
 				 * Defines the title that is displayed below the illustration.
@@ -180,7 +212,16 @@ sap.ui.define([
 				 * @public
 				 * @since 1.111
 				 */
-				ariaTitleLevel: {type: "sap.ui.core.TitleLevel", group : "Appearance", defaultValue : TitleLevel.Auto}
+				ariaTitleLevel: {type: "sap.ui.core.TitleLevel", group : "Appearance", defaultValue : TitleLevel.Auto},
+
+				/**
+				 * Defines whether the illustration is decorative.
+				 *
+				 * When set to true, the attributes <code>role="presentation"</code> and <code>aria-hidden="true"</code> are applied to the SVG element.
+				 * @public
+				 * @since 1.138
+				 */
+				decorative: {type: "boolean", group: "Appearance", defaultValue: false}
 			},
 			aggregations: {
 
@@ -191,7 +232,10 @@ sap.ui.define([
 				 *
 				 * @since 1.98
 				 */
-				additionalContent: {type: "sap.m.Button", multiple: true},
+				additionalContent: {
+					type: "sap.ui.core.Control",
+					multiple: true
+				},
 
 				/**
 				 * The description displayed under the title when <code>enableFormattedText</code> is <code>true</code>.
@@ -229,7 +273,13 @@ sap.ui.define([
 				 * Association to controls / IDs which label those controls (see WAI-ARIA attribute aria-labelledBy).
 	 			 * @since 1.106.0
 				 */
-				 illustrationAriaLabelledBy: {type : "sap.ui.core.Control", multiple : true, singularName : "illustrationAriaLabelledBy"}
+				 illustrationAriaLabelledBy: {type : "sap.ui.core.Control", multiple : true, singularName : "illustrationAriaLabelledBy"},
+
+				 /**
+				 * Association to controls / IDs which label those controls (see WAI-ARIA attribute aria-describedBy).
+	 			 * @since 1.133.0
+				 */
+				illustrationAriaDescribedBy: {type : "sap.ui.core.Control", multiple : true, singularName : "illustrationAriaDescribedBy"}
 			},
 			dnd: { draggable: false, droppable: true }
 		},
@@ -255,9 +305,14 @@ sap.ui.define([
 		NoMail: "NoMail",
 		NoSavedItems: "NoSavedItems",
 		NoTasks: "NoTasks",
-		UploadToCloud: "UploadToCloud",
 		NoDimensionsSet: "NoDimensionsSet",
-		AddDimensions: "AddDimensions"
+		AddPeople: "AddPeople",
+		AddColumn: "AddColumn",
+		SortColumn: "SortColumn",
+		FilterTable: "FilterTable",
+		ResizeColumn: "ResizeColumn",
+		GroupTable: "GroupTable",
+		UploadCollection: "UploadCollection"
 	};
 
 	IllustratedMessage.FALLBACK_TEXTS = {
@@ -284,6 +339,16 @@ sap.ui.define([
 		SimpleNotFoundMagnifier: IllustratedMessage.ORIGINAL_TEXTS.NoSearchResults,
 		SimpleReload: IllustratedMessage.ORIGINAL_TEXTS.UnableToLoad,
 		SimpleTask: IllustratedMessage.ORIGINAL_TEXTS.NoTasks,
+		NoChartData: IllustratedMessage.ORIGINAL_TEXTS.NoDimensionsSet,
+		AddingColumns: IllustratedMessage.ORIGINAL_TEXTS.AddColumn,
+		SortingColumns: IllustratedMessage.ORIGINAL_TEXTS.SortColumn,
+		FilteringColumns: IllustratedMessage.ORIGINAL_TEXTS.FilterTable,
+		ResizingColumns: IllustratedMessage.ORIGINAL_TEXTS.ResizeColumn,
+		GroupingColumns: IllustratedMessage.ORIGINAL_TEXTS.GroupTable,
+		AddPeopleToCalendar: IllustratedMessage.ORIGINAL_TEXTS.AddPeople,
+		DragFilesToUpload: IllustratedMessage.ORIGINAL_TEXTS.UploadCollection,
+		KeyTask: IllustratedMessage.ORIGINAL_TEXTS.SuccessScreen,
+		ReceiveAppreciation: IllustratedMessage.ORIGINAL_TEXTS.BalloonSky,
 		SuccessBalloon: IllustratedMessage.ORIGINAL_TEXTS.BalloonSky,
 		SuccessCheckMark: IllustratedMessage.ORIGINAL_TEXTS.SuccessScreen,
 		SuccessHighFive: IllustratedMessage.ORIGINAL_TEXTS.BalloonSky
@@ -317,6 +382,13 @@ sap.ui.define([
 		SCENE: "sapMIllustratedMessage-Scene"
 	};
 
+	IllustratedMessage.MEDIA_SIZE = {
+		EXTRASMALL: IllustratedMessage.MEDIA.DOT,
+		SMALL: IllustratedMessage.MEDIA.SPOT,
+		MEDIUM: IllustratedMessage.MEDIA.DIALOG,
+		LARGE: IllustratedMessage.MEDIA.SCENE
+	};
+
 	IllustratedMessage.RESIZE_HANDLER_ID = {
 		CONTENT: "_sContentResizeHandlerId"
 	};
@@ -327,8 +399,8 @@ sap.ui.define([
 
 	IllustratedMessage.prototype.init = function () {
 		this._sLastKnownMedia = null;
-		this._updateInternalIllustrationSetAndType(this.getIllustrationType());
-		Core.getEventBus().subscribe("sapMIllusPool-assetLdgFailed", this._handleMissingAsset.bind(this));
+		this._updateInternalIllustrationSetAndType();
+		EventBus.getInstance().subscribe("sapMIllusPool-assetLdgFailed", this._handleMissingAsset.bind(this));
 	};
 
 	IllustratedMessage.prototype.onBeforeRendering = function () {
@@ -340,43 +412,36 @@ sap.ui.define([
 		this._attachResizeHandlers();
 		this._preventWidowWords(this._getTitle().getDomRef());
 		this._preventWidowWords(this._getDescription().getDomRef());
-		this._setDefaultIllustrationLabel();
 	};
 
 	IllustratedMessage.prototype.exit = function () {
 		this._detachResizeHandlers();
 	};
 
-	/**
+	/*
 	 * GETTERS / SETTERS
 	 */
 
 	IllustratedMessage.prototype.setIllustrationType = function (sValue) {
-		if (this.getIllustrationType() === sValue) {
-			return this;
-		}
+
+		this.setProperty("illustrationType", sValue);
 
 		if (typeof sValue === 'string') {
-			this._updateInternalIllustrationSetAndType(sValue);
+			this._updateInternalIllustrationSetAndType();
 		}
 
-		return this.setProperty("illustrationType", sValue);
+		return this;
 	};
 
-	/**
-	 * Sets the title of the IllustratedMessage as default aria-labelledby to the Illustration.
-	 * @private
-	 */
-	IllustratedMessage.prototype._setDefaultIllustrationLabel = function (sValue) {
-		var aAriaLabelledBy = this.getAssociation("ariaLabelledBy"),
-			sTitleId = this._getTitle().sId;
+	IllustratedMessage.prototype.setSrc = function (sValue) {
 
-		// check if falsy or empty array
-		if (!aAriaLabelledBy || !aAriaLabelledBy.length) {
-			this.addIllustrationAriaLabelledBy(sTitleId);
+		this.setProperty("src", sValue);
+
+		if (typeof sValue === 'string') {
+			this._updateInternalIllustrationSetAndType();
 		}
+		return this;
 	};
-
 
 	/**
 	 * Gets the default text for the description aggregation.
@@ -408,9 +473,9 @@ sap.ui.define([
 		// first we try to access the "original" text
 		// then try to fallback to "original" text without appended version (_v*** after the original type key)
 		// then try to fallback to "original" text from the IllustratedMessage.FALLBACK_TEXTS map
-		return oBundle.getText(sPrepend + this._sIllustrationType, null, true) ||
-			oBundle.getText(sPrepend + this._sIllustrationType.substr(0, this._sIllustrationType.indexOf('_v')) , null, true) ||
-			oBundle.getText(sPrepend + IllustratedMessage.FALLBACK_TEXTS[this._sIllustrationType], null, true);
+		return oBundle.getText(sPrepend + this._sIllustrationType, undefined, true) ||
+			oBundle.getText(sPrepend + this._sIllustrationType.substr(0, this._sIllustrationType.indexOf('_v')) , undefined, true) ||
+			oBundle.getText(sPrepend + IllustratedMessage.FALLBACK_TEXTS[this._sIllustrationType], undefined, true);
 	};
 
 	/**
@@ -485,14 +550,31 @@ sap.ui.define([
 		if (!oIllustration) {
 			oIllustration = new Illustration();
 
+			oIllustration.setDecorative(this.getDecorative());
 			this.setAggregation("_illustration", oIllustration);
 		}
 
 		return oIllustration;
 	};
 
+	/**
+	 * Pass the decorative property to the Illustration
+	 */
+	IllustratedMessage.prototype.setDecorative = function(bValue) {
+		var oIllustration = this.getAggregation("_illustration");
+
+		this.setProperty("decorative", bValue, true);
+
+		if (oIllustration) {
+			oIllustration.setDecorative(bValue);
+		}
+
+		return this;
+	};
+
+
 	IllustratedMessage.prototype._getResourceBundle = function () {
-		return Core.getLibraryResourceBundle("sap.m");
+		return Library.getResourceBundleFor("sap.m");
 	};
 
 	/**
@@ -582,7 +664,7 @@ sap.ui.define([
 			if (sSize === IllustratedMessageSize.Auto) {
 				this._updateMedia(oDomRef.getBoundingClientRect().width, oDomRef.getBoundingClientRect().height);
 			} else {
-				sCustomSize = IllustratedMessage.MEDIA[sSize.toUpperCase()];
+				sCustomSize = IllustratedMessage.MEDIA[sSize.toUpperCase()] || IllustratedMessage.MEDIA_SIZE[sSize.toUpperCase()];
 				this._updateSymbol(sCustomSize);
 				this._updateMediaStyle(sCustomSize);
 			}
@@ -592,14 +674,31 @@ sap.ui.define([
 
 	/**
 	 * Caches the <code>IllustratedMessage</code> illustration set and illustration type in private instance variables.
-	 * @param {string} sValue The Set-Type pair which should be stored
 	 * @private
 	 */
-	IllustratedMessage.prototype._updateInternalIllustrationSetAndType = function (sValue) {
-		var aValues = sValue.split("-");
+	IllustratedMessage.prototype._updateInternalIllustrationSetAndType = function () {
+		var sURI = this.getSrc(),
+			aIllusType,
+			oURI;
 
-		this._sIllustrationSet = aValues[0];
-		this._sIllustrationType = aValues[1];
+		if (sURI) {
+			oURI = URI.parse(sURI);
+			if (oURI.protocol === "sap-illustration") {
+				if (oURI.path !== "/") {
+					this._sIllustrationSet = oURI.hostname;
+					this._sIllustrationType = oURI.path.substring(1);
+				} else {
+					this._sIllustrationSet = "sapIllus";
+					this._sIllustrationType = oURI.hostname;
+				}
+			} else {
+				Log.warning("Invalid pattern. Use sap-illustration://name syntax for the default illustration set. Use sap-illustration://setname/name syntax for custom set, you also have to register it in the IllustrationPool.");
+			}
+		} else {
+			aIllusType = this.getIllustrationType().split("-");
+			this._sIllustrationSet = aIllusType[0];
+			this._sIllustrationType = aIllusType[1];
+		}
 	};
 
 	/**
@@ -609,7 +708,12 @@ sap.ui.define([
 	 */
 	IllustratedMessage.prototype._onResize = function (oEvent) {
 		var iCurrentWidth = oEvent.size.width,
-			iCurrentHeight = oEvent.size.height;
+			iCurrentHeight = oEvent.size.height,
+			oParentNode = oEvent.target && oEvent.target.parentNode;
+
+			if (!this.getEnableVerticalResponsiveness() && oParentNode && oParentNode.scrollHeight > oParentNode.clientHeight) { // parent has vertical scrollbar
+				iCurrentWidth += getScrollbarSize().width;
+			}
 
 		this._updateMedia(iCurrentWidth, iCurrentHeight);
 	};
@@ -813,13 +917,18 @@ sap.ui.define([
 			sTitleId = this._getTitle().sId,
 			oIllustratedMessageIllustration = this._getIllustration();
 
-		this.addAssociation("ariaLabelledBy", sID, true);
+		// Add aria-labelledby only if the Illustration is not decorative
+		if (!this.getDecorative()) {
+			this.addAssociation("ariaLabelledBy", sID, true);
+		}
 
 		if (aAriaLabelledBy && aAriaLabelledBy.includes(sTitleId)) {
 			this.removeIllustrationAriaLabelledBy(sTitleId);
 		}
 
-		oIllustratedMessageIllustration.addAriaLabelledBy(sID);
+		if (!this.getDecorative()) {
+			oIllustratedMessageIllustration.addAriaLabelledBy(sID);
+		}
 
 		return this;
 	};
@@ -831,8 +940,6 @@ sap.ui.define([
 		var oIllustratedMessageIllustration = this._getIllustration();
 		oIllustratedMessageIllustration.removeAriaLabelledBy(sID);
 
-		this._setDefaultIllustrationLabel();
-
 		return this;
 	};
 
@@ -842,7 +949,36 @@ sap.ui.define([
 		var oIllustratedMessageIllustration = this._getIllustration();
 		oIllustratedMessageIllustration.removeAllAriaLabelledBy(sID);
 
-		this._setDefaultIllustrationLabel();
+		return this;
+	};
+
+	IllustratedMessage.prototype.addIllustrationAriaDescribedBy = function(sID) {
+		// Add aria-describedby only if the Illustration is not decorative
+		if (!this.getDecorative()) {
+			this.addAssociation("ariaDescribedBy", sID, true);
+
+			var oIllustratedMessageIllustration = this._getIllustration();
+			oIllustratedMessageIllustration.addAriaDescribedBy(sID);
+		}
+
+		return this;
+	};
+
+
+	IllustratedMessage.prototype.removeIllustrationAriaDescribedBy = function(sID) {
+		this.removeAssociation("ariaDescribedBy", sID, true);
+
+		var oIllustratedMessageIllustration = this._getIllustration();
+		oIllustratedMessageIllustration.removeAriaDescribedBy(sID);
+
+		return this;
+	};
+
+	IllustratedMessage.prototype.removeAllAriaDescribedBy = function(sID) {
+		this.removeAssociation("ariaDescribedBy", sID, true);
+
+		var oIllustratedMessageIllustration = this._getIllustration();
+		oIllustratedMessageIllustration.removeAllAriaDescribedBy(sID);
 
 		return this;
 	};

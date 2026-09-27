@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	'sap/base/config',
 	'sap/base/i18n/Localization',
 	'sap/base/i18n/ResourceBundle',
+	'sap/base/future',
 	'sap/base/Log',
 	'sap/base/util/deepExtend',
 	"sap/base/util/isEmptyObject",
@@ -20,19 +21,22 @@ sap.ui.define([
 	"sap/base/util/ObjectPath",
 	'sap/base/util/Version',
 	'sap/base/util/array/uniqueSort',
+	'sap/ui/base/OwnStatics',
 	'sap/ui/Global', /* sap.ui.lazyRequire */
 	'sap/ui/VersionInfo',
 	'sap/ui/base/DataType',
 	'sap/ui/base/EventProvider',
 	'sap/ui/base/Object',
 	'sap/ui/base/SyncPromise',
-	'sap/ui/core/Configuration',
-	'sap/ui/core/_UrlResolver'
+	'sap/ui/core/_UrlResolver',
+	"sap/ui/core/Supportability",
+	"sap/ui/core/Theming"
 ], function (
 	assert,
 	BaseConfig,
 	Localization,
 	ResourceBundle,
+	future,
 	Log,
 	deepExtend,
 	isEmptyObject,
@@ -43,16 +47,20 @@ sap.ui.define([
 	ObjectPath,
 	Version,
 	uniqueSort,
+	OwnStatics,
 	Global,
 	VersionInfo,
 	DataType,
 	EventProvider,
 	BaseObject,
 	SyncPromise,
-	Configuration,
-	_UrlResolver
+	_UrlResolver,
+	Supportability,
+	Theming
 ) {
 	"use strict";
+
+	const { includeLibraryTheme } = OwnStatics.get(Theming);
 
 	/**
 	 * Save the library instances by their keys
@@ -63,16 +71,30 @@ sap.ui.define([
 	/**
 	 * Bookkeeping for the guessing of library names.
 	 *
-	 * Set of bundleUrls from which a library name has been derived or not, see #getLibraryNameForBundle
-	 * If no library name can be derived, the result will also be tracked with 'false' as value.
+	 * Set of bundleUrls from which a library name has been derived, see #_getByBundleUrl
 	 *
 	 * Example:
 	 *   mGuessedLibraries = {
-	 *     "my/simple/library/i18n/i18n.properties": "my.simple.library",
-	 *     "no/library/i18n/i18n.properties": false
+	 *     "my/simple/library/i18n/i18n.properties": "my.simple.library"
 	 *   }
 	 */
 	var mGuessedLibraries = {};
+
+	/**
+	 * Negative result bookkeeping for the guessing of library names.
+	 *
+	 * Set of bundleUrls from which a library name could not be derived, see #_getByBundleUrl
+	 *
+	 * Note: This cache is maintained separately from the positive cache to ease clearing it
+	 * when a new library instance is created (see #_get). This prevents that a negative result
+	 * is cached for a library that has been created/loaded in the meantime.
+	 *
+	 * Example:
+	 *   mGuessedLibrariesNegative = {
+	 *     "no/library/i18n/i18n.properties": undefined
+	 *   }
+	 */
+	var mGuessedLibrariesNegative = {};
 
 	/**
 	 * Set of libraries that provide a bundle info file (library-preload-lazy.js).
@@ -168,40 +190,6 @@ sap.ui.define([
 	});
 
 	/**
-	 * Set of libraries which require CSS.
-	 */
-	var aAllLibrariesRequiringCss = [];
-
-	var pThemeManager;
-
-	/**
-	 * Get the sap/ui/core/theming/ThemeManager on demand
-	 *
-	 * @param {boolean} [bClear=false] Whether to reset the ThemeManager
-	 * @returns {Promise} The promise that resolves with the sap/ui/core/theming/ThemeManager class
-	 */
-	function _getThemeManager(bClear) {
-		var ThemeManager = sap.ui.require("sap/ui/core/theming/ThemeManager");
-		if (!pThemeManager) {
-			if (!ThemeManager) {
-				pThemeManager = new Promise(function (resolve, reject) {
-					sap.ui.require(["sap/ui/core/theming/ThemeManager"], function (ThemeManager) {
-						resolve(ThemeManager);
-					}, reject);
-				});
-			} else {
-				pThemeManager = Promise.resolve(ThemeManager);
-			}
-		}
-		// This is only used within initLibrary to reset flag themeLoaded synchronously in case
-		// a theme for a new library will be loaded
-		if (ThemeManager && bClear) {
-			ThemeManager.reset();
-		}
-		return pThemeManager;
-	}
-
-	/**
 	 * This is an identifier to restrict the usage of constructor within this module
 	 */
 	var oConstructorKey = Symbol("sap.ui.core.Lib");
@@ -235,40 +223,28 @@ sap.ui.define([
 	}
 
 	/**
-	 * Returns the list of libraries for which the library.css was preloaded.
-	 *
-	 * This configuration setting specifies a list of UI libraries using the same syntax as the "libs" property,
-	 * for which the SAPUI5 core does not include the library.css stylesheet in the head of the page.
-	 * If the list starts with an exclamation mark (!), no stylesheet is loaded at all for the specified libs.
-	 * In this case, it is assumed that the application takes care of loading CSS.
-	 *
-	 * If the first library's name is an asterisk (*), it will be expanded to the list of already
-	 * configured libraries.
-	 *
-	 * @returns {string[]} the list of libraries for which the library.css was preloaded
+	 * filter/normalize given dependencies
+	 * @param {Array<{name:string, lazy:boolean}>} aDependencies
+	 * @returns {Array<{name:string, lazy:boolean}>}
 	 * @private
 	 */
-	function getPreloadLibCss() {
-		var aPreloadLibCSS = BaseConfig.get({name: "sapUiPreloadLibCss", type: BaseConfig.Type.StringArray, external: true});
-		if ( aPreloadLibCSS.length > 0 ) {
-			// remove leading '!' (legacy) as it does not make any difference
-			if ( aPreloadLibCSS[0].startsWith("!") ) {
-				aPreloadLibCSS[0] = aPreloadLibCSS[0].slice(1);
-			}
-			// "*"  means "add all bootstrap libraries"
-			if ( aPreloadLibCSS[0] === "*" ) {
-				aPreloadLibCSS.shift(); // remove * (inplace)
-
-				// The modules list also contains all configured libs
-				// we prepend them now to the preloaded libs css list
-				Object.keys(mLibraries).forEach(function(sLib) {
-					if (!aPreloadLibCSS.includes(sLib)) {
-						aPreloadLibCSS.unshift(sLib);
-					}
-				});
-			}
+	function filterDependencies(aDependencies) {
+		const aResults = [];
+		if (aDependencies) {
+			aDependencies.forEach(function(oDependency) {
+				if (!oDependency.lazy) {
+					aResults.push({
+						name: oDependency.name
+					});
+				} else if (oLibraryWithBundleInfo.has(oDependency.name)) {
+					aResults.push({
+						name: oDependency.name,
+						lazy: true
+					});
+				}
+			});
 		}
-		return aPreloadLibCSS;
+		return aResults;
 	}
 
 	/**
@@ -293,14 +269,15 @@ sap.ui.define([
 		constructor: function(mSettings) {
 			BaseObject.call(this);
 
-			assert(typeof mSettings === "object", "A settings object must be given to the constructor of sap/ui/base/Library");
-			assert(typeof mSettings.name === "string" && mSettings.name, "The settings object that is given to the constructor of sap/ui/base/Library must contain a 'name' property which is a non-empty string");
+			assert(typeof mSettings === "object", "A settings object must be given to the constructor of sap/ui/core/Lib");
+			assert(typeof mSettings.name === "string" && mSettings.name, "The settings object that is given to the constructor of sap/ui/core/Lib must contain a 'name' property which is a non-empty string");
 
 			if (mSettings._key !== oConstructorKey) {
 				throw new Error("The constructor of sap/ui/core/Lib is restricted to the internal usage. To get an instance of Library with name '" + mSettings.name + "', use the static method 'get' from sap/ui/core/Lib instead.");
 			}
 
 			this.name = mSettings.name;
+			this.namespace = mSettings.name.replace(/\./g, '/');
 
 			var aPropsWithDefaults = ["dependencies", "types", "interfaces", "controls", "elements"];
 
@@ -340,7 +317,7 @@ sap.ui.define([
 		 * Override the function to avoid creating facade for this instance to expose the settings properties that are
 		 * given through {@link #enhanceSettings}.
 		 *
-		 * @return {this} The Lib instance itself
+		 * @return {this} The Library instance itself
 		 * @override
 		 */
 		getInterface: function() {
@@ -411,7 +388,7 @@ sap.ui.define([
 						vValueToSet = vValue;
 					} else if ( sKey != "name" ) {
 						// ignore other values (silently ignore "name")
-						Log.warning("library info setting ignored: " + sKey + "=" + vValue);
+						future.warningThrows("library info setting ignored: " + sKey + "=" + vValue);
 					}
 
 					if (vValueToSet !== undefined) {
@@ -436,6 +413,7 @@ sap.ui.define([
 		 * @param {boolean} [bJSON] Whether the "json" file type is set
 		 * @returns {string} The determined file type. It can be "js", "json", "none", or "both".
 		 * @private
+		 * @ui5-transform-hint replace-param bJSON false
 		 */
 		_getFileType: function (bJSON) {
 			var sFileType;
@@ -479,10 +457,10 @@ sap.ui.define([
 		 */
 		preload: function(mOptions) {
 			if (mOptions && (mOptions.hasOwnProperty("async") || mOptions.hasOwnProperty("sync"))) {
-				Log.error("The 'preload' function of class sap/ui/core/Lib only support preloading a library asynchronously. The given 'async' or 'sync' setting is ignored.");
+				future.errorThrows("The 'preload' function of class sap/ui/core/Lib only supports preloading a library asynchronously.", { suffix: "The given 'async' or 'sync' setting is ignored."});
 			}
 			if (mOptions && mOptions.hasOwnProperty("json")) {
-				Log.error("The 'preload' function of class sap/ui/core/Lib only support preloading in JS Format. The given 'json' setting is ignored.");
+				future.errorThrows("The 'preload' function of class sap/ui/core/Lib only supports preloading in JS Format.", { suffix: "The given 'json' setting is ignored."});
 			}
 
 			return this._preload(["url", "lazy"].reduce(function(acc, sProperty) {
@@ -493,7 +471,8 @@ sap.ui.define([
 			}, {}));
 		},
 
-		/* Internal function for preloading a library which still supports the legacy parameters:
+		/**
+		 * Internal function for preloading a library which still supports the legacy parameters:
 		 *
 		 * <ul>
 		 * <li><code>mOptions.sync</code>: load the preload file in sync mode</li>
@@ -504,18 +483,19 @@ sap.ui.define([
 		 * @param [mOptions.url] URL to load the library from
 		 * @param [mOptions.lazy] Whether the library-preload-lazy bundle should be loaded instead of the
 		 *  library-preload bundle
-		 * @param @deprecated [mOptions.sync] Whether to load the preload bundle in sync mode
-		 * @param @deprecated [mOptions.json] Whether to load the preload in JSON format
+		 * @param [mOptions.sync] {@deprecated} Whether to load the preload bundle in sync mode
+		 * @param [mOptions.json] {@deprecated} Whether to load the preload in JSON format
 		 * @returns {Promise<Lib>|Lib} A promise that resolves with the library instance in async mode and the library
 		 *  instance itself in sync mode
 		 * @private
+		 * @ui5-transform-hint replace-param mOptions.sync false
+		 * @ui5-transform-hint replace-param mOptions.json false
 		 */
 		_preload: function(mOptions) {
 			mOptions = mOptions || {};
 
 			var sFileType = this._getFileType(mOptions.json),
-				sLibPackage = this.name.replace(/\./g, '/'),
-				bEntryModuleExists = !!sap.ui.loader._.getModuleState(sLibPackage + '/library.js'),
+				bEntryModuleExists = !!sap.ui.loader._.getModuleState(this.namespace + '/library.js'),
 				bHttp2 = Library.isDepCacheEnabled();
 
 			if (sFileType === 'none') {
@@ -562,17 +542,18 @@ sap.ui.define([
 				// (but the loader avoids double loading).
 				Log.debug("Lazy dependency to '" + this.name + "' encountered, loading library-preload-lazy.js");
 
+				/** @deprecated */
 				if (mOptions.sync) {
 					try {
-						sap.ui.requireSync(sLibPackage + '/library-preload-lazy'); // legacy-relevant: Sync path
+						sap.ui.requireSync(this.namespace + '/library-preload-lazy'); // legacy-relevant: Sync path
 					} catch (e) {
-						Log.error("failed to load '" + sLibPackage + "/library-preload-lazy.js" + "' synchronously (" + (e && e.message || e) + ")");
+						Log.error("failed to load '" + this.namespace + "/library-preload-lazy.js" + "' synchronously (" + (e && e.message || e) + ")");
 					}
 					return this;
-				} else {
-					return sap.ui.loader._.loadJSResourceAsync(
-						sLibPackage + '/library-preload-lazy.js', /* ignoreErrors = */ true);
 				}
+
+				return sap.ui.loader._.loadJSResourceAsync(
+					this.namespace + '/library-preload-lazy.js', /* ignoreErrors = */ true);
 			}
 
 			// otherwise mark as pending
@@ -597,43 +578,33 @@ sap.ui.define([
 			// load dependencies, if there are any
 			this._loadingStatus.promise = pPreload.then(function(aDependencies) {
 				// resolve dependencies via manifest "this._getDependencies()" except for libary-preload.json
-				aDependencies = aDependencies || this._getDependencies();
+				const oManifest = this.getManifest();
+
+				var mDependencies = oManifest?.["sap.ui5"]?.dependencies?.libs;
+				if (!aDependencies && mDependencies) {
+					aDependencies = Object.keys(mDependencies).map((sDependency) => {
+						return  {
+							name: sDependency,
+							lazy: mDependencies[sDependency].lazy || false
+						};
+					});
+				}
 
 				this._loadingStatus.preloadFinished = true;
 
-				var oManifest = this.getManifest(),
-					aPromises;
+				let aPromises;
 
 				if (aDependencies && aDependencies.length) {
 					if (!mOptions.sync) {
-						var aEagerDependencies = [],
-							aLazyDependencies = [];
-
-						aDependencies.forEach(function(oDependency) {
-							if (oDependency.lazy) {
-								aLazyDependencies.push(oDependency);
-							} else {
-								aEagerDependencies.push(oDependency.name);
-							}
-						});
-						// aEagerDependencies contains string elements before executing the next line
-
-						aEagerDependencies = VersionInfo._getTransitiveDependencyForLibraries(aEagerDependencies)
-							.map(function(sDependencyName) {
-								return {
-									name: sDependencyName
-								};
-							});
-						// aEagerDependencies contains object elements after executing the above line
-
-						// combine transitive closure of eager dependencies and direct lazy dependencies,
-						// the latter might be redundant
-						aDependencies = aEagerDependencies.concat(aLazyDependencies);
+						aDependencies = VersionInfo._getTransitiveDependencyForLibraries(aDependencies);
 					}
+
+					aDependencies = filterDependencies(aDependencies);
 
 					aPromises = aDependencies.map(function(oDependency) {
 						var oLibrary = Library._get(oDependency.name, true/* bCreate */);
 						return oLibrary._preload({
+							/** @deprecated since 1.120 */
 							sync: mOptions.sync,
 							lazy: oDependency.lazy
 						});
@@ -646,7 +617,7 @@ sap.ui.define([
 					aPromises.push(this.loadResourceBundle());
 				}
 
-				var pFinish = mOptions.sync ? SyncPromise.all(aPromises) : Promise.all(aPromises);
+				const pFinish = mOptions.sync ? SyncPromise.all(aPromises) : Promise.all(aPromises);
 				return pFinish.then(function() {
 					this._loadingStatus.pending = false;
 					return this;
@@ -671,12 +642,13 @@ sap.ui.define([
 		 * @returns {Promise|object} A promise that resolves with the dependency information of the library in async
 		 *  mode or the dependency information directly in sync mode
 		 * @private
+		 * @ui5-transform-hint replace-param mOptions.sync false
 		 */
 		_preloadJSFormat: function(mOptions) {
 			mOptions = mOptions || {};
 
 			var that = this;
-			var sPreloadModule = this.name.replace(/\./g, '/')
+			var sPreloadModule = this.namespace
 				+ (mOptions.http2 ? '/library-h2-preload' : '/library-preload')
 				+ (mOptions.sync ? '' : '.js');
 			var pResult;
@@ -725,6 +697,7 @@ sap.ui.define([
 		 * @returns {Promise|object} A promise that resolves with the dependency information of the library in async
 		 *  mode or the dependency information directly in sync mode
 		 * @private
+		 * @deprecated
 		 */
 		_preloadJSONFormat: function(mOptions) {
 			mOptions = mOptions || {};
@@ -777,7 +750,7 @@ sap.ui.define([
 		 */
 		getManifest: function(bSync) {
 			if (!this.oManifest) {
-				var manifestModule = this.name.replace(/\./g, '/') + '/manifest.json';
+				var manifestModule = this.namespace + '/manifest.json';
 
 				if (sap.ui.loader._.getModuleState(manifestModule) || (bSync && !this._manifestFailed)) {
 					try {
@@ -800,39 +773,6 @@ sap.ui.define([
 			}
 
 			return this.oManifest;
-		},
-
-		/**
-		 * Returns the dependency information of the library which is read from the library's manifest.
-		 *
-		 * The returned array contains elements which have a property "name" and an optional "lazy" property.
-		 *
-		 * @private
-		 * @returns {Array<{name:string, lazy:boolean}>} The dependency information of the library
-		 */
-		_getDependencies: function() {
-			var oManifest = this.getManifest();
-			var aDependencies = [];
-
-			var mDependencies = oManifest && oManifest["sap.ui5"] && oManifest["sap.ui5"].dependencies && oManifest["sap.ui5"].dependencies.libs;
-			if (mDependencies) {
-				// convert manifest map to array, inject object which contains "name" and optional "lazy" properties
-				return Object.keys(mDependencies).reduce(function(aResult, sDependencyName) {
-					if (!mDependencies[sDependencyName].lazy) {
-						aResult.push({
-							name: sDependencyName
-						});
-					} else if (oLibraryWithBundleInfo.has(sDependencyName)) {
-						aResult.push({
-							name: sDependencyName,
-							lazy: true
-						});
-					}
-					return aResult;
-				}, aDependencies);
-			} else {
-				return aDependencies;
-			}
 		},
 
 		/**
@@ -893,27 +833,18 @@ sap.ui.define([
 		 * @param {string} [sVariant] the variant to include (optional)
 		 * @param {string} [sQuery] to be used only by the Core
 		 * @private
+		 * @deprecated
 		 */
-		_includeTheme: function(sVariant, sQuery) {
-			var sName = this.name,
-				bLibCssPreloaded = getPreloadLibCss().indexOf(sName) !== -1;
-
-			aAllLibrariesRequiringCss.push({
-				name: sName,
-				version: this.version,
-				variant: sVariant,
-				preloadedCss: bLibCssPreloaded
-			});
-
-			_getThemeManager().then(function(ThemeManager) {
-				ThemeManager.includeLibraryTheme(sName, sVariant, sQuery);
-			});
+		_includeTheme: function(sVariant) {
+			// sQuery is no longer applied, as the only relevant query parameter is the version,
+			// which is now handled directly by the framework itself.
+			includeLibraryTheme({ libName: this.name, variant: sVariant});
 		},
 
 		/**
 		 * Returns a resource bundle for the given locale.
 		 *
-		 * The locale's default value is read from {@link sap.ui.core.Configuration#getLanguage session locale}.
+		 * The locale's default value is read from {@link module:sap/base/i18n/Localization.getLanguage session locale}.
 		 *
 		 * This method returns the resource bundle directly. When the resource bundle for the given locale isn't loaded
 		 * yet, synchronous request will be used to load the resource bundle. If it should be loaded asynchronously, use
@@ -940,7 +871,7 @@ sap.ui.define([
 		/**
 		 * Retrieves a resource bundle for the given locale.
 		 *
-		 * The locale's default value is read from {@link sap.ui.core.Configuration#getLanguage session locale}.
+		 * The locale's default value is read from {@link module:sap/base/i18n/Localization.getLanguage session locale}.
 		 *
 		 * <h3>Configuration via App Descriptor</h3>
 		 * When the App Descriptor for the library is available without further request (manifest.json
@@ -1044,18 +975,6 @@ sap.ui.define([
 		}
 	});
 
-
-	/**
-	 * Returns an array containing all libraries which require loading of CSS
-	 *
-	 * @returns {Array} Array containing all libraries which require loading of CSS
-	 * @private
-	 * @ui5-restricted sap.ui.core.theming.Parameters
-	 */
-	Library.getAllInstancesRequiringCss = function() {
-		return aAllLibrariesRequiringCss.slice();
-	};
-
 	/**
 	 * Checks whether the library for the given <code>sName</code> has been loaded or not.
 	 *
@@ -1088,6 +1007,7 @@ sap.ui.define([
 				name: sName,
 				_key: oConstructorKey
 			});
+			mGuessedLibrariesNegative = {}; // Reset negative cache to enforce re-evaluation
 		}
 
 		return oLibrary;
@@ -1106,6 +1026,9 @@ sap.ui.define([
 			if (mGuessedLibraries[sBundleUrl]) {
 				return mGuessedLibraries[sBundleUrl];
 			}
+			if (sBundleUrl in mGuessedLibrariesNegative) {
+				return undefined;
+			}
 
 			// [1] Guess ResourceName
 			var sBundleName = sap.ui.loader._.guessResourceName(sBundleUrl);
@@ -1113,14 +1036,13 @@ sap.ui.define([
 
 				// [2] Guess library name
 				for (var sLibrary in mLibraries) {
-					if (!mLibraries[sLibrary].isSettingsEnhanced()) {
+					var oLib = mLibraries[sLibrary];
+					if (!oLib.isSettingsEnhanced()) {
 						// ignore libraries that haven't been initialized
 						continue;
 					}
-					var sLibraryName = sLibrary.replace(/\./g, "/");
-					var oLib = mLibraries[sLibrary];
-					if (sLibraryName !== "" && sBundleName.startsWith(sLibraryName + "/")) {
-						var sBundlePath = sBundleName.replace(sLibraryName + "/", "");
+					if (oLib.namespace !== "" && sBundleName.startsWith(oLib.namespace + "/")) {
+						var sBundlePath = sBundleName.replace(oLib.namespace + "/", "");
 
 						// [3] Retrieve i18n from manifest for looking up the base bundle
 						//     (can be undefined if the lib defines "sap.ui5/library/i18n" with <false>)
@@ -1128,8 +1050,8 @@ sap.ui.define([
 
 						if (vI18n) {
 							// Resolve bundle paths relative to library before comparing
-							var sManifestBaseBundlePath = getModulePath(sLibraryName, "/" + vI18n.bundleUrl);
-								sBundlePath = getModulePath(sLibraryName, "/" + sBundlePath);
+							var sManifestBaseBundlePath = getModulePath(oLib.namespace, "/" + vI18n.bundleUrl);
+								sBundlePath = getModulePath(oLib.namespace, "/" + sBundlePath);
 
 							// the input bundle-path and the derived library bundle-path must match,
 							// otherwise we would enhance the wrong bundle with terminologies etc.
@@ -1139,7 +1061,7 @@ sap.ui.define([
 								return oLib;
 							}
 							// [4.2] Cache none-matching result
-							mGuessedLibraries[sBundleUrl] = false;
+							mGuessedLibrariesNegative[sBundleUrl] = undefined;
 						}
 					}
 				}
@@ -1183,10 +1105,11 @@ sap.ui.define([
 		return mInitLibraries;
 	};
 
-	/*
+	/**
 	 * A symbol used to mark a Proxy as such
 	 * Proxys are indistinguishable from the outside, but we need a way
 	 * to prevent duplicate Proxy wrapping for library namespaces.
+	 * @deprecated
 	 */
 	const symIsProxy = Symbol("isProxy");
 
@@ -1196,6 +1119,7 @@ sap.ui.define([
 	 * @param {string} sLibName the library name in dot-notation
 	 * @param {object} oLibNamespace the top-level library namespace object
 	 * @returns {object} an object containing the proxy-handler and the sub-namespace map
+	 * @deprecated
 	 */
 	function createProxyForLibraryNamespace(sLibName, oLibNamespace) {
 		// weakmap to track sub-namespaces for a library
@@ -1227,6 +1151,8 @@ sap.ui.define([
 							// note: namespace already contains a trailing dot '.'
 							const sNamespacePrefix = mSubNamespaces.get(target);
 							DataType.registerEnum(`${sNamespacePrefix}${prop}`, value);
+
+							Log.debug(`[Library API-Version 2] If you intend to use API-Version 2 in your library, make sure to call 'sap/ui/base/DataType.registerEnum' for ${sNamespacePrefix}${prop}.`);
 						} else {
 							const firstChar = prop.charAt(0);
 							if (firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase()) {
@@ -1294,18 +1220,19 @@ sap.ui.define([
 	 *
 	 * <li>With the <code>noLibraryCSS</code> property, the library can be marked as 'theming-free'.  Otherwise, the
 	 * framework will add a &lt;link&gt; tag to the page's head, pointing to the library's theme-specific stylesheet.
-	 * The creation of such a &lt;link&gt; tag can be suppressed with the {@link sap.ui.core.Configuration global
+	 * The creation of such a &lt;link&gt; tag can be suppressed with the {@link topic:91f2d03b6f4d1014b6dd926db0e91070 global
 	 * configuration option} <code>preloadLibCss</code>.  It can contain a list of library names for which no stylesheet
 	 * should be included.  This is e.g. useful when an application merges the CSS for multiple libraries and already
 	 * loaded the resulting stylesheet.</li>
 	 *
 	 * <li>If a list of library <code>dependencies</code> is specified in the info object, those libraries will be
-	 * loaded synchronously if they haven't been loaded yet.
+	 * loaded synchronously if they haven't been loaded yet.</li>
+	 * </ul>
 	 *
 	 * <b>Note:</b> Dependencies between libraries have to be modeled consistently in several places:
 	 * <ul>
 	 * <li>Both eager and lazy dependencies have to be modelled in the <code>.library</code> file.</li>
-	 * <li>By default, UI5 Tooling generates a <code>manifest.json</code> file from the content of the <code>.library</code>
+	 * <li>By default, UI5 CLI generates a <code>manifest.json</code> file from the content of the <code>.library</code>
 	 * file. However, if the <code>manifest.json</code> file for the library is not generated but
 	 * maintained manually, it must be kept consistent with the <code>.library</code> file, especially regarding
 	 * its listed library dependencies.</li>
@@ -1333,9 +1260,69 @@ sap.ui.define([
 	 * provided in <code>mSettings</code> and will evaluate the descriptor file instead. Library developers therefore
 	 * must keep the information in both files in sync if the <code>manifest.json</code> file is maintained manually.
 	 *
+	 *
+	 * <h3>Library API-Version 2</h3>
+	 *
+	 * The Library API Version 2 has been introduced to avoid access to the global namespace when retrieving enum types.
+	 * With Library API Version 2 a library must declare its enum types via {@link sap.ui.base.DataType.registerEnum} as described in the "Defining Enums" section below.
+	 *
+	 * Library API version 2 is defined as a number (int) in the library's <code>init()</code> call:
+	 * <pre>
+	 * var thisLib = Library.init({
+	 *     apiVersion: 2,
+	 *     name: "my.library",
+	 *     ...
+	 * });
+	 * </pre>
+	 *
+	 * <b>Important:</b> The object returned by <code>Library.init()</code> should be used as the return value
+	 * of the <code>library.js</code> module.
+	 *
+	 * <b>Defining Enums</b>
+	 *
+	 * Enums that are exposed through a library (not as separate modules) should be defined as properties on the
+	 * object returned by <code>Library.init()</code>. Each enum must be registered via {@link sap.ui.base.DataType.registerEnum}
+	 * to make it available to the framework.
+	 *
+	 * Example for a simple enum definition:
+	 * <pre>
+	 * // The return value "thisLib" will be used to expose enums
+	 * var thisLib = Library.init({
+	 *     apiVersion: 2,
+	 *     name: "my.library",
+	 *     ...
+	 * });
+	 *
+	 * // Note that enum keys and values must match
+	 * thisLib.MyEnumType = {
+	 *     Small: "Small",
+	 *     Medium: "Medium",
+	 *     Large: "Large"
+	 * };
+	 *
+	 * // make sure to register the enum and make it know to the framework for later type checks
+	 * DataType.registerEnum("my.library.MyEnumType", thisLib.MyEnumType);
+	 * </pre>
+	 *
+	 * <b>Special case: enums in nested namespaces</b>
+	 *
+	 * Ensure to create the namespace first and then define the enum:
+	 *
+	 * <pre>
+	 * thisLib.cards = thisLib.cards || {};
+	 *
+	 * thisLib.cards.HeaderPosition = {
+	 *     Top: "Top",
+	 *     Bottom: "Bottom"
+	 * };
+	 *
+	 * DataType.registerEnum("my.library.cards.HeaderPosition", thisLib.cards.HeaderPosition);
+	 * </pre>
+	 *
 	 * @param {object} mSettings Info object for the library
 	 * @param {string} mSettings.name Name of the library; It must match the name by which the library has been loaded
 	 * @param {string} [mSettings.version] Version of the library
+	 * @param {int} [mSettings.apiVersion=1] The library's API version; supported values are 1, 2 and <code>undefined</code> (defaults to 1).
 	 * @param {string[]} [mSettings.dependencies=[]] List of libraries that this library depends on; names are in dot
 	 *  notation (e.g. "sap.ui.core")
 	 * @param {string[]} [mSettings.types=[]] List of names of types that this library provides; names are in dot
@@ -1350,7 +1337,8 @@ sap.ui.define([
 	 *  When set to true, no library.css will be loaded for this library
 	 * @param {object} [mSettings.extensions] Potential extensions of the library metadata; structure not defined by the
 	 *  UI5 core framework.
-	 * @returns {object} Returns the library namespace, based on the given library name.
+	 * @returns {object} Returns an object with the exports of the library (enums, helpers, ...). This object should be used
+	 *  as the return value of the <code>library.js</code> module from which <code>Library.init</code> is called.
 	 * @public
 	 */
 	Library.init = function(mSettings) {
@@ -1368,25 +1356,56 @@ sap.ui.define([
 		var oLib = Library._get(mSettings.name, true /* bCreate */);
 		oLib.enhanceSettings(mSettings);
 
-		// ensure namespace
-		var oLibNamespace = ObjectPath.create(mSettings.name),
+		var oLibNamespace = Object.create(null),
 			i;
 
-		// If a library states that it is using apiVersion 2, we expect types to be fully declared.
-		// In this case we don't need to create Proxies for the library namespace.
-		const apiVersion = mSettings.apiVersion ?? 1;
+		/**
+		 * Creates the library namespace inside the global object.
+		 * @deprecated since 1.120
+		 */
+		oLibNamespace = ObjectPath.create(mSettings.name);
+
+		let apiVersion = mSettings.apiVersion;
+		/**
+		 * If a library states that it is using apiVersion 2, we expect types to be fully declared.
+		 * In this case we don't need to create Proxies for the library namespace.
+		 * @deprecated
+		 */
+		if (!apiVersion) {
+			apiVersion = 1;
+		}
+
+		const aSupportedVersions = [/** @deprecated */1, 2];
+		if (!aSupportedVersions.includes(apiVersion)) {
+			let sError = `The library '${mSettings.name}' has defined 'apiVersion: ${apiVersion}', which is an unsupported value. The supported values are: ${aSupportedVersions.join(", ")}`;
+			/**
+			 * @deprecated
+			 */
+			sError += " and undefined (defaults to 1).";
+			throw new TypeError(sError);
+		}
+
+		/**
+		 * @deprecated
+		 */
 		if (apiVersion < 2) {
 			const oLibProxyHandler = createProxyForLibraryNamespace(mSettings.name, oLibNamespace);
 
 			// activate proxy for outer library namespace object
 			oLibNamespace = new Proxy(oLibNamespace, oLibProxyHandler);
 
-			// proxy must be written back to the original path (global)
+			/**
+			 * proxy must be written back to the original path (global)
+			 * @deprecated since 1.120
+			 */
 			ObjectPath.set(mSettings.name, oLibNamespace);
 		}
 
 
-		// resolve dependencies
+		/**
+		 * Synchronously resolve dependencies
+		 * @deprecated since 1.120
+		 */
 		for (i = 0; i < oLib.dependencies.length; i++) {
 			var sDepLib = oLib.dependencies[i];
 			var oDepLib = Library._get(sDepLib, true /* bCreate */);
@@ -1400,14 +1419,38 @@ sap.ui.define([
 		// register interface types
 		DataType.registerInterfaceTypes(oLib.interfaces);
 
-		// Declare a module for each (non-builtin) simple type
-		// Only needed for backward compatibility: some code 'requires' such types although they never have been modules on their own
+		function createHintForType(sTypeName) {
+			const typeObj = ObjectPath.get(sTypeName);
+			if ( typeObj instanceof DataType ) {
+				return ` to ensure that the type is defined. You can then access it by calling 'DataType.getType("${sTypeName}")'.`;
+			} else if ( isPlainObject(typeObj) ) {
+				return `. You can then reference this type via the library's module export.`;
+			} else {
+				return `.`; // no further hint
+			}
+		}
+
+		/**
+		 * Declare a module for each (non-builtin) simple type.
+		 * Only needed for backward compatibility: some code 'requires' such types although they never have been modules on their own.
+		 * @deprecated since 1.120
+		 */
 		for (i = 0; i < oLib.types.length; i++) {
 			if ( !/^(any|boolean|float|int|string|object|void)$/.test(oLib.types[i]) ) {
-				sap.ui.loader._.declareModule(oLib.types[i].replace(/\./g, "/") + ".js");
+				// register a pseudo module that logs a deprecation warning
+				const sTypeName = oLib.types[i];
+				sap.ui.loader._.declareModule(
+					sTypeName.replace(/\./g, "/") + ".js",
+					() => (
+						`Importing the pseudo module '${sTypeName.replace(/\./g, "/")}' is deprecated.`
+						+ ` To access the type '${sTypeName}', please import '${oLib.namespace}/library'`
+						+ createHintForType(sTypeName)
+						+ ` For more information, see documentation under 'Best Practices for Loading Modules'.`
+					)
+				);
 
 				// ensure parent namespace of the type
-				var sNamespacePrefix = oLib.types[i].substring(0, oLib.types[i].lastIndexOf("."));
+				var sNamespacePrefix = sTypeName.substring(0, sTypeName.lastIndexOf("."));
 				if (ObjectPath.get(sNamespacePrefix) === undefined) {
 					// parent type namespace does not exists, so we create its
 					ObjectPath.create(sNamespacePrefix);
@@ -1415,23 +1458,22 @@ sap.ui.define([
 			}
 		}
 
-		// create lazy loading stubs for all controls and elements
-		var aElements = oLib.controls.concat(oLib.elements);
-		for (i = 0; i < aElements.length; i++) {
-			sap.ui.lazyRequire(aElements[i], "new extend getMetadata"); // TODO don't create an 'extend' stub for final classes
-		}
+		/**
+		 * create lazy loading stubs for all controls and elements
+		 * @deprecated since 1.120
+		 */
+		(() => {
+			var aElements = oLib.controls.concat(oLib.elements);
+			for (i = 0; i < aElements.length; i++) {
+				sap.ui.lazyRequire(aElements[i], "new extend getMetadata"); // TODO don't create an 'extend' stub for final classes
+			}
+		})();
 
 			// include the library theme, but only if it has not been suppressed in library metadata or by configuration
 		if (!oLib.noLibraryCSS) {
-			var oLibThemingInfo = {
-				name: oLib.name,
-				version: oLib.version,
-				preloadedCss: getPreloadLibCss().indexOf(oLib.name) !== -1
-			};
-			aAllLibrariesRequiringCss.push(oLibThemingInfo);
-			// Don't reset ThemeManager in case CSS for current library is already preloaded
-			_getThemeManager(/* bClear = */ !oLibThemingInfo.preloadedCss).then(function(ThemeManager) {
-				ThemeManager._includeLibraryThemeAndEnsureThemeRoot(oLibThemingInfo);
+			includeLibraryTheme({
+				libName: oLib.name,
+				version: oLib.version
 			});
 		}
 
@@ -1451,7 +1493,7 @@ sap.ui.define([
 
 	function getLibraryModuleNames(aLibs) {
 		return aLibs.map(function(oLib) {
-			return oLib.name.replace(/\./g, "/") + "/library";
+			return oLib.namespace + "/library";
 		});
 	}
 
@@ -1583,15 +1625,15 @@ sap.ui.define([
 		}
 
 		var mAdditionalConfig = {};
-		var aLibraryNames = [];
+		var aAllLibraries = [];
 		vLibConfigs.forEach(function(vLibrary) {
 			if (typeof vLibrary === "object") {
 				if (vLibrary.hasOwnProperty("url") || vLibrary.hasOwnProperty("json")) {
 					mAdditionalConfig[vLibrary.name] = vLibrary;
 				}
-				aLibraryNames.push(vLibrary.name);
+				aAllLibraries.push(vLibrary);
 			} else {
-				aLibraryNames.push(vLibrary);
+				aAllLibraries.push({name: vLibrary});
 			}
 		});
 
@@ -1599,32 +1641,24 @@ sap.ui.define([
 			bRequire = !mOptions.preloadOnly;
 
 		if (!mOptions.sync) {
-			aLibraryNames = VersionInfo._getTransitiveDependencyForLibraries(aLibraryNames);
+			aAllLibraries = filterDependencies(VersionInfo._getTransitiveDependencyForLibraries(aAllLibraries));
 		}
 
-		var aLibs = aLibraryNames.map(function(sLibraryName) {
-			var oLib = Library._get(sLibraryName, true /* bCreate */);
+		var aLibs = aAllLibraries.map(function(oLibrary) {
+			var oLib = Library._get(oLibrary.name, true /* bCreate */);
 
-			if (oLib._loadingStatus == null && mAdditionalConfig[sLibraryName] && mAdditionalConfig[sLibraryName].url) {
-				registerModulePath(sLibraryName, mAdditionalConfig[sLibraryName].url);
+			if (oLib._loadingStatus == null && mAdditionalConfig[oLibrary.name] && mAdditionalConfig[oLibrary.name].url) {
+				registerModulePath(oLibrary.name, mAdditionalConfig[oLibrary.name].url);
 			}
 
 			return oLib;
 		});
 
-		if (!mOptions.sync) {
-			var pPreloaded = bPreload ?
-				Promise.all(aLibs.map(function(oLib) {
-					var mOptions = {};
-					if (mAdditionalConfig[oLib.name] && mAdditionalConfig[oLib.name].hasOwnProperty("json")) {
-						mOptions.json = mAdditionalConfig[oLib.name].json;
-					}
-					return oLib._preload(mOptions);
-				})) :
-				Promise.resolve(aLibs);
-
-			return bRequire ? pPreloaded.then(requireLibrariesAsync) : pPreloaded;
-		} else {
+		/**
+		 * sync loading
+		 * @deprecated since 1.120
+		 */
+		if (mOptions.sync) {
 			if (bPreload) {
 				aLibs.forEach(function(oLib) {
 					var mOptions = {sync: true};
@@ -1655,6 +1689,18 @@ sap.ui.define([
 
 			return aLibs;
 		}
+
+		const pPreloaded = bPreload ?
+			Promise.all(aLibs.map(function(oLib) {
+				const mOptions = {};
+				if (mAdditionalConfig[oLib.name] && mAdditionalConfig[oLib.name].hasOwnProperty("json")) {
+					mOptions.json = mAdditionalConfig[oLib.name].json;
+				}
+				return oLib._preload(mOptions);
+			})) :
+			Promise.resolve(aLibs);
+
+		return bRequire ? pPreloaded.then(requireLibrariesAsync) : pPreloaded;
 	};
 
 	/**
@@ -1664,7 +1710,7 @@ sap.ui.define([
 	 * yet, synchronous request will be used to load the resource bundle.
 	 *
 	 * If only one argument is given, it is assumed to be the library name. The locale
-	 * then falls back to the current {@link sap.ui.core.Configuration#getLanguage session locale}.
+	 * then falls back to the current {@link module:sap/base/i18n/Localization.getLanguage session locale}.
 	 *
 	 * <h3>Configuration via App Descriptor</h3>
 	 * When the App Descriptor for the library is available without further request (manifest.json
@@ -1704,13 +1750,22 @@ sap.ui.define([
 	 */
 	Library._registerElement = function(oElementMetadata) {
 		var sElementName = oElementMetadata.getName(),
-			sLibraryName = oElementMetadata.getLibraryName() || "",
-			oLibrary = Library._get(sLibraryName),
-			sCategory = oElementMetadata.isA("sap.ui.core.Control") ? 'controls' : 'elements';
+			sLibraryName = oElementMetadata.getLibraryName() || "";
+
+		// if no lib name could be determined and if the class name is not namespaced, do not register it
+		if (!sLibraryName && !sElementName.includes(".")) {
+			return;
+		}
+
+		let oLibrary = Library._get(sLibraryName);
+		const sCategory = oElementMetadata.isA("sap.ui.core.Control") ? 'controls' : 'elements';
 
 		// if library has not been loaded yet, create a library
 		if (!oLibrary) {
-			// ensure namespace
+			/**
+			 * Ensure namespace.
+			 * @deprecated since 1.120
+			 */
 			ObjectPath.create(sLibraryName);
 			oLibrary = Library._get(sLibraryName, true /* bCreate */);
 		}
@@ -1811,9 +1866,7 @@ sap.ui.define([
 				// enrich i18n information
 				if (vI18n) {
 					// resolve bundleUrls relative to library path
-					var sLibraryPath = oLib.name.replace(/\./g, "/");
-					sLibraryPath = sLibraryPath.endsWith("/") ? sLibraryPath : sLibraryPath + "/"; // add trailing slash if missing
-					sLibraryPath = sap.ui.require.toUrl(sLibraryPath);
+					var sLibraryPath = sap.ui.require.toUrl(oLib.namespace + "/");
 
 					_UrlResolver._processResourceConfiguration(vI18n, {
 						alreadyResolvedOnRoot: true,
@@ -1874,7 +1927,7 @@ sap.ui.define([
 	 */
 	Library.getPreloadMode = function() {
 		// if debug sources are requested, then the preload feature must be deactivated
-		if (Configuration.getDebug() === true) {
+		if (Supportability.isDebugModeEnabled() === true) {
 			return "";
 		}
 		// determine preload mode (e.g. resolve default or auto)

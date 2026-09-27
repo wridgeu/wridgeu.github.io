@@ -4,161 +4,252 @@
 /* ================================================*/
 
 .sapUiIntCard {
-	min-height: 5rem;
+
+	.sapMListTblHeader,
+	.sapMLIBTypeInactive {
+		cursor: default;
+	}
 }
 
-.sapUiIntCardDialog {
+.sapMDialog.sapUiIntCardDialog {
+
+	&.sapUiIntCardDialogAnimate {
+		transition: opacity 0.4s, left 0.4s, top 0.4s;
+	}
+
+	.sapMDialogSection,
+	.sapMDialogScroll,
+	.sapMDialogScrollCont,
 	.sapUiIntCard {
-		border-radius: @sapUiElementBorderCornerRadius;
+		/* allows scrolling inside the card content instead of dialog content */
+		max-height: inherit;
+	}
+
+	.sapUiIntCard,
+	.sapMDialogScrollCont {
+		/* allows resizing */
+		height: 100%;
+	}
+
+	.sapFCardHeader {
+		box-shadow: var(--sapContent_HeaderShadow);
+		border-radius: var(--sapElement_BorderCornerRadius) var(--sapElement_BorderCornerRadius) 0 0;
+	}
+
+	&.sapMDialogDraggable .sapFCardHeader {
+
+		.sapMNC,
+		.sapFCardStatus {
+			cursor: text;
+		}
+
+		.sapFAvatar {
+			cursor: default;
+		}
+	}
+
+	.sapUiIntCard {
+		border-radius: 0 0 var(--sapElement_BorderCornerRadius) var(--sapElement_BorderCornerRadius);
+
+		.sapFCardFilterBar {
+			border-bottom: none;
+			box-shadow: var(--sapContent_HeaderShadow);
+		}
 
 		.sapFCardContent {
-			overflow: scroll;
+			overflow: auto;
+			border-radius: 0 0 var(--sapElement_BorderCornerRadius) var(--sapElement_BorderCornerRadius);
+		}
+
+		.sapFCardObjectContent > .sapMVBox {
+			padding-bottom: 1rem;
+		}
+
+		.sapFCardFooter {
+			border-top: 1px solid var(--sapPageFooter_BorderColor);
+			padding-top: 0.25rem;
+			padding-bottom: 0.25rem;
 		}
 	}
 
 	&.sapMDialog:not(.sapUiResponsiveContentPadding):not(.sapUiContentPadding) .sapMDialogScroll {
-		padding-bottom: 0px;
-		padding-top: 0px;
+		padding-bottom: 0;
+		padding-top: 0;
+	}
+
+	&.sapMDialog {
+		min-height: 5.5rem; /* 2.75 + 2.75, which is the min-height of the content of the Dialog plus the footer of the Card; */
 	}
 }
 
-.sapFCard.sapUiIntCardWithFooter .sapFCardContent {
+.sapFCard.sapUiIntCardWithFooter:not(.sapUiIntCardFooterInvisible) .sapFCardContent {
 	border-bottom-left-radius: 0;
 	border-bottom-right-radius: 0;
 }
 
-.sapFCard.sapUiIntCardTileStandard,
-.sapFCard.sapUiIntCardTileStandardWide,
-.sapFCard.sapUiIntCardTileFlat,
-.sapFCard.sapUiIntCardTileFlatWide {
-	.sapFCardHeader {
-		height: 100%;
-		box-sizing: border-box;
-		position: relative;
+.sapUiIntCard .sapFCardContentMessageContainer {
+	padding-top: 0;
+}
 
-		.sapFCardDataTimestamp,
-		.sapFCardStatus,
-		.sapFCardHeaderToolbarCont {
-			display: none;
-		}
+.sapUiIntCardCustomImage {
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center center;
+	position: absolute;
+}
 
-		.sapFCardHeaderWrapper {
-			flex-direction: column;
-			justify-content: space-between;
-			height: 100%;
+.sapMIllustratedMessageMainContent:has(.sapUiIntCardCustomImage) svg {
+	visibility: hidden;
+}
 
-			.sapFCardHeaderText {
-				justify-content: flex-start;
-			}
-		}
+.sapUiIntCard .sapFCardBaseContent.sapFCardBaseContentHasMessageLoading > .sapUiLocalBusyIndicator {
+	background-color: var(--sapTile_Background);
+	opacity: 0.4;
+	transition: unset;
 
-		&.sapFCardNumericHeader {
-			.sapFCardHeaderContent {
-				display: flex;
-				flex-direction: column;
-
-				.sapFCardSubtitle {
-					align-items: flex-start;
-				}
-			}
-		}
+	.sapUiLocalBusyIndicatorAnimation {
+		visibility: hidden;
 	}
 }
 
-.sapFCard.sapUiIntCardTileFlat,
-.sapFCard.sapUiIntCardTileFlatWide {
-	.sapFCardHeader {
-		.sapFCardHeaderText {
-			justify-content: flex-start;
+.sapUiIntCard .sapFCardContentMessageContainer .sapFCardContentMessage {
+	pointer-events: all;
+	box-shadow: 0 0 12px 0 var(--sapList_BorderColor);
+	width: 100%;
+	position: absolute;
+	border-right: 0;
+	border-left: 0;
+	border-radius: 0;
+
+	&.sapFCardContentMessageToast {
+		background-color: var(--sapTile_Background);
+		border-color: var(--sapGroup_ContentBorderColor);
+
+		.sapMBtn .sapMBtnInner:not(:hover):not(:active) {
+			background-color: transparent;
+			border-color: transparent;
 		}
+	}
 
-		.sapFCardIcon.sapFAvatar {
-			margin: 0;
-		}
-
-		.sapFCardIcon.sapFAvatarXS.sapFAvatarColorTransparent .sapUiIcon {
-			font-size: 1.75rem;
-		}
-
-		&.sapFCardHeaderHasIcon,
-		&.sapFCardHeaderHasNumber {
-			.sapFCardSubtitle,
-			.sapFCardUnitOfMeasurement {
-				display: none;
-			}
-		}
-
-		&.sapFCardNumericHeader {
-			.sapFCardHeaderDetailsWrapper {
-				display: none;
-			}
-
-			.sapFCardAvatarAndIndicatorsLine {
-				.sapFCardIcon.sapFAvatar {
-					margin: 0;
-				}
-
-				.sapFCardNumericIndicators {
-					margin: 0;
-					align-items: center;
-
-					.sapMNC {
-						margin: 0;
-
-						.sapMNCValue > .sapMNCLargeFontSize {
-							padding: 0;
-							height: 1.75rem;
-						}
-
-						.sapMNCIndScale {
-							margin-left: 0.125rem;
-							padding: 0rem;
-						}
-					}
-
-					.sapFCardNumericIndicatorsSide {
-						margin: 0;
-						padding: 0;
-					}
-				}
-			}
-
-			&.sapFCardHeaderHasNumber .sapFCardIcon.sapFAvatarXS.sapFAvatarColorTransparent .sapUiIcon {
-				font-size: 1.5rem;
-			}
-		}
-
-		.sapFCardHeaderBanner {
-			position: absolute;
-			bottom: 0.75rem;;
-			right: 1.125rem;
-		}
-
-		.sapMIllustratedMessage {
-			padding: 0;
-			.sapMTitle {
-				font-size: 0.875rem;
-			}
-			.sapMIllustratedMessageDescription {
-				font-size: 0.75rem;
-			}
-		}
+	&.sapFCardContentMessageLoading {
+		background-color: var(--sapTile_Background);
+		z-index: 1;
+		clip-path: polygon(0 0, 100% 0, 100% 0, 75% 0, 50% 0, 25% 1px, 0 3px);
+		border-top-width: 2px;
+		border-top-color: var(--sapContent_BusyColor);
+		opacity: 0.6;
+		animation: sapUiIntCardLoadingMessage 2s linear infinite;
 	}
 }
 
-.sapFCard.sapUiIntCardTileStandard,
-.sapFCard.sapUiIntCardTileFlat {
-	.sapFCardHeader .sapFCardNumericIndicatorsSide {
-		display: none;
+@keyframes sapUiIntCardLoadingMessage {
+
+	0% {
+		clip-path: polygon(0 0, 100% 0, 100% 0, 75% 0, 50% 0, 25% 1px, 0 3px);
+	}
+
+	17% {
+		clip-path: polygon(0 0, 100% 0, 100% 0, 75% 0, 50% 1px, 25% 3px, 0 1px);
+	}
+
+	34% {
+		clip-path: polygon(0 0, 100% 0, 100% 0, 75% 1px, 50% 3px, 25% 1px, 0 0);
+	}
+
+	51% {
+		clip-path: polygon(0 0, 100% 0, 100% 1px, 75% 3px, 50% 1px, 25% 0, 0 0);
+	}
+
+	66% {
+		clip-path: polygon(0 0, 100% 0, 100% 3px, 75% 1px, 50% 0, 25% 0, 0 0);
+	}
+
+	84% {
+		clip-path: polygon(0 0, 100% 0, 100% 1px, 75% 0, 50% 0, 25% 0, 0 1px);
+	}
+
+	100% {
+		clip-path: polygon(0 0, 100% 0, 100% 0, 75% 0, 50% 0, 25% 1px, 0 3px);
 	}
 }
 
-.sapFCard.sapUiIntCardTileFlat .sapFCardHeaderBanner {
-	/* there is no space for banner in 2x1 tile */
-	display: none;
+html[data-sap-ui-animation='on'] .sapUiIntCard .sapFCardContentMessageContainer .sapFCardContentMessage:not(.sapFCardContentMessageLoading):not(.sapUiIntCardShowMessageFinished) {
+	animation: sapUiIntCardShowMessage 0.4s ease-in-out;
 }
 
-.sapFCard.sapUiIntCardStandard .sapFCardHeaderBanner {
-	/* the banner feature is not yet available for standard card variant */
-	display: none!important;
+@keyframes sapUiIntCardShowMessage {
+
+	0% {
+		opacity: 0.7;
+		clip-path: polygon(0 0, 30% 1px, 30% 1px, 0 1px);
+	}
+
+	40% {
+		opacity: 1;
+		clip-path: polygon(0 0, 100% 0, 100% 1px, 0 1px);
+	}
+
+	100% {
+		clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+		opacity: 1;
+	}
+}
+
+html[data-sap-ui-animation='on'] .sapUiIntCard .sapFCardContentMessageContainer .sapFCardContentMessage:not(.sapUiIntCardMessageIconAppearFinished) {
+
+	.sapMMsgStripIcon {
+		animation: sapUiIntCardMessageIconAppear 0.5s 0.4s ease-in-out;
+		transform: scale(0);
+		opacity: 0;
+		animation-fill-mode: forwards;
+	}
+}
+
+@keyframes sapUiIntCardMessageIconAppear {
+
+	0% {
+		transform: scale(0);
+	}
+
+	50% {
+		transform: scale(1.18);
+		opacity: 1;
+	}
+
+	80% {
+		transform: scale(0.9);
+		opacity: 0.7;
+	}
+
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+html[data-sap-ui-animation='on'] .sapUiIntCard .sapFCardContentMessageContainer .sapFCardContentMessageClosing:not(.sapFCardContentMessageLoading) {
+	animation: sapUiIntCardHideMessage 0.4s ease-in-out;
+}
+
+.sapFCardContentMessage.sapUiIntCardHideMessageFinished {
+	/* prevents a re-appearing effect on close */
+	visibility: hidden;
+}
+
+@keyframes sapUiIntCardHideMessage {
+
+	0% {
+		opacity: 1;
+		clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+	}
+
+	40% {
+		opacity: 1;
+		clip-path: polygon(0 0, 100% 0, 100% 1px, 0 1px);
+	}
+
+	100% {
+		clip-path: polygon(0 0, 100% 0, 100% 1px, 0 1px);
+		opacity: 0;
+	}
 }

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ function(
 	 * @extends sap.m.Input
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -78,8 +78,7 @@ function(
 	};
 
 	NumericInput.prototype.onkeydown = function(oEvent) {
-		var sTypedValue,
-			iCursorPos,
+		let sTypedValue,
 			fParsedValue;
 
 		Input.prototype.onkeydown.apply(this, arguments);
@@ -91,14 +90,15 @@ function(
 			return;
 		}
 
-		iCursorPos = this._$input.cursorPos();
+		const iCursorPos = this._$input.cursorPos();
+		const sDecimalSeparator = Device.system.desktop ? this._getNumberFormat().oFormatOptions.decimalSeparator : ".";
 
 		// a special key that is meant to be a decimal separator, always
 		// so replace in the input if needed
 		if (oEvent.which === KeyCodes.NUMPAD_COMMA) {
 			oEvent.preventDefault();
 
-			sTypedValue = this.getValue().substring(0, iCursorPos) + this._getNumberFormat().oFormatOptions.decimalSeparator + this.getValue().substring(iCursorPos);
+			sTypedValue = this.getValue().substring(0, iCursorPos) + sDecimalSeparator + this.getValue().substring(iCursorPos);
 			fParsedValue = this._getNumberFormat().parse(sTypedValue);
 			if (fParsedValue || fParsedValue === 0) {
 				this.setDOMValue(sTypedValue);
@@ -107,9 +107,18 @@ function(
 			return;
 		}
 
+		if (oEvent.originalEvent.key === sDecimalSeparator && iCursorPos === 0) {
+			oEvent.preventDefault();
+			this.setDOMValue(sDecimalSeparator);
+			return;
+		}
+
+		const sGroupSeparator = this._getNumberFormat().oFormatOptions.groupingSeparator;
+		const oIsMinusSignAtZeroPosition =  iCursorPos === 0 && (oEvent.which === KeyCodes.SLASH || oEvent.which === KeyCodes.NUMPAD_MINUS);
 		sTypedValue = this.getValue().substring(0, iCursorPos) + oEvent.originalEvent.key + this.getValue().substring(iCursorPos);
+		sTypedValue =  Device.system.desktop ? sTypedValue.replaceAll(sGroupSeparator, "") : sTypedValue;
 		fParsedValue = this._getNumberFormat().parse(sTypedValue);
-		if (!isKeyAllowed(oEvent.which) || (!fParsedValue && fParsedValue !== 0)) {
+		if (!isKeyAllowed(oEvent.which) || (!fParsedValue && fParsedValue !== 0 && !oIsMinusSignAtZeroPosition)) {
 			oEvent.preventDefault();
 		}
 	};

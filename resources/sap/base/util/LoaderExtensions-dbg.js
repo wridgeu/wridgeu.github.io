@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,14 +9,12 @@ sap.ui.define([
 	'sap/base/Log',
 	'sap/base/assert',
 	'sap/base/util/extend',
-	'sap/base/util/fetch',
 	'sap/base/util/mixedFetch'
 ], function(
 	XMLHelper,
 	Log,
 	assert,
 	extend,
-	fetch,
 	mixedFetch
 ) {
 	"use strict";
@@ -65,20 +63,25 @@ sap.ui.define([
 	/**
 	 * Returns the names of all required modules in the legacy syntax for module names (dot-separated).
 	 *
-	 * @return {string[]} The names of all required modules
+	 * @param {boolean} [omitDeprecated=false]
+	 *     Whether to omit deprecated modules from the result (e.g. pseudo modules for data types)
+	 * @returns {string[]} The names of all required modules
 	 * @static
 	 * @private
 	 * @ui5-restricted sap.ui.core
 	 */
-	LoaderExtensions.getAllRequiredModules = function() {
+	LoaderExtensions.getAllRequiredModules = function(omitDeprecated) {
 		var aModuleNames = [],
-			mModules = sap.ui.loader._.getAllModules(true),
+			mModules = sap.ui.loader._.getAllModules(),
 			oModule;
 
 		for (var sModuleName in mModules) {
 			oModule = mModules[sModuleName];
 			// filter out preloaded modules
-			if (oModule.ui5 && oModule.state !== -1 /* PRELOADED */) {
+			if (oModule.ui5
+				&& oModule.state !== -1 /* PRELOADED */
+				&& (!oModule.deprecated || !omitDeprecated)
+			) {
 				aModuleNames.push(oModule.ui5);
 			}
 		}
@@ -295,16 +298,12 @@ sap.ui.define([
 			// load data
 			iSyncCallBehavior = sap.ui.loader._.getSyncCallBehavior();
 			if (!mOptions.async && iSyncCallBehavior) {
-				if (iSyncCallBehavior >= 1) { // temp. raise a warning only
-					Log.error("[nosync] loading resource '" + (sResourceName || mOptions.url) + "' with sync XHR");
-				} else {
-					throw new Error("[nosync] loading resource '" + (sResourceName || mOptions.url) + "' with sync XHR");
-				}
+				Log.warning("[nosync] loading resource '" + (sResourceName || mOptions.url) + "' with sync XHR");
 			}
 
 			var oHeaders = {};
 			if (sType) {
-				oHeaders["Accept"] = fetch.ContentTypes[sType.toUpperCase()];
+				oHeaders["Accept"] = mixedFetch.ContentTypes[sType.toUpperCase()];
 			}
 
 			sUrl = mOptions.url || sap.ui.loader._.getResourcePath(sResourceName);
@@ -313,11 +312,7 @@ sap.ui.define([
 				fnDone = LoaderExtensions.notifyResourceLoading();
 			}
 
-			/**
-			 * @deprecated As of Version 1.120
-			 */
-			fetch = mixedFetch ? mixedFetch : fetch;
-			var pResponse = fetch(sUrl, {
+			var pResponse = mixedFetch(sUrl, {
 				headers: Object.assign(oHeaders, mOptions.headers)
 			}, !mOptions.async)
 			.then(function(response) {

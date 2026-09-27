@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['./SliderUtilities', "sap/ui/core/InvisibleText", "sap/ui/core/Configuration"],
-	function(SliderUtilities, InvisibleText, Configuration) {
+sap.ui.define(['./SliderUtilities', "sap/base/i18n/Localization", "sap/ui/core/InvisibleText"],
+	function(SliderUtilities, Localization, InvisibleText) {
 		"use strict";
 
 		/**
@@ -86,6 +86,7 @@ sap.ui.define(['./SliderUtilities', "sap/ui/core/InvisibleText", "sap/ui/core/Co
 			oRm.openStart("div", oSlider.getId() + "-progress");
 			this.addProgressIndicatorClass(oRm, oSlider);
 			oRm.style("width", oSlider._sProgressValue);
+			oRm.style("border", oSlider._sProgressValue === "0%" ? "none" : "");
 			oRm.attr("aria-hidden", "true");
 			oRm.openEnd().close("div");
 		};
@@ -118,7 +119,7 @@ sap.ui.define(['./SliderUtilities', "sap/ui/core/InvisibleText", "sap/ui/core/Co
 			}
 
 			this.addHandleClass(oRm, oSlider);
-			oRm.style(Configuration.getRTL() ? "right" : "left", oSlider._sProgressValue);
+			oRm.style(Localization.getRTL() ? "right" : "left", oSlider._sProgressValue);
 			this.writeAccessibilityState(oRm, oSlider, mOptions);
 
 
@@ -245,7 +246,7 @@ sap.ui.define(['./SliderUtilities', "sap/ui/core/InvisibleText", "sap/ui/core/Co
 
 		SliderRenderer.renderTickmarksLabel = function (oRm, oSlider, fValue) {
 			var fOffset = oSlider._getPercentOfValue(fValue);
-			var sLeftOrRightPosition = Configuration.getRTL() ? "right" : "left";
+			var sLeftOrRightPosition = Localization.getRTL() ? "right" : "left";
 			var sValue;
 			fValue = oSlider.toFixed(fValue, oSlider.getDecimalPrecisionOfNumber(oSlider.getStep()));
 

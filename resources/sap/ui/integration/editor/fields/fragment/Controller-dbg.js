@@ -1,12 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/mvc/Controller",
-	"sap/ui/core/Core"
-], function(FragmentController, Core) {
+	"sap/ui/integration/util/Utils"
+], function(
+	FragmentController,
+	Utils
+) {
 	"use strict";
 
 	/**
@@ -15,9 +18,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.fragment.Controller
 	 * @author SAP SE
 	 * @since 1.105.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.105.0
 	 * @ui5-restricted
 	 */
 	var Controller = FragmentController.extend("sap.ui.integration.editor.fields.fragment.Controller", {});
@@ -30,12 +32,12 @@ sap.ui.define([
 	};
 
 	Controller.prototype.saveValue = function (sValue) {
-		var sLanguage =  Core.getConfiguration().getLanguage().replaceAll('_', '-');
+		var sLanguage =  Utils._language;
 		var oConfig = this._oField.getConfiguration();
 		if (oConfig.type === "string" && oConfig.translatable) {
-			this._oField.setTranslationValueInTexts(sLanguage, oConfig.manifestpath, sValue);
+			this._oField.setTranslationValueInTexts(sLanguage, sValue);
 		} else {
-			this._oField._settingsModel.setProperty(oConfig.manifestpath, sValue);
+			this._oField._oSettingsModel.setProperty(oConfig.manifestpath, sValue);
 		}
 	};
 

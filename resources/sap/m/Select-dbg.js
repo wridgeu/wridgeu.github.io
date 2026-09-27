@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,11 +28,14 @@ sap.ui.define([
 	"sap/ui/dom/containsOrEquals",
 	"sap/ui/events/KeyCodes",
 	'./Text',
+	'./HBox',
+	'./FlexItemData',
 	'sap/m/SimpleFixFlex',
 	'sap/base/Log',
 	'sap/ui/core/ValueStateSupport',
 	"sap/ui/core/InvisibleMessage",
-	"sap/ui/core/Lib"
+	"sap/ui/core/Lib",
+	"sap/ui/core/ResizeHandler"
 ],
 function(
 	Element,
@@ -58,11 +61,14 @@ function(
 	containsOrEquals,
 	KeyCodes,
 	Text,
+	HBox,
+	FlexItemData,
 	SimpleFixFlex,
 	Log,
 	ValueStateSupport,
 	InvisibleMessage,
-	Library
+	Library,
+	ResizeHandler
 ) {
 		"use strict";
 
@@ -71,6 +77,9 @@ function(
 
 		// shortcut for sap.m.PlacementType
 		var PlacementType = library.PlacementType;
+
+		// shortcut for sap.m.SelectTwoColumnSeparator
+		var TwoColumnSeparator = library.SelectTwoColumnSeparator;
 
 		// shortcut for sap.ui.core.ValueState
 		var ValueState = coreLibrary.ValueState;
@@ -87,11 +96,32 @@ function(
 		// shortcut for sap.m.SelectType
 		var SelectType = library.SelectType;
 
+		// shortcut for sap.m.FlexAlignItems
+		var FlexAlignItems = library.FlexAlignItems;
+
+		// shortcut for sap.m.FlexAlignSelf
+		var FlexAlignSelf = library.FlexAlignSelf;
+
 		// shortcut for sap.ui.core.InvisibleMessageMode
 		var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
 
 		// shortcut for sap.ui.core.TitleLevel
 		var TitleLevel = coreLibrary.TitleLevel;
+
+		// map of semantic icons per value state, used in the picker's value state header
+		var VALUE_STATE_ICONS = {
+			Error: "sap-icon://error",
+			Warning: "sap-icon://alert",
+			Success: "sap-icon://sys-enter-2",
+			Information: "sap-icon://information"
+		};
+
+		// constant for two column separator
+		var TWO_COLUMN_SEPARATOR_MAP = {
+			"Dash": "\u2013", // En Dash –
+			"Bullet": "\u2022", // Bullet •
+			"VerticalLine": "\u007C" // Vertical Line |
+		};
 
 		/**
 		 * Constructor for a new <code>sap.m.Select</code>.
@@ -105,10 +135,16 @@ function(
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/select/ Select}
 		 *
 		 * @extends sap.ui.core.Control
-		 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
+		 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent, sap.ui.core.ILabelable
+		 *
+		 * @borrows sap.ui.core.ISemanticFormContent.getFormFormattedValue as #getFormFormattedValue
+		 * @borrows sap.ui.core.ISemanticFormContent.getFormValueProperty as #getFormValueProperty
+		 * @borrows sap.ui.core.ISemanticFormContent.getFormObservingProperties as #getFormObservingProperties
+		 * @borrows sap.ui.core.ISemanticFormContent.getFormRenderAsControl as #getFormRenderAsControl
+		 * @borrows sap.ui.core.ILabelable.hasLabelableHTMLElement as #hasLabelableHTMLElement
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
@@ -121,7 +157,8 @@ function(
 					"sap.m.IOverflowToolbarContent",
 					"sap.m.IToolbarInteractiveControl",
 					"sap.f.IShellBar",
-					"sap.ui.core.ISemanticFormContent"
+					"sap.ui.core.ISemanticFormContent",
+					"sap.ui.core.ILabelable"
 				],
 				library: "sap.m",
 				properties: {
@@ -223,7 +260,7 @@ function(
 					 */
 					selectedItemId: {
 						type: "string",
-						group: "Misc",
+						group: "Data",
 						defaultValue: ""
 					},
 
@@ -363,7 +400,13 @@ function(
 					 * (e.g. one label should label multiple fields).
 					 * @since 1.74
 					 */
-					required : {type : "boolean", group : "Misc", defaultValue : false}
+					required : {type : "boolean", group : "Misc", defaultValue : false},
+					/**
+					 * Defines the separator type for the two columns layout when Select is in read-only mode.
+					 * @since 1.140
+					 */
+					twoColumnSeparator: { type: "sap.m.SelectTwoColumnSeparator", group: "Appearance", defaultValue: TwoColumnSeparator.Dash }
+
 				},
 				defaultAggregation : "items",
 				aggregations: {
@@ -421,7 +464,7 @@ function(
 					 * Internal aggregation to hold the picker's subheader.
 					 */
 					_pickerValueStateContent: {
-						type: "sap.m.Text",
+						type: "sap.m.HBox",
 						multiple: false,
 						visibility: "hidden"
 					}
@@ -500,7 +543,13 @@ function(
 								type: "sap.ui.core.Item"
 							}
 						}
-					}
+					},
+
+					/**
+					 * This event is triggered prior to the opening of the <code>sap.m.SelectList</code>.
+					 * @since 1.130
+					 */
+					beforeOpen: {}
 				},
 				designtime: "sap/m/designtime/Select.designtime"
 			},
@@ -652,6 +701,20 @@ function(
 			}
 		};
 
+		/**
+		 * Handles immediate selection of the initially highlighted item for accessibility.
+		 * This eliminates the confusing "highlighted but not selectable" state for keyboard users.
+		 *
+		 * @private
+		 */
+		Select.prototype._selectInitialHighlightedItem = function() {
+			if (this._oInitialHighlightedItem && !this.getSelectedItem() && !this.getForceSelection()) {
+				this.setSelection(this._oInitialHighlightedItem);
+				this.setValue(this._getSelectedItemText(this._oInitialHighlightedItem));
+				this._oInitialHighlightedItem = null;
+			}
+		};
+
 		Select.prototype._getSelectedItemText = function(vItem) {
 			vItem = vItem || this.getSelectedItem();
 
@@ -660,7 +723,27 @@ function(
 			}
 
 			if (vItem) {
-				return vItem.getText();
+				var oParent = vItem.getParent(),
+					sMainText = oParent ? vItem.getText() : null,
+					sAdditionalText,
+					sSeparatorKey,
+					sSeparator,
+					sText;
+
+				if (this.getEditable()) {
+					return sMainText;
+				} else {
+					sSeparatorKey = this.getTwoColumnSeparator();
+					sSeparator = TWO_COLUMN_SEPARATOR_MAP[sSeparatorKey];
+					sAdditionalText = oParent ? vItem.getAdditionalText?.() : null;
+					if (sAdditionalText && this.getShowSecondaryValues()) {
+						sText = `${sMainText} ${sSeparator} ${sAdditionalText}`;
+					} else {
+						sText = sMainText;
+					}
+
+					return sText;
+				}
 			}
 
 			return "";
@@ -848,6 +931,10 @@ function(
 
 			if (!this._isIconOnly()) {
 				oSelect.text(sSelectedItemText);
+			} else {
+				// For IconOnly Select, keep the hidden description span in sync so that
+				// aria-describedby announces the currently selected item to screen readers.
+				this.$("selectedText").text(sSelectedItemText);
 			}
 		};
 
@@ -911,7 +998,10 @@ function(
 				return;
 			}
 
-			// the aria-activedescendant attribute is set when the item is rendered
+			// note: the "aria-activedescendant" attribute is only set while the picker is
+			// open. For an IconOnly Select the field exposes a combobox role in that state
+			// (see onAfterOpen), so referencing the active option is valid. While closed the
+			// attribute is removed and the field reverts to a plain button role.
 			if (oItemDomRef && this.isOpen()) {
 				oDomRef.setAttribute(sActivedescendant, vItem.getId());
 			} else {
@@ -961,6 +1051,8 @@ function(
 			// call the hook to add additional content to the list
 			this.addContent();
 
+			this.fireEvent("beforeOpen");
+
 			this.addContentToFlex();
 
 			fnPickerTypeBeforeOpen && fnPickerTypeBeforeOpen.call(this);
@@ -987,12 +1079,32 @@ function(
 			// note: the "aria-controls" attribute is set when the list is visible and in view
 			oDomRef.setAttribute("aria-controls", this.getList().getId());
 
+			// For an IconOnly Select the field exposes role="button" while closed. While the
+			// picker is open we switch it to a combobox role so that the "aria-activedescendant"
+			// attribute - which points to the active option inside the listbox popup - is valid
+			// (it is not allowed on role="button"). This restores the full screen reader
+			// announcement (available options, selected value, position and dialog context)
+			// without an accessibility violation; it is reverted to a button in onAfterClose.
+			if (this._isIconOnly()) {
+				oDomRef.setAttribute("role", "combobox");
+			}
+
 			if (oItem) {
 
 				// note: the "aria-activedescendant" attribute is set
 				// when the currently active descendant is visible and in view
 				oDomRef.setAttribute("aria-activedescendant", oItem.getId());
 				this.scrollToItem(oItem);
+			} else if (!this.getForceSelection()) {
+				// For forceSelection=false, highlight first item to make it immediately selectable
+				// This ensures keyboard/screen reader users can select the highlighted item with Enter/Space
+				// without requiring arrow key navigation first
+				var oFirstItem = this.getSelectableItems()[0];
+				if (oFirstItem) {
+					oDomRef.setAttribute("aria-activedescendant", oFirstItem.getId());
+					this.scrollToItem(oFirstItem);
+					this._oInitialHighlightedItem = oFirstItem;
+				}
 			}
 		};
 
@@ -1019,6 +1131,9 @@ function(
 				}
 			}
 
+			// Clean up accessibility state
+			this._oInitialHighlightedItem = null;
+
 			// remove the expanded states of the field
 			this.removeStyleClass(CSS_CLASS + "Expanded");
 		};
@@ -1035,6 +1150,13 @@ function(
 			if (oDomRef) {
 				oDomRef.setAttribute("aria-expanded", "false");
 				oDomRef.removeAttribute("aria-activedescendant");
+
+				// Revert the IconOnly field back to a plain button role now that the picker
+				// is closed (see onAfterOpen). Keeping a combobox role / aria-activedescendant
+				// on a closed icon button would be an accessibility violation.
+				if (this._isIconOnly()) {
+					oDomRef.setAttribute("role", "button");
+				}
 			}
 
 			// Remove the active state
@@ -1113,16 +1235,29 @@ function(
 		};
 
 		/**
-		 * Get's the picker's subheader.
+		 * Gets the picker's value state content row.
 		 *
-		 * @returns {sap.m.Bar} Picker's header
+		 * @returns {sap.m.HBox} Picker's value state content row
 		 * @private
 		 */
 		Select.prototype._getPickerValueStateContent = function() {
 			if (!this.getAggregation("_pickerValueStateContent")) {
-				this.setAggregation("_pickerValueStateContent", new Text({
-					wrapping: true,
-					text: this._getTextForPickerValueStateContent()
+				var sValueState = this.getValueState();
+
+				this.setAggregation("_pickerValueStateContent", new HBox({
+					alignItems: FlexAlignItems.Start,
+					items: [
+						new Icon({
+							src: VALUE_STATE_ICONS[sValueState] || "",
+							visible: sValueState !== ValueState.None,
+							useIconTooltip: false
+						}).addStyleClass(this.getRenderer().CSS_CLASS + "PickerValueStateIcon"),
+						new Text({
+							wrapping: true,
+							text: this._getTextForPickerValueStateContent(),
+							layoutData: new FlexItemData({ alignSelf: FlexAlignSelf.Center })
+						})
+					]
 				}));
 			}
 
@@ -1137,11 +1272,11 @@ function(
 		Select.prototype._updatePickerValueStateContentText = function() {
 			var oPicker = this.getPicker(),
 				oPickerValueStateContent = oPicker && oPicker.getContent()[0].getFixContent(),
-				sText;
+				oText;
 
 			if (oPickerValueStateContent) {
-				sText = this._getTextForPickerValueStateContent();
-				oPickerValueStateContent.setText(sText);
+				oText = oPickerValueStateContent.getItems()[1];
+				oText && oText.setText(this._getTextForPickerValueStateContent());
 			}
 		};
 
@@ -1184,9 +1319,9 @@ function(
 		};
 
 		/**
-		 * Updates CSS classes for the <code>valueStateText</code> in the picker's subheader.
-		 * @private
-		 */
+		* Updates CSS classes and the semantic icon for the picker's subheader.
+		* @private
+		*/
 		Select.prototype._updatePickerValueStateContentStyles = function() {
 			var sValueState = this.getValueState(),
 				mValueState = ValueState,
@@ -1195,7 +1330,8 @@ function(
 				sCssClass = PICKER_CSS_CLASS + sValueState + "State",
 				sPickerWithSubHeader = PICKER_CSS_CLASS + "WithSubHeader",
 				oPicker = this.getPicker(),
-				oCustomHeader = oPicker && oPicker.getContent()[0].getFixContent();
+				oCustomHeader = oPicker && oPicker.getContent()[0].getFixContent(),
+				oIcon = oCustomHeader && oCustomHeader.getItems()[0];
 
 			if (oCustomHeader) {
 				this._removeValueStateClassesForPickerValueStateContent(oPicker);
@@ -1206,6 +1342,11 @@ function(
 				} else {
 					oPicker.removeStyleClass(sPickerWithSubHeader);
 				}
+			}
+
+			if (oIcon) {
+				oIcon.setSrc(VALUE_STATE_ICONS[sValueState] || "");
+				oIcon.setVisible(sValueState !== mValueState.None);
 			}
 		};
 
@@ -1289,7 +1430,12 @@ function(
 				sWidth = this.$().outerWidth() + "px"; // set popover content min-width in px due to rendering issue in Chrome and small %
 
 			if (oPopover) {
-				oPopover.setContentMinWidth(sWidth);
+				// Don't set min-width for wrapped items - let them size to content
+				if (!this.getWrapItemsText()) {
+					oPopover.setContentMinWidth(sWidth);
+				} else {
+					oPopover.setContentMinWidth("");
+				}
 			}
 		};
 
@@ -1305,11 +1451,15 @@ function(
 		 */
 		Select.prototype._createDialog = function() {
 			var that = this,
-				oHeader = this._getPickerHeader(),
+				oResourceBundle = Library.getResourceBundleFor("sap.m"),
 				oDialog = new Dialog({
 					stretch: true,
 					ariaLabelledBy: this._getPickerHiddenLabelId(),
-					customHeader: oHeader,
+					customHeader: this._getPickerHeader(),
+					endButton: new Button({
+						text: oResourceBundle.getText("SELECT_CANCEL_BUTTON"),
+						press: this.close.bind(this)
+					}),
 					beforeOpen: function() {
 						that.updatePickerHeaderTitle();
 					}
@@ -1343,8 +1493,7 @@ function(
 		 * @since 1.52
 		 */
 		Select.prototype._getPickerHeader = function() {
-			var sIconURI = IconPool.getIconURI("decline"),
-				oResourceBundle;
+			var oResourceBundle;
 
 			if (!this.getAggregation("_pickerHeader")) {
 				oResourceBundle = Library.getResourceBundleFor("sap.m");
@@ -1353,10 +1502,6 @@ function(
 					contentMiddle: new Title({
 						text: oResourceBundle.getText("SELECT_PICKER_TITLE_TEXT"),
 						level: TitleLevel.H1
-					}),
-					contentRight: new Button({
-						icon: sIconURI,
-						press: this.close.bind(this)
 					})
 				}));
 			}
@@ -1438,6 +1583,34 @@ function(
 			this._referencingLabelsHandlers = [];
 		};
 
+		/**
+		 * Called after rendering.
+		 *
+		 * @private
+		 */
+		Select.prototype._attachResizeHandlers = function () {
+			if (this.getAutoAdjustWidth() && this.getPicker() && this.getPickerType() === "Popover") {
+				this._iResizeHandlerId = ResizeHandler.register(this, this._onResizeRef.bind(this));
+			}
+		};
+
+		/**
+		 * Called after rendering.
+		 *
+		 * @private
+		 */
+		Select.prototype._detachResizeHandlers = function () {
+			if (this._iResizeHandlerId) {
+				ResizeHandler.deregister(this._iResizeHandlerId);
+				this._iResizeHandlerId = null;
+			}
+		};
+
+		Select.prototype._onResizeRef = function() {
+			//we make sure the repositioning of the popup, due to its openBy parent`s eidth change, is supressed
+			this.getPicker().oPopup.setFollowOf(true);
+		};
+
 		Select.prototype.onBeforeRendering = function() {
 			if (!this._oInvisibleMessage) {
 				this._oInvisibleMessage = InvisibleMessage.getInstance();
@@ -1461,6 +1634,8 @@ function(
 		};
 
 		Select.prototype.onAfterRendering = function() {
+			this._detachResizeHandlers();
+			this._attachResizeHandlers();
 
 			// rendering phase is finished
 			this.bRenderingPhase = false;
@@ -1469,6 +1644,7 @@ function(
 			this._attachHiddenSelectHandlers();
 			this._clearReferencingLabelsHandlers();
 			this._handleReferencingLabels();
+			this._updateToolTip();
 		};
 
 		Select.prototype.exit = function() {
@@ -1653,6 +1829,9 @@ function(
 			}
 
 			this.toggleOpenState();
+			if (!this.getSelectedItem()) {
+				this.selectNextSelectableItem();
+			}
 		};
 
 		/**
@@ -1698,8 +1877,9 @@ function(
 				oEvent.setMarked();
 
 				this.close();
-				this._revertSelection();
 			}
+
+			this._revertSelection();
 		};
 
 		/**
@@ -1720,6 +1900,7 @@ function(
 			// mark the event for components that needs to know if the event was handled
 			if (this.isOpen()) {
 				oEvent.setMarked();
+				this._selectInitialHighlightedItem();
 			}
 
 			this.close();
@@ -1733,7 +1914,7 @@ function(
 		 * @private
 		 */
 		Select.prototype.onkeydown = function(oEvent) {
-			if (oEvent.which === KeyCodes.SPACE) {
+			if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
 				this._bSpaceDown = true;
 			}
 
@@ -1760,13 +1941,18 @@ function(
 				return;
 			}
 
-			if (oEvent.which === KeyCodes.SPACE) {
+			if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
 				if (!oEvent.shiftKey && !this._bSupressNextAction) {
 
 					// mark the event for components that needs to know if the event was handled
 					oEvent.setMarked();
 
 					if (this.isOpen()) {
+						// Allow immediate Space selection of initially highlighted item
+						if (oEvent.which === KeyCodes.SPACE) {
+							this._selectInitialHighlightedItem();
+						}
+
 						this._checkSelectionChange();
 					}
 
@@ -1796,11 +1982,10 @@ function(
 			// note: prevent document scrolling when arrow keys are pressed
 			oEvent.preventDefault();
 
-			var oNextSelectableItem,
-				aSelectableItems = this.getSelectableItems();
+			// Clear initial highlight state when user navigates
+			this._oInitialHighlightedItem = null;
 
-			oNextSelectableItem = aSelectableItems[aSelectableItems.indexOf(this.getSelectedItem()) + 1];
-			fnHandleKeyboardNavigation.call(this, oNextSelectableItem);
+			this.selectNextSelectableItem();
 		};
 
 		/**
@@ -1821,6 +2006,9 @@ function(
 
 			// note: prevent document scrolling when arrow keys are pressed
 			oEvent.preventDefault();
+
+			// Clear initial highlight state when user navigates
+			this._oInitialHighlightedItem = null;
 
 			var oPrevSelectableItem,
 				aSelectableItems = this.getSelectableItems();
@@ -2015,7 +2203,7 @@ function(
 				return;
 			}
 
-			var oControl = Element.registry.get(oEvent.relatedControlId),
+			var oControl = Element.getElementById(oEvent.relatedControlId),
 				oFocusDomRef = oControl && oControl.getFocusDomRef();
 
 			if (Device.system.desktop && containsOrEquals(oPicker.getFocusDomRef(), oFocusDomRef)) {
@@ -2074,7 +2262,7 @@ function(
 			this.setProperty("selectedItemId", (vItem instanceof Item) ? vItem.getId() : vItem, true);
 
 			if (typeof vItem === "string") {
-				vItem = Element.registry.get(vItem);
+				vItem = Element.getElementById(vItem);
 			}
 
 			sKey = vItem ? vItem.getKey() : "";
@@ -2158,6 +2346,11 @@ function(
 					}, this)
 					.addContent(this.getSimpleFixFlex());
 
+			// Apply the wrapItemsText styling if the property is already set
+			if (sPickerType === "Popover" && this.getWrapItemsText()) {
+				oPicker.addStyleClass("sapMPickerWrappedItems");
+			}
+
 					return oPicker;
 		};
 
@@ -2179,7 +2372,7 @@ function(
 			// if sText's length is 2 or more characters that means that the user is still typing.
 			// If the user is still typing and the string/word is the starting of the currently
 			// selected item we shouldn't move to the next one.
-			if (sText.length > 1 && oSelectedItem.getText().toLowerCase().startsWith(sText.toLowerCase())){
+			if (sText.length > 1 && oSelectedItem && oSelectedItem.getText().toLowerCase().startsWith(sText.toLowerCase())){
 				return oSelectedItem;
 			}
 
@@ -2419,6 +2612,14 @@ function(
 			return "selectedKey";
 		};
 
+		Select.prototype.getFormObservingProperties = function() {
+			return ["selectedKey"];
+		};
+
+		Select.prototype.getFormRenderAsControl = function () {
+			return false;
+		};
+
 		/**
 		 * Retrieves an item by searching for the given property/value from the aggregation named <code>items</code>.
 		 *
@@ -2627,7 +2828,9 @@ function(
 				}
 				oDelegate = {
 					ontap: function () {
-						that.focus();
+						if (window.getSelection().type !== "Range") {
+							that.focus();
+						}
 					}
 				};
 				that._referencingLabelsHandlers.push({
@@ -2641,7 +2844,7 @@ function(
         Select.prototype._clearReferencingLabelsHandlers = function () {
 			var oLabel;
             this._referencingLabelsHandlers.forEach(function (oHandler) {
-				oLabel = Element.registry.get(oHandler.sLabelId);
+				oLabel = Element.getElementById(oHandler.sLabelId);
 				if (oLabel) {
 					oLabel.removeEventDelegate(oHandler.oDelegate);
 				}
@@ -2664,7 +2867,7 @@ function(
 				return aLabelIDs.indexOf(sId) === iIndex;
 			})
 			.map(function(sLabelID) {
-				return Element.registry.get(sLabelID);
+				return Element.getElementById(sLabelID);
 			})
 			.filter(Boolean);
 
@@ -2711,7 +2914,11 @@ function(
 
 			if (oValueStateMessage && !this._bValueStateMessageOpened) {
 				this._bValueStateMessageOpened = true;
-				oValueStateMessage.open();
+				setTimeout(function() {
+					if (!this.bIsDestroyed && this._bValueStateMessageOpened) {
+						oValueStateMessage.open();
+					}
+				}.bind(this), 0);
 			}
 		};
 
@@ -2829,7 +3036,7 @@ function(
 		 *
 		 * Default value is <code>null</code>.
 		 *
-		 * @param {string | sap.ui.core.Item | null} vItem New value for the <code>selectedItem</code> association.
+		 * @param {sap.ui.core.ID | sap.ui.core.Item | null} vItem New value for the <code>selectedItem</code> association.
 		 * If an ID of a <code>sap.ui.core.Item</code> is given, the item with this ID becomes the <code>selectedItem</code> association.
 		 * Alternatively, a <code>sap.ui.core.Item</code> instance may be given or <code>null</code>.
 		 * If the value of <code>null</code> is provided, the first enabled item will be selected (if any items exist).
@@ -2841,7 +3048,7 @@ function(
 
 			if (typeof vItem === "string") {
 				this.setAssociation("selectedItem", vItem, true);
-				vItem = Element.registry.get(vItem);
+				vItem = Element.getElementById(vItem);
 			}
 
 			if (!(vItem instanceof Item) && vItem !== null) {
@@ -3030,7 +3237,7 @@ function(
 		 */
 		Select.prototype.getSelectedItem = function() {
 			var vSelectedItem = this.getAssociation("selectedItem");
-			return (vSelectedItem === null) ? null : Element.registry.get(vSelectedItem) || null;
+			return (vSelectedItem === null) ? null : Element.getElementById(vSelectedItem) || null;
 		};
 
 		/**
@@ -3087,7 +3294,7 @@ function(
 		/**
 		 * Removes an item from the aggregation named <code>items</code>.
 		 *
-		 * @param {int | string | sap.ui.core.Item} vItem The item to be removed or its index or ID.
+		 * @param {int | sap.ui.core.ID | sap.ui.core.Item} vItem The item to be removed or its index or ID.
 		 * @returns {sap.ui.core.Item|null} The removed item or <code>null</code>.
 		 * @public
 		 */
@@ -3244,6 +3451,54 @@ function(
 			return oInfo;
 		};
 
+		Select.prototype._updateToolTip = function() {
+			var sTooltip = this.getTooltip_AsString(),
+				oFocusableDomRef = this.getFocusDomRef(),
+				bIconOnly = this.getType() === SelectType.IconOnly,
+				oIconInfo;
+
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			if (!sTooltip && bIconOnly) {
+				oIconInfo = IconPool.getIconInfo(this.getIcon());
+				if (oIconInfo) {
+					sTooltip = oIconInfo.text;
+				}
+			}
+
+			if (sTooltip) {
+				this._setTooltip(sTooltip);
+				bIconOnly && oFocusableDomRef.setAttribute("aria-label", sTooltip);
+			} else if (!this.getEditable() && this._isTextTruncated() && !bIconOnly) {
+				// if the control is not editable and the text is truncated, set the tooltip to the selected item text
+				this._setTooltip(this._getSelectedItemText());
+			}
+		};
+
+		Select.prototype._setTooltip = function (sTooltip) {
+			var oFocusableDomRef = this.getFocusDomRef();
+
+			oFocusableDomRef.setAttribute("title", sTooltip);
+			this.$().find(".sapMSltLabel").attr("title", sTooltip);
+			this.$().find(".sapMSltArrow").attr("title", sTooltip); //IconOnly does not have arrow
+		};
+
+		Select.prototype._isTextTruncated = function () {
+			var oLabel = this.getDomRef().querySelector(".sapMSltLabel");
+
+			if (!oLabel) {
+				return false;
+			}
+
+			if (oLabel.scrollWidth > oLabel.clientWidth) {
+				return true;
+			}
+
+			return false;
+		};
+
 		/**
 		 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
 		 * Determines if the Control is interactive.
@@ -3251,22 +3506,43 @@ function(
 		 * @returns {boolean} If it is an interactive Control
 		 *
 		 * @private
-		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 		 */
 		Select.prototype._getToolbarInteractive = function () {
 			return true;
 		};
 
 		/**
-		 * Returns the DOMNode Id to be used for the "labelFor" attribute of the label.
-		 *
-		 * By default, this is the Id of the control itself.
-		 *
-		 * @return {string} Id to be used for the <code>labelFor</code>
-		 * @public
+		 * @override
 		 */
 		Select.prototype.getIdForLabel = function () {
-			return this.getId() + "-hiddenSelect";
+			return this.getId() + "-hiddenInput";
+		};
+
+		/**
+		 * Returns if the control can be bound to a label
+		 *
+		 * @returns {boolean} <code>true</code> if the control can be bound to a label
+		 * @public
+		 */
+		Select.prototype.hasLabelableHTMLElement = function () {
+			return true;
+		};
+
+		/**
+		 * Select next selectable item in the select list
+		 *
+		 * @returns {sap.ui.core.Item} item to be selected
+		 * @public
+		 */
+
+		Select.prototype.selectNextSelectableItem = function () {
+			var oNextSelectableItem,
+				aSelectableItems = this.getSelectableItems();
+
+				oNextSelectableItem = aSelectableItems[aSelectableItems.indexOf(this.getSelectedItem()) + 1];
+				fnHandleKeyboardNavigation.call(this, oNextSelectableItem);
+				return oNextSelectableItem;
 		};
 
 		return Select;

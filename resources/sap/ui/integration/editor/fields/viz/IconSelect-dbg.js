@@ -1,9 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	"sap/ui/integration/editor/fields/viz/VizBase",
 	"sap/m/Select",
 	"sap/ui/core/ListItem",
@@ -11,7 +13,6 @@ sap.ui.define([
 	"sap/ui/core/IconPool",
 	"sap/ui/core/_IconRegistry",
 	"sap/base/util/merge",
-	"sap/ui/core/Core",
 	"sap/base/util/deepClone",
 	"sap/base/util/deepEqual",
 	"sap/ui/integration/formatters/IconFormatter",
@@ -22,8 +23,11 @@ sap.ui.define([
 	"sap/m/Text",
 	"sap/m/CheckBox",
 	"sap/m/SegmentedButton",
-	"sap/m/SegmentedButtonItem"
-], function (
+	"sap/m/SegmentedButtonItem",
+	"sap/ui/integration/util/Utils"
+], function(
+	Element,
+	Library,
 	VizBase,
 	Select,
 	ListItem,
@@ -31,7 +35,6 @@ sap.ui.define([
 	IconPool,
 	_IconRegistry,
 	merge,
-	Core,
 	deepClone,
 	deepEqual,
 	IconFormatter,
@@ -42,11 +45,12 @@ sap.ui.define([
 	Text,
 	CheckBox,
 	SegmentedButton,
-	SegmentedButtonItem
+	SegmentedButtonItem,
+	Utils
 ) {
 	"use strict";
 
-	var oResourceBundle = Core.getLibraryResourceBundle("sap.ui.integration"),
+	var oResourceBundle = Library.getResourceBundleFor("sap.ui.integration", Utils._language),
 		aDefaultIcons,
 		oLoadDefaultIconPromise,
 		// disable below flag to wait for WZ supporting TNT and Business Suite icons later
@@ -58,9 +62,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.viz.IconSelect
 	 * @author SAP SE
 	 * @since 1.84.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.84.0
 	 * @ui5-restricted
 	 */
 	var IconSelect = VizBase.extend("sap.ui.integration.editor.fields.viz.IconSelect", {
@@ -69,7 +72,7 @@ sap.ui.define([
 			properties: {
 				value: {
 					type: "string",
-					defaultValue: "sap-icon://accept"
+					defaultValue: ""
 				},
 				allowFile: {
 					type: "boolean",
@@ -87,6 +90,13 @@ sap.ui.define([
 					type: "boolean",
 					defaultValue: true
 				}
+			},
+			events: {
+				/**
+				 * Fired when selection change
+				 * @since 1.134
+				 */
+				change: {}
 			}
 		},
 		renderer: {
@@ -96,26 +106,31 @@ sap.ui.define([
 
 	IconSelect.prototype._initDefaultIcons = function () {
 		aDefaultIcons = [];
-		var aIconNames = IconPool.getIconNames();
-		aIconNames = aIconNames.sort(function (a, b) {
-			return a.toLowerCase().localeCompare(b.toLowerCase());
-		});
-		aIconNames.filter(function (s) {
-			var text = IconPool.getIconInfo(s).text || ("-" + s).replace(/-(.)/ig, function (sMatch, sChar) {
-				return " " + sChar.toUpperCase();
-			}).substring(1);
-			aDefaultIcons.push({
-				icon: "sap-icon://" + s,
-				key: "sap-icon://" + s,
-				text: text,
-				additionalText: "sap-icon://" + s,
-				tooltip: text,
-				enabled: true,
-				type: "UI5"
+
+		var pCollectionReady = IconPool.collectionReady ? IconPool.collectionReady() : Promise.resolve();
+		var pBuiltIn = pCollectionReady.then(function() {
+			var aIconNames = IconPool.getIconNames();
+			aIconNames = aIconNames.sort(function (a, b) {
+				return a.toLowerCase().localeCompare(b.toLowerCase());
+			});
+			aIconNames.forEach(function (s) {
+				var text = IconPool.getIconInfo(s).text || ("-" + s).replace(/-(.)/ig, function (sMatch, sChar) {
+					return " " + sChar.toUpperCase();
+				}).substring(1);
+				aDefaultIcons.push({
+					icon: "sap-icon://" + s,
+					key: "sap-icon://" + s,
+					text: text,
+					additionalText: "sap-icon://" + s,
+					tooltip: text,
+					enabled: true,
+					type: "UI5"
+				});
 			});
 		});
 
 		if (!bLoadExtraDefaultIcons) {
+			oLoadDefaultIconPromise = pBuiltIn;
 			return;
 		}
 
@@ -136,8 +151,8 @@ sap.ui.define([
 				fontURI: sap.ui.require.toUrl("sap/ushell/themes/base/fonts/")
 			});
 		}
-		oLoadDefaultIconPromise = Promise.all([IconPool.fontLoaded("SAP-icons-TNT"), IconPool.fontLoaded("BusinessSuiteInAppSymbols")]).then(function () {
-			aIconNames = IconPool.getIconNames("SAP-icons-TNT");
+		oLoadDefaultIconPromise = Promise.all([pBuiltIn, IconPool.fontLoaded("SAP-icons-TNT"), IconPool.fontLoaded("BusinessSuiteInAppSymbols")]).then(function () {
+			var aIconNames = IconPool.getIconNames("SAP-icons-TNT");
 			// filter out names which contains blank or UpperCase characters
 			aIconNames = aIconNames.filter(function (s) {
 				var strCode = s.substring(0, 1).charCodeAt();
@@ -221,8 +236,8 @@ sap.ui.define([
 	};
 
 	IconSelect.prototype.onInit = function () {
-		if (oResourceBundle && oResourceBundle.sLocale !== Core.getConfiguration().getLanguage()) {
-			oResourceBundle = Core.getLibraryResourceBundle("sap.ui.integration");
+		if (oResourceBundle && oResourceBundle.sLocale !== Utils._language) {
+			oResourceBundle = Library.getResourceBundleFor("sap.ui.integration", Utils._language);
 		}
 		if (!this._oIconModel) {
 			this._initIconModel();
@@ -292,6 +307,7 @@ sap.ui.define([
 					oSelect.getDomRef("hiddenSelect").addEventListener("focus", this._boundFocusBack);
 				} else {
 					this.setValue(sSelectedKey);
+					this.fireChange(oEvent);
 				}
 			}.bind(this)
 		});
@@ -528,20 +544,23 @@ sap.ui.define([
 		var oIconDomRef = this._oControl.getDomRef("labelIcon");
 		if (oIconDomRef) {
 			var sCustomImage = this._oControl._customImage;
-			var oIcon = Core.byId(oIconDomRef.id);
+			var oIcon = Element.getElementById(oIconDomRef.id);
 			if (sCustomImage) {
 				oIconDomRef.style.backgroundImage = "url('" + sCustomImage + "')";
 				oIconDomRef.classList.add("sapMSelectListItemIconCustom");
 				oIconDomRef.children[0].title = oResourceBundle.getText("EDITOR_IMAGE_CUSTOMICON_TOOLTIP");
 				oIcon.onclick = function(oEvent) {
 					oEvent.stopImmediatePropagation();
-					oIcon._oImagePopover = new Popover(oIcon.getId() + "-imagePopover", {
-						placement: "Right",
-						showHeader: false,
-						content: new Image(oIcon.getId() + "-imagePopover-image", {
-							src: sCustomImage
-						}).addStyleClass("image")
-					}).addStyleClass("sapUiIntegrationImageSelect");
+					if (!oIcon._oImagePopover) {
+						oIcon._oImagePopover = new Popover(oIcon.getId() + "-imagePopover", {
+							placement: "Right",
+							showHeader: false
+						}).addStyleClass("sapUiIntegrationImageSelect");
+					}
+					oIcon._oImagePopover.destroyContent();
+					oIcon._oImagePopover.addContent(new Image(oIcon.getId() + "-imagePopover-image", {
+						src: sCustomImage
+					}).addStyleClass("image"));
 					oIcon._oImagePopover.openBy(oIcon);
 				};
 			} else {

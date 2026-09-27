@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -39,34 +39,6 @@ sap.ui.define([
 			}
 		}
 	});
-
-	LoadingProvider.prototype.setLoading = function (bLoading) {
-		if (this._bAwaitPagination && !bLoading) {
-			return this;
-		}
-
-		return this.setProperty("loading", bLoading);
-	};
-
-	/**
-	 * Set to <code>true</code> if the loading should wait for a pagination animation.
-	 * @private
-	 * @ui5-restricted sap.ui.integration
-	 * @param {boolean} bValue True if it should wait. False otherwise.
-	 */
-	LoadingProvider.prototype.setAwaitPagination = function (bValue) {
-		this._bAwaitPagination = bValue;
-	};
-
-	/**
-	 * Gets if the loading should wait for a pagination animation.
-	 * @private
-	 * @ui5-restricted sap.ui.integration
-	 * @returns {boolean} bValue True if it should wait. False otherwise.
-	 */
-	LoadingProvider.prototype.getAwaitPagination = function () {
-		return this._bAwaitPagination;
-	};
 
 	return LoadingProvider;
 });

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,11 +23,11 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 1.22.0
 	 *
 	 * @public
-	 * @deprecated Since version 1.73
+	 * @deprecated As of version 1.73, replaced by the export functionality of the <code>sap.ui.export</code> library.
 	 * @alias sap.ui.core.util.ExportRow
 	 */
 	var ExportRow = ManagedObject.extend("sap.ui.core.util.ExportRow", {

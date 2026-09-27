@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,10 +9,9 @@ sap.ui.define([
 	'./InputBase',
 	'./DateTimeField',
 	'./MaskInputRule',
-	'./Toolbar',
-	'./ToolbarSpacer',
 	'./Popover',
 	'./ResponsivePopover',
+	"sap/base/i18n/Formatting",
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
 	'./TimePickerInternals',
@@ -20,8 +19,11 @@ sap.ui.define([
 	'./TimePickerInputs',
 	'./MaskEnabler',
 	'sap/ui/Device',
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/Locale',
+	"sap/ui/core/LabelEnablement",
 	'sap/m/library',
 	'sap/ui/core/LocaleData',
 	'./TimePickerRenderer',
@@ -30,18 +32,19 @@ sap.ui.define([
 	"sap/ui/core/InvisibleText",
 	'./Button',
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/date/UI5Date",
-	"sap/ui/core/Core"
+	"./Bar",
+	"sap/ui/core/InvisibleMessage",
+	"sap/ui/core/library",
+	"./Title"
 ],
 function(
 	InputBase,
 	DateTimeField,
 	MaskInputRule,
-	Toolbar,
-	ToolbarSpacer,
 	Popover,
 	ResponsivePopover,
+	Formatting,
 	EnabledPropagator,
 	IconPool,
 	TimePickerInternals,
@@ -49,8 +52,11 @@ function(
 	TimePickerInputs,
 	MaskEnabler,
 	Device,
+	Element,
+	Library,
 	DateFormat,
 	Locale,
+	LabelEnablement,
 	library,
 	LocaleData,
 	TimePickerRenderer,
@@ -59,9 +65,11 @@ function(
 	InvisibleText,
 	Button,
 	jQuery,
-	Configuration,
 	UI5Date,
-	Core
+	Bar,
+	InvisibleMessage,
+	coreLibrary,
+	Title
 ) {
 		"use strict";
 
@@ -70,7 +78,10 @@ function(
 		var PlacementType = library.PlacementType,
 			TimePickerMaskMode = library.TimePickerMaskMode,
 			ButtonType = library.ButtonType,
+			InvisibleMessageMode = coreLibrary.InvisibleMessageMode,
 			DEFAULT_STEP = 1;
+
+		const oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		/**
 		 * Constructor for a new <code>TimePicker</code>.
@@ -105,8 +116,10 @@ function(
 		 * <ul><li>Use the <code>value</code> property if you want to bind the
 		 * <code>TimePicker</code> to a model using the
 		 * <code>sap.ui.model.type.Time</code></li>
-		 * @example <caption> binding the <code>value</code> property by using types </caption>
-		 * new sap.ui.model.json.JSONModel({date: sap.ui.core.date.UI5Date.getInstance(2022,10,10,10,15,10)});
+		 * <caption> binding the <code>value</code> property by using types </caption>
+		 * <pre>
+		 * // UI5Date imported from sap/ui/core/date/UI5Date
+		 * new sap.ui.model.json.JSONModel({date: UI5Date.getInstance(2022,10,10,10,15,10)});
 		 *
 		 * new sap.m.TimePicker({
 		 *     value: {
@@ -114,10 +127,11 @@ function(
 		 *         path:"/date"
 		 *     }
 		 * });
-		 *
+		 * </pre>
 		 * <li>Use the <code>value</code> property if the date is provided as a string from
 		 * the backend or inside the app (for example, as ABAP type DATS field)</li>
-		 * @example <caption> binding the <code>value</code> property by using types </caption>
+		 * <caption> binding the <code>value</code> property by using types </caption>
+		 * <pre>
 		 * new sap.ui.model.json.JSONModel({date:"10:15:10"});
 		 * new sap.m.TimePicker({
 		 *     value: {
@@ -130,7 +144,7 @@ function(
 		 *         }
 		 *     }
 		 * });
-		 *
+		 * </pre>
 		 * <b>Note:</b> There are multiple binding type choices, such as:
 		 * sap.ui.model.type.Date
 		 * sap.ui.model.odata.type.DateTime
@@ -150,6 +164,9 @@ function(
 		 * the input field, it must fit to the used time format and locale.
 		 *
 		 * Supported format options are pattern-based on Unicode LDML Date Format notation.
+		 * The format pattern symbols supported in TimePicker are as follows:
+		 * "h"/"H" (Hour), "m" (Minute), "s" (Second), and "a" (AM/PM).
+		 *
 		 * See {@link http://unicode.org/reports/tr35/#Date_Field_Symbol_Table}
 		 *
 		 * A time format must be specified, otherwise the default "HH:mm:ss a" will be
@@ -176,7 +193,7 @@ function(
 		 * @extends sap.m.DateTimeField
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
@@ -240,14 +257,15 @@ function(
 					mask: {type: "string", group: "Misc", defaultValue: null},
 
 					/**
-					 * Defines whether the mask is enabled. When disabled, there are no restrictions and
-					 * validation for the user and no placeholders are displayed.
+					 * Defines the state of the mask. The available mask modes are:
+					 * <code>On</code> - The mask is automatically enabled for fixed-length time formats, and disabled when the time format does not have a fixed length.
+					 * <code>Off</code> - The mask is disabled. In this mode, there are no restrictions or validations for the user input.
+					 * <code>Enforce</code> - The mask will always be enforced, regardless of the length of the time format.
 					 *
-					 * <b>Note:</b> A disabled mask does not reset any validation rules that are already
-					 * set. You can update the <code>mask</code> property and add new <code>rules</code>
-					 * while it is disabled. When <code>maskMode</code> is set to <code>On</code> again,
-					 * the <code>rules</code> and the updated <code>mask</code> will be applied.
-					 *
+					 * <b>Note:</b> The mask functions correctly only with fixed-length time formats.
+					 * The mask is always disabled when using a mobile device
+					 * Using the <code>Enforce</code> value with time formats that do not have a fixed length may lead to unpredictable behavior.
+					 * Changing the mask mode does not reset any pre-set validation rules. These rules will be applied according to the selected mask mode.
 					 * @since 1.54
 					 */
 					maskMode: {type: "sap.m.TimePickerMaskMode", group: "Misc", defaultValue: TimePickerMaskMode.On},
@@ -422,7 +440,7 @@ function(
 
 			this.setDisplayFormat(getDefaultDisplayFormat());
 
-			this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			this._oResourceBundle = oResourceBundle;
 
 			// marks if the value is valid or not
 			this._bValid = false;
@@ -448,7 +466,8 @@ function(
 				noTabStop: true,
 				decorative: !Device.support.touch || Device.system.desktop ? true : false,
 				useIconTooltip: false,
-				alt: this._oResourceBundle.getText("OPEN_PICKER_TEXT")
+				tooltip: oResourceBundle.getText("OPEN_PICKER_TEXT"),
+				alt: oResourceBundle.getText("OPEN_PICKER_TEXT")
 			});
 
 			// indicates whether the clock picker is still open
@@ -465,11 +484,16 @@ function(
 			}, this);
 
 			oIcon.attachPress(function () {
+				// Opening via the icon always shows the clock view
+				this._bOpenAsNumericInput = false;
 				this.toggleOpen(this._bShouldClosePicker);
 			}, this);
 
 			this._sMinutes = "00"; //needed for the support2400 scenario to store the minutes when changing hour to 24 and back
 			this._sSeconds = "00"; //needed for the support2400 scenario to store the seconds when changing hour to 24 and back
+			this._bShowInputs = false;
+
+			this._startZoomWatch();
 		};
 
 		/**
@@ -480,10 +504,25 @@ function(
 		 TimePicker.prototype.onBeforeRendering = function() {
 			DateTimeField.prototype.onBeforeRendering.apply(this, arguments);
 
-			var oValueHelpIcon = this._getValueHelpIcon();
+			const oValueHelpIcon = this._getValueHelpIcon(),
+				sAccessibleName = this._getPickerAccessibleName();
 
 			if (oValueHelpIcon) {
-				oValueHelpIcon.setProperty("visible", this.getEditable());
+				oValueHelpIcon.setProperty("visible", this.getEditable() && !this._isHighZoom());
+			}
+
+			// update invisible label
+			if (this._invisibleLabelText) {
+				this._invisibleLabelText.setText(sAccessibleName);
+			}
+
+			// update title of the dialog on mobile devices and at high zoom
+			if (Device.system.phone || this._bShowInputs) {
+				const oPicker = this._getPicker();
+				oPicker?.setTitle(sAccessibleName);
+				if (this._oPickerTitle) {
+					this._oPickerTitle.setText(sAccessibleName);
+				}
 			}
 		};
 
@@ -497,7 +536,21 @@ function(
 				this._oTimeSemanticMaskHelper.destroy();
 			}
 
+			if (this._invisibleLabelText) {
+				this._invisibleLabelText.destroy();
+				this._invisibleLabelText = null;
+			}
+
 			MaskEnabler.exit.apply(this, arguments);
+
+			this._stopZoomWatch();
+
+			if (this._oInputsPart) {
+				this._oInputsPart.destroy();
+				this._oInputsPart = null;
+			}
+
+			this._oClocksPart = null; // ref is owned by _picker aggregation; just clear the cache
 
 			this._removePickerEvents();
 
@@ -575,13 +628,15 @@ function(
 		 */
 		TimePicker.prototype.onfocusin = function (oEvent) {
 			var oPicker = this._getPicker(),
-				bIconClicked = this._isIconClicked(oEvent),
-				oNumericPicker = this._getNumericPicker(),
-				bOpen = oNumericPicker && oNumericPicker.isOpen();
+				bIconClicked = this._isIconClicked(oEvent);
 
 			if (!this._isMobileDevice()) {
 				DateTimeField.prototype.onfocusin.apply(this, arguments);
 				MaskEnabler.onfocusin.apply(this, arguments);
+				if (this._isMaskEnabled() && !this.getValue()) {
+					var sPlaceholder = this._getPlaceholder();
+					this._$input.attr("aria-description", sPlaceholder);
+				}
 			}
 			if (oPicker && oPicker.isOpen() && !bIconClicked) {
 				this._closePicker();
@@ -595,9 +650,32 @@ function(
 				return;
 			}
 			if (!bIconClicked) {
-				this.toggleNumericOpen(bOpen);
+				if (!this._isHighZoom()) {
+					this._openByFocusIn = false;
+					this._openByClick = false;
+					// Opening by clicking the input field (not the icon) shows the numeric input view
+					this._bOpenAsNumericInput = Device.system.phone;
+					this.toggleOpen(this._getPicker() && this._getPicker().isOpen());
+					this._openByFocusIn = true;
+				}
 			}
-			this._openByFocusIn = true;
+		};
+
+		var _maskEnablerOnFocusOut = TimePicker.prototype.onfocusout;
+
+		/**
+		 * Handles the focusout event.
+		 *
+		 * @param {jQuery.Event} oEvent Event object
+		 */
+		TimePicker.prototype.onfocusout = function(oEvent) {
+			if (this._bClickOnValueStateLink(oEvent)) {
+				return;
+			}
+			if (!this._isMobileDevice()) {
+				_maskEnablerOnFocusOut.apply(this, arguments);
+				this._$input.removeAttr("aria-description");
+			}
 		};
 
 		/**
@@ -606,21 +684,47 @@ function(
 		 * @private
 		 */
 		 TimePicker.prototype.onclick = function (oEvent) {
-			var bIconClicked = this._isIconClicked(oEvent),
-				oPicker = this._getNumericPicker(),
-				bOpen = oPicker && oPicker.isOpen();
+			const bIconClicked = this._isIconClicked(oEvent);
 
 			if (this._openByFocusIn) {
 				this._openByFocusIn = false;
 				return;
 			}
+
+			if (this._isHighZoom()) {
+				// Icon is hidden at high zoom — clicking anywhere on the input opens the clock picker
+				if (!bIconClicked) {
+					const oPicker = this._getPicker();
+					this.toggleOpen(oPicker && oPicker.isOpen());
+				}
+				this._openByClick = true;
+				return;
+			}
+
 			if (!this._isMobileDevice()) {
 				return;
 			}
 			if (!bIconClicked) {
-				this.toggleNumericOpen(bOpen);
+				const oPicker = this._getPicker();
+				this._openByFocusIn = false;
+				this._openByClick = false;
+				// Opening by clicking the input field (not the icon) shows the numeric input view
+				this._bOpenAsNumericInput = Device.system.phone;
+				this.toggleOpen(oPicker && oPicker.isOpen());
 			}
 			this._openByClick = true;
+		};
+
+		/**
+		 * Onmouseup handler assures moving of the cursor at the beginning of the input field
+		 * if there is mask set and there is no entry in the input field.
+		 *
+		 * @private
+		 */
+		TimePicker.prototype.onmouseup = function() {
+			if (this._isMaskEnabled() && this._isValueEmpty()) {
+				this._positionCaret();
+			}
 		};
 
 		/**
@@ -642,28 +746,90 @@ function(
 		 */
 		TimePicker.prototype.onBeforeOpen = function() {
 			/* Set the timevalues of the picker here to prevent user from seeing it */
-			var oClocks = this._getClocks(),
-				oDateValue = this.getDateValue(),
-				sFormat = this._getFormatter(true).oFormatOptions.pattern,
+			const oDateValue = this.getDateValue();
+			const sFormat = this._getFormatter(true).oFormatOptions.pattern,
 				iIndexOfHH = sFormat.indexOf("HH"),
 				iIndexOfH = sFormat.indexOf("H"),
-				sInputValue = TimePickerInternals._isHoursValue24(this._$input.val(), iIndexOfHH, iIndexOfH) ?
+				bIs24 = TimePickerInternals._isHoursValue24(this._$input.val(), iIndexOfHH, iIndexOfH),
+				sInputValue = bIs24 ?
 					TimePickerInternals._replace24HoursWithZero(this._$input.val(), iIndexOfHH, iIndexOfH) : this._$input.val();
 
-			var oCurrentDateValue = this._getFormatter(true).parse(sInputValue) || oDateValue;
-			if (oCurrentDateValue) {
-				var sDisplayFormattedValue = this._getFormatter(true).format(oCurrentDateValue);
-				oClocks.setValue(sDisplayFormattedValue);
+			const oCurrentDateValue = this._getFormatter(true).parse(sInputValue) || oDateValue;
+			this._preparePickerForOpen(oCurrentDateValue, oDateValue, bIs24);
+
+			/* Mark input as active */
+			this.$().addClass(InputBase.ICON_PRESSED_CSS_CLASS);
+		};
+
+		/**
+		 * Switches content to high-zoom inputs or clocks mode and syncs time values.
+		 * Extracted from onBeforeOpen for readability.
+		 * @param {Date} oCurrentDateValue  Parsed value from the input field
+		 * @param {Date} oDateValue         Raw dateValue property
+		 * @param {boolean} bIs24           Whether the input uses 24-hour notation
+		 * @private
+		 */
+		TimePicker.prototype._preparePickerForOpen = function(oCurrentDateValue, oDateValue, bIs24) {
+			// Decide which content to show: Inputs at high zoom, Clocks otherwise
+			const bShowInputs = this._isHighZoom();
+			if (bShowInputs !== this._bShowInputs) {
+				this._switchPickerContent(bShowInputs);
+			} else if (bShowInputs) {
+				// First open already in high-zoom: picker was created with showHeader:false,
+				// so we set the title here once without a full content switch.
+				const oPicker = this._getPicker();
+				if (oPicker && !oPicker.getShowHeader()) {
+					oPicker.setShowHeader(true);
+					oPicker.setTitle(this._getPickerAccessibleName());
+				}
+			}
+
+			// On a phone at high zoom, replace the Dialog's open animation with a synchronous
+			// version so that onAfterOpen (and the focus() call inside it) fires within the
+			// original user-gesture call stack.  Without this, the setTimeout in _openAnimation
+			// breaks the gesture context and the virtual keyboard never opens.
+			if (bShowInputs && Device.system.phone) {
+				const oDialog = this._getPicker() && this._getPicker().getAggregation("_popup");
+				if (oDialog && oDialog.oPopup && oDialog.oPopup._animations) {
+					if (!this._fnOrigPickerOpenAnim) {
+						this._fnOrigPickerOpenAnim = oDialog.oPopup._animations.open;
+					}
+					oDialog.oPopup._animations.open = function($Ref, _iDuration, fnOpened) {
+						$Ref.addClass("sapMDialogOpen");
+						fnOpened();
+					};
+				}
 			}
 
 			if (this._shouldSetInitialFocusedDateValue()) {
 				oDateValue = this.getInitialFocusedDateValue() || oDateValue;
 			}
 
-			oClocks._setTimeValues(oDateValue, TimePickerInternals._isHoursValue24(this._$input.val(), iIndexOfHH, iIndexOfH));
-
-			/* Mark input as active */
-			this.$().addClass(InputBase.ICON_PRESSED_CSS_CLASS);
+			const oControl = bShowInputs ? this._getOrCreateInputs() : this._getClocks();
+			if (oCurrentDateValue) {
+				oControl.setValue(this._getFormatter(true).format(oCurrentDateValue));
+			}
+			oControl._setTimeValues(oDateValue, bIs24);
+			if (!bShowInputs) {
+				const oClocks = this._getClocks();
+				// When opened by clicking the input field (phone), show the numeric input view
+				// directly, as if the header toggle button had been pressed.
+				if (this._bOpenAsNumericInput && !oClocks.getProperty("_onManualInput")) {
+					this._onToggleViewPress();
+				}
+				oClocks.prepareForOpen();
+				// Point the Dialog's initial focus at the active toggle button so it
+				// doesn't land on the OK button after the open animation.
+				// Popover (desktop) lacks setInitialFocus, so guard before calling.
+				const oPopup = this._getPicker() && this._getPicker().getAggregation("_popup");
+				if (oPopup && oPopup.setInitialFocus) {
+					const aButtons = oClocks.getAggregation("_buttons");
+					const oActiveBtn = aButtons && aButtons[oClocks._getActiveClockIndex()];
+					if (oActiveBtn) {
+						oPopup.setInitialFocus(oActiveBtn.getId());
+					}
+				}
+			}
 		};
 
 		/**
@@ -673,13 +839,23 @@ function(
 		 * @public
 		 */
 		TimePicker.prototype.onAfterOpen = function() {
-			var oClocks = this._getClocks();
-
-			if (oClocks) {
-				oClocks.showFirstClock();
-				oClocks._focusActiveButton();
+			// Restore original Dialog open animation (was replaced in onBeforeOpen for gesture context)
+			if (this._fnOrigPickerOpenAnim) {
+				const oDialog = this._getPicker() && this._getPicker().getAggregation("_popup");
+				if (oDialog && oDialog.oPopup && oDialog.oPopup._animations) {
+					oDialog.oPopup._animations.open = this._fnOrigPickerOpenAnim;
+					this._fnOrigPickerOpenAnim = null;
+				}
 			}
 			this.fireAfterValueHelpOpen();
+			if (this._bShowInputs && this._oInputsPart) {
+				var aInputs = this._oInputsPart.getAggregation("_inputs");
+				var oFocusDom = aInputs && aInputs[0] && aInputs[0].getFocusDomRef();
+				if (oFocusDom) {
+					oFocusDom.focus();
+					oFocusDom.select();
+				}
+			}
 		};
 
 		/**
@@ -690,8 +866,20 @@ function(
 		 */
 		 TimePicker.prototype.onAfterClose = function() {
 			this.$().removeClass(InputBase.ICON_PRESSED_CSS_CLASS);
-			this._getClocks().showFirstClock(); // prepare for the next opening
 			this.fireAfterValueHelpClose();
+
+			// Reset the numeric-open request so the next open (icon/keyboard) defaults to clocks
+			this._bOpenAsNumericInput = false;
+
+			// Reset input mode so next open via icon shows clocks
+			const oClocks = this._getClocks();
+			if (oClocks && oClocks.getProperty("_onManualInput")) {
+				oClocks.setProperty("_onManualInput", false);
+				if (this._oToggleViewButton) {
+					this._oToggleViewButton.setIcon(IconPool.getIconURI("keyboard-and-mouse"));
+					this._oToggleViewButton.setTooltip(oResourceBundle.getText("TIMEPICKER_TOGGLE_TO_KEYBOARD"));
+				}
+			}
 		};
 
 		/**
@@ -702,6 +890,76 @@ function(
 		 */
 		 TimePicker.prototype._isMobileDevice = function() {
 			return !Device.system.desktop && (Device.system.phone || Device.system.tablet);
+		};
+
+		/**
+		 * Called by DateTimeFieldZoomMixin._startZoomWatch on every viewport resize.
+		 * @param {boolean} bHighZoom
+		 * @private
+		 */
+		TimePicker.prototype._onZoomChange = function(bHighZoom) {
+			const oPicker = this._getPicker();
+			if (oPicker && oPicker.isOpen() && bHighZoom !== this._bShowInputs) {
+				this._switchPickerContent(bHighZoom);
+			}
+		};
+
+		/**
+		 * Lazily creates and caches the TimePickerInputs control.
+		 * @returns {sap.m.TimePickerInputs}
+		 * @private
+		 */
+		TimePicker.prototype._getOrCreateInputs = function() {
+			if (!this._oInputsPart) {
+				const sFormat = this._getDisplayFormatPattern(),
+					sLocaleId = this._getLocale().getLanguage();
+				this._oInputsPart = new TimePickerInputs(this.getId() + "-switchInputs", {
+					support2400: this._getSupport2400(),
+					displayFormat: sFormat,
+					valueFormat: sFormat,
+					localeId: sLocaleId,
+					minutesStep: this.getMinutesStep(),
+					secondsStep: this.getSecondsStep(),
+					showCurrentTimeButton: this.getShowCurrentTimeButton()
+				});
+			}
+			return this._oInputsPart;
+		};
+
+		/**
+		 * Swaps the active content control in _picker between TimePickerClocks and TimePickerInputs.
+		 * Transfers the current time value to the newly shown control.
+		 * @param {boolean} bShowInputs - true to show TimePickerInputs, false for TimePickerClocks
+		 * @private
+		 */
+		TimePicker.prototype._switchPickerContent = function(bShowInputs) {
+			const oPicker = this._getPicker();
+			if (!oPicker) { return; }
+
+			const oClocks = this._getClocks(),
+				oInputs = this._getOrCreateInputs(),
+				oRemove = bShowInputs ? oClocks : oInputs,
+				oInsert = bShowInputs ? oInputs : oClocks;
+
+			// Sync current time value to the incoming control
+			const oDate = oRemove.getTimeValues ? oRemove.getTimeValues() : null;
+			if (oDate) {
+				oInsert._setTimeValues(oDate, false);
+			}
+
+			// Show the picker title (labelled by the associated form label) at high zoom
+			oPicker.setShowHeader(bShowInputs);
+			if (bShowInputs) {
+				oPicker.setTitle(this._getPickerAccessibleName());
+			}
+
+			oPicker.removeContent(oRemove);
+			oPicker.insertContent(oInsert, 1);
+			if (oPicker._oControl) {
+				oPicker._oControl.invalidate();
+			}
+
+			this._bShowInputs = bShowInputs;
 		};
 
 		/**
@@ -742,6 +1000,32 @@ function(
 			return oValueHelpIcon && oValueHelpIcon[0];
 		};
 
+		TimePicker.prototype._format2400Value = function (sValue, iIndexOfH, iIndexOfHH) {
+			if (sValue.substring(iIndexOfH, 2) === "24") {
+				return;
+			}
+
+			var iHoursDigits = 2,
+				sTrailingSpaces = ' ',
+				iSubStringIndex = iIndexOfHH,
+				bTrailingSpaces = sValue.charAt(iIndexOfH) === sTrailingSpaces,
+				iExtraIndex = bTrailingSpaces ? 1 : 0,
+				oSignificantNumbers = /[1-9]/g;
+
+			if (iIndexOfH === -1) {
+				return sValue;
+			}
+
+			if (iIndexOfHH === -1) {
+				iHoursDigits = 1;
+				iSubStringIndex = iIndexOfH;
+			}
+
+			sValue = sValue.replace(oSignificantNumbers, "0");
+
+			return sValue.substring(0, iSubStringIndex) + "24" + sValue.substring(iSubStringIndex + iExtraIndex + iHoursDigits);
+		};
+
 		/**
 		 * Handles input's change event by synchronizing <code>value</code>,
 		 * and <code>dateValue</code> properties with the input field.
@@ -755,18 +1039,20 @@ function(
 				sThatValue,
 				bThatValue2400,
 				bEnabled2400,
-				sFormat = this.getValueFormat() || (this._sValueFormat && this._sValueFormat.oFormatOptions.pattern),
+				sFormat = this.getDisplayFormat() || this.getValueFormat() || (this._sValueFormat && this._sValueFormat.oFormatOptions.pattern),
 				iIndexOfHH,
-				iIndexOfH;
+				iIndexOfH,
+				bContains24;
 
 			sFormat = sFormat ? sFormat : "";
 			iIndexOfHH = sFormat.indexOf("HH");
 			iIndexOfH = sFormat.indexOf("H");
 
-			sValue = sValue || this._$input.val();
+			sValue = sValue?.trim() || this._$input.val()?.trim();
 			sThatValue = sValue;
 			bThatValue2400 = TimePickerInternals._isHoursValue24(sThatValue, iIndexOfHH, iIndexOfH);
-			bEnabled2400 = this.getSupport2400() && bThatValue2400;
+			bContains24 = sValue.substr(iIndexOfH, 2) === "24";
+			bEnabled2400 = this._getSupport2400() && bThatValue2400 && bContains24;
 			this._bValid = true;
 			if (sValue !== "") {
 				//keep the oDate not changed by the 24 hrs
@@ -779,7 +1065,7 @@ function(
 					this._bValid = false;
 				} else {
 					// check if Formatter changed the value (it corrects some wrong inputs or known patterns)
-					sValue = this._formatValue(oDate);
+					sValue = this._formatValue(oDate, false, true);
 					// reset the mask as the value might be changed without firing focus out event,
 					// which is unexpected behavior in regards to the MaskEnabler temporary value storage
 					if (this.getMaskMode() && this.getMask()) {
@@ -787,13 +1073,13 @@ function(
 					}
 				}
 			}
-			sThatValue = bEnabled2400 ? "24:" + sValue.replace(/[0-9]/g, "0").slice(0, -3) : sValue;
+			sThatValue = bEnabled2400 ? this._format2400Value(sValue, iIndexOfH,iIndexOfHH) : sValue;
 			//instead on key stroke zeroes could be added after entering '24'
 			this.updateDomValue(sThatValue);
 
 			if (oDate) {
 				// get the value in valueFormat
-				sThatValue = sValue = this._formatValue(oDate, true);
+				sThatValue = sValue = this._formatValue(oDate, true, true);
 				if (bEnabled2400 && oDate && oDate.getHours() === 0) {
 					// put back 24 as hour if needed
 					sThatValue = sValue = TimePickerInternals._replaceZeroHoursWith24(sValue, iIndexOfHH, iIndexOfH);
@@ -849,6 +1135,9 @@ function(
 			if (oInputs) {
 				oInputs.setMinutesStep(step);
 			}
+			if (this._oInputsPart) {
+				this._oInputsPart.setMinutesStep(step);
+			}
 			return this.setProperty("minutesStep", step, true);
 		};
 
@@ -871,25 +1160,21 @@ function(
 			if (oInputs) {
 				oInputs.setSecondsStep(step);
 			}
+			if (this._oInputsPart) {
+				this._oInputsPart.setSecondsStep(step);
+			}
 			return this.setProperty("secondsStep", step, true);
 		};
 
 		/**
-		 * Sets the title label inside the picker.
+		 * Gets current value of property width.
 		 *
-		 * @param {string} title A title
-		 * @returns {this} Reference to <code>this</code> for method chaining
+		 * @returns {string} The value of property width or "100%"
+		 * @public
+		 * @override
 		 */
-		TimePicker.prototype.setTitle = function(title) {
-			var oClocks = this._getClocks();
-
-			if (oClocks) {
-				oClocks.setLabelText(title);
-			}
-
-			this.setProperty("title", title, true);
-
-			return this;
+		TimePicker.prototype.getWidth = function() {
+			return this.getProperty("width") || "100%";
 		};
 
 		/**
@@ -930,9 +1215,9 @@ function(
 		 * @public
 		 */
 		TimePicker.prototype.setSupport2400 = function (bSupport2400) {
+
 			var oClocks = this._getClocks(),
 				oInputs = this._getInputs();
-
 			this.setProperty("support2400", bSupport2400, true); // no rerendering
 
 			if (oClocks) {
@@ -941,9 +1226,20 @@ function(
 			if (oInputs) {
 				oInputs.setSupport2400(bSupport2400);
 			}
+			if (this._oInputsPart) {
+				this._oInputsPart.setSupport2400(bSupport2400);
+			}
 
 			this._initMask();
 			return this;
+		};
+
+		TimePicker.prototype._getSupport2400 = function () {
+			if (this.getDisplayFormat().indexOf("H") === -1) {
+				return false;
+			}
+
+			return this.getSupport2400();
 		};
 
 		/**
@@ -969,6 +1265,11 @@ function(
 			if (oInputs) {
 				oInputs.setValueFormat(sDisplayFormat);
 				oInputs.setDisplayFormat(sDisplayFormat);
+			}
+
+			if (this._oInputsPart) {
+				this._oInputsPart.setValueFormat(sDisplayFormat);
+				this._oInputsPart.setDisplayFormat(sDisplayFormat);
 			}
 
 			var oDateValue = this.getDateValue();
@@ -1060,7 +1361,7 @@ function(
 			}
 
 			// convert to output
-			if (oDate && !this.getSupport2400()) {
+			if (oDate && !this._getSupport2400()) {
 				sOutputValue = this._formatValue(oDate);
 			} else {
 				sOutputValue = sValue;
@@ -1124,6 +1425,9 @@ function(
 			if (oInputs) {
 				oInputs.setLocaleId(sLocaleId);
 			}
+			if (this._oInputsPart) {
+				this._oInputsPart.setLocaleId(sLocaleId);
+			}
 
 			return this;
 		};
@@ -1133,7 +1437,10 @@ function(
 				oNumericPicker = this._getNumericPicker();
 
 			oClocks && oClocks.setShowCurrentTimeButton(bShow);
-			oNumericPicker && oNumericPicker.getContent()[0].setShowCurrentTimeButton(bShow);
+			oNumericPicker && oNumericPicker.getContent()[1].setShowCurrentTimeButton(bShow);
+			if (this._oInputsPart) {
+				this._oInputsPart.setShowCurrentTimeButton(bShow);
+			}
 
 			return this.setProperty("showCurrentTimeButton", bShow);
 		};
@@ -1163,7 +1470,7 @@ function(
 		TimePicker.prototype._getLocale = function () {
 			var sLocaleId = this.getLocaleId();
 
-			return sLocaleId ? new Locale(sLocaleId) : Configuration.getFormatSettings().getFormatLocale();
+			return sLocaleId ? new Locale(sLocaleId) : new Locale(Formatting.getLanguageTag());
 		};
 
 		/**
@@ -1336,7 +1643,9 @@ function(
 				}
 			} else {
 				if (iKC === KeyCodes.ENTER || iKC === KeyCodes.SPACE) {
-					this._openNumericPicker();
+					if (!this._getPicker() || !this._getPicker().isOpen()) {
+						this._openPicker();
+					}
 				}
 			}
 		};
@@ -1417,8 +1726,8 @@ function(
 			}
 
 			oPicker.openBy(oDomRef);
-			oPicker.getContent()[0]._sMinutes = this._sMinutes;
-			oPicker.getContent()[0]._sSeconds = this._sSeconds;
+			oPicker.getContent()[1]._sMinutes = this._sMinutes;
+			oPicker.getContent()[1]._sSeconds = this._sSeconds;
 
 			return oPicker;
 		};
@@ -1433,8 +1742,8 @@ function(
 			var oPicker = this._getPicker();
 
 			if (oPicker) {
-				this._sMinutes = oPicker.getContent()[0]._sMinutes;
-				this._sSeconds = oPicker.getContent()[0]._sSeconds;
+				this._sMinutes = oPicker.getContent()[1]._sMinutes;
+				this._sSeconds = oPicker.getContent()[1]._sSeconds;
 				oPicker.close();
 			} else {
 				Log.warning("There is no picker to close.");
@@ -1459,8 +1768,8 @@ function(
 			}
 
 			oPicker.open();
-			oPicker.getContent()[0]._sMinutes = this._sMinutes;
-			oPicker.getContent()[0]._sSeconds = this._sSeconds;
+			oPicker.getContent()[1]._sMinutes = this._sMinutes;
+			oPicker.getContent()[1]._sSeconds = this._sSeconds;
 
 			return oPicker;
 		};
@@ -1475,8 +1784,8 @@ function(
 			var oPicker = this._getNumericPicker();
 
 			if (oPicker) {
-				this._sMinutes = oPicker.getContent()[0]._sMinutes;
-				this._sSeconds = oPicker.getContent()[0]._sSeconds;
+				this._sMinutes = oPicker.getContent()[1]._sMinutes;
+				this._sSeconds = oPicker.getContent()[1]._sSeconds;
 				oPicker.close();
 				this.getDomRef("inner").select();
 			} else {
@@ -1500,23 +1809,16 @@ function(
 				oPopover,
 				oPicker,
 				oClocks,
-				oResourceBundle,
 				sOKButtonText,
 				sCancelButtonText,
-				sTitle,
 				oIcon = this.getAggregation("_endIcon")[0],
-				sLocaleId  = this._getLocale().getLanguage(),
-				sArialabelledby,
-				sLabelId,
-				sLabel;
+				sLocaleId  = this._getLocale().getLanguage();
 
-			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 			sOKButtonText = oResourceBundle.getText("TIMEPICKER_SET");
 			sCancelButtonText = oResourceBundle.getText("TIMEPICKER_CANCEL");
-			sTitle = this._oResourceBundle.getText("TIMEPICKER_SET_TIME");
 
 			oClocks = new TimePickerClocks(this.getId() + "-clocks", {
-				support2400: this.getSupport2400(),
+				support2400: this._getSupport2400(),
 				displayFormat: sFormat,
 				valueFormat: sFormat,
 				localeId: sLocaleId,
@@ -1525,6 +1827,7 @@ function(
 				showCurrentTimeButton: this.getShowCurrentTimeButton()
 			});
 			oClocks._setAcceptCallback(this._handleOkPress.bind(this));
+			this._oClocksPart = oClocks; // cache reference — stays valid even after content swap
 
 			var oHeader = this._getValueStateHeader();
 			oPicker = new ResponsivePopover(that.getId() + "-RP", {
@@ -1532,7 +1835,6 @@ function(
 				showHeader: false,
 				horizontalScrolling: false,
 				verticalScrolling: true,
-				title: sTitle,
 				placement: PlacementType.VerticalPreferredBottom,
 				contentWidth: "20rem",
 				beginButton: new Button(this.getId() + "-OK", {
@@ -1548,7 +1850,6 @@ function(
 					oHeader,
 					oClocks
 				],
-				ariaLabelledBy: InvisibleText.getStaticId("sap.m", "TIMEPICKER_SET_TIME"),
 				beforeOpen: this.onBeforeOpen.bind(this),
 				afterOpen: this.onAfterOpen.bind(this),
 				afterClose: this.onAfterClose.bind(this)
@@ -1564,15 +1865,32 @@ function(
 			oPopover.oPopup.setExtraContent([oIcon]);
 
 			if (Device.system.phone) {
-				sArialabelledby = this.$("inner").attr("aria-labelledby");
-				sLabelId = sArialabelledby && sArialabelledby.split(" ")[0];
-				sLabel = sLabelId ? document.getElementById(sLabelId).textContent : "";
-
-				if (sLabel) {
-					oPicker.setTitle(sLabel);
-				}
+				const sPickerTitle = this._getPickerAccessibleName();
+				this._oToggleViewButtonLabel = new InvisibleText({
+					text: oResourceBundle.getText("TIMEPICKER_TOGGLE_INPUT_VIEW_LABEL")
+				});
+				this._oToggleViewButtonDesc = new InvisibleText({
+					text: oResourceBundle.getText("TIMEPICKER_TOGGLE_INPUT_VIEW_DESC")
+				});
+				this._oToggleViewButton = new Button({
+					icon: IconPool.getIconURI("keyboard-and-mouse"),
+					tooltip: oResourceBundle.getText("TIMEPICKER_TOGGLE_TO_KEYBOARD"),
+					press: this._onToggleViewPress.bind(this),
+					ariaLabelledBy: [this._oToggleViewButtonLabel],
+					ariaDescribedBy: [this._oToggleViewButtonDesc]
+				});
+				this._oPickerTitle = new Title({
+					text: sPickerTitle
+				});
+				oPicker.setTitle(sPickerTitle);
+				oPicker.setCustomHeader(new Bar({
+					contentMiddle: [this._oPickerTitle],
+					contentRight: [this._oToggleViewButtonLabel, this._oToggleViewButtonDesc, this._oToggleViewButton]
+				}));
 				oPicker.setShowHeader(true);
 			} else {
+				oPicker.addAriaLabelledBy(this._getInvisibleLabelText().getId());
+
 				this._oPopoverKeydownEventDelegate = {
 					onkeydown: function(oEvent) {
 						var oKC = KeyCodes,
@@ -1604,6 +1922,38 @@ function(
 		};
 
 		/**
+		 * Handles the press event of the toggle view button in the picker header (phone only).
+		 * Switches the picker content between clock and keyboard input views.
+		 * @private
+		 */
+		TimePicker.prototype._onToggleViewPress = function() {
+			const bManual = this._getClocks().toggleInputMode();
+
+			// On phone the custom header (with toggle button) must stay visible
+			if (Device.system.phone) {
+				this._getPicker().setShowHeader(true);
+			}
+
+			if (this._oToggleViewButton) {
+				if (bManual) {
+					this._oToggleViewButton.setIcon(IconPool.getIconURI("time-entry-request"));
+					this._oToggleViewButton.setTooltip(oResourceBundle.getText("TIMEPICKER_TOGGLE_TO_CLOCK"));
+				} else {
+					this._oToggleViewButton.setIcon(IconPool.getIconURI("keyboard-and-mouse"));
+					this._oToggleViewButton.setTooltip(oResourceBundle.getText("TIMEPICKER_TOGGLE_TO_KEYBOARD"));
+				}
+			}
+			if (this._oPickerTitle) {
+				this._oPickerTitle.setText(this._getPickerAccessibleName());
+			}
+
+			InvisibleMessage.getInstance().announce(
+				oResourceBundle.getText(bManual ? "TIMEPICKER_ANNOUNCE_KEYBOARD" : "TIMEPICKER_ANNOUNCE_CLOCK"),
+				InvisibleMessageMode.Assertive
+			);
+		};
+
+		/**
 		 * Creates the numeric picker (opens when click on input on mobile).
 		 *
 		 * @param {string} sFormat Time format used for creating the clocks inside the picker
@@ -1613,24 +1963,20 @@ function(
 		 TimePicker.prototype._createNumericPicker = function(sFormat) {
 			var that = this,
 				oPicker,
-				oResourceBundle,
-				sOKButtonText,
-				sCancelButtonText,
-				sLocaleId  = this._getLocale().getLanguage();
-
-			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
-			sOKButtonText = oResourceBundle.getText("TIMEPICKER_SET");
-			sCancelButtonText = oResourceBundle.getText("TIMEPICKER_CANCEL");
+				sLocaleId = this._getLocale().getLanguage(),
+				oHeader = this._getValueStateHeader();
 
 			oPicker = new Popover(that.getId() + "-NP", {
 				showArrow: false,
-				showHeader: false,
+				showHeader: true,
+				title: this._getPickerAccessibleName(),
 				horizontalScrolling: false,
 				verticalScrolling: false,
 				placement: PlacementType.VerticalPreferredBottom,
-				content: [
+					content: [
+					oHeader,
 					new TimePickerInputs(this.getId() + "-inputs", {
-						support2400: this.getSupport2400(),
+						support2400: this._getSupport2400(),
 						displayFormat: sFormat,
 						valueFormat: sFormat,
 						localeId: sLocaleId,
@@ -1639,32 +1985,32 @@ function(
 						showCurrentTimeButton: this.getShowCurrentTimeButton()
 					})
 				],
-				footer: [
-					new Toolbar({
-						content: [
-							new ToolbarSpacer(),
-							new Button(this.getId() + "-NumericOK", {
-								text: sOKButtonText,
-								type: ButtonType.Emphasized,
-								press: this._handleNumericOkPress.bind(this)
-							}),
-							new Button(this.getId() + "-NumericCancel", {
-								text: sCancelButtonText,
-								press: this._handleNumericCancelPress.bind(this)
-							})
-						]
-					})
-				],
 
-				ariaLabelledBy: InvisibleText.getStaticId("sap.m", "TIMEPICKER_SET_TIME"),
+				ariaLabelledBy: this._getInvisibleLabelText().getId(),
 				beforeOpen: this.onBeforeNumericOpen.bind(this),
 				afterOpen: function() {
 					this.fireAfterValueHelpOpen();
+					// afterOpen fires synchronously (animation disabled below) — still within
+					// the user-gesture context, so focus() also opens the mobile keyboard.
+					var oInputs = this._getInputs();
+					var aInputs = oInputs && oInputs.getAggregation("_inputs");
+					var oFocusDom = aInputs && aInputs[0] && aInputs[0].getFocusDomRef();
+					if (oFocusDom) {
+						oFocusDom.focus();
+						oFocusDom.select();
+					}
 				}.bind(this),
 				afterClose: function() {
 					this.fireAfterValueHelpClose();
 				}.bind(this)
 			});
+
+			// Disable open/close animation so that _opened fires synchronously within
+			// the user-gesture call chain — required for reliable focus and mobile keyboard.
+			oPicker.oPopup.setDurations(0, 0);
+
+			// Mark the inputs control to render inline OK/Cancel (no footer toolbar on mobile)
+			oPicker.getContent()[1]._bInlineActions = true;
 
 			oPicker.open = function() {
 				return this.openBy(that);
@@ -1674,6 +2020,51 @@ function(
 			this.setAggregation("_numPicker", oPicker, true);
 
 			return oPicker;
+		};
+
+		/**
+		 * Returns the invisible label text for the TimePicker.
+		 * @private
+		 * @returns {sap.ui.core.InvisibleText} The invisible label text
+		 */
+		TimePicker.prototype._getInvisibleLabelText = function() {
+			if (!this._invisibleLabelText) {
+				this._invisibleLabelText = new InvisibleText({
+					text: this._getPickerAccessibleName()
+				}).toStatic();
+			}
+
+			return this._invisibleLabelText;
+		};
+
+		/**
+		 * Returns the accessible name for the TimePicker.
+		 * @returns {string} The accessible name
+		 */
+		TimePicker.prototype._getPickerAccessibleName = function() {
+			const sLabelledText = this._getLabelledText();
+
+			return this.getTitle() ||
+				(sLabelledText && oResourceBundle.getText("TIMEPICKER_SET_TIME", [sLabelledText])) ||
+				oResourceBundle.getText("TIMEPICKER_DEFAULT_TITLE");
+		};
+
+		/**
+		 * Returns the labelled text for the TimePicker.
+		 * @private
+		 * @returns {string} The labelled text
+		 */
+		TimePicker.prototype._getLabelledText = function() {
+			const aExternalLabelRefs = LabelEnablement.getReferencingLabels(this);
+			const aLabels = aExternalLabelRefs.length ? aExternalLabelRefs : this.getAriaLabelledBy();
+
+			return aLabels
+				.reduce(function(sAccumulator, sCurrent) {
+					const oLabelTextControl = Element.getElementById(sCurrent);
+					const sLabelText = oLabelTextControl && oLabelTextControl.getText ? oLabelTextControl.getText() : "";
+					return `${sAccumulator} ${sLabelText}`;
+				}, "")
+				.trim();
 		};
 
 		/**
@@ -1687,7 +2078,7 @@ function(
 			if (!oPicker) {
 				return null;
 			}
-			return oPicker.getContent()[1];
+			return this._oClocksPart || null;
 		};
 
 		/**
@@ -1701,22 +2092,23 @@ function(
 			if (!oPicker) {
 				return null;
 			}
-			return oPicker.getContent()[0];
+			return oPicker.getContent()[1];
 		};
 
 		/**
-		 * Handles the press event of the OK button.
 		 *
 		 * @param {jQuery.Event} oEvent  Event object
 		 * @private
 		 */
 		TimePicker.prototype._handleOkPress = function(oEvent) {
-			var oDate = this._getClocks().getTimeValues(),
-				sValue;
+			const bShowInputs = this._bShowInputs,
+				oDate = bShowInputs
+					? this._getOrCreateInputs().getTimeValues()
+					: this._getClocks().getTimeValues();
 
-			this._isClockPicker = true;
-			this._isNumericPicker = false;
-			sValue = this._formatValue(oDate);
+			this._isClockPicker = !bShowInputs;
+			this._isNumericPicker = false; // _oInputsPart is shown in _picker, not _numPicker
+			const sValue = this._formatValue(oDate, false, true);
 
 			this.updateDomValue(sValue);
 			this._handleInputChange();
@@ -1770,7 +2162,7 @@ function(
 		 */
 		 TimePicker.prototype._getLocaleBasedPattern = function (sPlaceholder) {
 			return LocaleData.getInstance(
-				Configuration.getFormatSettings().getFormatLocale()
+				new Locale(Formatting.getLanguageTag())
 			).getTimePattern(sPlaceholder);
 		};
 
@@ -1803,12 +2195,13 @@ function(
 		 *
 		 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 		 * @param {boolean} bValueFormat Defines whether the result is in <code>valueFormat</code> or <code>displayFormat</code>
+		 * @param {boolean} bNotReplace00with24 Defines whether 00 will be replaced with 24 in the resulting string
 		 * @returns {string} Formatted value
 		 * @private
 		 */
-		TimePicker.prototype._formatValue = function(oDate, bValueFormat) {
-			var sValue = DateTimeField.prototype._formatValue.apply(this, arguments),
-				sFormat = this.getValueFormat() || (this._sValueFormat && this._sValueFormat.oFormatOptions.pattern),
+		TimePicker.prototype._formatValue = function(oDate, bValueFormat, bNotReplace00with24) {
+			var sValue = DateTimeField.prototype._formatValue.apply(this, arguments)?.trim(),
+				sFormat = bValueFormat ?  this.getValueFormat() || (this._sValueFormat && this._sValueFormat.oFormatOptions.pattern) : this.getDisplayFormat(),
 				iIndexOfHH,
 				iIndexOfH,
 				bFieldValueIs24;
@@ -1822,22 +2215,28 @@ function(
 				// that we use in the mask - "9:15" instead of " 9:15"
 				// that's because the mask is fixed length
 
-				// this._oTimeSemanticMaskHelper will always exist if we have displayformat and localeId set
+				// this._oTimeSemanticMaskHelper will always exist (if mask is enabled) if we have displayFormat and localeId set
 				// and they both have default values, but check just in case
 				if (!bValueFormat && this._oTimeSemanticMaskHelper) {
 					sValue = this._oTimeSemanticMaskHelper.formatValueWithLeadingTrailingSpaces(sValue);
 				}
 			}
 
-			if ((this._isNumericPicker && this.isNumericOpen() && this._getInputs() && this._getInputs()._getHoursInput() && this._getInputs()._getHoursInput().getValue() === "24") ||
-				(this._isClockPicker && this.isOpen() && this._getClocks() && this._getClocks()._getHoursClock() && this._getClocks()._getHoursClock().getSelectedValue() === 24) ||
-				(this._sLastChangeValue && this._sLastChangeValue.indexOf("24") > -1)) {
-					bFieldValueIs24 = true;
+			var oNumericInputs = this._isNumericPicker && this.isNumericOpen() && this._getInputs(),
+				oZoomInputs = this._bShowInputs && this.isOpen() && this._oInputsPart,
+				oClocksControl = this._isClockPicker && this.isOpen() && this._getClocks(),
+				bNumericIs24 = !!(oNumericInputs && oNumericInputs._getHoursInput() && oNumericInputs._getHoursInput().getValue() === "24"),
+				bZoomIs24 = !!(oZoomInputs && oZoomInputs._getHoursInput() && oZoomInputs._getHoursInput().getValue() === "24"),
+				bClocksIs24 = !!(oClocksControl && oClocksControl._getHoursClock() && oClocksControl._getHoursClock().getSelectedValue() === 24),
+				bLastChangeIs24 = !!(this._sLastChangeValue && this._sLastChangeValue.indexOf("24") > -1 && !bNotReplace00with24);
+
+			if (bNumericIs24 || bZoomIs24 || bClocksIs24 || bLastChangeIs24) {
+				bFieldValueIs24 = true;
 			}
 
 			//2400 scenario - be sure that the correct value will be set in all cases - when binding,
 			//setting the value by clocks or only via setValue
-			if (oDate && oDate.getHours() === 0 && this.getSupport2400() && bFieldValueIs24) {
+			if (oDate && oDate.getHours() === 0 && this._getSupport2400() && bFieldValueIs24) {
 				sValue = TimePickerInternals._replaceZeroHoursWith24(sValue, iIndexOfHH, iIndexOfH);
 			}
 
@@ -1905,11 +2304,21 @@ function(
 		/**
 		 * Returns if the mask is enabled. If value is not valid we should set initialFocusedDateValue.
 		 *
-		 * @returns {boolean}
+		 * @returns {boolean} Returns <code>True</code> when the mask can be used.
 		 * @private
 		 */
 		TimePicker.prototype._isMaskEnabled = function () {
-			return this.getMaskMode() === TimePickerMaskMode.On && !this._isMobileDevice();
+			if (this._isMobileDevice() || this.getMaskMode() === TimePickerMaskMode.Off) {
+				return false;
+			}
+
+			if (this.getMaskMode() === TimePickerMaskMode.Enforce) {
+				return true;
+			}
+
+			const sTrimmedPattern = this._getDisplayFormatPattern().replace(/hh|mm|ss/gi, "").replace(/a/i, "");
+
+			return !/h|m|s|a|b/gi.test(sTrimmedPattern);
 		};
 
 		/**
@@ -2204,7 +2613,7 @@ function(
 		 * @returns {*} the stripped value
 		 */
 		TimeSemanticMaskHelper.prototype.stripValueOfLeadingSpaces = function(value) {
-			if (value[this.iHourNumber1Index] === " ") {
+			if (value[this.iHourNumber1Index] === " " && this._oTimePicker.getDisplayFormat().indexOf("B") === -1) {
 				value = [value.slice(0, this.iHourNumber1Index), value.slice(this.iHourNumber1Index + 1)].join('');
 			}
 			return value;
@@ -2304,7 +2713,7 @@ function(
 			var oRenderer = this.getRenderer();
 			var oInfo = DateTimeField.prototype.getAccessibilityInfo.apply(this, arguments);
 			var sValue = this.getValue() || "";
-			var sRequired = this.getRequired() ? Core.getLibraryResourceBundle("sap.m").getText("ELEMENT_REQUIRED") : '';
+			var sRequired = this.getRequired() ? oResourceBundle.getText("ELEMENT_REQUIRED") : '';
 
 			if (this._bValid) {
 				var oDate = this.getDateValue();
@@ -2314,7 +2723,7 @@ function(
 			}
 
 			oInfo.role = oRenderer.getAriaRole(this);
-			oInfo.type = Core.getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_TIMEINPUT");
+			oInfo.type = oResourceBundle.getText("ACC_CTR_TYPE_TIMEINPUT");
 			oInfo.description = [sValue || this._getPlaceholder(), oRenderer.getDescribedByAnnouncement(this), sRequired].join(" ").trim();
 			oInfo.autocomplete = "none";
 			oInfo.haspopup = true;
@@ -2323,7 +2732,7 @@ function(
 		};
 
 		function getDefaultDisplayFormat() {
-			var oLocale = Configuration.getFormatSettings().getFormatLocale(),
+			var oLocale = new Locale(Formatting.getLanguageTag()),
 				oLocaleData = LocaleData.getInstance(oLocale);
 
 			return oLocaleData.getTimePattern(TimeFormatStyles.Medium);

@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.120.0"
+      "version": "1.152.0"
     },
     "title": "SAPUI5 library with integration-related controls.",
     "description": "SAPUI5 library with integration-related controls.",
@@ -16,7 +16,7 @@
       {
         "name": "ui5-web-components",
         "packagedWithMySelf": true,
-        "version": "1.7.0"
+        "version": "2.15.0"
       },
       {
         "name": "adaptive-cards",
@@ -36,7 +36,7 @@
       {
         "name": "markdown-it",
         "packagedWithMySelf": true,
-        "version": "12.3.2"
+        "version": "14.1.0"
       },
       {
         "name": "@cfworker/json-schema",
@@ -54,22 +54,22 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.120",
+      "minUI5Version": "1.152",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.120.0"
+          "minVersion": "1.152.0"
         },
         "sap.f": {
-          "minVersion": "1.120.0"
+          "minVersion": "1.152.0"
         },
         "sap.m": {
-          "minVersion": "1.120.0"
+          "minVersion": "1.152.0"
         },
         "sap.ui.unified": {
-          "minVersion": "1.120.0"
+          "minVersion": "1.152.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.120.0"
+          "minVersion": "1.152.0"
         }
       }
     },
@@ -81,6 +81,7 @@
           "ar",
           "bg",
           "ca",
+          "cnr",
           "cs",
           "cy",
           "da",
@@ -120,6 +121,7 @@
           "sh",
           "sk",
           "sl",
+          "sr",
           "sv",
           "th",
           "tr",
@@ -136,7 +138,8 @@
           "sap.ui.integration.cards.Header",
           "sap.ui.integration.cards.NumericHeader",
           "sap.ui.integration.controls.ListContentItem",
-          "sap.ui.integration.controls.BlockingMessage"
+          "sap.ui.integration.controls.BlockingMessage",
+          "sap.ui.integration.controls.ImageWithOverlay"
         ],
         "elements": [
           "sap.ui.integration.ActionDefinition",
@@ -149,7 +152,10 @@
           "sap.ui.integration.CardMenuAction",
           "sap.ui.integration.CardDesign",
           "sap.ui.integration.CardDisplayVariant",
-          "sap.ui.integration.CardBlockingMessageType"
+          "sap.ui.integration.CardBlockingMessageType",
+          "sap.ui.integration.CardPreviewMode",
+          "sap.ui.integration.CardOverflow",
+          "sap.ui.integration.AttributesLayoutType"
         ],
         "interfaces": []
       }

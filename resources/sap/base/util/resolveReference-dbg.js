@@ -1,13 +1,67 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/util/ObjectPath"], function(ObjectPath) {
 	"use strict";
 
 	// indicator if the reference can't be resolved
-	var oNotFound = Object.create(null);
+	const oNotFound = Object.create(null);
+
+	let oJQuery;
+
+	/**
+	 * Checks whether the given value or its context is a restricted
+	 * function that must not be resolved.
+	 *
+	 * @param {any} vValue The resolved value to check
+	 * @param {any} [oContext] The parent object from which <code>vValue</code>
+	 *  was retrieved
+	 * @returns {boolean} Whether the value or its context is restricted
+	 */
+	function _isRestricted(vValue, oContext) {
+		return _isWindow(oContext)
+			|| _isBlocklisted(vValue) || _isBlocklisted(oContext);
+	}
+
+	/**
+	 * Checks whether the given value is identical to one of the known
+	 * restricted global functions.
+	 *
+	 * @param {any} vValue The value to check
+	 * @returns {boolean} Whether the value is a restricted function
+	 */
+	function _isBlocklisted(vValue) {
+		/**
+		 * @deprecated
+		 */
+		oJQuery ??= globalThis.jQuery;
+
+		oJQuery ??= sap.ui.require("sap/ui/thirdparty/jquery");
+		/**
+		 * @ui5-transform-hint replace-local false
+		 */
+		const bJQueryExtensionBlocklisted = oJQuery && oJQuery.sap && (vValue === oJQuery.sap.globalEval);
+
+		return bJQueryExtensionBlocklisted
+			// eslint-disable-next-line no-eval
+			|| vValue === eval || vValue === setTimeout || vValue === setInterval
+			|| (globalThis.document && (vValue === globalThis.document.write || vValue === globalThis.document.writeln))
+			|| (globalThis.location && (vValue === globalThis.location.assign || vValue === globalThis.location.replace))
+			|| (oJQuery && (vValue === oJQuery.globalEval));
+	}
+
+	/**
+	 * Checks whether the given value is a <code>Window</code> object.
+	 *
+	 * @param {any} vValue The value to check
+	 * @returns {boolean} Whether the value is a Window object
+	 * @ui5-transform-hint replace-call false
+	 */
+	function _isWindow(vValue) {
+		return vValue != null && vValue.window === vValue;
+	}
 
 	/**
 	 * Resolve the path segments under the given root context
@@ -33,8 +87,13 @@ sap.ui.define(["sap/base/util/ObjectPath"], function(ObjectPath) {
 			oContext = aParts.length > 1 ? ObjectPath.get(aParts.slice(0, -1), oRoot) : oRoot;
 			vRef = oContext && oContext[aParts[aParts.length - 1]];
 
-			if (typeof vRef === "function" && mOptions.bindContext) {
-				vRef = vRef.bind(mOptions.rootContext || oContext);
+			if (typeof vRef === "function") {
+				if (_isRestricted(vRef, oContext)) {
+					return oNotFound;
+				}
+				if (mOptions.bindContext) {
+					vRef = vRef.bind(mOptions.rootContext || oContext);
+				}
 			}
 
 			return vRef;
@@ -66,7 +125,7 @@ sap.ui.define(["sap/base/util/ObjectPath"], function(ObjectPath) {
 	 * <code>sap.ui.require</code> is called when <code>mOptions.useProbingRequire=true</code> to retrieve the
 	 * module export of the loaded module with the given <code>sPath</code> after replacing '.' with '/' in
 	 * the path. If the path can still not be resolved, the last fallback is taken to resolve
-	 * <code>sPath</code> within the global scope <code>window</code>.
+	 * <code>sPath</code> within the global scope <code>globalThis</code>.
 	 *
 	 * When the resolved value is a function, a context may be bound to it with the following
 	 * conditions:
@@ -154,11 +213,20 @@ sap.ui.define(["sap/base/util/ObjectPath"], function(ObjectPath) {
 				}
 			}
 
-			// resolve the path under global scope, only when it can't be resolved under mVariables
+			/**
+			 * @deprecated
+			 */
 			if (vRef === oNotFound ) {
 				// fallback if no value could be found under the given sPath's first segment
 				// otherwise resolve under global namespace
 				vRef = ObjectPath.get(sPath);
+
+				// Block restricted functions from being resolved via global fallback
+				if (_isRestricted(vRef,
+					aParts.length > 1 ? ObjectPath.get(aParts.slice(0, -1)) : undefined
+				)) {
+					vRef = oNotFound;
+				}
 			}
 		}
 

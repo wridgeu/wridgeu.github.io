@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/m/semantic/ShareMenuPage", "sap/m/semantic/SemanticConfiguration", "sap/m/semantic/SemanticPageRenderer", "sap/m/library"], function(ShareMenuPage, SemanticConfiguration, SemanticPageRenderer, library) {
+sap.ui.define(["sap/m/semantic/ShareMenuPage", "sap/m/semantic/SemanticConfiguration", "sap/m/semantic/SemanticPageRenderer", "sap/m/library", "sap/ui/core/Lib"], function(ShareMenuPage, SemanticConfiguration, SemanticPageRenderer, library, Library) {
 	"use strict";
 
 
@@ -46,7 +46,7 @@ sap.ui.define(["sap/m/semantic/ShareMenuPage", "sap/m/semantic/SemanticConfigura
 	 * @extends sap.m.semantic.ShareMenuPage
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -214,7 +214,7 @@ sap.ui.define(["sap/m/semantic/ShareMenuPage", "sap/m/semantic/SemanticConfigura
 	DetailPage.prototype.init = function () {
 
 		ShareMenuPage.prototype.init.call(this);
-		this._getPage().getLandmarkInfo().setRootLabel(sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("SEMANTIC_DETAIL_PAGE_TITLE"));
+		this._getPage().getLandmarkInfo().setRootLabel(Library.getResourceBundleFor("sap.m").getText("SEMANTIC_DETAIL_PAGE_TITLE"));
 	};
 
 	/*
@@ -246,13 +246,17 @@ sap.ui.define(["sap/m/semantic/ShareMenuPage", "sap/m/semantic/SemanticConfigura
 		return ShareMenuPage.prototype.setAggregation.call(this, sAggregationName, oObject, bSuppressInvalidate);
 	};
 
+	/**
+	 * @override
+	 * @returns {sap.ui.base.ManagedObject|sap.ui.base.ManagedObject[]|null} the aggregation of the respective name if it exists, null otherwise
+	*/
 	DetailPage.prototype.getAggregation = function(sAggregationName, oObject, bSuppressInvalidate) {
 
 		if ((sAggregationName === "saveAsTileAction")
 				|| (sAggregationName === "pagingAction")
 				|| (sAggregationName === "draftIndicator")) {
 
-				return this['_' + sAggregationName];
+				return this['_' + sAggregationName] || null;
 		}
 
 		return ShareMenuPage.prototype.getAggregation.call(this, sAggregationName, oObject, bSuppressInvalidate);

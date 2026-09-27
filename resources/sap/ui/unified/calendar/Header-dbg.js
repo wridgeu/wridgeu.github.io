@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> This is used inside the calendar. Not for standalone usage
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -123,7 +123,97 @@ sap.ui.define([
 			 * If set, the Current date button will be displayed.
 			 * @since 1.95.0
 			 */
-			visibleCurrentDateButton : {type : "boolean", group : "Appearance", defaultValue : false}
+			visibleCurrentDateButton : {type : "boolean", group : "Appearance", defaultValue : false},
+
+			/**
+			 * Tooltip of the first button (normally month) - private property
+			 * @private
+			 */
+			_tooltipButton1 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Tooltip of the second button (normally year) - private property
+			 * @private
+			 */
+			_tooltipButton2 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Keyboard shortcut of the first button (normally month) - private property
+			 * @private
+			 */
+			_keyShortcutButton1 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Keyboard shortcut of the second button (normally year) - private property
+			 * @private
+			 */
+			_keyShortcutButton2 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Description of the first button (normally month) - private property used for aria-description
+			 * @private
+			 */
+			_descriptionButton1 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Description of the second button (normally year) - private property used for aria-description
+			 * @private
+			 */
+			_descriptionButton2 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Tooltip of the third button (normally second month) - private property
+			 * @private
+			 */
+			_tooltipButton3 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Tooltip of the fourth button (normally second year) - private property
+			 * @private
+			 */
+			_tooltipButton4 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Keyboard shortcut of the third button (normally second month) - private property
+			 * @private
+			 */
+			_keyShortcutButton3 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Keyboard shortcut of the fourth button (normally second year) - private property
+			 * @private
+			 */
+			_keyShortcutButton4 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Description of the third button (normally second month) - private property used for aria-description
+			 * @private
+			 */
+			_descriptionButton3 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Description of the fourth button (normally second year) - private property used for aria-description
+			 * @private
+			 */
+			_descriptionButton4 : {type : "string", group : "Misc", visibility: "hidden"},
+
+			/**
+			 * Holds a reference to the currently shown picker. Possible values: month, monthPicker, yearPicker and yearRangePicker.
+			 * @private
+			 */
+			_currentPicker : {type : "string", group : "Appearance", visibility: "hidden"},
+
+			/**
+			 * Alignment of the left content area. Possible values: "Start", "Center", "End".
+			 * @private
+			 */
+			_alignLeft : {type : "string", defaultValue : "Center", visibility: "hidden"},
+
+			/**
+			 * Alignment of the right content area. Possible values: "Start", "Center", "End".
+			 * @private
+			 */
+			_alignRight : {type : "string", defaultValue : "Center", visibility: "hidden"}
 
 		},
 		events : {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -30,6 +30,8 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.model.odata.ODataTreeBindingFlat
 	 * @function
+	 * @deprecated As of version 1.150.0, will be replaced by OData V4 hierarchy functionality, see
+	 *    {@link topic:7d914317c0b64c23824bf932cc8a4ae1/section_RCH Recursive Hierarchy}
 	 *
 	 * @public
 	 */
@@ -66,6 +68,7 @@ sap.ui.define([
 		this._aAdded = [];
 		this._aNodeChanges = [];
 		this._aAllChangedNodes = [];
+		this._aTurnedToLeaf = [];
 
 		// a map of all subtree handles, which are removed from the tree (and may be re-inserted)
 		this._mSubtreeHandles = {};
@@ -275,14 +278,59 @@ sap.ui.define([
 			: this._mapRetrieveNodeSection(iStartIndex, iLength);
 	};
 
+	/**
+	 * Checks whether there is a pending request to get the children for the given node key.
+	 *
+	 * @param {string} sNodeKey The node key
+	 *
+	 * @returns {boolean} Whether there is a pending request fetching the children of the given node
+	 *
+	 * @private
+	 */
+	ODataTreeBindingFlat.prototype._hasPendingRequest = function (sNodeKey) {
+		return this._aPendingChildrenRequests.some((oRequest) => oRequest.sParent === sNodeKey);
+	};
+
+	/**
+	 * Turn the given node to a leaf
+	 *
+	 * @param {object} oNode The node
+	 *
+	 * @private
+	 */
+	ODataTreeBindingFlat.prototype._turnNodeToLeaf = function (oNode) {
+		oNode.nodeState.collapsed = false;
+		oNode.nodeState.expanded = false;
+		oNode.nodeState.isLeaf = true;
+		oNode.nodeState.wasExpanded = true;
+		this._aTurnedToLeaf.push(oNode);
+	};
+
 	/*
 	 * @private
 	 */
 	ODataTreeBindingFlat.prototype._mapRetrieveNodeSection = function (iStartIndex, iLength) {
+		const iLastNodeIndex = this.getLength() - 1;
 		var iNodeCounter = -1;
-		var aNodes =  [];
-		this._map(function (oNode, oRecursionBreaker, sIndexType, iIndex, oParent) {
+		var aNodes = [];
+		let oPreviousNode;
+
+		this._map((oNode, oRecursionBreaker, sIndexType, iIndex, oParent) => {
 			iNodeCounter++;
+			if (oNode && this._aRemoved.length) {
+				// check if previous node has to be a leaf node
+				if (oPreviousNode && oPreviousNode.nodeState.expanded
+						&& oPreviousNode.level >= oNode.level
+						&& !this._hasPendingRequest(oPreviousNode.key)) {
+					this._turnNodeToLeaf(oPreviousNode);
+				} else if (oNode.nodeState.expanded && iLastNodeIndex === iNodeCounter
+					&& !this._hasPendingRequest(oNode.key)) {
+					// Leaf transformation process for the last element in the tree
+					this._turnNodeToLeaf(oNode);
+				}
+			}
+			oPreviousNode = oNode;
+
 			if (iNodeCounter >= iStartIndex) {
 				// if we have a missing node and it is a server-indexed node -> introduce a gap object
 				if (!oNode) {
@@ -662,16 +710,23 @@ sap.ui.define([
 				sKey = this.oModel.getKey(oEntry);
 				iIndex = iSkip + i;
 
-				var iMagnitude = oEntry[this.oTreeProperties["hierarchy-node-descendant-count-for"]];
+				const vMagnitude = oEntry[this.oTreeProperties["hierarchy-node-descendant-count-for"]];
+				let iMagnitude = Number(vMagnitude);
+
 				// check the magnitude attribute whether it's greater or equal than 0
 				if (iMagnitude < 0) {
 					iMagnitude = 0;
 					Log.error("The entry data with key '" + sKey + "' under binding path '" + this.getPath() + "' has a negative 'hierarchy-node-descendant-count-for' which isn't allowed.");
 				}
+				if (!Number.isSafeInteger(iMagnitude)) {
+					Log.error("The value of magnitude is not a safe integer: " + JSON.stringify(vMagnitude),
+						this.getResolvedPath(), sClassName);
+				}
 
 				var oNode = this._aNodes[iIndex] = this._aNodes[iIndex] || {
 					key: sKey,
-					context: this.oModel.getContext("/" + sKey),
+					context: this.oModel.getContext("/" + sKey,
+						this.oModel.resolveDeep(this.sPath, this.oContext) + sKey.slice(sKey.indexOf("("))),
 					magnitude: iMagnitude,
 					level: oEntry[this.oTreeProperties["hierarchy-level-for"]],
 					originalLevel: oEntry[this.oTreeProperties["hierarchy-level-for"]],
@@ -706,7 +761,6 @@ sap.ui.define([
 						this.setNodeSelection(oNode, true);
 					}
 				}
-
 			}
 		}
 	};
@@ -788,8 +842,10 @@ sap.ui.define([
 			// construct multi-filter for level filter and application filters
 			var oLevelFilter = new Filter(this.oTreeProperties["hierarchy-level-for"], "LE", this.getNumberOfExpandedLevels());
 			var aFilters = [oLevelFilter];
-			if (this.aApplicationFilters) {
-				aFilters = aFilters.concat(this.aApplicationFilters);
+			this._checkFilterForTreeProperties();
+			const oCombinedFilter = this.getCombinedFilter();
+			if (oCombinedFilter) {
+				aFilters.push(oCombinedFilter);
 			}
 
 			var sAbsolutePath = this.getResolvedPath();
@@ -984,7 +1040,8 @@ sap.ui.define([
 		}
 		var oNode = oParentNode.children[iPositionInParent] = oParentNode.children[iPositionInParent] || {
 			key: sKey,
-			context: this.oModel.getContext("/" + sKey),
+			context: this.oModel.getContext("/" + sKey,
+				this.oModel.resolveDeep(this.sPath, this.oContext) + sKey.slice(sKey.indexOf("("))),
 			//sub-child nodes have a magnitude of 0 at their first loading time
 			magnitude: 0,
 			//level is either given by the back-end or simply 1 level deeper than the parent
@@ -1345,8 +1402,10 @@ sap.ui.define([
 					oParentNode.context.getProperty(sHierarchyNodeForProperty));
 			var oLevelFilter = new Filter(this.oTreeProperties["hierarchy-level-for"], "LE", iLevel);
 			var aFilters = [oNodeFilter, oLevelFilter];
-			if (this.aApplicationFilters) {
-				aFilters = aFilters.concat(this.aApplicationFilters);
+			this._checkFilterForTreeProperties();
+			const oCombinedFilter = this.getCombinedFilter();
+			if (oCombinedFilter) {
+				aFilters.push(oCombinedFilter);
 			}
 
 			var sAbsolutePath = this.getResolvedPath();
@@ -1907,7 +1966,8 @@ sap.ui.define([
 			bVisibleNewParent,
 			iDelta = 0,
 			fnCheckVisible = function(oNode, oBreaker) {
-				if (oNode.nodeState.collapsed || (oNode.nodeState.removed && !oNode.nodeState.reinserted)) {
+				if (oNode.nodeState.isLeaf || oNode.nodeState.collapsed
+						|| (oNode.nodeState.removed && !oNode.nodeState.reinserted)) {
 					bVisible = false;
 					oBreaker.broken = true;
 				}
@@ -2163,10 +2223,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataTreeBindingFlat.prototype._isRestoreTreeStateSupported = function () {
-		return (
-			this._bRestoreTreeStateAfterChange &&
-			(!this.aApplicationFilters || this.aApplicationFilters.length === 0)
-		);
+		return this._bRestoreTreeStateAfterChange;
 	};
 
 	/**
@@ -2269,17 +2326,26 @@ sap.ui.define([
 			}
 		}
 
-		this._aRemoved.forEach(function (oNode) {
-			ODataTreeBindingFlat._resetMovedOrRemovedNode(oNode);
+		this._aRemoved.forEach((oNode) => {
+			this._resetMovedOrRemovedNode(oNode);
 		});
-		this._aAdded.forEach(function (oNode) {
-			ODataTreeBindingFlat._resetParentState(oNode);
+		this._aAdded.forEach((oNode) => {
+			this._resetParentState(oNode);
+		});
+		this._aTurnedToLeaf.forEach((oNode) => {
+			if (!oNode.initiallyIsLeaf) {
+				oNode.nodeState.isLeaf = false;
+				oNode.nodeState.expanded = true;
+				oNode.nodeState.collapsed = false;
+				delete oNode.nodeState.wasExpanded;
+			}
 		});
 		this._mSubtreeHandles = {};
 		this._aAdded = [];
 		this._aRemoved = [];
 		this._aAllChangedNodes = [];
 		this._aNodeCache = [];
+		this._aTurnedToLeaf = [];
 
 		this._cleanTreeStateMaps();
 		this._fireChange({reason: ChangeReason.Change});
@@ -3336,10 +3402,7 @@ sap.ui.define([
 					// default. This flag defines whether the tree state before submitChanges should
 					// be restored afterwards. If this is true, a batch request is sent after the
 					// save action is finished to load the nodes which were available before in
-					// order to properly restore the tree state. Application filters are currently
-					// not supported for tree state restoration this is due to the SiblingsPosition
-					// being requested via GET Entity (not filterable) instead of GET Entity Set
-					// (filterable)
+					// order to properly restore the tree state.
 					that._restoreTreeState(oOptimizedChanges).catch(function (oError) {
 						_logTreeRestoreFailed(oError);
 						that._refresh(true);
@@ -3375,8 +3438,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	ODataTreeBindingFlat.prototype._generateSubmitData
-			= function (oOptimizedChanges, fnRestoreRequestErrorHandler) {
+	ODataTreeBindingFlat.prototype._generateSubmitData = function (oOptimizedChanges, fnRestoreRequestErrorHandler) {
 		var aAdded = oOptimizedChanges.added,
 			aCreationCancelled = oOptimizedChanges.creationCancelled,
 			aMoved = oOptimizedChanges.moved,
@@ -3384,36 +3446,31 @@ sap.ui.define([
 			mRestoreRequestParameters = {
 				error: fnRestoreRequestErrorHandler,
 				groupId: this.oModel._resolveGroup(this.getResolvedPath()).groupId
-			},
-			that = this;
+			};
 
-		function setParent(oNode) {
+		const setParent = (oNode) => {
 			assert(oNode.context, "Node does not have a context.");
-			var sParentNodeID = oNode.parent.context.getProperty(that.oTreeProperties["hierarchy-node-for"]);
-			that.oModel.setProperty(that.oTreeProperties["hierarchy-parent-node-for"], sParentNodeID, oNode.context);
-
-		}
+			const sParentNodeID = oNode.parent.context.getProperty(this.oTreeProperties["hierarchy-node-for"]);
+			this.oModel.setProperty(this.oTreeProperties["hierarchy-parent-node-for"], sParentNodeID, oNode.context);
+		};
 
 		aAdded.forEach(setParent); // No extra requests for add. Everything we need should be in the POST response
-		aMoved.forEach(function(oNode) {
+		aMoved.forEach((oNode) => {
 			setParent(oNode);
 
 			if (this._isRestoreTreeStateSupported()) {
-				// Application filters are currently not supported for tree state restoration
-				//	this is due to the SiblingsPosition being requested via GET Entity (not filterable) instead of GET Entity Set (filterable
 				this._generatePreorderPositionRequest(oNode, mRestoreRequestParameters);
-				this._generateSiblingsPositionRequest(oNode, mRestoreRequestParameters);
 			}
-		}.bind(this));
+		});
 
-		aRemoved.forEach(function(oNode) {
+		aRemoved.forEach((oNode) => {
 			this._generateDeleteRequest(oNode);
 			Log.debug("ODataTreeBindingFlat: DELETE " + oNode.key);
-		}.bind(this));
+		});
 
-		aCreationCancelled.forEach(function(oNode) {
+		aCreationCancelled.forEach((oNode) => {
 			this._generateDeleteRequest(oNode);
-		}.bind(this));
+		});
 	};
 
 	/**
@@ -3483,47 +3540,6 @@ sap.ui.define([
 			sorters : this.aSorters,
 			success : fnSuccess,
 			urlParameters : this.oModel.createCustomParams(mUrlParameters)
-		});
-	};
-
-	/*
-	 * @private
-	 */
-	ODataTreeBindingFlat.prototype._generateSiblingsPositionRequest = function(oNode, mParameters) {
-		var sGroupId, mUrlParameters, successHandler, errorHandler;
-			// aFilters = [], aSorters = this.aSorters || [];
-
-		if (mParameters) {
-			sGroupId = mParameters.groupId || this.sGroupId;
-			successHandler = mParameters.success;
-			errorHandler = mParameters.error;
-		}
-
-		/* Filtering not possible as long as we request SiblingsPosition via GET Entity instead of GET Entity Set (like Preorder Position)
-		if (this.aApplicationFilters) {
-			aFilters = aFilters.concat(this.aApplicationFilters);
-		}
-
-		aFilters.push(new Filter(
-			this.oTreeProperties["hierarchy-node-for"], "EQ", oNode.context.getProperty(this.oTreeProperties["hierarchy-node-for"])
-		));
-		*/
-
-		mUrlParameters = extend({}, this.mParameters);
-		mUrlParameters.select =  this.oTreeProperties["hierarchy-sibling-rank-for"];
-
-		// request the siblings position for moved nodes only as siblings position are already available for added nodes
-		this.oModel.read(oNode.context.getPath(), {
-			headers: this._getHeaders(),
-			urlParameters: this.oModel.createCustomParams(mUrlParameters),
-			// filters: [new Filter({
-			// 	filters: aFilters,
-			// 	and: true
-			// })],
-			// sorters: aSorters,
-			groupId: sGroupId,
-			success: successHandler,
-			error: errorHandler
 		});
 	};
 
@@ -4006,14 +4022,15 @@ sap.ui.define([
 			iNextDelta, iCurrentDelta = 0, iTopDelta, sPositionAnnot,
 			aAddedIndices = [];
 
-
 		// collect the position of the added nodes
+		let iDeepNodePosition = 0;
 		for (var l = aAdded.length - 1; l >= 0; l--) {
 			oNode = aAdded[l];
 
-			if (oNode.newIsDeepOne !== undefined ? oNode.newIsDeepOne : oNode.isDeepOne) { // Only moved nodes have a "newIsDeepNode" attribute
+			if (oNode.newIsDeepOne !== undefined ? oNode.newIsDeepOne : oNode.isDeepOne) {
 				// Deep node
-				sPositionAnnot = this.oTreeProperties["hierarchy-sibling-rank-for"];
+				iPosition = iDeepNodePosition;
+				iDeepNodePosition += 1;
 			} else {
 				// Server index node
 				sPositionAnnot = this.oTreeProperties["hierarchy-preorder-rank-for"];
@@ -4021,12 +4038,13 @@ sap.ui.define([
 				if (oNode.newInitiallyCollapsed !== undefined ? !oNode.newInitiallyCollapsed : !oNode.initiallyCollapsed) {
 					iMagnitude = oNode.context.getProperty(this.oTreeProperties["hierarchy-node-descendant-count-for"]);
 				}
-			}
 
-			iPosition = oNode.context.getProperty(sPositionAnnot);
-			if (iPosition === undefined) {
-				Log.warning("ODataTreeBindingFlat", "Missing " + sPositionAnnot + " value for node " + oNode.key);
-				break;
+				iPosition = oNode.context.getProperty(sPositionAnnot);
+
+				if (iPosition === undefined) {
+					Log.warning("ODataTreeBindingFlat", "Missing " + sPositionAnnot + " value for node " + oNode.key);
+					break;
+				}
 			}
 
 			aAddedIndices.push({
@@ -5005,18 +5023,43 @@ sap.ui.define([
 	// @see sap.ui.model.odata.v2.ODataTreeBinding#getNodeContexts
 	ODataTreeBindingFlat.prototype.getNodeContexts = function () {};
 
-	//*********************************************
-	//              Static Functions              *
-	//*********************************************
+	/**
+	 * Find the parent node for a given node.
+	 *
+	 * @param {object} oNode The node for which to search its parent
+	 *
+	 * @returns {object|undefined} The parent node of the given node or <code>undefined</code> if no parent node can be
+	 * found
+	 *
+	 * @private
+	 */
+	ODataTreeBindingFlat.prototype._findParentNode = function (oNode) {
+		if (oNode.parent) {
+			return oNode.parent;
+		}
+
+		let i = oNode.serverIndex;
+		let oParentNode;
+		do {
+			i -= 1;
+			oParentNode = this._aNodes[i];
+			if (!oParentNode) {
+				break;
+			}
+		} while (oParentNode.level >= oNode.level);
+
+		return oParentNode;
+	};
 
 	/**
 	 * Resets the change information of a moved or removed node to its initial values.
 	 *
-	 * @param {object} oNode
-	 *   The node
+	 * @param {object} oNode The node
+	 *
+	 * @private
 	 */
-	ODataTreeBindingFlat._resetMovedOrRemovedNode = function (oNode) {
-		ODataTreeBindingFlat._resetParentState(oNode);
+	ODataTreeBindingFlat.prototype._resetMovedOrRemovedNode = function (oNode) {
+		this._resetParentState(oNode);
 		oNode.level = oNode.originalLevel;
 		oNode.parent = oNode.originalParent;
 		delete oNode.containingSubtreeHandle;
@@ -5027,11 +5070,12 @@ sap.ui.define([
 	/**
 	 * Resets the change information of the parent of a changed node.
 	 *
-	 * @param {object} oNode
-	 *   The node
+	 * @param {object} oNode The node
+	 *
+	 * @private
 	 */
-	ODataTreeBindingFlat._resetParentState = function (oNode) {
-		var oParentNode = oNode.parent;
+	ODataTreeBindingFlat.prototype._resetParentState = function (oNode) {
+		const oParentNode = this._findParentNode(oNode);
 
 		// a removed server-index node has no parent
 		if (oParentNode) {
@@ -5040,10 +5084,15 @@ sap.ui.define([
 				oParentNode.nodeState.isLeaf = true;
 				oParentNode.nodeState.expanded = false;
 				oParentNode.nodeState.collapsed = false;
+			} else if (oParentNode.nodeState.wasExpanded) {
+				oParentNode.nodeState.isLeaf = false;
+				oParentNode.nodeState.expanded = true;
+				oParentNode.nodeState.collapsed = false;
+				delete oParentNode.nodeState.wasExpanded;
+				this._aTurnedToLeaf.splice(this._aTurnedToLeaf.indexOf(oParentNode), 1);
 			}
 		}
 	};
-
 	return ODataTreeBindingFlat;
 
 }, /* bExport= */ true);

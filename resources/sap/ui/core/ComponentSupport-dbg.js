@@ -1,26 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides class sap.ui.core.ComponentSupport
+// Provides helper module:sap/ui/core/ComponentSupport
 sap.ui.define([
 	'sap/ui/base/DataType',
 	'sap/ui/core/ComponentContainer',
 	'sap/ui/core/library',
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/base/util/ObjectPath",
 	"sap/base/strings/camelize"
-],
-	function(
-		DataType,
-		ComponentContainer,
-		library,
-		Log,
-		ObjectPath,
-		camelize
-	) {
+], function(
+	DataType,
+	ComponentContainer,
+	library,
+	future,
+	Log,
+	ObjectPath,
+	camelize
+) {
 	"use strict";
 
 	var ComponentLifecycle = library.ComponentLifecycle;
@@ -71,8 +72,21 @@ sap.ui.define([
 	 * Each data attribute will be interpreted as a setting and parsed considering
 	 * the data type of the matching property in the <code>ComponentContainer</code>.
 	 *
+	 * <b>NOTE:</b>
+	 * The following <code>data</code> attributes for registering event handlers have been deprecated since
+	 * UI5 version 1.120 and won't work in the next major version because of the removal of accessing the
+	 * global namespace:
+	 * <ul>
+	 * <li><code>data-component-created</code></li>
+	 * <li><code>data-component-failed</code></li>
+	 * </ul>
+	 *
+	 * Alternatively, you can provide your own module in the bootstrap via <code>oninit</code>, in which you
+	 * create an instance of the {@link sap.ui.core.ComponentContainer ComponentContainer} in the JavaScript
+	 * code.
+	 *
 	 * As HTML is case-insensitive, in order to define a property with upper-case characters, you have to "escape" them
-	 * with a dash character, similar to CSS attributes.
+	 * with a hyphen character, similar to CSS attributes.
 	 * The following code gives an example:
 	 *
 	 * <pre>
@@ -97,7 +111,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @public
 	 * @since 1.58.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @namespace
 	 * @alias module:sap/ui/core/ComponentSupport
 	 */
@@ -145,7 +159,7 @@ sap.ui.define([
 	 * map. Each attribute starting with <code>data-</code> will be interpret
 	 * as setting and be parsed by considering the data type of the matching
 	 * property in the <code>ComponentContainer</code>. As HTML is case-insensitive
-	 * camel cased properties have to be written in dashed form, e.g.
+	 * camel cased properties have to be written in hyphenated form, e.g.
 	 * <code>componentCreated</code> as <code>data-component-created</code>.
 	 *
 	 * @param {Node} oElement the DOM element to be parsed
@@ -166,7 +180,7 @@ sap.ui.define([
 					var oProperty = ComponentContainerMetadata.getProperty(sKey);
 					var oEvent = !oProperty && ComponentContainerMetadata.getEvent(sKey);
 					if (!oProperty && !oEvent) {
-						Log.warning("Property or event \"" + sKey + "\" will be ignored as it does not exist in sap.ui.core.ComponentContainer");
+						future.warningThrows("Property or event \"" + sKey + "\" does not exist in sap.ui.core.ComponentContainer.", { suffix: "It will be ignored."});
 						continue;
 					}
 					if (oProperty) {
@@ -175,7 +189,12 @@ sap.ui.define([
 							throw new Error("Property \"" + oProperty.name + "\" has no known type");
 						}
 						oValue = oType.parseValue(oValue);
-					} else if (oEvent) {
+					}
+
+					/**
+					 * @deprecated
+					 */
+					if (oEvent) {
 						var fnCallback = ObjectPath.get(oValue);
 						if (typeof fnCallback !== "function") {
 							throw new Error("Callback handler for event \"" + oEvent.name + "\" not found");
@@ -210,8 +229,8 @@ sap.ui.define([
 		if (mSettings.manifest === undefined || mSettings.manifest === "true") {
 			mSettings.manifest = true;
 		} else if (mSettings.manifest === "false") {
-			Log.error("Ignoring \"manifest=false\" for ComponentContainer of component \"" + mSettings.name + "\" as it is not supported by ComponentSupport. " +
-				"Forcing \"manifest=true\"", "", "sap/ui/core/ComponentSupport");
+			future.errorThrows("Defining \"manifest=false\" for ComponentContainer of component \"" + mSettings.name + "\" is not supported by ComponentSupport.", {
+				suffix: "Forcing \"manifest=true\""}, "", "sap/ui/core/ComponentSupport");
 			mSettings.manifest = true;
 		}
 

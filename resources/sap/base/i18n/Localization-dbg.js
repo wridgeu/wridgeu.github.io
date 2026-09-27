@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 sap.ui.define([
@@ -23,8 +23,13 @@ sap.ui.define([
 	const oWritableConfig = BaseConfig.getWritableInstance();
 	let sLanguageSetByApi;
 	const oEventing = new Eventing();
+	let mCache = Object.create(null);
 	let mChanges;
 	let bLanguageWarningLogged = false;
+
+	BaseConfig._.attachInvalidated(() => {
+		mCache = Object.create(null);
+	});
 
 	/**
 	 * A map of preferred Calendar types according to the language.
@@ -42,6 +47,7 @@ sap.ui.define([
 		"ZH" : "zh-Hans",
 		"ZF" : "zh-Hant",
 		"SH" : "sr-Latn",
+		"CT" : "cnr",
 		"6N" : "en-GB",
 		"1P" : "pt-PT",
 		"1X" : "es-MX",
@@ -51,6 +57,11 @@ sap.ui.define([
 		"3Q" : "en-US-x-saprigi"
 	};
 
+	/**
+	 * This mapping converts the old ISO639 codes into the corresponding language code used by ABAP systems,
+	 * particularly for processing the Accept-Language header
+	 * @private
+	 */
 	const M_ISO639_OLD_TO_NEW = {
 		"iw" : "he",
 		"ji" : "yi"
@@ -106,18 +117,18 @@ sap.ui.define([
 	/**
 	 * A list of locales for which the CLDR specifies "right-to-left"
 	 * as the character orientation.
+	 * The value of this constant must only be updated by the CLDR generator;
+	 * do not modify it manually.
 	 *
-	 * The string literal below is substituted during the build.
-	 * The value is determined from the CLDR JSON files which are
-	 * bundled with the UI5 runtime.
+	 * @private
 	 */
-	const A_RTL_LOCALES = getDesigntimePropertyAsArray("$cldr-rtl-locales:ar,fa,he$") || [];
+	const A_RTL_LOCALES = ["ar","ar_EG","ar_SA","fa","he"];
 
 	/**
 	 * List of locales for which translated texts have been bundled with the UI5 runtime.
 	 * @private
 	 */
-	const _coreI18nLocales = getDesigntimePropertyAsArray("$core-i18n-locales:,ar,bg,ca,cs,da,de,el,en,en_GB,es,es_MX,et,fi,fr,hi,hr,hu,it,iw,ja,kk,ko,lt,lv,ms,nl,no,pl,pt,ro,ru,sh,sk,sl,sv,th,tr,uk,vi,zh_CN,zh_TW$");
+	const _coreI18nLocales = getDesigntimePropertyAsArray("$core-i18n-locales:,ar,bg,ca,cnr,cs,cy,da,de,el,en,en_GB,es,es_MX,et,fi,fr,fr_CA,hi,hr,hu,id,it,iw,ja,kk,ko,lt,lv,mk,ms,nl,no,pl,pt,pt_PT,ro,ru,sh,sk,sl,sr,sv,th,tr,uk,vi,zh_CN,zh_TW$");
 
 	/**
 	 * Retrieves a Locale for the given SAP logon language or BCP47 tag.
@@ -160,9 +171,11 @@ sap.ui.define([
 	}
 
 	// Helper Functions
-	function detectLanguage() {
-		return globalThis.navigator ? (globalThis.navigator.languages && globalThis.navigator.languages[0]) || globalThis.navigator.language || "en" : new Intl.Collator().resolvedOptions().locale || "en";
-	}
+	const detectLanguage = globalThis.navigator ? function() {
+		return globalThis.navigator.languages?.[0] || globalThis.navigator.language || "en";
+	} : function() {
+		return new Intl.Collator().resolvedOptions().locale || "en";
+	};
 
 	function check(bCondition, sMessage) {
 		if ( !bCondition ) {
@@ -285,7 +298,7 @@ sap.ui.define([
 		 * configured by the user or application or that has been determined from the user agent settings.
 		 * It has not been normalized, but has been validated against a relaxed version of
 		 * {@link http://www.ietf.org/rfc/bcp/bcp47.txt BCP47}, allowing underscores ('_') instead of the
-		 * suggested dashes ('-') and not taking the case of letters into account.
+		 * suggested hyphens ('-') and not taking the case of letters into account.
 		 *
 		 * The exceptions mentioned above affect languages that have been specified via the URL parameter
 		 * <code>sap-language</code>. That parameter by definition represents an SAP logon language code
@@ -303,7 +316,7 @@ sap.ui.define([
 		 *                                    represented as en-US with a private extension
 		 * </pre>
 		 *
-		 * Call {@link moduel:sap/base/i18n/Localization.getLanguageTag getLanguageTag} to get a
+		 * Call {@link module:sap/base/i18n/Localization.getLanguageTag getLanguageTag} to get a
 		 * {@link module:sap/base/i18n/LanguageTag LanguageTag} object matching the language.
 		 * For a normalized BCP47 tag, call {@link module:sap/base/i18n/LanguageTag.toString toString()}
 		 * on the returned <code>LanguageTag</code>
@@ -315,6 +328,10 @@ sap.ui.define([
 		getLanguage : function () {
 			let oLanguageTag,
 				sDerivedLanguage;
+
+			if (mCache.language) {
+				return mCache.language;
+			}
 
 			if (sLanguageSetByApi) {
 				return sLanguageSetByApi;
@@ -350,14 +367,17 @@ sap.ui.define([
 			}
 			if (!oLanguageTag) {
 				if (sLanguage) {
-					oLanguageTag = createLanguageTag(sLanguage);
+					// validation for valid BCP47 language tag
+					createLanguageTag(sLanguage);
 					sDerivedLanguage = sLanguage;
 				} else {
 					sDerivedLanguage = detectLanguage();
-					oLanguageTag = createLanguageTag(sLanguage);
+					// validation for valid BCP47 language tag
+					createLanguageTag(sLanguage);
 				}
 			}
-			return sDerivedLanguage;
+			mCache.language = sDerivedLanguage;
+			return mCache.language;
 		},
 
 		/**
@@ -401,8 +421,7 @@ sap.ui.define([
 		 *     bindings in existing Elements, Controls, UIAreas or Components</li>
 		 * <li>ResourceModels currently assigned to the Core, a UIArea, Component,
 		 *     Element or Control</li>
-		 * <li>Elements or Controls that implement the <code>onlocalizationChanged</code> hook
-		 *     (note the lowercase 'l' in onlocalizationChanged)</li>
+		 * <li>Elements or Controls that implement the <code>onLocalizationChanged</code> hook</li>
 		 * </ul>
 		 *
 		 * It furthermore derives the RTL mode from the new language, if no explicit RTL
@@ -424,7 +443,7 @@ sap.ui.define([
 		 * <b>Note</b>: When using config method please take note of and respect the above mentioned restrictions.
 		 *
 		 * @param {string} sLanguage the new language as a BCP47 compliant language tag; case doesn't matter
-		 *   and underscores can be used instead of dashes to separate components (compatibility with Java Locale IDs)
+		 *   and underscores can be used instead of hyphens to separate components (compatibility with Java Locale IDs)
 		 * @param {string} [sSAPLogonLanguage] SAP language code that corresponds to the <code>sLanguage</code>;
 		 *   if a value is specified, future calls to <code>getSAPLogonLanguage</code> will return that value;
 		 *   if no value is specified, the framework will use the ISO639 language part of <code>sLanguage</code>
@@ -470,6 +489,9 @@ sap.ui.define([
 		 * @since 1.120.0
 		 */
 		getTimezone : function () {
+			if (mCache.timezone) {
+				return mCache.timezone;
+			}
 			let sTimezone = oWritableConfig.get({
 				name: "sapTimezone",
 				type: BaseConfig.Type.String,
@@ -483,7 +505,8 @@ sap.ui.define([
 			if (!sTimezone || !checkTimezone(sTimezone)) {
 				sTimezone = TimezoneUtils.getLocalTimezone();
 			}
-			return sTimezone;
+			mCache.timezone = sTimezone;
+			return mCache.timezone;
 		},
 
 		/**
@@ -522,13 +545,17 @@ sap.ui.define([
 		/**
 		 * Returns a LanguageTag object for the current language.
 		 *
-		 * The LanguageTag is derived from {@link modue:sap/base/i18n/Localization.getLanguage Localization.getLanguage}.
+		 * The LanguageTag is derived from {@link module:sap/base/i18n/Localization.getLanguage Localization.getLanguage}.
 		 *
 		 * @returns {module:sap/base/i18n/LanguageTag} The LanguageTag
 		 * @public
 		 * @since 1.120.0
 		 */
 		getLanguageTag : function () {
+			if (mCache.languageTag) {
+				return mCache.languageTag;
+			}
+
 			const oLanguageTag = new LanguageTag(Localization.getLanguage());
 			const sLanguage = Localization.getModernLanguage(oLanguageTag.language);
 			const sScript = oLanguageTag.script;
@@ -542,7 +569,8 @@ sap.ui.define([
 			} else {
 				sLanguageTag = sLanguageTag.replace(oLanguageTag.language, sLanguage);
 			}
-			return new LanguageTag(sLanguageTag);
+			mCache.languageTag = new LanguageTag(sLanguageTag);
+			return mCache.languageTag;
 		},
 
 		/**
@@ -556,8 +584,11 @@ sap.ui.define([
 		 * @since 1.120.0
 		 */
 		getRTL : function () {
+			if (mCache.rtl) {
+				return mCache.rtl;
+			}
 			// if rtl has not been set (still null), return the rtl mode derived from the language
-			return  oWritableConfig.get({
+			mCache.rtl = oWritableConfig.get({
 				name: "sapRtl",
 				type: BaseConfig.Type.Boolean,
 				external:true,
@@ -568,6 +599,7 @@ sap.ui.define([
 					external:true
 				})
 			});
+			return mCache.rtl;
 		},
 
 		/**
@@ -698,7 +730,6 @@ sap.ui.define([
 		 * Might return undefined if the information is not available.
 		 *
 		 * @returns {string[]|undefined} List of Languages delivered with core
-		 * @experimental
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 * @since 1.120.0
@@ -709,7 +740,6 @@ sap.ui.define([
 
 		/**
 		 * @returns {string[]} List of supported languages
-		 * @experimental
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 * @since 1.120.0

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,16 +8,18 @@
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
+	"sap/ui/core/Lib",
 	'sap/ui/core/ValueStateSupport',
 	'sap/ui/core/IndicationColorSupport',
 	'sap/ui/core/library',
+	'sap/ui/core/IconPool',
 	'sap/ui/base/DataType',
 	'./ObjectStatusRenderer',
 	'sap/m/ImageHelper',
 	'sap/ui/core/LabelEnablement',
-	'sap/ui/core/InvisibleText'
+	"sap/ui/events/KeyCodes"
 ],
-	function(library, Control, ValueStateSupport, IndicationColorSupport, coreLibrary, DataType, ObjectStatusRenderer, ImageHelper, LabelEnablement, InvisibleText) {
+	function(library, Control, Library, ValueStateSupport, IndicationColorSupport, coreLibrary, IconPool, DataType, ObjectStatusRenderer, ImageHelper, LabelEnablement, KeyCodes) {
 	"use strict";
 
 
@@ -27,8 +29,11 @@ sap.ui.define([
 	// shortcuts for sap.ui.core.ValueState
 	var ValueState = coreLibrary.ValueState;
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
+	// shortcut for sap.m.ReactiveAreaMode
+	var ReactiveAreaMode = library.ReactiveAreaMode;
 
 	/**
 	 * Constructor for a new ObjectStatus.
@@ -40,13 +45,29 @@ sap.ui.define([
 	 * Status information that can be either text with a value state, or an icon.
 	 *
 	 *
+	 * <h3>Wrapping and Truncation Behavior</h3>
+	 *
+	 * The <code>ObjectStatus</code> usually is a short text. However, if the text is longer it wraps (word by word). Icon and text can be separated.
+	 * <b>Note:</b> It maybe handled differently depending on the individual control use case. For example in <code>sap.ui.table.Table</code> the text of the control is truncated.
+	 *
+	 *
 	 * With 1.63, large design of the control is supported by setting <code>sapMObjectStatusLarge</code> CSS class to the <code>ObjectStatus</code>.
-	 * With 1.110, Inner text wrapping could be enabled by adding <code>sapMObjectStatusLongText</code> CSS class to the <code>ObjectStatus</code>. This class can be added by using оObjectStatus.addStyleClass("sapMObjectStatusLongText");
-
+	 *
+	 *
+	 * With 1.110, Inner text wrapping could be enabled for longer texts without spaces (such as a serial number that doesn't fit on one line) by adding <code>sapMObjectStatusLongText</code> CSS class to the <code>ObjectStatus</code>. This class can be added by using оObjectStatus.addStyleClass("sapMObjectStatusLongText");
+	 *
+	 *
+	 * With 1.130, bigger line height for texts that require it (like Thai) can be enabled by adding <code>sapUiHigherText</code> CSS class to the <code>ObjectStatus</code>. This class can be added by using оObjectStatus.addStyleClass("sapUiHigherText");
+	 *
 	 *
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.IFormContent
-	 * @version 1.120.0
+	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
+	 * @version 1.152.0
+	 *
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormFormattedValue as #getFormFormattedValue
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormValueProperty as #getFormValueProperty
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormObservingProperties as #getFormObservingProperties
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormRenderAsControl as #getFormRenderAsControl
 	 *
 	 * @constructor
 	 * @public
@@ -56,7 +77,7 @@ sap.ui.define([
 	var ObjectStatus = Control.extend("sap.m.ObjectStatus", /** @lends sap.m.ObjectStatus.prototype */ {
 		metadata : {
 
-			interfaces : ["sap.ui.core.IFormContent"],
+			interfaces : ["sap.ui.core.IFormContent", "sap.ui.core.ISemanticFormContent"],
 			library : "sap.m",
 			designtime: "sap/m/designtime/ObjectStatus.designtime",
 			properties : {
@@ -64,12 +85,12 @@ sap.ui.define([
 				/**
 				 * Defines the ObjectStatus title.
 				 */
-				title : {type : "string", group : "Misc", defaultValue : null},
+				title : {type : "string", group : "Data", defaultValue : null},
 
 				/**
 				 * Defines the ObjectStatus text.
 				 */
-				text : {type : "string", group : "Misc", defaultValue : null},
+				text : {type : "string", group : "Data", defaultValue : null},
 
 				/**
 				 * Indicates if the <code>ObjectStatus</code> text and icon can be clicked/tapped by the user.
@@ -79,6 +100,20 @@ sap.ui.define([
 				 * @since 1.54
 				 */
 				active : {type : "boolean", group : "Misc", defaultValue : false},
+
+				/**
+				 * Defines the size of the reactive area of the link:<ul>
+				 * <li><code>ReactiveAreaMode.Inline</code> - The link is displayed as part of a sentence.</li>
+				 * <li><code>ReactiveAreaMode.Overlay</code> - The link is displayed as an overlay on top of other interactive parts of the page.</li></ul>
+				 *
+				 * <b>Note:</b>It is designed to make links easier to activate and helps meet the WCAG 2.2 Target Size requirement. It is applicable only for the SAP Horizon themes.
+				 * <b>Note:</b>The Reactive area size is sufficiently large to help users avoid accidentally selecting (clicking or tapping) on unintented UI elements.
+				 * UI elements positioned over other parts of the page may need an invisible active touch area.
+				 * This will ensure that no elements beneath are activated accidentally when the user tries to interact with the overlay element.
+				 *
+				 * @since 1.133.0
+				 */
+				reactiveAreaMode : {type : "sap.m.ReactiveAreaMode", group : "Appearance", defaultValue : ReactiveAreaMode.Inline},
 
 				/**
 				 * Defines the text value state. The allowed values are from the enum type
@@ -182,9 +217,15 @@ sap.ui.define([
 			this._oImageControl.destroy();
 			this._oImageControl = null;
 		}
-		if (this._oInvisibleStateText) {
-			this._oInvisibleStateText.destroy();
-			this._oInvisibleStateText = null;
+	};
+
+	ObjectStatus.prototype.onBeforeRendering = function() {
+		if (this.getIcon()) {
+			this._getImageControl();
+			if (!this.getText() && !this._isActive()) {
+				var sTooltip = this.getTooltip_AsString() ? this.getTooltip_AsString() : this._getAriaIconTitle();
+				this._oImageControl.setTooltip(sTooltip);
+			}
 		}
 	};
 
@@ -195,22 +236,35 @@ sap.ui.define([
 	 * @private
 	 */
 	ObjectStatus.prototype._getImageControl = function() {
-		var sImgId = this.getId() + '-icon',
-			bIsIconOnly = !this.getText() && !this.getTitle(),
-			mProperties = {
-				src : this.getIcon(),
-				densityAware : this.getIconDensityAware(),
-				useIconTooltip : false
-			};
+		var sIcon = this.getIcon() ?? "";
+		var bTooltipPresent = !!this.getTooltip();
+		// Recreate or update the image control when:
+		// - there's no existing image control
+		// - the bound icon changed (src differs)
+		// - a tooltip is present
+		if (!this._oImageControl || (this._oImageControl.getSrc && this._oImageControl.getSrc() !== sIcon) || bTooltipPresent) {
+			var sImgId = this.getId() + '-icon',
+				bIsIconOnly = !this.getText() && !this.getTitle(),
+				bUseIconTooltip = !this.getText() && !this.getTitle() && !this.getTooltip(),
+				mProperties = {
+					src : sIcon,
+					densityAware : this.getIconDensityAware(),
+					useIconTooltip : bUseIconTooltip,
+					decorative: !this.getActive() && !bIsIconOnly
+				};
 
-		if (bIsIconOnly) {
-			mProperties.decorative = false;
-			mProperties.alt = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("OBJECT_STATUS_ICON");
+			this._oImageControl = ImageHelper.getImageControl(sImgId, this._oImageControl, this, mProperties);
+		}
+		return this._oImageControl;
+	};
+
+	ObjectStatus.prototype._getAriaIconTitle = function() {
+		var vIconInfo;
+		if (this._oImageControl.isA("sap.ui.core.Icon")) {
+			vIconInfo = IconPool.getIconInfo(this._oImageControl.getSrc(), undefined, "mixed");
 		}
 
-		this._oImageControl = ImageHelper.getImageControl(sImgId, this._oImageControl, this, mProperties);
-
-		return this._oImageControl;
+		return (vIconInfo && vIconInfo.text != "") ? vIconInfo.text : Library.getResourceBundleFor("sap.m").getText("OBJECT_STATUS_ICON");
 	};
 
 	/**
@@ -237,6 +291,8 @@ sap.ui.define([
 	ObjectStatus.prototype.ontap = function(oEvent) {
 		if (this._isClickable(oEvent)) {
 			this.firePress();
+			// mark the event that it is handled by the control
+			oEvent.setMarked();
 		}
 	};
 
@@ -257,8 +313,45 @@ sap.ui.define([
 	 * @private
 	 * @param {object} oEvent The fired event
 	 */
-	ObjectStatus.prototype.onsapspace = function(oEvent) {
-		this.onsapenter(oEvent);
+	ObjectStatus.prototype.onkeyup = function (oEvent) {
+		if (oEvent.which === KeyCodes.SPACE) {
+			if (!this._bPressedEscapeOrShift) {
+				this.firePress();
+				// mark the event that it is handled by the control
+				oEvent.setMarked();
+			} else {
+				this._bPressedEscapeOrShift = false;
+			}
+			this._bPressedSpace = false;
+		}
+	};
+
+	/**
+	 * Handle the key down event for SPACE
+	 * SHIFT or ESCAPE on pressed SPACE cancels the action
+	 *
+	 * @param {jQuery.Event} oEvent The SPACE keyboard key event object
+	 */
+	ObjectStatus.prototype.onkeydown = function(oEvent) {
+		if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.SHIFT || oEvent.which === KeyCodes.ESCAPE) {
+			// set inactive state of the button and marked ESCAPE or SHIFT as pressed only if SPACE was pressed before it
+			if (oEvent.which === KeyCodes.SPACE) {
+				if (this._isActive()) {
+					// mark the event for components that needs to know if the event was handled by the active status
+					oEvent.setMarked();
+					oEvent.preventDefault();
+					this._bPressedSpace = true;
+				}
+			}
+
+			if (this._bPressedSpace && (oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT)) {
+				this._bPressedEscapeOrShift = true;
+			}
+		} else {
+			if (this._bPressedSpace) {
+				oEvent.preventDefault();
+			}
+		}
 	};
 
 	/**
@@ -281,6 +374,12 @@ sap.ui.define([
 		return !(this.getText().trim() || this.getIcon().trim() || this.getTitle().trim());
 	};
 
+	ObjectStatus.prototype._shouldRenderEmptyIndicator = function() {
+		return this.getEmptyIndicatorMode() !== EmptyIndicatorMode.Off &&
+			!this.getText() &&
+			!this.getIcon();
+	};
+
 	/**
 	 * Called when the control is touched.
 	 * @param {object} oEvent The fired event
@@ -301,8 +400,11 @@ sap.ui.define([
 	 */
 	ObjectStatus.prototype.getAccessibilityInfo = function() {
 		var sState = this.isPropertyInitial("stateAnnouncementText")
-						? ValueStateSupport.getAdditionalText(this.getState())
-						: this.getStateAnnouncementText(),
+				? ValueStateSupport.getAdditionalText(this.getState())
+				: this.getStateAnnouncementText(),
+			sText = this._shouldRenderEmptyIndicator()
+				? Library.getResourceBundleFor("sap.m").getText("EMPTY_INDICATOR_TEXT")
+				: this.getText(),
 			sDescription;
 
 		if (this.getState() != ValueState.None) {
@@ -311,13 +413,13 @@ sap.ui.define([
 
 		sDescription = (
 			(this.getTitle() || "") + " " +
-			(this.getText() || "") + " " +
+			(sText || "") + " " +
 			(sState !== null ? sState : "") + " " +
 			(this.getTooltip() || "")
 		).trim();
 
 		sDescription = this._isActive()
-			? sDescription + (sDescription ? " " + sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("OBJECT_STATUS_ACTIVE") : "")
+			? sDescription + (sDescription ? " " + Library.getResourceBundleFor("sap.m").getText("OBJECT_STATUS_ACTIVE") : "")
 			: sDescription;
 
 		return { description: sDescription };
@@ -353,25 +455,34 @@ sap.ui.define([
 			sResult += sId + "-statusIcon ";
 		}
 
+		if (this.getState() !== ValueState.None) {
+			sResult += sId + "-state-text ";
+		}
+
 		return sResult.trim();
 	};
 
 	ObjectStatus.prototype._isClickable = function(oEvent) {
-		var sSourceId = oEvent.target.id;
+		var sSourceId = oEvent.target.id || oEvent.srcControl.getId();
 
 		//event should only be fired if the click is on the text, link or icon
-		return this._isActive() && (sSourceId === this.getId() + "-link" || sSourceId === this.getId() + "-text" || sSourceId === this.getId() + "-statusIcon" || sSourceId === this.getId() + "-icon");
+		return this._isActive() && (!this.getTitle() || sSourceId !== this.getId() + "-title");
 	};
 
-	ObjectStatus.prototype._fnInvisibleStateLabelFactory = function() {
-		if (!this._oInvisibleStateText) {
-			this._oInvisibleStateText = new InvisibleText({
-				id: this.getId() + "-state-text",
-				text: this._getStateText(this.getState())
-			}).toStatic();
-		}
+	ObjectStatus.prototype.getFormFormattedValue = function () {
+		return this.getText();
+	};
 
-		return this._oInvisibleStateText;
+	ObjectStatus.prototype.getFormValueProperty = function () {
+		return "text";
+	};
+
+	ObjectStatus.prototype.getFormObservingProperties = function() {
+		return ["text", "title"]; // title should not used inside Form as there is a Label
+	};
+
+	ObjectStatus.prototype.getFormRenderAsControl = function () {
+		return true;
 	};
 
 	return ObjectStatus;

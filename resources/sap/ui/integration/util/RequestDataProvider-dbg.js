@@ -1,24 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/core/Element",
 	"sap/ui/integration/util/DataProvider",
 	"sap/base/Log",
 	"sap/ui/model/odata/v4/ODataUtils",
-	"sap/ui/core/Core",
-	"sap/ui/core/Configuration",
 	"sap/base/util/fetch",
-	"sap/base/util/deepClone"
+	"sap/base/util/deepClone",
+	"sap/base/util/isPlainObject"
 ], function (
+	Element,
 	DataProvider,
 	Log,
 	ODataUtils,
-	Core,
-	Configuration,
 	fetch,
-	deepClone
+	deepClone,
+	isPlainObject
 ) {
 	"use strict";
 
@@ -74,7 +74,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.DataProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -107,6 +107,12 @@ sap.ui.define([
 		}
 	});
 
+	RequestDataProvider.prototype.init = function () {
+		DataProvider.prototype.init.apply(this, arguments);
+
+		this._retryDueExpiredToken = false;
+	};
+
 	RequestDataProvider.prototype.destroy = function () {
 		if (this._iRetryAfterTimeout) {
 			clearTimeout(this._iRetryAfterTimeout);
@@ -121,22 +127,17 @@ sap.ui.define([
 
 	/**
 	 * @override
-	 * @private
-	 * @ui5-restricted sap.ui.integration, shell-toolkit
-	 * @returns {Promise} A promise resolved when the data is available and rejected in case of an error.
 	 */
 	RequestDataProvider.prototype.getData = function () {
-		var oRequestConfig = this.getSettings().request,
-			pRequestChain = Promise.resolve(oRequestConfig);
+		const oRequestConfig = this._getResolvedRequestConfiguration();
+		let pRequestChain = Promise.resolve(oRequestConfig);
 
 		if (this._oDestinations) {
 			pRequestChain = this._oDestinations.process(oRequestConfig);
 		}
 
 		if (this._oCsrfTokenHandler) {
-			pRequestChain = pRequestChain.then(function (oRequest) {
-				return this._oCsrfTokenHandler.resolveToken(oRequest);
-			}.bind(this));
+			pRequestChain = pRequestChain.then(this._oCsrfTokenHandler.replacePlaceholders.bind(this._oCsrfTokenHandler));
 		}
 
 		pRequestChain = pRequestChain.then(this._fetch.bind(this));
@@ -148,17 +149,51 @@ sap.ui.define([
 		return pRequestChain;
 	};
 
-	RequestDataProvider.prototype._handleExpiredToken = function (oError) {
-		if (this._oCsrfTokenHandler.isExpiredToken(this.getLastResponse())) {
-			// csrf token has expired, reset the token and retry this whole request
-			this._oCsrfTokenHandler.resetTokenByRequest(this.getSettings().request);
+	/**
+	 * @override
+	 */
+	RequestDataProvider.prototype.triggerDataUpdate = function () {
+		this._retryDueExpiredToken = false;
 
-			return this.getData().catch(function (oError) {
-				throw oError;
-			});
+		return DataProvider.prototype.triggerDataUpdate.apply(this, arguments);
+	};
+
+	/**
+	 * @override
+	 */
+	RequestDataProvider.prototype.getResolvedConfiguration = function () {
+		const oConfiguration = DataProvider.prototype.getResolvedConfiguration.apply(this, arguments);
+
+		this._reviveFormData(oConfiguration);
+
+		return oConfiguration;
+	};
+
+	RequestDataProvider.prototype._reviveFormData = function (oResolvedConfiguration) {
+		const oConfiguration = this.getConfiguration();
+
+		if (oConfiguration?.request?.parameters instanceof FormData) {
+			oResolvedConfiguration.request.parameters = oConfiguration.request.parameters;
+		}
+	};
+
+	RequestDataProvider.prototype._handleExpiredToken = function (oError) {
+		if (!this._oCsrfTokenHandler.isExpiredToken(this.getLastResponse())) {
+			throw oError;
 		}
 
-		throw oError;
+		// csrf token has expired, reset the token and retry this whole request
+		this._oCsrfTokenHandler.markExpiredTokenByRequest(this.getConfiguration().request);
+
+		if (this._retryDueExpiredToken) {
+			this._retryDueExpiredToken = false;
+			throw oError;
+		}
+
+		this._retryDueExpiredToken = true;
+		this._bActive = false; // prevents another triggerDataUpdate()
+
+		return this._waitDependencies().then(this.getData.bind(this));
 	};
 
 	RequestDataProvider.prototype._fetch = function (oRequestConfig) {
@@ -178,36 +213,26 @@ sap.ui.define([
 			sDataType = (this.getAllowCustomDataType() && oRequestConfig.dataType) || "json",
 			mHeaders = oRequestConfig.headers || {},
 			mBatchRequests = oRequestConfig.batch,
-			oBatchSerialized,
-			oRequest,
 			vBody,
-			sMethod = oRequestConfig.method && oRequestConfig.method.toUpperCase() || "GET",
-			bJsonRequest = this._hasHeader(oRequestConfig, "Content-Type", "application/json"),
-			bGetMethod = ["GET", "HEAD"].includes(sMethod);
+			sMethod = oRequestConfig.method && oRequestConfig.method.toUpperCase() || "GET";
 
-		if ( !sUrl.startsWith("/")) {
+		if (!sUrl.startsWith("/")) {
 			sUrl = this._getRuntimeUrl(oRequestConfig.url);
 		}
 
-		if (oParameters) {
-			if (bJsonRequest) {
-				// application/json
-				vBody = JSON.stringify(oParameters);
-			} else if (bGetMethod) {
-				sUrl = combineUrlAndParams(sUrl, oParameters);
-			} else {
-				// application/x-www-form-urlencoded
-				vBody = new URLSearchParams(oParameters);
-			}
+		if (oParameters && isPlainObject(oParameters) && ["GET", "HEAD"].includes(sMethod)) {
+			sUrl = combineUrlAndParams(sUrl, oParameters);
+		} else if (oParameters) {
+			vBody = this._encodeParameters(oParameters, oRequestConfig);
 		}
 
 		if (mBatchRequests) {
-			oBatchSerialized = ODataUtils.serializeBatchRequest(Object.values(mBatchRequests));
+			const oBatchSerialized = ODataUtils.serializeBatchRequest(Object.values(mBatchRequests));
 			vBody = oBatchSerialized.body;
 			mHeaders = Object.assign({}, mHeaders, oBatchSerialized.headers);
 		}
 
-		oRequest = {
+		let oRequest = {
 			url: sUrl,
 			options: {
 				mode: oRequestConfig.mode || "cors",
@@ -228,7 +253,7 @@ sap.ui.define([
 			oRequest.options.headers.set("Accept", mDataTypeHeaders[sDataType]);
 		}
 
-		oRequest = this._modifyRequestBeforeSent(oRequest, this.getSettings());
+		oRequest = this._modifyRequestBeforeSent(oRequest, this.getResolvedConfiguration());
 
 		if (!this._isValidRequest(oRequest)) {
 			Log.error(sMessage);
@@ -248,7 +273,7 @@ sap.ui.define([
 	};
 
 	RequestDataProvider.prototype._request = function (oRequest, bNoRetry) {
-		var fnFetch = this._getFetchMethod(this._getRequestSettings());
+		var fnFetch = this._getFetchMethod(this._getResolvedRequestConfiguration());
 
 		return fnFetch(oRequest.url, oRequest.options)
 			.then(function (oResponse) {
@@ -286,6 +311,23 @@ sap.ui.define([
 			}.bind(this), function (oError) {
 				return Promise.reject([oError.toString(), null, null, oRequest]);
 			});
+	};
+
+	RequestDataProvider.prototype._encodeParameters = function (oParameters, oRequestConfiguration) {
+		if (this._hasHeader(oRequestConfiguration, "Content-Type", /^application\/json$/)) {
+			return JSON.stringify(oParameters);
+		}
+
+		if (this._hasHeader(oRequestConfiguration, "Content-Type", /^text\/plain/)) {
+			return oParameters;
+		}
+
+		if (oParameters instanceof FormData) {
+			return oParameters;
+		}
+
+		// application/x-www-form-urlencoded
+		return new URLSearchParams(oParameters);
 	};
 
 	/**
@@ -328,7 +370,7 @@ sap.ui.define([
 	 * @returns {int} The number of seconds after which to retry the request.
 	 */
 	RequestDataProvider.prototype._getRetryAfter = function (oResponse) {
-		var oRequestConfig = this.getSettings().request,
+		const oRequestConfig = this._getResolvedRequestConfiguration(),
 			vRetryAfter = oResponse.headers.get("Retry-After") || oRequestConfig.retryAfter;
 
 		if (!vRetryAfter) {
@@ -350,50 +392,67 @@ sap.ui.define([
 	/**
 	 * Gets the method which should execute the HTTP fetch.
 	 * @private
-	 * @param {object} oRequestSettings settings in manifest format
+	 * @param {object} oRequestConfiguration Configuration in manifest format
 	 * @returns {Function} The function to use for HTTP fetch.
 	 */
-	RequestDataProvider.prototype._getFetchMethod = function (oRequestSettings) {
-		var oCard = Core.byId(this.getCard()),
+	RequestDataProvider.prototype._getFetchMethod = function (oRequestConfiguration) {
+		var oCard = this.getCardInstance(),
 			oExtension = oCard && oCard.getAggregation("_extension"),
-			oHost = Core.byId(this.getHost());
+			oHost = Element.getElementById(this.getHost());
 
 		if (oExtension) {
-			return function (sResource, mOptions) {
-				return oExtension.fetch(sResource, mOptions, deepClone(oRequestSettings, 1000));
+			return (sResource, mOptions) => {
+				return oExtension.fetch(sResource, mOptions, this._cloneRequestConfiguration(oRequestConfiguration));
 			};
 		}
 
 		if (oHost) {
-			return function (sResource, mOptions) {
-				return oHost.fetch(sResource, mOptions, deepClone(oRequestSettings, 1000), oCard);
+			return (sResource, mOptions) => {
+				return oHost.fetch(sResource, mOptions, this._cloneRequestConfiguration(oRequestConfiguration), oCard);
 			};
 		}
 
 		return fetch;
 	};
 
-	RequestDataProvider.prototype._getRequestSettings = function () {
-		return this.getSettings().request;
+	RequestDataProvider.prototype._getResolvedRequestConfiguration = function () {
+		return this.getResolvedConfiguration().request;
+	};
+
+	RequestDataProvider.prototype._cloneRequestConfiguration = function (oRequestConfiguration) {
+		let oFormData;
+
+		if (oRequestConfiguration?.parameters instanceof FormData) {
+			oFormData = oRequestConfiguration.parameters;
+			delete oRequestConfiguration.parameters;
+		}
+
+		const oClonedConfiguration = deepClone(oRequestConfiguration, 1000);
+
+		if (oFormData) {
+			oClonedConfiguration.parameters = oFormData;
+		}
+
+		return oClonedConfiguration;
 	};
 
 	/**
 	 * Checks if header with given value is part of the request.
-	 * Header name is case-insensitive, but the value is case-sensitive (RFC7230 https://tools.ietf.org/html/rfc7230#section-3.2).
+	 * Header name is case-insensitive RFC7230 https://tools.ietf.org/html/rfc7230#section-3.2.
 	 *
 	 * @private
 	 * @param {*} oRequestConfig The request config.
 	 * @param {*} sHeader Searched header. For example "Content-Type"
-	 * @param {*} sValue Checked value. For example "application/json"
+	 * @param {*} rValue Regex to match the value. For example /application\/json/
 	 * @returns {boolean} Whether a header with given value is present.
 	 */
-	RequestDataProvider.prototype._hasHeader = function (oRequestConfig, sHeader, sValue) {
+	RequestDataProvider.prototype._hasHeader = function (oRequestConfig, sHeader, rValue) {
 		if (!oRequestConfig.headers) {
 			return false;
 		}
 
 		for (var sKey in oRequestConfig.headers) {
-			if (sKey.toLowerCase() === sHeader.toLowerCase() && oRequestConfig.headers[sKey] === sValue) {
+			if (sKey.toLowerCase() === sHeader.toLowerCase() && rValue.test(oRequestConfig.headers[sKey])) {
 				return true;
 			}
 		}
@@ -424,7 +483,7 @@ sap.ui.define([
 		}
 
 		if (aMethods.indexOf(oRequest.options.method) === -1) {
-			Log.error("Request is not valid. Method is not among " + aModes.toString());
+			Log.error("Request is not valid. Method is not among " + aMethods.toString());
 			return false;
 		}
 
@@ -481,12 +540,12 @@ sap.ui.define([
 	 * Override if modification to the request is needed.
 	 * Allows the host to modify the headers or the full request.
 	 * @param {object} oRequest The current request.
-	 * @param {object} oSettings The request settings
+	 * @param {object} oConfiguration The request configuration
 	 * @returns {object} The modified request
 	 */
-	RequestDataProvider.prototype._modifyRequestBeforeSent = function (oRequest, oSettings) {
-		var oCard = Core.byId(this.getCard()),
-			oHost = Core.byId(this.getHost());
+	RequestDataProvider.prototype._modifyRequestBeforeSent = function (oRequest, oConfiguration) {
+		var oCard = this.getCardInstance(),
+			oHost = Element.getElementById(this.getHost());
 
 		if (!oHost) {
 			return oRequest;
@@ -496,14 +555,14 @@ sap.ui.define([
 		 * @deprecated since 1.113
 		 */
 		if (oHost.modifyRequestHeaders) {
-			oRequest.options.headers = new Headers(oHost.modifyRequestHeaders(Object.fromEntries(oRequest.options.headers), oSettings, oCard));
+			oRequest.options.headers = new Headers(oHost.modifyRequestHeaders(Object.fromEntries(oRequest.options.headers), oConfiguration, oCard));
 		}
 
 		/**
 		 * @deprecated since 1.113
 		 */
 		if (oHost.modifyRequest) {
-			oRequest = oHost.modifyRequest(oRequest, oSettings, oCard);
+			oRequest = oHost.modifyRequest(oRequest, oConfiguration, oCard);
 		}
 
 		return oRequest;
@@ -513,7 +572,7 @@ sap.ui.define([
 	 * @override
 	 */
 	RequestDataProvider.prototype.getDetails = function () {
-		return "Backend interaction - load data from URL: " + this.getSettings().request.url;
+		return "Backend interaction - load data from URL: " + this._getResolvedRequestConfiguration().url;
 	};
 
 	return RequestDataProvider;

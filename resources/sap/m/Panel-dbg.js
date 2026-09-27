@@ -1,27 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Panel.
 sap.ui.define([
 	'./library',
-	'sap/ui/core/Configuration',
 	'sap/ui/core/Control',
+	"sap/ui/core/ControlBehavior",
 	'sap/ui/core/IconPool',
 	'sap/ui/Device',
 	'./PanelRenderer',
-	'sap/m/Button'
+	"sap/ui/core/Lib",
+	'sap/m/Button',
+	"sap/ui/events/KeyCodes"
 ],
-	function(library, Configuration, Control, IconPool, Device, PanelRenderer, Button) {
+	function(library, Control, ControlBehavior, IconPool, Device, PanelRenderer, Library, Button, KeyCodes) {
 	"use strict";
 
 	// shortcut for sap.m.PanelAccessibleRole
 	var PanelAccessibleRole = library.PanelAccessibleRole;
 
-	// shortcut for sap.m.BackgroundDesign
-	var BackgroundDesign = library.BackgroundDesign;
+	// shortcut for sap.m.PanelBackgroundDesign
+	var PanelBackgroundDesign = library.PanelBackgroundDesign;
 
 	// shortcut for sap.m.ButtonType
 	var ButtonType = library.ButtonType;
@@ -67,7 +69,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -122,10 +124,10 @@ sap.ui.define([
 
 				/**
 				 * This property is used to set the background color of the Panel.
-				 * Depending on the theme you can change the state of the background from "Solid" over "Translucent" to "Transparent".
+				 * Depending on the theme you can change the state of the background from "Solid" over "Translucent" to "Transparent" or "Contrast".
 				 * @since 1.30
 				 */
-				backgroundDesign: {type: "sap.m.BackgroundDesign", group: "Appearance", defaultValue: BackgroundDesign.Translucent},
+				backgroundDesign: {type: "sap.m.PanelBackgroundDesign", group: "Appearance", defaultValue: PanelBackgroundDesign.Translucent},
 
 				/**
 				 * This property is used to set the accessible aria role of the Panel.
@@ -204,6 +206,8 @@ sap.ui.define([
 
 		// identifies whether the last expand action is triggered by a user interaction or by calling setExpanded setter
 		this._bInteractiveExpand = false;
+		// tracks if there's a pending toggle action waiting for space key release
+		this._bPendingToggle = false;
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 	};
 
@@ -256,7 +260,7 @@ sap.ui.define([
 			this._oExpandButton = this._createExpandButton();
 		}
 
-		if (Configuration.getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			this.$().attr("role", this.getAccessibleRole().toLowerCase());
 		}
 	};
@@ -279,6 +283,8 @@ sap.ui.define([
 
 		if (this.getExpandable()) {
 			this.getHeaderToolbar() && oPanelContent && this._oExpandButton.$().attr("aria-controls", oPanelContent.id);
+
+			this._toggleButtonIcon(this.getExpanded());
 
 			if (!this.getExpanded()) {
 				// hide those parts which are collapsible (w/o animation, otherwise initial loading doesn't look good ...)
@@ -308,7 +314,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Event handler called when the SPACE key is pressed.
+	 * Event handler called when the SPACE key is pressed (keydown).
 	 *
 	 * @param {jQuery.Event} oEvent The event object.
 	 * @private
@@ -324,7 +330,45 @@ sap.ui.define([
 			oEvent.preventDefault();
 		}
 
-		this.ontap(oEvent);
+		// Ignore repeated keydown events when key is held
+		if (oEvent.originalEvent.repeat) {
+			return;
+		}
+
+		// Mark that we have a pending toggle action (will execute on keyup)
+		this._bPendingToggle = true;
+	};
+
+	/**
+	 * Event handler called when the ESCAPE key is pressed.
+	 * Cancels the pending toggle action if space is currently held down.
+	 *
+	 * @param {jQuery.Event} oEvent The event object.
+	 * @private
+	 */
+	Panel.prototype.onsapescape = function(oEvent) {
+		if (this._bPendingToggle) {
+			// Cancel the pending toggle
+			this._bPendingToggle = false;
+			oEvent.preventDefault();
+		}
+	};
+
+	/**
+	 * Event handler called when the SPACE key is released (keyup).
+	 *
+	 * @param {jQuery.Event} oEvent The event object.
+	 * @private
+	 */
+	Panel.prototype.onkeyup = function(oEvent) {
+		if (oEvent.which === KeyCodes.SPACE) {
+			// Only trigger action if there's a pending toggle
+			if (this._bPendingToggle) {
+				this.ontap(oEvent);
+			}
+			// Reset pending toggle state
+			this._bPendingToggle = false;
+		}
 	};
 
 	/**
@@ -345,8 +389,8 @@ sap.ui.define([
 
 	Panel.prototype._createExpandButton = function () {
 		var that = this,
-			sIconURI = this.getExpanded() ? IconPool.getIconURI("slim-arrow-down") : IconPool.getIconURI("slim-arrow-right"),
-			sTooltipBundleText = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("PANEL_ICON"),
+			sIconURI = IconPool.getIconURI("slim-arrow-right"),
+			sTooltipBundleText = Library.getResourceBundleFor("sap.m").getText("PANEL_ICON"),
 			oButton;
 
 		if (!this.getHeaderToolbar()) {
@@ -376,16 +420,17 @@ sap.ui.define([
 	};
 
 	Panel.prototype._toggleButtonIcon = function (bIsExpanded) {
-		var sIconURI = bIsExpanded ? IconPool.getIconURI("slim-arrow-down") : IconPool.getIconURI("slim-arrow-right");
+		var oIconDomRef;
 
 		if (!this._oExpandButton) {
 			return;
 		}
 
 		if (this.getHeaderToolbar()) {
-			this._oExpandButton.setIcon(sIconURI);
+			this._oExpandButton.toggleStyleClass("sapMPanelExpandBtnRotated", bIsExpanded);
 		} else {
-			this._oExpandButton.setSrc(sIconURI);
+			oIconDomRef = this._oExpandButton.getDomRef();
+			oIconDomRef && oIconDomRef.classList.toggle("sapMPanelExpandIconRotated", bIsExpanded);
 		}
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,13 +36,25 @@ sap.ui.define([],
 					domRef: ":sap-domref > .sapMPageHeader .sapMBarRight",
 					actions: {
 						move: "moveControls"
+					},
+					ignore: function (oControl) {
+						if (oControl.getCustomHeader()) {
+							return true;
+						}
+						return false;
 					}
 				},
 				subHeader: {
 					domRef: ":sap-domref > .sapMPageSubHeader"
 				},
 				customHeader: {
-					domRef: ":sap-domref > .sapMPageHeader"
+					domRef: ":sap-domref > .sapMPageHeader",
+					ignore: function (oControl) {
+						if (!oControl.getCustomHeader()) {
+							return true;
+						}
+						return false;
+					}
 				},
 				content: {
 					domRef: ":sap-domref > section",

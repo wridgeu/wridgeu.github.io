@@ -1,15 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/base/ManagedObject",
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/integration/util/BindingResolver"
 ], function (
 	ManagedObject,
-	Core,
+	Element,
 	BindingResolver
 ) {
 	"use strict";
@@ -78,11 +78,11 @@ sap.ui.define([
 	};
 
 	BaseAction.prototype.getCardInstance = function () {
-		return Core.byId(this.getCard());
+		return Element.getElementById(this.getCard());
 	};
 
 	BaseAction.prototype.getSourceInstance = function () {
-		return Core.byId(this.getSource());
+		return Element.getElementById(this.getSource());
 	};
 
 	return BaseAction;

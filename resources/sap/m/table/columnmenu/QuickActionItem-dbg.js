@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.Entry
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @since 1.110
@@ -34,7 +34,8 @@ sap.ui.define([
 	var QuickActionItem = Entry.extend("sap.m.table.columnmenu.QuickActionItem", {
 
 		metadata: {
-			library: "sap.m", properties: {
+			library: "sap.m",
+			properties: {
 				/**
 				 * The property name
 				 */

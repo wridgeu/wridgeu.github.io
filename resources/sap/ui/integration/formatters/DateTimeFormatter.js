@@ -1,7 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/format/DateFormat","sap/ui/core/date/UniversalDate","sap/ui/integration/util/Utils"],function(e,t,a){"use strict";const r={dateTime(r,n,s){const i=a.processFormatArguments(n,s);const o=e.getDateTimeInstance(i.formatOptions,i.locale);let m;if(Array.isArray(r)){m=r.map(e=>new t(a.parseJsonDateTime(e)))}else if(r!==undefined){m=new t(a.parseJsonDateTime(r))}if(m){return o.format(m)}return""},date(r,n,s){const i=a.processFormatArguments(n,s);const o=e.getDateInstance(i.formatOptions,i.locale);let m;if(Array.isArray(r)){m=r.map(e=>new t(a.parseJsonDateTime(e)))}else if(r!==undefined){m=new t(a.parseJsonDateTime(r))}if(m){return o.format(m)}return""}};return r});
+sap.ui.define(["sap/ui/core/format/DateFormat","sap/ui/core/date/UniversalDate","sap/ui/integration/util/Utils"],function(e,t,n){"use strict";function r(e){let r;if(Array.isArray(e)){r=e.map(e=>new t(n.parseJsonDateTime(e)))}else if(e!==undefined){r=new t(n.parseJsonDateTime(e))}return r}const o={dateTime(t,o,a){const s=n.processFormatArguments(o,a);const i=e.getDateTimeInstance(s.formatOptions,s.locale);const m=r(t);if(m){return i.format(m)}return""},date(t,o,a){const s=n.processFormatArguments(o,a);const i=e.getDateInstance(s.formatOptions,s.locale);const m=r(t);if(m){return i.format(m)}return""},dateTimeWithTimezone(t,o,a,s){const i=n.processDateTimeWithTimezoneFormatArguments(o,a,s);const m=e.getDateTimeWithTimezoneInstance(i.formatOptions,i.locale);const c=r(t);if(c){return m.format(c,i.timezone)}return""}};return o});
 //# sourceMappingURL=DateTimeFormatter.js.map

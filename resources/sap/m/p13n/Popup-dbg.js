@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -15,15 +15,38 @@ sap.ui.define([
 	"sap/m/p13n/Container",
 	"sap/m/p13n/AbstractContainerItem",
 	"sap/m/library",
-	"sap/ui/core/library"
-], function(Control, Button, Bar, Title, MessageBox, Device, Dialog, ResponsivePopover, Container, AbstractContainerItem, mLibrary, coreLibrary) {
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	"sap/ui/core/library",
+	"sap/ui/model/json/JSONModel",
+	"sap/ui/core/ShortcutHintsMixin",
+	"sap/ui/core/InvisibleMessage"
+], (
+	Control,
+	Button,
+	Bar,
+	Title,
+	MessageBox,
+	Device,
+	Dialog,
+	ResponsivePopover,
+	Container,
+	AbstractContainerItem,
+	mLibrary,
+	Element,
+	Library,
+	coreLibrary,
+	JSONModel,
+	ShortcutHintsMixin,
+	InvisibleMessage
+) => {
 	"use strict";
 
 	//Shortcut to sap.m.P13nPopupMode
-	var P13nPopupMode = mLibrary.P13nPopupMode;
+	const {P13nPopupMode} = mLibrary;
 
 	//Shortcut to sap.ui.core.TitleLevel
-	var TitleLevel = coreLibrary.TitleLevel;
+	const {TitleLevel, InvisibleMessageMode} = coreLibrary;
 
 	/**
 	 * Constructor for a new <code>Popup</code>.
@@ -37,13 +60,13 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @since 1.97
 	 * @alias sap.m.p13n.Popup
 	 */
-	var Popup = Control.extend("sap.m.p13n.Popup", {
+	const Popup = Control.extend("sap.m.p13n.Popup", {
 		metadata: {
 			library: "sap.m",
 			properties: {
@@ -73,6 +96,17 @@ sap.ui.define([
 				 */
 				reset: {
 					type: "function"
+				},
+				/**
+				 * A callback executed before the dialog is closed by confirming with the OK button.
+				 * If the callback returns (or resolves to) <code>false</code>, the dialog stays open.
+				 *
+				 * @private
+				 * @ui5-restricted sap.ui.mdc
+				 * @since 1.152
+				 */
+				validateBeforeClose: {
+					type: "function"
 				}
 			},
 			aggregations: {
@@ -92,6 +126,10 @@ sap.ui.define([
 				}
 			},
 			events: {
+				/**
+				 * This event is fired after the dialog has been opened.
+				 */
+				open: {},
 				/**
 				 * This event is fired after the dialog has been closed.
 				 */
@@ -119,9 +157,21 @@ sap.ui.define([
 		}
 	});
 
+	Popup.prototype.LOCALIZATION_MODEL = "$p13nPopupLocalization";
+
 	Popup.prototype.init = function() {
 		Control.prototype.init.apply(this, arguments);
 		this._aPanels = [];
+		this._aCustomStyles = [];
+
+		this.oResourceBundle = Library.getResourceBundleFor("sap.m");
+		const oModel = new JSONModel({
+			confirmText: this.oResourceBundle.getText("p13n.POPUP_OK"),
+			cancelText: this.oResourceBundle.getText("p13n.POPUP_CANCEL"),
+			resetText: this.oResourceBundle.getText("p13n.POPUP_RESET")
+		});
+		this.setModel(oModel, this.LOCALIZATION_MODEL);
+		this.oInvisibleMessage = InvisibleMessage.getInstance();
 	};
 
 	/**
@@ -146,7 +196,7 @@ sap.ui.define([
 		if (this._oPopup) {
 			this._oPopup.removeAllContent();
 			this._oPopup.destroy();
-			var oPopup = this._createContainer();
+			const oPopup = this._createContainer();
 			this.addDependent(oPopup);
 			this._oPopup = oPopup;
 		}
@@ -162,7 +212,7 @@ sap.ui.define([
 	 */
 	Popup.prototype.setReset = function(fnReset) {
 		if (this._oPopup) {
-			var oCustomHeader = this._oPopup.getCustomHeader();
+			const oCustomHeader = this._oPopup.getCustomHeader();
 
 			if (oCustomHeader) {
 				oCustomHeader.destroy();
@@ -183,6 +233,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Configuration for the related popup container
 	 * @param {sap.ui.core.CSSSize} [mSettings.contentHeight] Height configuration for the related popup container
 	 * @param {sap.ui.core.CSSSize} [mSettings.contentWidth] Width configuration for the related popup container
+	 * @param {string} [mSettings.activePanel] Key of active panel that is opened initially
 	 */
 	Popup.prototype.open = function(oSource, mSettings) {
 
@@ -191,9 +242,14 @@ sap.ui.define([
 		}
 
 		if (!this._oPopup) {
-			var oPopup = this._createContainer(mSettings);
+			const oPopup = this._createContainer(mSettings);
 			this.addDependent(oPopup);
 			this._oPopup = oPopup;
+			this._aCustomStyles.forEach((sStyleClass) => {
+				if (!this._oPopup.hasStyleClass(sStyleClass)) {
+					this._oPopup.addStyleClass(sStyleClass);
+				}
+			});
 		}
 
 		if (this.getMode() === "Dialog") {
@@ -202,13 +258,40 @@ sap.ui.define([
 			this._oPopup.openBy(oSource);
 		}
 
-		var oResetBtn = this.getResetButton();
+		if (mSettings?.activePanel) {
+			this._getContainer(true).switchView(mSettings.activePanel);
+		}
+
+		const oParent = this.getParent();
+		if (oParent && oParent.hasStyleClass instanceof Function && oParent.hasStyleClass("sapUiSizeCompact") && !this._oPopup.hasStyleClass("sapUiSizeCompact")) {
+			this._oPopup.addStyleClass("sapUiSizeCompact");
+		}
+
+		const oResetBtn = this.getResetButton();
 
 		if (oResetBtn) {
 			oResetBtn.setEnabled(mSettings?.enableReset);
 		}
 
 		this._bIsOpen = true;
+
+		this.fireOpen();
+	};
+
+	Popup.prototype.addStyleClass = function(sStyleClass) {
+		this._aCustomStyles.push(sStyleClass);
+		this._oPopup?.addStyleClass(sStyleClass);
+		return this;
+	};
+
+	Popup.prototype.removeStyleClass = function(sStyleClass) {
+		this._aCustomStyles.splice(this._aCustomStyles.indexOf(sStyleClass), 1);
+		this._oPopup?.removeStyleClass(sStyleClass);
+	};
+
+	Popup.prototype.insertAdditionalButton = function(oButton, iIndex) {
+		this.insertAggregation("additionalButtons", oButton, iIndex, true);
+		this._oPopup.insertButton?.(oButton, iIndex);
 	};
 
 	/**
@@ -220,7 +303,8 @@ sap.ui.define([
 	 * @returns {sap.m.p13n.Popup} The popup instance
 	 */
 	Popup.prototype.addPanel = function(oPanel, sKey) {
-		var oPanelTitleBindingInfo = oPanel.getBindingInfo("title"), oBindingInfo;
+		const oPanelTitleBindingInfo = oPanel.getBindingInfo("title");
+		let oBindingInfo;
 		if (oPanelTitleBindingInfo && oPanelTitleBindingInfo.parts) {
 			oBindingInfo = {
 				parts: oPanelTitleBindingInfo.parts
@@ -257,9 +341,9 @@ sap.ui.define([
 	 * Removes all panels from the <code>panels</code> aggregation
 	 */
 	Popup.prototype.removeAllPanels = function() {
-		this.getPanels().forEach(function(oPanel){
+		this.getPanels().forEach((oPanel) => {
 			this.removePanel(oPanel);
-		}.bind(this));
+		});
 	};
 
 	/**
@@ -279,23 +363,23 @@ sap.ui.define([
 	 * @returns {sap.m.Button} The reset button instance
 	 */
 	Popup.prototype.getResetButton = function() {
-		return sap.ui.getCore().byId(this.getId() + "-resetBtn");
+		return Element.getElementById(this.getId() + "-resetBtn");
 	};
 
 	Popup.prototype._createContainer = function(mDialogSettings) {
 		mDialogSettings = mDialogSettings ? mDialogSettings : {};
-		var oPopup = this["_create" + this.getMode()].call(this, mDialogSettings);
+		const oPopup = this["_create" + this.getMode()].call(this, mDialogSettings);
 		oPopup.addStyleClass("sapMP13nPopup");
-		oPopup.isPopupAdaptationAllowed = function () {
+		oPopup.isPopupAdaptationAllowed = () => {
 			return false;
 		};
 		return oPopup;
 	};
 
 	Popup.prototype._createResponsivePopover = function(mDialogSettings) {
-		var aPanels = this.getPanels();
-		var bUseContainer = aPanels.length > 1;
-		var oPopover = new ResponsivePopover(this.getId() + "-responsivePopover", {
+		const aPanels = this.getPanels();
+		const bUseContainer = aPanels.length > 1;
+		const oPopover = new ResponsivePopover(this.getId() + "-responsivePopover", {
 			title: this.getTitle(),
 			horizontalScrolling: mDialogSettings.hasOwnProperty("horizontalScrolling") ? mDialogSettings.horizontalScrolling : false,
 			verticalScrolling: !bUseContainer && !(aPanels[0] && aPanels[0].getVerticalScrolling instanceof Function && aPanels[0].getVerticalScrolling()),
@@ -304,9 +388,9 @@ sap.ui.define([
 			contentHeight: mDialogSettings.contentHeight ? mDialogSettings.contentHeight : "35rem",
 			placement: mDialogSettings.placement ? mDialogSettings.placement : "Bottom",
 			content: bUseContainer ? this._getContainer() : aPanels[0],
-			afterClose: function() {
+			afterClose: () => {
 				this._onClose(oPopover, "AutoClose");
-			}.bind(this)
+			}
 		});
 
 		oPopover.setCustomHeader(this._createTitle());
@@ -316,13 +400,12 @@ sap.ui.define([
 	};
 
 	Popup.prototype._createDialog = function(mDialogSettings) {
-		var aPanels = this.getPanels();
-		var bUseContainer = aPanels.length > 1;
-		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		const aPanels = this.getPanels();
+		const bUseContainer = aPanels.length > 1;
 
-		var oInitialFocusedControl;
+		let oInitialFocusedControl;
 		if (aPanels.length > 0) {
-			var oContent = aPanels[0];
+			const oContent = aPanels[0];
 			oInitialFocusedControl = oContent.getInitialFocusedControl && oContent.getInitialFocusedControl();
 			if (!oInitialFocusedControl && bUseContainer) {
 				// focus at least the iconTabBar first item
@@ -330,7 +413,7 @@ sap.ui.define([
 			}
 		}
 
-		var oContainer = new Dialog(this.getId() + "-dialog", {
+		const oContainer = new Dialog(this.getId() + "-dialog", {
 			initialFocus: oInitialFocusedControl,
 			title: this.getTitle(),
 			horizontalScrolling: mDialogSettings.hasOwnProperty("horizontalScrolling") ? mDialogSettings.horizontalScrolling : false,
@@ -341,47 +424,75 @@ sap.ui.define([
 			resizable: true,
 			stretch: Device.system.phone,
 			content: bUseContainer ? this._getContainer() : aPanels[0],
-			escapeHandler: function() {
+			escapeHandler: () => {
 				this._onClose(oContainer, "Escape");
-			}.bind(this),
-			buttons: [
-				new Button(this.getId() + this._getIdPrefix() + "-confirmBtn", {
-					text:  mDialogSettings.confirm && mDialogSettings.confirm.text ?  mDialogSettings.confirm.text : oResourceBundle.getText("p13n.POPUP_OK"),
-					type: "Emphasized",
-					press: function() {
-						this._onClose(oContainer, "Ok");
-					}.bind(this)
-
-				}), new Button(this.getId() + this._getIdPrefix() + "-cancelBtn", {
-					text: oResourceBundle.getText("p13n.POPUP_CANCEL"),
-					press: function () {
-						this._onClose(oContainer, "Cancel");
-					}.bind(this)
-				})
-			]
+			}
 		});
+
+		const oConfirmBtn = this._createConfirmButton(oContainer);
+		const oCancelBtn = this._createCancelButton(oContainer);
+		oContainer.addButton(oConfirmBtn);
+		oContainer.addButton(oCancelBtn);
 
 		oContainer.setCustomHeader(this._createTitle());
 
-		this.getAdditionalButtons().forEach(function(oButton){
+		this.getAdditionalButtons().forEach((oButton) => {
 			oContainer.addButton(oButton);
 		});
 
 		return oContainer;
 	};
 
-	Popup.prototype._getIdPrefix = function() {
+	Popup.prototype._createConfirmButton = function(oContainer) {
+		if (!this._oConfirmButton) {
+			this._oConfirmButton = new Button(this.getId() + this._getIdPrefix() + "-confirmBtn", {
+				text: `{${this.LOCALIZATION_MODEL}>/confirmText}`,
+				type: "Emphasized",
+				press: () => {
+					this._onClose(oContainer, "Ok");
+				}
+			});
+
+			ShortcutHintsMixin.addConfig(this._oConfirmButton, {
+				addAccessibilityLabel: true,
+				shortcut: "Ctrl+Enter" // ShortcutHintMixin takes care of normalizing and localizing
+			});
+		}
+		return this._oConfirmButton;
+	};
+
+	Popup.prototype._createCancelButton = function(oContainer) {
+		if (!this._oCancelButton) {
+			this._oCancelButton = new Button(this.getId() + this._getIdPrefix() + "-cancelBtn", {
+				text: `{${this.LOCALIZATION_MODEL}>/cancelText}`,
+				press: () => {
+					this._onClose(oContainer, "Cancel");
+				}
+			});
+
+			// SNOW: DINC0776587 Ensure the cancel button is always enabled even if the list is empty
+			this._oCancelButton.useEnabledPropagator(false);
+
+			ShortcutHintsMixin.addConfig(this._oCancelButton, {
+				addAccessibilityLabel: true,
+				shortcut: "Escape" // Keyboard.Shortcut.Escape, see sap/ui/core/messagebundle.properties
+			});
+		}
+		return this._oCancelButton;
+	};
+
+	Popup.prototype._getIdPrefix = () => {
 		return "";
 	};
 
 	Popup.prototype._createTitle = function() {
 
-		var fnReset = this.getReset();
-		var sTitle = this.getTitle();
-		var sWarningText = this.getWarningText();
-        var oPopup = this;
+		const fnReset = this.getReset();
+		const sTitle = this.getTitle();
+		const sWarningText = this.getWarningText();
+		const oPopup = this;
 
-		var oBar;
+		let oBar;
 
 		if (fnReset instanceof Function) {
 
@@ -395,16 +506,18 @@ sap.ui.define([
 			});
 
 			oBar.addContentRight(new Button(this.getId() + "-resetBtn", {
-				text: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("p13n.POPUP_RESET"),
+				text: `{${this.LOCALIZATION_MODEL}>/resetText}`,
 				press: function(oEvt) {
 
-					var oDialog =  oEvt.getSource().getParent().getParent();
-					var oControl = oDialog.getParent();
+					const oDialog = oEvt.getSource().getParent().getParent();
+					const oControl = oDialog.getParent();
 
-					var sResetText = sWarningText;
+					const sResetText = sWarningText;
 					MessageBox.warning(sResetText, {
 						actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
 						emphasizedAction: MessageBox.Action.OK,
+						closeOnNavigation: true,
+						dependentOn: this,
 						onClose: (sAction) => {
 							if (sAction === MessageBox.Action.OK) {
 								// --> focus "OK" button after 'reset' has been triggered
@@ -435,23 +548,71 @@ sap.ui.define([
 				oPanel.onReset();
 			}
 		});
+		this.oInvisibleMessage.announce(this.oResourceBundle.getText("p13n.POPUP_ANNOUNCEMENT_RESET"), InvisibleMessageMode.Assertive);
 	};
 
-	Popup.prototype._getContainer = function(oSource) {
-		if (!this._oContainer){
+	Popup.prototype._getContainer = function(bWithoutSwitch) {
+		if (!this._oContainer) {
 			this._oContainer = new Container();
 		}
 
-		if (this._oContainer.getViews().length > 1) {
+		if (this._oContainer.getViews().length > 1 && !bWithoutSwitch) {
 			this._oContainer.switchView(this._oContainer.getViews()[1].getKey());
 		}
 
 		return this._oContainer;
 	};
 
-	Popup.prototype._onClose = function(oContainer, sReason) {
+	/**
+	 * Closes the popup.
+	 * @param {sap.ui.core.Control} oContainer container to close
+	 * @param {string} sReason reason for closing the container
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.mdc
+	 */
+	Popup.prototype._onClose = async function(oContainer, sReason) {
+		if (!oContainer && !this._oPopup) {
+			return;
+		}
 
-		oContainer.close();
+		// ignore further close attempts while an async validation is still pending
+		if (this._bValidationPending) {
+			return;
+		}
+
+		const fnValidate = this.getValidateBeforeClose();
+		if (fnValidate && sReason === "Ok") {
+			this._bValidationPending = true;
+			const oPopupControl = oContainer || this._oPopup;
+			const iOldDelay = oPopupControl.getBusyIndicatorDelay();
+			oPopupControl.setBusyIndicatorDelay(0);
+			oPopupControl.setBusy(true);
+			try {
+				if (await fnValidate() === false) {
+					return;
+				}
+			} catch {
+				// a failed validation must not trap the user in the dialog
+			} finally {
+				oPopupControl.setBusy(false);
+				oPopupControl.setBusyIndicatorDelay(iOldDelay);
+				this._bValidationPending = false;
+			}
+		}
+
+		const aPanels = this.getPanels();
+		const aPromises = [];
+		aPanels.forEach((oPanel) => {
+			if (oPanel.onBeforeClose instanceof Function) {
+				aPromises.push(oPanel.onBeforeClose(sReason));
+			}
+		});
+		if (aPromises.length > 0) {
+			await Promise.all(aPromises);
+		}
+
+		(oContainer || this._oPopup).close();
 
 		this._bIsOpen = false;
 
@@ -460,12 +621,35 @@ sap.ui.define([
 		});
 	};
 
+	/**
+	 * @deprecated As of version 1.120
+	 */
+	Popup.prototype.onlocalizationChanged = function() {
+		this._onLocalizationChanged();
+	};
+
+	/**
+	 * Localization changed
+	 * @private
+	 */
+	Popup.prototype.onLocalizationChanged = function() {
+		this._onLocalizationChanged();
+	};
+
+	Popup.prototype._onLocalizationChanged = function() {
+		this.oResourceBundle = Library.getResourceBundleFor("sap.m");
+		this.getModel(this.LOCALIZATION_MODEL).setProperty("/confirmText", this.oResourceBundle.getText("p13n.POPUP_OK"));
+		this.getModel(this.LOCALIZATION_MODEL).setProperty("/cancelText", this.oResourceBundle.getText("p13n.POPUP_CANCEL"));
+		this.getModel(this.LOCALIZATION_MODEL).setProperty("/resetText", this.oResourceBundle.getText("p13n.POPUP_RESET"));
+	};
+
 	Popup.prototype.exit = function() {
 		Control.prototype.exit.apply(this, arguments);
 		if (this._oPopup) {
 			this._oPopup.destroy();
 		}
 		this._aPanels = null;
+		this._aCustomStyles = null;
 	};
 
 	return Popup;

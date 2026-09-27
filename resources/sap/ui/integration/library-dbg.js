@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -8,15 +8,14 @@
  */
 sap.ui.define([
 	"sap/ui/base/DataType",
-	"sap/ui/core/Core",
-	"sap/ui/Global",
+	"sap/ui/core/Lib",
 	// library dependency
 	"sap/ui/core/library",
 	"sap/m/library",
 	"sap/f/library",
 	"sap/ui/unified/library",
 	"sap/ui/layout/library"
-], function (DataType, oCore) {
+], function (DataType, Library) {
 	"use strict";
 
 	/**
@@ -25,13 +24,14 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.integration
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 1.62
 	 * @public
 	 */
-	var thisLib = oCore.initLibrary({
+	var thisLib = Library.init({
+		apiVersion: 2,
 		name: "sap.ui.integration",
-		version: "1.120.0",
+		version: "1.152.0",
 		dependencies: [
 			"sap.ui.core",
 			"sap.f",
@@ -45,7 +45,10 @@ sap.ui.define([
 			"sap.ui.integration.CardMenuAction",
 			"sap.ui.integration.CardDesign",
 			"sap.ui.integration.CardDisplayVariant",
-			"sap.ui.integration.CardBlockingMessageType"
+			"sap.ui.integration.CardBlockingMessageType",
+			"sap.ui.integration.CardPreviewMode",
+			"sap.ui.integration.CardOverflow",
+			"sap.ui.integration.AttributesLayoutType"
 		],
 		controls: [
 			"sap.ui.integration.widgets.Card",
@@ -53,7 +56,8 @@ sap.ui.define([
 			"sap.ui.integration.cards.Header",
 			"sap.ui.integration.cards.NumericHeader",
 			"sap.ui.integration.controls.ListContentItem",
-			"sap.ui.integration.controls.BlockingMessage"
+			"sap.ui.integration.controls.BlockingMessage",
+			"sap.ui.integration.controls.ImageWithOverlay"
 		],
 		elements: [
 			"sap.ui.integration.ActionDefinition",
@@ -74,8 +78,7 @@ sap.ui.define([
 	 * Enumeration of possible card action types.
 	 *
 	 * @enum {string}
-	 * @experimental since 1.64
-	 * Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+	 * @since 1.64
 	 * @public
 	 */
 	thisLib.CardActionType = {
@@ -94,35 +97,33 @@ sap.ui.define([
 		/**
 		 * Used for custom actions.
 		 * @public
-		 * @experimental Since 1.76
+		 * @since 1.76
 		 */
 		Custom: "Custom",
 
 		/**
 		 * Date selection. Available only for Calendar cards.
 		 * @public
-		 * @experimental Since 1.87
 		 */
 		DateChange: "DateChange",
 
 		/**
 		 * Month selection. Available only for Calendar cards.
 		 * @public
-		 * @experimental Since 1.87
 		 */
 		MonthChange: "MonthChange",
 
 		/**
 		 * Used for showing more details about the card.
 		 * @public
-		 * @experimental Since 1.100
+		 * @ui5-experimental-since 1.100
 		 */
 		ShowCard: "ShowCard",
 
 		/**
 		 * Used for hiding the appeared details about the card.
 		 * @public
-		 * @experimental Since 1.100
+		 * @ui5-experimental-since 1.100
 		 */
 		HideCard: "HideCard"
 	};
@@ -131,9 +132,8 @@ sap.ui.define([
 	 * Possible data modes for <code>{@link sap.ui.integration.widgets.Card}</code>.
 	 *
 	 * @enum {string}
-	 * @experimental since 1.65
+	 * @ui5-experimental-since 1.65
 	 * @public
-	 * @since 1.65
 	 */
 	thisLib.CardDataMode = {
 		/**
@@ -157,9 +157,8 @@ sap.ui.define([
 	 * Possible designs for <code>{@link sap.ui.integration.widgets.Card}</code>.
 	 *
 	 * @enum {string}
-	 * @experimental since 1.109
+	 * @ui5-experimental-since 1.109
 	 * @public
-	 * @since 1.109
 	 */
 	thisLib.CardDesign = {
 		/**
@@ -179,15 +178,40 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @experimental Since 1.118. For usage only by Work Zone.
-	 * @since 1.118
+	 * @ui5-experimental-since 1.118
+	 * @ui5-restricted Work Zone
 	 */
 	thisLib.CardDisplayVariant = {
+		/**
+		 * The CompactHeader card variant.
+		 * @public
+		 */
+		CompactHeader: "CompactHeader",
+		/**
+		 * The SmallHeader card variant.
+		 * @public
+		 */
+		SmallHeader: "SmallHeader",
+		/**
+		 * The SmallHeader card variant.
+		 * @public
+		 */
+		StandardHeader: "StandardHeader",
+		/**
+		 * The small card variant.
+		 * @public
+		 */
+		Small: "Small",
 		/**
 		 * The standard card variant.
 		 * @public
 		 */
 		Standard: "Standard",
+		/**
+		 * The large card variant.
+		 * @public
+		 */
+		Large: "Large",
 		/**
 		 * Card renders and behaves like a tile of size 2x2.
 		 * @public
@@ -211,17 +235,57 @@ sap.ui.define([
 	};
 
 	/**
-	 * Specifies different areas of a card where actions can be attached.
+	 * Card message strip types.
 	 *
-	 * @private
+	 * @enum {string}
+	 * @public
+	 * @ui5-experimental-since 1.128
 	 */
-	thisLib.CardActionArea = {
-		None: "None",
-		Content: "Content",
-		ContentItem: "ContentItem",
-		ActionsStrip: "ActionsStrip",
-		ContentItemDetail: "ContentItemDetail",
-		Header: "Header"
+	thisLib.CardMessageType = {
+		/**
+		 * Message should be just an information
+		 * @public
+		 */
+		Information : "Information",
+
+		/**
+		 * Message is a warning
+		 * @public
+		 */
+		Warning : "Warning",
+
+		/**
+		 * Message is an error
+		 * @public
+		 */
+		Error : "Error",
+
+		/**
+		 * Message has no specific level
+		 * @public
+		 */
+		None : "None",
+
+		/**
+		 * Message is a success message
+		 * @public
+		 */
+		Success : "Success",
+
+		/**
+		 * Message is an informative brief toast message.
+		 * For this type the default behavior is to auto close.
+		 * @public
+		 */
+		Toast : "Toast",
+
+		/**
+		 * Informs the user that the content is busy at that moment with a loading operation.
+		 * Blocks the content from interaction.
+		 * @public
+		 */
+		Loading : "Loading"
+
 	};
 
 	/**
@@ -229,11 +293,11 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @experimental since 1.114
+	 * @ui5-experimental-since 1.114
 	 */
 	thisLib.CardBlockingMessageType = {
 		/**
-		 * An error ocurred in the card.
+		 * An error occurred in the card.
 		 * @public
 		 */
 		Error: "Error",
@@ -281,8 +345,7 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @experimental since 1.112
-	 * @since 1.112
+	 * @ui5-experimental-since 1.112
 	 */
 	thisLib.CardPreviewMode = {
 		/**
@@ -305,7 +368,36 @@ sap.ui.define([
 	};
 
 	/**
-	 * Defines the layout type of the List card attributes.
+	 * Determines the overflow behaviour of the card.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @ui5-experimental-since 1.133
+	 */
+	thisLib.CardOverflow = {
+		/**
+		 * The overflowing part of the card is hidden.
+		 *
+		 * <b>Note</b>: If the "Default" option is used, the card must be allowed to grow in height as much as it needs to avoid overflowing. Use a layout which allows this.
+		 *
+		 * @public
+		 */
+		Default: "Default",
+
+		/**
+		 * The overflowing part of the card is hidden, but a 'Show More' button is displayed in the footer. By pressing the button, the full content will be displayed.
+		 *
+		 * <b>Note</b>: If this option is used, the "minHeight" setting for cards of type Analytical, AnalyticsCloud and WebPage will be ignored.
+		 *
+		 * <b>Disclaimer</b>: This feature is not suitable for object cards with forms. It might lead to undesired user interaction.
+		 *
+		 * @public
+		 */
+		ShowMore: "ShowMore"
+	};
+
+	/**
+	 * Defines the layout type of the List Card attributes.
 	 * @enum {string}
 	 * @public
 	 * @since 1.96
@@ -327,7 +419,7 @@ sap.ui.define([
 	 * An object type that represents card menu action properties.
 	 * @typedef {object}
 	 * @public
-	 * @experimental since 1.79
+	 * @ui5-experimental-since 1.79
 	 * @property {sap.ui.integration.CardActionType} type The type of the action.
 	 * @property {string} text The text of the action button.
 	 * @property {sap.ui.core.URI} icon The icon of the action button.
@@ -337,18 +429,34 @@ sap.ui.define([
 	 * @property {boolean|function} visible If the action is visible. Default value is <code>true</code>.
 	 * @property {function} action The action function.
 	 * @property {object} parameters The parameters of the action.
+	 * @property {boolean} startsSection If visual separator should be rendered before the item.
+	 * @property {array} actions The nested actions.
 	 */
 	thisLib.CardMenuAction = DataType.createType("sap.ui.integration.CardMenuAction", {
 		isValid: function (oValue) {
 			var aPossibleKeys = [
-				"type", "text", "icon", "tooltip", "buttonType", "enabled", "visible", "action", "parameters",
-				"target", "url" // do not document these as they should not be used
+				"type", "text", "icon", "tooltip", "buttonType", "enabled", "visible", "action", "parameters", "startsSection", "actions",
+				"target", "url"
 			];
 			return Object.keys(oValue).every(function (sKey) {
 				return aPossibleKeys.indexOf(sKey) !== -1;
 			});
 		}
 	}, "object");
+
+
+	/**
+	 * Register all of the above defined enums.
+	 */
+	DataType.registerEnum("sap.ui.integration.CardActionType", thisLib.CardActionType);
+	DataType.registerEnum("sap.ui.integration.CardDataMode", thisLib.CardDataMode);
+	DataType.registerEnum("sap.ui.integration.CardDesign", thisLib.CardDesign);
+	DataType.registerEnum("sap.ui.integration.CardDisplayVariant", thisLib.CardDisplayVariant);
+	DataType.registerEnum("sap.ui.integration.CardMessageType", thisLib.CardMessageType);
+	DataType.registerEnum("sap.ui.integration.CardBlockingMessageType", thisLib.CardBlockingMessageType);
+	DataType.registerEnum("sap.ui.integration.CardPreviewMode", thisLib.CardPreviewMode);
+	DataType.registerEnum("sap.ui.integration.CardOverflow", thisLib.CardOverflow);
+	DataType.registerEnum("sap.ui.integration.AttributesLayoutType", thisLib.AttributesLayoutType);
 
 	return thisLib;
 });

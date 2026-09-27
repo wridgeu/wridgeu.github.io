@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -44,9 +44,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.StringListField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.83.0
 	 * @ui5-restricted
 	 */
 	var StringListField = BaseField.extend("sap.ui.integration.editor.fields.StringListField", {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -127,9 +127,9 @@ sap.ui.define([
 				if (oDimensionDetails === undefined) {
 					logUnsupportedPropertyInSelect(oBinding.sPath, sPropertyName, oDimension);
 					bError = true;
-				} else {
-					// eslint-disable-next-line no-use-before-define
-					AnalyticalBinding._updateDimensionDetailsTextProperty(oDimension, sPropertyName, oDimensionDetails);
+				// eslint-disable-next-line no-use-before-define
+				} else if (AnalyticalBinding._updateDimensionDetailsTextProperty(oDimension, sPropertyName,
+						oDimensionDetails)) {
 					continue;
 				}
 			}
@@ -232,10 +232,11 @@ sap.ui.define([
 	 *   The path pointing to the tree / array that should be bound
 	 * @param {object} [oContext=null]
 	 *   The context object for this data binding
-	 * @param {array} [aSorter=null]
-	 *   An array of predefined sorters
-	 * @param {array} [aFilters=null]
-	 *   An array of predefined filters
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters used initially; call {@link #sort} to replace them
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call {@link #filter} to
+	 *   replace them
 	 * @param {object} [mParameters=null]
 	 *   A map containing additional binding parameters; for the <code>AnalyticalBinding</code> this
 	 *   parameter is mandatory
@@ -269,15 +270,15 @@ sap.ui.define([
 	 *   <code>select</code> parameter is ignored.
 	 *
 	 * @throws {Error}
-	 *   If no analytic query result object could be determined from the bound OData entity set,
-	 *   either from an explicitly given EntitySet (via optional mParameters.entitySet argument), or
-	 *   by default implicitly from the binding path (see mandatory sPath argument), or if the
-	 *   {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code> together with other
-	 *   filters
+	 *   If no analytic query result object could be determined from the bound OData entity set, either from an
+	 *   explicitly given EntitySet (via optional mParameters.entitySet argument), or by default implicitly from the
+	 *   binding path (see mandatory sPath argument), or if the {@link sap.ui.model.Filter.NONE} filter instance is
+	 *   contained in <code>aFilters</code> together with other filters, or if the given model is not supported.
 	 *
 	 * @alias sap.ui.model.analytics.AnalyticalBinding
 	 * @extends sap.ui.model.TreeBinding
-	 * @experimental This module is only for experimental use!
+	 * @deprecated As of version 1.138.0, will be replaced by OData V4 data aggregation, see
+	 *    {@link topic:7d914317c0b64c23824bf932cc8a4ae1 Extension for Data Aggregation}
 	 * @protected
 	 */
 	var AnalyticalBinding = TreeBinding.extend("sap.ui.model.analytics.AnalyticalBinding", /** @lends sap.ui.model.analytics.AnalyticalBinding.prototype */ {
@@ -285,6 +286,10 @@ sap.ui.define([
 		constructor : function(oModel, sPath, oContext, aSorter, aFilters, mParameters) {
 			TreeBinding.call(this, oModel, sPath, oContext, aFilters, mParameters);
 
+			this.iModelVersion = AnalyticalBinding._getModelVersion(this.oModel);
+			if (this.iModelVersion === null) {
+				throw new Error("The AnalyticalBinding does not support the given model");
+			}
 			this.aAdditionalSelects = [];
 			// attribute members for addressing the requested entity set
 			this.sEntitySetName = mParameters.entitySet ? mParameters.entitySet : undefined;
@@ -359,13 +364,6 @@ sap.ui.define([
 					+ " $inlinecount options");
 			}
 
-			// detect ODataModel version
-			this.iModelVersion = AnalyticalBinding._getModelVersion(this.oModel);
-			if (this.iModelVersion === null) {
-				oLogger.error("The AnalyticalBinding does not support the given model");
-				return;
-			}
-
 			// list of sorted dimension names as basis for later calculations, initialized via "initialize" function
 			this.aAllDimensionSortedByName = null;
 
@@ -436,8 +434,6 @@ sap.ui.define([
 	 * The ODataModel will call this on all bindings as soon as the metadata was loaded
 	 *
 	 * @public
-	 * @name sap.ui.model.analytics.v2.AnalyticalBinding#initialize
-	 * @function
 	 */
 	AnalyticalBinding.prototype.initialize = function() {
 		if (this.oModel.oMetadata && this.oModel.oMetadata.isLoaded() && this.isInitial()) {
@@ -455,8 +451,9 @@ sap.ui.define([
 
 	/**
 	 * Performs the actual initialization.
-	 * Called either by sap.ui.model.analytics.v2.AnalyticalBinding#initialize or
-	 * sap.ui.model.analytics.v2.AnalyticalBinding#setContext.
+	 *
+	 * Called either by sap.ui.model.analytics.AnalyticalBinding#initialize or
+	 * sap.ui.model.analytics.AnalyticalBinding#setContext.
 	 */
 	AnalyticalBinding.prototype._initialize = function() {
 		if (this.oModel.oMetadata && this.oModel.oMetadata.isLoaded()) {
@@ -494,7 +491,7 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.getRootContexts
-	 * @param {object|int} mParameters
+	 * @param {object|int} [mParameters=0]
 	 *   Parameter map specifying how the topmost aggregation level shall be fetched. If this
 	 *   parameter map is set, the optional function parameters are ignored. Optionally, instead
 	 *   of a parameter map an integer value can be set to define the parameter
@@ -601,9 +598,9 @@ sap.ui.define([
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.getNodeContexts
 	 * @param {sap.ui.model.Context} oContext
 	 *            Parent context identifying the requested group of child contexts
-	 * @param {object|int} mParameters
+	 * @param {object|int} [mParameters=0]
 	 *            Parameters, specifying the aggregation level for which contexts shall be fetched
-	 *            or (legacy signature variant) index of first child entry to return from the parent context (zero-based)
+	 *            or the index of the first child entry to return from the parent contexts
 	 * @param {int} mParameters.level
 	 *            Level number for oContext, because it might occur at multiple levels; context with group ID <code>"/"</code> has level 0
 	 * @param {int} [mParameters.numberOfExpandedLevels=0]
@@ -645,7 +642,7 @@ sap.ui.define([
 			iLevel = mParameters.level;
 			iNumberOfExpandedLevels = mParameters.numberOfExpandedLevels;
 			bSupressRequest = mParameters.supressRequest;
-		} else { // due to compatibility; can be removed if table is adapted
+		} else {
 			iStartIndex = arguments[1];
 			iLength = arguments[2];
 			iThreshold = arguments[3];
@@ -990,8 +987,10 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.filter
-	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter}
-	 *            aFilter an Array of sap.ui.model.Filter objects or a single Filter instance.
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to use; in case of type {@link sap.ui.model.FilterType.Application} this replaces the filters
+	 *   given in {@link sap.ui.model.odata.v2.ODataModel#bindList}; a falsy value is treated as an empty array and thus
+	 *   removes all filters of the specified type
 	 * @param {sap.ui.model.FilterType}
 	 *            [sFilterType=sap.ui.model.FilterType.Control] Type of the filter which should be adjusted.
 	 * @return {this}
@@ -1063,8 +1062,9 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.sort
-	 * @param {sap.ui.model.Sorter|array}
-	 *            aSorter a sorter object or an array of sorter objects which define the sort order.
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorter=[]]
+	 *   The sorters to use; they replace the sorters given in {@link sap.ui.model.odata.v2.ODataModel#bindList}; a
+	 *   falsy value is treated as an empty array and thus removes all sorters
 	 * @return {this}
 	 *            returns <code>this</code> to facilitate method chaining.
 	 *
@@ -2635,6 +2635,15 @@ sap.ui.define([
 		if (bAddAdditionalSelects && this.aAdditionalSelects.length > 0) {
 			sSelect = (sSelect ? sSelect.split(",") : [])
 				.concat(this.aAdditionalSelects).join(",");
+			const oAdditionalProperties = {};
+			this.aAdditionalSelects.forEach((sAdditionalSelect) => {
+				oAdditionalProperties[sAdditionalSelect] = true;
+			});
+			const sAdditionalOrderBy = oAnalyticalQueryRequest.getSortExpression()
+				.getURIOrderByOptionValue(oAdditionalProperties);
+			if (sAdditionalOrderBy) {
+				sOrderBy = sOrderBy ? sOrderBy + "," + sAdditionalOrderBy : sAdditionalOrderBy;
+			}
 		}
 
 		if (this.mParameters && this.mParameters["filter"]) {
@@ -3152,7 +3161,8 @@ sap.ui.define([
 			var oEntry2 = oData.results[-aPreviousEntryServiceKey.length];
 			sPreviousEntryDimensionKeyString = "";
 			for (var j = 0; j < aAggregationLevel.length; j++) {
-				sPreviousEntryDimensionKeyString += oEntry2[aAggregationLevel[j]] + "|";
+				sPreviousEntryDimensionKeyString +=
+					AnalyticalBinding._getDimensionValue(oEntry2[aAggregationLevel[j]]) + "|";
 			}
 		}
 
@@ -3170,7 +3180,7 @@ sap.ui.define([
 				// perform check to detect multiple returned entries for a single group level instance; duplicates are detected by having the same dimension keys
 				sDimensionKeyString = "";
 				for (var g = 0; g < aAggregationLevel.length; g++) {
-					sDimensionKeyString += oEntry[aAggregationLevel[g]] + "|";
+					sDimensionKeyString += AnalyticalBinding._getDimensionValue(oEntry[aAggregationLevel[g]]) + "|";
 				}
 				if (sPreviousEntryDimensionKeyString == sDimensionKeyString) {
 					this._warnNoSortingOfGroups();
@@ -3203,17 +3213,8 @@ sap.ui.define([
 					if (sPreviousEntryDimensionKeyString == sDimensionKeyString) {
 						aMultiUnitEntry.push(oData.results[h]);
 					}
-					// determine all deviating unit properties
-					var aDeviatingUnitPropertyName = [];
-					for (var m = 0; m < aSelectedUnitPropertyName.length; m++) {
-						var sUnitPropertyName = aSelectedUnitPropertyName[m];
-						for (var o = 1; o < aMultiUnitEntry.length; o++) {
-							if (aMultiUnitEntry[o - 1][sUnitPropertyName] != aMultiUnitEntry[o][sUnitPropertyName]) {
-								aDeviatingUnitPropertyName.push(sUnitPropertyName);
-								break;
-							}
-						}
-					}
+					var aDeviatingUnitPropertyName = AnalyticalBinding._getDeviatingUnitPropertyNames(
+							aSelectedUnitPropertyName, aMultiUnitEntry);
 					// create a multi-unit repr. (includes a corresponding multi-unit entity)
 					var oMultiUnitRepresentative = this._createMultiUnitRepresentativeEntry(sGroupId, oData.results[iFirstMatchingEntryIndex], aSelectedUnitPropertyName, aDeviatingUnitPropertyName, oRequestDetails.bIsFlatListRequest);
 					if (oMultiUnitRepresentative.aReloadMeasurePropertyName.length > 0) {
@@ -3459,7 +3460,7 @@ sap.ui.define([
 				}
 			}
 			processSingleGroupFromLevelSubset(bProcessFirstLoadedGroup,
-											oData.results.length == oRequestDetails.iLength && i == oData.results.length - 1);
+				oData.results.length === oRequestDetails.iLength && sPreviousParentGroupId === sParentGroupId);
 			// setup for processing next parent group
 			bProcessFirstLoadedGroup = false;
 			if (sPreviousParentGroupId != sParentGroupId) {
@@ -3762,6 +3763,8 @@ sap.ui.define([
 	};
 
 	/**
+	 * @deprecated As of version 1.120, because sap.ui.model.odata.Filter is deprecated since 1.22.
+	 * @ui5-transform-hint replace-call (aFilter) => aFilter
 	 * @private
 	 */
 	AnalyticalBinding.prototype._convertDeprecatedFilterObjects = function(aFilter) {
@@ -4347,7 +4350,8 @@ sap.ui.define([
 		 * You will need this description in order to understand this implementation.
 		 * The variable names are derived from the names used in the description, underscores in the names indicate indexed names.
 		 */
-		var aKI = this.mKeyIndex[oKeyIndexMapping.sGroupId], // is mKI in description
+		var aDeviatingUnitPropertyNames,
+			aKI = this.mKeyIndex[oKeyIndexMapping.sGroupId], // is mKI in description
 			aSK = this.mServiceKey[oKeyIndexMapping.sGroupId], // is mSK in description
 			aMUK = this.mMultiUnitKey[oKeyIndexMapping.sGroupId], // is mMUK in description
 			iDiscardedEntriesCount = 0,
@@ -4374,12 +4378,13 @@ sap.ui.define([
 		}
 		var oPreviousEntry = this.oModel.getObject("/" + sPreviousServiceKey);
 		var oNextEntry = this.oModel.getObject("/" + sNextServiceKey);
-
 		var sPreviousEntryDimensionKeyString = "",
 			sNextEntryDimensionKeyString = "";
 		for (var i = 0; i < aAggregationLevel.length; i++) {
-			sPreviousEntryDimensionKeyString += oPreviousEntry[aAggregationLevel[i]] + "|";
-			sNextEntryDimensionKeyString += oNextEntry[aAggregationLevel[i]] + "|";
+			sPreviousEntryDimensionKeyString += AnalyticalBinding._getDimensionValue(
+					oPreviousEntry[aAggregationLevel[i]]) + "|";
+			sNextEntryDimensionKeyString += AnalyticalBinding._getDimensionValue(
+					oNextEntry[aAggregationLevel[i]]) + "|";
 		}
 		bNeedMultiUnitKeyMerge = sPreviousEntryDimensionKeyString == sNextEntryDimensionKeyString;
 
@@ -4417,7 +4422,12 @@ sap.ui.define([
 
 				if (aKI[nPrimePrime_e] > 0) { // case I: (nPrimePrime_e) is not a multi-unit entry
 					// create a multi-unit entry for nPrimePrime_e
-					oMultiUnitRepresentative = this._createMultiUnitRepresentativeEntry(oKeyIndexMapping.sGroupId, oPreviousEntry, aSelectedUnitPropertyName, undefined, bIsFlatListRequest);
+					// TODO integration test
+					aDeviatingUnitPropertyNames =
+						AnalyticalBinding._getDeviatingUnitPropertyNames(aSelectedUnitPropertyName,
+							[oPreviousEntry, oNextEntry]);
+					oMultiUnitRepresentative = this._createMultiUnitRepresentativeEntry(oKeyIndexMapping.sGroupId,
+						oPreviousEntry, aSelectedUnitPropertyName, aDeviatingUnitPropertyNames, bIsFlatListRequest);
 					oMultiUnitEntryKey = this.oModel._getKey(oMultiUnitRepresentative.oEntry);
 					// make nPrimePrime_e a multi-unit entry
 					aKI[nPrimePrime_e] = -aKI[nPrimePrime_e];
@@ -4462,7 +4472,10 @@ sap.ui.define([
 						iDiscardedEntriesCount = 1;
 					} else { // case II: (nPrime_e - 1) is NOT a multi-unit entry
 						// create a multi-unit entry for n_e - 1
-						oMultiUnitRepresentative = this._createMultiUnitRepresentativeEntry(oKeyIndexMapping.sGroupId, oPreviousEntry, aSelectedUnitPropertyName, undefined, bIsFlatListRequest);
+						aDeviatingUnitPropertyNames = AnalyticalBinding._getDeviatingUnitPropertyNames(
+							aSelectedUnitPropertyName, [oPreviousEntry, oNextEntry]);
+						oMultiUnitRepresentative = this._createMultiUnitRepresentativeEntry(oKeyIndexMapping.sGroupId,
+							oPreviousEntry, aSelectedUnitPropertyName, aDeviatingUnitPropertyNames, bIsFlatListRequest);
 						oMultiUnitEntryKey = this.oModel._getKey(oMultiUnitRepresentative.oEntry);
 						if (!oMultiUnitRepresentative.bIsNewEntry) {
 							oLogger.fatal("assertion failed: multi-unit entry already existed before");
@@ -4542,7 +4555,7 @@ sap.ui.define([
 		var sMultiUnitEntryKey = "";
 
 		for (var l = 0; l < this.aAllDimensionSortedByName.length; l++) {
-			var sDimVal = oMultiUnitEntry[this.aAllDimensionSortedByName[l]];
+			var sDimVal = AnalyticalBinding._getDimensionValue(oMultiUnitEntry[this.aAllDimensionSortedByName[l]]);
 			// if the value is an empty string, it should be treated as such in the generated key
 			var sSaveDimVal = sDimVal === "" ? '""' : sDimVal;
 			sSaveDimVal = sSaveDimVal === undefined ? "" : sSaveDimVal;
@@ -5000,6 +5013,8 @@ sap.ui.define([
 	 * @param {object} oDimension The dimension
 	 * @param {string} sPropertyName The property name
 	 * @param {object} oDimensionDetails The dimension details
+	 * @returns {boolean} Whether the given property name is the given dimension's text property and therefore has been
+	 *   added to the given dimension details.
 	 *
 	 * @private
 	 */
@@ -5007,7 +5022,50 @@ sap.ui.define([
 		const oTextProperty = oDimension.getTextProperty();
 		if (oTextProperty && oTextProperty.name === sPropertyName) {
 			oDimensionDetails.textPropertyName = sPropertyName;
+
+			return true;
 		}
+
+		return false;
+	};
+
+	/**
+	 * Returns a strigifyable value for the given value of a dimension property.
+	 *
+	 * @param {any} vValue The value of a dimension property
+	 * @returns {any}
+	 *   The stringifyable dimension value; if the given value is an "Edm.Time" object only the "ms" value is returned
+	 * @private
+	 */
+	AnalyticalBinding._getDimensionValue = function (vValue) {
+		if (vValue && vValue.__edmType === "Edm.Time") {
+			vValue = vValue.ms;
+		}
+
+		return vValue;
+	};
+
+	/**
+	 * Returns the unit property names for which a deviating unit value is found in the given multi unit entries.
+	 *
+	 * @param {string[]} aSelectedUnitPropertyNames The selected unit property names
+	 * @param {object[]} aMultiUnitEntries The entries for which a multi unit situation exists
+	 * @returns {string[]} An array containing the deviating unit property names
+	 * @private
+	 */
+	AnalyticalBinding._getDeviatingUnitPropertyNames = function (aSelectedUnitPropertyNames, aMultiUnitEntries) {
+		var aDeviatingUnitPropertyNames = [];
+
+		aSelectedUnitPropertyNames.forEach(function(sUnitPropertyName) {
+			for (var i = 1; i < aMultiUnitEntries.length; i += 1) {
+				if (aMultiUnitEntries[i - 1][sUnitPropertyName] != aMultiUnitEntries[i][sUnitPropertyName]) {
+					aDeviatingUnitPropertyNames.push(sUnitPropertyName);
+					break;
+				}
+			}
+		});
+
+		return aDeviatingUnitPropertyNames;
 	};
 
 	AnalyticalBinding.Logger = oLogger;

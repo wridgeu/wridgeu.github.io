@@ -5,10 +5,7 @@
 function getSelectedContent(requestedContent: string): Promise<string> {
 	//return markdown content & encode '-' with %20
 	return fetch(
-		`https://raw.githubusercontent.com/wiki/wridgeu/wridgeu.github.io/${requestedContent.replace(
-			/[-*?]/g,
-			"%20"
-		)}.md`
+		`https://raw.githubusercontent.com/wiki/wridgeu/wridgeu.github.io/${requestedContent.replace(/[-*?]/g, "%20")}.md`,
 	).then((response) => response.text());
 }
 
@@ -19,13 +16,13 @@ function getSelectedContent(requestedContent: string): Promise<string> {
  */
 function getWikiIndex(): Promise<string> {
 	//return sidebar to use as initial entry point
-	return fetch(
-		`https://raw.githubusercontent.com/wiki/wridgeu/wridgeu.github.io/_Sidebar.md`
-	).then((response) => response.text());
+	return fetch(`https://raw.githubusercontent.com/wiki/wridgeu/wridgeu.github.io/_Sidebar.md`).then((response) =>
+		response.text(),
+	);
 }
 
-function  getContentEditLink(requestedContent: string): string {
-	return `https://github.com/wridgeu/wridgeu.github.io/wiki/${requestedContent}/_edit`
+function getContentEditLink(requestedContent: string): string {
+	return `https://github.com/wridgeu/wridgeu.github.io/wiki/${requestedContent}/_edit`;
 }
 
 /**

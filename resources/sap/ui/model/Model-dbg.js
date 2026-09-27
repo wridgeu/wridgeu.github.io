@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -11,10 +11,11 @@ sap.ui.define([
 	'./BindingMode',
 	'./Context',
 	'./Filter',
+	"sap/base/Log",
 	"sap/base/util/deepEqual",
 	"sap/base/util/each"
 ],
-	function(MessageProcessor, ManagedObjectBindingSupport, BindingMode, Context, Filter, deepEqual,
+	function(MessageProcessor, ManagedObjectBindingSupport, BindingMode, Context, Filter, Log, deepEqual,
 		each) {
 	"use strict";
 
@@ -51,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.message.MessageProcessor
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.Model
@@ -90,6 +91,12 @@ sap.ui.define([
 			this.mUnsupportedFilterOperators = {};
 			// the id of the timeout for calling #checkUpdate
 			this.sUpdateTimer = null;
+			// the number of consecutive synchronous calls to #setProperty
+			this.iSyncSetPropertyCalls = 0;
+			// the overall number of bindings affected by consecutive sync #setProperty calls
+			this.iUpdatedBindings = 0;
+			// the id of timeout for performance check in #setProperty
+			this.iTimeoutId = undefined;
 		},
 
 		metadata : {
@@ -128,7 +135,7 @@ sap.ui.define([
 		 * Depending on the model implementation a RequestSent should be fired when a request to a
 		 * backend is sent.
 		 * Contains Parameters:
-		 * url, type, async, info (<strong>deprecated</strong>), infoObject
+		 * url, type, async, info (<b>deprecated</b>), infoObject
 		 */
 		RequestSent : "requestSent",
 
@@ -136,7 +143,7 @@ sap.ui.define([
 		 * Depending on the model implementation a RequestCompleted should be fired when a request
 		 * to a backend is completed regardless if the request failed or succeeded.
 		 * Contains Parameters:
-		 * url, type, async, info (<strong>deprecated</strong>), infoObject, success, errorobject
+		 * url, type, async, info (<b>deprecated</b>), infoObject, success, errorobject
 		 */
 		RequestCompleted : "requestCompleted",
 
@@ -164,7 +171,7 @@ sap.ui.define([
 	 * @param {object} oEvent.getParameters
 	 * @param {string} oEvent.getParameters.message
 	 *   A text that describes the failure.
-	 * @param {string} oEvent.getParameters.statusCode
+	 * @param {string|number} oEvent.getParameters.statusCode
 	 *   HTTP status code returned by the request (if available)
 	 * @param {string} oEvent.getParameters.statusText
 	 *   The status as a text, details not specified, intended only for diagnosis output
@@ -186,7 +193,7 @@ sap.ui.define([
 	 *   the event object when firing the event
 	 * @param {function} fnFunction
 	 *   The function to be called when the event occurs
-	 * @param {object} [oListener]
+	 * @param {object} [oListener=this]
 	 *   Context object to call the event handler with. Defaults to this
 	 *   <code>sap.ui.model.Model</code> itself
 	 *
@@ -272,7 +279,7 @@ sap.ui.define([
 	 *   the event object when firing the event
 	 * @param {function} fnFunction
 	 *   The function to be called when the event occurs
-	 * @param {object} [oListener]
+	 * @param {object} [oListener=this]
 	 *   Context object to call the event handler with. Defaults to this
 	 *   <code>sap.ui.model.Model</code> itself.
 	 *
@@ -338,7 +345,7 @@ sap.ui.define([
 	 * @param {boolean} [oEvent.getParameters.async]
 	 *   If the request is synchronous or asynchronous (if available)
 	 * @param {string} [oEvent.getParameters.info]
-	 *   Additional information for the request (if available) <strong>deprecated</strong>
+	 *   <b>Deprecated as of version 1.38.0.</b>, additional information for the request (if available)
 	 * @param {object} [oEvent.getParameters.infoObject]
 	 *   Additional information for the request (if available)
 	 * @public
@@ -357,7 +364,7 @@ sap.ui.define([
 	 *   the event object when firing the event
 	 * @param {function} fnFunction
 	 *   The function to be called when the event occurs
-	 * @param {object} [oListener]
+	 * @param {object} [oListener=this]
 	 *   Context object to call the event handler with. Defaults to this
 	 *   <code>sap.ui.model.Model</code> itself
 	 *
@@ -399,7 +406,7 @@ sap.ui.define([
 	 * @param {boolean} [oParameters.async]
 	 *   If the request is synchronous or asynchronous (if available)
 	 * @param {string} [oParameters.info]
-	 *   Additional information for the request (if available) <strong>deprecated</strong>
+	 *   <b>Deprecated as of version 1.38.0.</b>, additional information for the request (if available)
 	 * @param {object} [oParameters.infoObject]
 	 *   Additional information for the request (if available)
 	 *
@@ -438,7 +445,7 @@ sap.ui.define([
 	 * @param {boolean} [oEvent.getParameters.async]
 	 *   If the request is synchronous or asynchronous (if available)
 	 * @param {string} [oEvent.getParameters.info]
-	 *   Additional information for the request (if available) <strong>deprecated</strong>
+	 *   <b>Deprecated as of version 1.38.0.</b>, additional information for the request (if available)
 	 * @param {object} [oEvent.getParameters.infoObject]
 	 *   Additional information for the request (if available)
 	 * @public
@@ -458,7 +465,7 @@ sap.ui.define([
 	 *   the event object when firing the event
 	 * @param {function} fnFunction
 	 *   The function to be called when the event occurs
-	 * @param {object} [oListener]
+	 * @param {object} [oListener=this]
 	 *   Context object to call the event handler with. Defaults to this
 	 *   <code>sap.ui.model.Model</code> itself
 	 *
@@ -502,7 +509,7 @@ sap.ui.define([
 	 * @param {boolean} [oParameters.async]
 	 *   If the request was synchronous or asynchronous (if available)
 	 * @param {string} [oParameters.info]
-	 *   additional information for the request (if available) <strong>deprecated</strong>
+	 *   <b>Deprecated as of version 1.38.0.</b>, additional information for the request (if available)
 	 * @param {object} [oParameters.infoObject]
 	 *   Additional information for the request (if available)
 	 *
@@ -574,7 +581,7 @@ sap.ui.define([
 	 *   the event object when firing the event
 	 * @param {function} fnFunction
 	 *   The function to be called when the event occurs
-	 * @param {object} [oListener]
+	 * @param {object} [oListener=this]
 	 *   Context object to call the event handler with. Defaults to this
 	 *   <code>sap.ui.model.Model</code> itself
 	 *
@@ -627,10 +634,11 @@ sap.ui.define([
 	 *   The path pointing to the list / array that should be bound
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context object for this databinding
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters]
-	 *   Initial sort order (can be either a sorter or an array of sorters)
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters]
-	 *   Predefined filter/s (can be either a filter or an array of filters)
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters used initially; call {@link sap.ui.model.ListBinding#sort} to replace them
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call
+	 *   {@link sap.ui.model.ListBinding#filter} to replace them
 	 * @param {object} [mParameters]
 	 *   Additional model-specific parameters
 	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code>
@@ -650,12 +658,13 @@ sap.ui.define([
 	 *   The path pointing to the tree / array that should be bound
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context object for this databinding
-	 * @param {sap.ui.model.Filter[]} [aFilters]
-	 *   Predefined filter/s contained in an array
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call
+	 *   {@link sap.ui.model.TreeBinding#filter} to replace them
 	 * @param {object} [mParameters]
 	 *   Additional model specific parameters
-	 * @param {sap.ui.model.Sorter[]} [aSorters]
-	 *   Predefined sap.ui.model.sorter/s contained in an array
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters used initially; call {@link sap.ui.model.TreeBinding#sort} to replace them
 	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code>
 	 *   together with other filters
 	 *
@@ -696,26 +705,30 @@ sap.ui.define([
 	 */
 
 	/**
+	 * Returns the value of the property for the given <code>sPath</code> and <code>oContext</code>.
+	 *
 	 * @abstract
 	 *
 	 * @name sap.ui.model.Model.prototype.getProperty
 	 * @function
-	 * @param {string} sPath The path to where to read the attribute value
-	 * @param {sap.ui.model.Context} [oContext] The context with which the path should be resolved
+	 * @param {string} sPath The path to the attribute value you want to read
+	 * @param {sap.ui.model.Context} [oContext] The context that resolves the path
 	 *
-	 * @returns {any} Value of the addressed property
+	 * @returns {any} The value of the addressed property
 	 * @public
 	 */
 
 	/**
+	 * Returns the value of the property for the given <code>sPath</code> and <code>oContext</code>.
+	 *
 	 * @abstract
 	 *
-	 * @param {string} sPath Path to where to read the object
-	 * @param {sap.ui.model.Context} [oContext] Context with which the path should be resolved
+	 * @param {string} sPath The path to the object you want to read
+	 * @param {sap.ui.model.Context} [oContext] The context that resolves the path
 	 * @param {object} [mParameters] Additional model-specific parameters
 	 *
 	 * @returns {any|undefined}
-	 *   The value for the given path/context or <code>undefined</code> if data could not be found
+	 *   The the value of the property for the given path/context or <code>undefined</code> if data could not be found
 	 * @public
 	 */
 	Model.prototype.getObject = function(sPath, oContext, mParameters) {
@@ -732,7 +745,7 @@ sap.ui.define([
 	 * @param {string} sPath The path pointing to the property that should be bound
 	 * @param {sap.ui.model.Context} [oContext] The context object for this databinding
 	 * @param {object} [mParameters] Additional model-specific parameters
-	 * @param {object} [oEvents] Event handlers can be passed to the binding ({change:myHandler})
+	 * @param {Object<string, function>} [oEvents] <b>Deprecated as of version 1.144.0</b> - unused
 	 *
 	 * @return {sap.ui.model.ContextBinding} The newly created binding
 	 * @public
@@ -785,7 +798,11 @@ sap.ui.define([
 				sContextPath = oContext.getPath();
 				sResolvedPath = sContextPath + (sContextPath.endsWith("/") ? "" : "/") + sPath;
 			} else {
-				sResolvedPath = this.isLegacySyntax() ? "/" + sPath : undefined;
+				sResolvedPath = undefined;
+				/** @deprecated As of version 1.88.0 */
+				if (this.isLegacySyntax()) {
+					sResolvedPath = "/" + sPath;
+				}
 			}
 		}
 		if (!sPath && oContext) {
@@ -974,6 +991,9 @@ sap.ui.define([
 	 *   bindings
 	 * @param {boolean} [bAsync=false]
 	 *   Whether this function is called in a new task via <code>setTimeout</code>
+	 * @returns {number|undefined}
+	 *   The number of bindings which were checked synchronously for updates; 0 if <code>bAsync</code> is set.
+	 *   Subclasses overwriting this method may also return <code>undefined</code>.
 	 *
 	 * @private
 	 */
@@ -985,7 +1005,7 @@ sap.ui.define([
 					this.checkUpdate(this.bForceUpdate);
 				}.bind(this), 0);
 			}
-			return;
+			return 0;
 		}
 		bForceUpdate = this.bForceUpdate || bForceUpdate;
 		if (this.sUpdateTimer) {
@@ -997,6 +1017,45 @@ sap.ui.define([
 		each(aBindings, function(iIndex, oBinding) {
 			oBinding.checkUpdate(bForceUpdate);
 		});
+
+		return aBindings.length;
+	};
+
+	/**
+	 * Checks if the sum of bindings updated by consecutive synchronous calls exceeds the threshold of 100,000 and log
+	 * a warning in this case if there is more than one synchronous call. Does nothing if called with bAsyncUpdate=true.
+	 *
+	 * @param {number} iUpdatedBindings The number of synchronously updated bindings
+	 * @param {boolean} [bAsyncUpdate] Whether the bindings are updated asynchronously
+	 *
+	 * @private
+	 */
+	Model.prototype.checkPerformanceOfUpdate = function (iUpdatedBindings, bAsyncUpdate) {
+		if (bAsyncUpdate) {
+			return;
+		}
+
+		this.iSyncSetPropertyCalls += 1;
+		this.iUpdatedBindings += iUpdatedBindings;
+		if (this.iTimeoutId) {
+			return;
+		}
+
+		const fnCheck = () => {
+			if (this.iSyncSetPropertyCalls > 1 && this.iUpdatedBindings > 100000) {
+				const sModelName = this.getMetadata().getName();
+				Log.warning(`Performance issue: ${this.iUpdatedBindings} (more than 100000) bindings are affected by `
+					+ `${this.iSyncSetPropertyCalls} consecutive synchronous calls to `
+					+ `${sModelName.slice(sModelName.lastIndexOf(".") + 1)}#setProperty; `
+					+ `see API documentation for details`,
+				undefined, sModelName);
+			}
+			this.iTimeoutId = undefined;
+			this.iSyncSetPropertyCalls = 0;
+			this.iUpdatedBindings = 0;
+		};
+
+		this.iTimeoutId = setTimeout(fnCheck, 0);
 	};
 
 	/**
@@ -1127,9 +1186,11 @@ sap.ui.define([
 	 * The original value is the value that was last responded by a server if using a server model
 	 * implementation.
 	 *
-	 * @param {string} sPath Path/name of the property
-	 * @param {sap.ui.model.Context} [oContext] Context if available to access the property value
-	 * @returns {any} vValue The value of the property
+	 * @abstract
+	 *
+	 * @param {string} sPath The path/name of the property
+	 * @param {sap.ui.model.Context} [oContext] Context for accessing the property value
+	 * @returns {any} The value of the property
 	 * @public
 	 */
 	Model.prototype.getOriginalProperty = function(sPath, oContext) {
@@ -1164,12 +1225,14 @@ sap.ui.define([
 	 *   Single filter or an array of filter instances
 	 * @throws {Error}
 	 *   If at least one filter uses an <code>sap.ui.model.FilterOperator</code> that is not
-	 *   supported by the related model instance
+	 *   supported by the related model instance or if the {@link sap.ui.model.Filter.NONE} filter instance is contained
+	 *   in <code>vFilters</code> together with other filters
 	 * @private
 	 * @ui5-restricted sap.ui.model
 	 */
-	Model.prototype.checkFilterOperation = function(vFilters) {
-		_traverseFilter(vFilters, function (oFilter) {
+	Model.prototype.checkFilter = function(vFilters) {
+		Filter.checkFilterNone(vFilters);
+		Model._traverseFilter(vFilters, function (oFilter) {
 			if (this.mUnsupportedFilterOperators[oFilter.sOperator]) {
 				throw new Error("Filter instances contain an unsupported FilterOperator: " + oFilter.sOperator);
 			}
@@ -1204,7 +1267,7 @@ sap.ui.define([
 	 *   Check function which is called for each filter instance in the tree
 	 * @private
 	 */
-	function _traverseFilter (vFilters, fnCheck) {
+	Model._traverseFilter = function(vFilters, fnCheck) {
 		vFilters = vFilters || [];
 
 		if (vFilters instanceof Filter) {
@@ -1218,12 +1281,12 @@ sap.ui.define([
 			fnCheck(oFilter);
 
 			// check subfilter for lambda expressions (e.g. Any, All, ...)
-			_traverseFilter(oFilter.oCondition, fnCheck);
+			Model._traverseFilter(oFilter.oCondition, fnCheck);
 
 			// check multi filter if necessary
-			_traverseFilter(oFilter.aFilters, fnCheck);
+			Model._traverseFilter(oFilter.aFilters, fnCheck);
 		}
-	}
+	};
 
 	/**
 	 * Introduces data binding support on the ManagedObject prototype via mixin.

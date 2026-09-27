@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -40,10 +40,9 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.iconEditor.IconEditor
 	 * @author SAP SE
 	 * @since 1.70
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
-	 * @experimental 1.70
 	 * @ui5-restricted
 	 */
 	var IconEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.iconEditor.IconEditor", {
@@ -51,7 +50,7 @@ sap.ui.define([
 		metadata: {
 			library: "sap.ui.integration"
 		},
-		renderer: BasePropertyEditor.getMetadata().getRenderer().render
+		renderer: BasePropertyEditor.getMetadata().getRenderer()
 	});
 
 	IconEditor.configMetadata = Object.assign(
@@ -76,12 +75,16 @@ sap.ui.define([
 
 	IconEditor.prototype._getIconModel = function () {
 		if (!oIconModel) {
-			oIconModel = new JSONModel(IconPool.getIconNames().map(function(sName) {
-				return {
-					name: sName,
-					path: "sap-icon://" + sName
-				};
-			}));
+			oIconModel = new JSONModel();
+			var pReady = IconPool.collectionReady ? IconPool.collectionReady() : Promise.resolve();
+			pReady.then(function() {
+				oIconModel.setData(IconPool.getIconNames().map(function(sName) {
+					return {
+						name: sName,
+						path: "sap-icon://" + sName
+					};
+				}));
+			});
 		}
 		return oIconModel;
 	};

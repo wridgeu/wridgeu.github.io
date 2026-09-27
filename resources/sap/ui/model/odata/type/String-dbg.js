@@ -1,15 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/type/ODataType",
 	"sap/ui/model/type/String"
-], function (Log, ValidateException, ODataType, StringType) {
+], function(Log, Library, ValidateException, ODataType, StringType) {
 	"use strict";
 
 	var rDigitsOnly = /^\d+$/,
@@ -74,9 +75,13 @@ sap.ui.define([
 	/**
 	 * Constructor for an OData primitive type <code>Edm.String</code>.
 	 *
-	 * @class This class represents the OData primitive type <a
-	 * href="http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
-	 * <code>Edm.String</code></a>.
+	 * @class This class represents the OData primitive type <code>Edm.String</code>, see
+	 * <a
+	 * href="https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338">
+	 * type definition for OData V4.01</a> or
+	 * <a
+	 * href="https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
+	 * type definition for OData V2</a>.
 	 *
 	 * In both {@link sap.ui.model.odata.v2.ODataModel} and {@link sap.ui.model.odata.v4.ODataModel}
 	 * this type is represented as a <code>string</code>.
@@ -84,7 +89,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @alias sap.ui.model.odata.type.String
 	 * @param {object} [oFormatOptions]
@@ -245,25 +250,25 @@ sap.ui.define([
 			throw new ValidateException("Illegal " + this.getName() + " value: " + sValue);
 		} else if (oConstraints.isDigitSequence) {
 			if (!sValue.match(rDigitsOnly)) {
-				throw new ValidateException(sap.ui.getCore().getLibraryResourceBundle()
+				throw new ValidateException(Library.getResourceBundleFor("sap.ui.core")
 					.getText("EnterDigitsOnly"));
 			}
 			if (iMaxLength && sValue.length > iMaxLength) {
-				throw new ValidateException(sap.ui.getCore().getLibraryResourceBundle()
+				throw new ValidateException(Library.getResourceBundleFor("sap.ui.core")
 					.getText("EnterMaximumOfDigits", [iMaxLength]));
 			}
 			return;
 		} else if (!iMaxLength || sValue.length <= iMaxLength) {
 			return;
 		}
-		throw new ValidateException(sap.ui.getCore().getLibraryResourceBundle().getText(
+		throw new ValidateException(Library.getResourceBundleFor("sap.ui.core").getText(
 			iMaxLength ? "EnterTextMaxLength" : "EnterText", [iMaxLength]));
 	};
 
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.String"}
 	 *   the type's name
 	 * @public
 	 */

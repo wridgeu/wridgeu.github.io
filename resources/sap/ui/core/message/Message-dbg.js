@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the implementation for a Message
 sap.ui.define([
 	'./MessageType',
-	'sap/base/Log',
+	'sap/base/future',
 	'sap/base/util/uid',
 	'sap/ui/base/Object'
 ],
-	function(MessageType, Log, uid, BaseObject) {
+	function(MessageType, future, uid, BaseObject) {
 	"use strict";
 
 	const mMessageType2Severity = {
@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @param {object} [mParameters] a map which contains the following parameter properties:
 	 * @param {string} [mParameters.id] The message id: will be generated if no id is set
@@ -43,10 +43,14 @@ sap.ui.define([
 	 * @param {string} [mParameters.description] The message description
 	 * @param {string} [mParameters.descriptionUrl] The message description url to get a more detailed message
 	 * @param {string} [mParameters.additionalText] The message additionalText
-	 * @param {sap.ui.core.MessageType} [mParameters.type=sap.ui.core.MessageType.None] The message type
+	 * @param {module:sap/ui/core/message/MessageType} [mParameters.type=module:sap/ui/core/message/MessageType.None] The message type
 	 * @param {string} [mParameters.code] The message code
 	 * @param {boolean} [mParameters.technical=false] If the message is set as technical message
 	 * @param {object} [mParameters.technicalDetails] An object containing technical details for a message
+	 * @param {boolean} [mParameters.validation=false] Whether the message originates from a client-side
+	 *   type validation or parse error. Set to <code>true</code> by the framework when creating messages
+	 *   for <code>validationError</code>, <code>parseError</code>, or <code>formatError</code> binding
+	 *   events. Read via {@link #isValidation}; cannot be changed after construction.
 	 * @param {sap.ui.core.message.MessageProcessor} [mParameters.processor]
 	 * @param {string|string[]} [mParameters.target] The single message target or (since 1.79) an
 	 *   array of message targets in case the message has multiple targets. The syntax is
@@ -270,21 +274,21 @@ sap.ui.define([
 	/**
 	 * Set message type
 	 *
-	 * @param {sap.ui.core.MessageType} sType The Message type
+	 * @param {module:sap/ui/core/message/MessageType} sType The Message type
 	 * @public
 	 */
 	Message.prototype.setType = function(sType) {
 		if (sType in MessageType) {
 			this.type = sType;
 		} else {
-			Log.error("MessageType must be of type sap.ui.core.MessageType");
+			future.errorThrows("MessageType must be of type sap/ui/core/message/MessageType");
 		}
 	};
 
 	/**
 	 * Returns the message type
 	 *
-	 * @returns {sap.ui.core.MessageType} type
+	 * @returns {module:sap/ui/core/message/MessageType} type
 	 * @public
 	 */
 	Message.prototype.getType = function() {
@@ -355,7 +359,7 @@ sap.ui.define([
 		if (BaseObject.isObjectA(oMessageProcessor, "sap.ui.core.message.MessageProcessor")) {
 			this.processor = oMessageProcessor;
 		} else {
-			Log.error("oMessageProcessor must be an instance of 'sap.ui.core.message.MessageProcessor'");
+			future.errorThrows("oMessageProcessor must be an instance of 'sap.ui.core.message.MessageProcessor'");
 		}
 	};
 
@@ -450,6 +454,29 @@ sap.ui.define([
 		return this.technicalDetails;
 	};
 
+	/**
+	 * Returns whether the message originated from a client-side type validation or parse error.
+	 *
+	 * A message is considered a validation message when it was created by the binding layer in
+	 * response to a type validator or parser rejecting a user-entered value (i.e. a
+	 * <code>validationError</code>, <code>parseError</code>, or <code>formatError</code> event
+	 * fired by a managed object binding). Such messages are created with
+	 * <code>mParameters.validation: true</code> in the {@link sap.ui.core.message.Message}
+	 * constructor. The flag is set at construction time and cannot be changed afterwards.
+	 *
+	 * Use this method to distinguish client-side validation messages from server-side messages
+	 * (e.g. OData error responses) or application-created messages, which always have
+	 * <code>validation: false</code>.
+	 *
+	 * @returns {boolean} <code>true</code> if the message originated from a client-side type
+	 *   validation or parse error, <code>false</code> otherwise
+	 * @public
+	 * @since 1.151
+	 */
+	Message.prototype.isValidation = function() {
+		return this.validation;
+	};
+
 	Message.prototype.addReference = function(sId, sProperty) {
 		if (!sId) {
 			return;
@@ -508,7 +535,7 @@ sap.ui.define([
 	 *   <code>0</code> if the message types are equal, a number smaller than <code>0</code> if the
 	 *   first message's type has higher severity, a number larger than <code>0</code> if the
 	 *   first message's type has lower severity and <code>NaN</code> in case one of the given
-	 *   messages has a type not defined in {@link sap.ui.core.MessageType}
+	 *   messages has a type not defined in {@link module:sap/ui/core/message/MessageType}
 	 * @private
 	 */
 	Message.compare = function (oMessage0, oMessage1) {

@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides control sap.ui.layout.form.FormElement.
+// Provides control sap.ui.layout.form.SemanticFormElement.
 sap.ui.define([
 	'./FormElement',
 	'./FormHelper'
@@ -21,20 +21,21 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * A <code>SemanticFormElement</code> element is a special <code>FormElement</code> that contains semantically connected
+	 * A <code>SemanticFormElement</code> element is a special {@link sap.ui.layout.form.FormElement FormElement} that contains semantically connected
 	 * fields. These field controls are divided by delimiter controls. In display mode, they are rendered as one condensed string,
 	 * in edit mode as separate fields.
 	 *
-	 * <b>Note:</b> Please use the <code>ColumnLayout</code> as <code>layout</code> of the <code>Form</code>. For other layouts, the
-	 * field arrangement might not be suitable in every case.
+	 * Only controls implementing the {@link sap.ui.core.ISemanticFormContent ISemanticFormContent} interface are supported.
+	 *
+	 * <b>Note:</b> Please use the {@link sap.ui.layout.form.ColumnLayout ColumnLayout} as {@link sap.ui.layout.form.Form#setLayout layout} of the {@link sap.ui.layout.form.Form Form}.
+	 * For other layouts, the field arrangement might not be suitable in every case.
 	 * @extends sap.ui.layout.form.FormElement
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
-	 * @experimental As of version 1.86
 	 * @since 1.86.0
 	 * @alias sap.ui.layout.form.SemanticFormElement
 	 */
@@ -52,12 +53,10 @@ sap.ui.define([
 		aggregations : {
 
 			/**
-			 * Labels of the individual fields. Can either be a <code>Label</code> control or a string.
+			 * Labels of the individual fields.
 			 *
-			 * If a <code>Label</code> control is used, the properties of the <code>Label</code> can be set.
-			 *
-			 * These labels are not rendered directly. If the <code>Label</code> property of <code>SemanticFormElement</code> is not set,
-			 * the texts of the labels are concatenated into the <code>Label</code> property of <code>SemanticFormElement</code>. Otherwise the set
+			 * These labels are not rendered directly. If the {@link #getLabel label} aggregation of <code>SemanticFormElement</code> is not set,
+			 * the texts of the labels are concatenated into the {@link #setLabel label} aggregation of <code>SemanticFormElement</code>. Otherwise the set
 			 * <code>Label</code> is shown.
 			 *
 			 * <b>Note:</b> If this aggregation is used, a label is assigned to every single field of <code>SemanticFormElement</code>.
@@ -116,13 +115,15 @@ sap.ui.define([
 							sText = oLabel.getText();
 						}
 
-						var sLabel = mAriaProps["label"];
-						if (!sLabel) {
-							sLabel = sText;
-						} else {
-							sLabel = sLabel + " " + sText;
+						if (oElement.isA("sap.ui.core.ILabelable") && oElement.hasLabelableHTMLElement?.()) { // only for labelable controls
+							var sLabel = mAriaProps["label"];
+							if (!sLabel) {
+								sLabel = sText;
+							} else {
+								sLabel = sLabel + " " + sText;
+							}
+							mAriaProps["label"] = sLabel;
 						}
-						mAriaProps["label"] = sLabel;
 
 						// remove pointer to FormElements label
 						var sLabelledBy = mAriaProps["labelledby"];
@@ -183,7 +184,7 @@ sap.ui.define([
 
 		if (!_renderAsText.call(this)) {
 			if (this.getAggregation("_displayField")) {
-				// switch to control mode missing, this could happen if something unexpected chaged on field what leads to update of getFormRenderAsControl
+				// switch to control mode missing, this could happen if something unexpected changed on field what leads to update of getFormRenderAsControl
 				// (happens if the change is not observed because of missing property in getFormObservingProperties or some internal change)
 				// -> update now, even if it is somehow late and could lead to re-rendering
 				this.destroyAggregation("_displayField");
@@ -490,9 +491,11 @@ sap.ui.define([
 			if (bAsync) {
 				Promise.all(aTexts).then(function(aTexts) {
 					var oDisplay = this.getAggregation("_displayField");
-					var sText = _concatenateTexts.call(this, aTexts);
-					oDisplay._bNoForceUpdate = true; // prevent double update, as setText might trigger re-rendering (again as a re-rendeing could happen until promise resolved)
-					FormHelper.updateSemanticDisplayControl(oDisplay, sText);
+					if (oDisplay) {
+						var sText = _concatenateTexts.call(this, aTexts);
+						oDisplay._bNoForceUpdate = true; // prevent double update, as setText might trigger re-rendering (again as a re-rendeing could happen until promise resolved)
+						FormHelper.updateSemanticDisplayControl(oDisplay, sText);
+					}
 				}.bind(this));
 			} else {
 				var sText = _concatenateTexts.call(this, aTexts);

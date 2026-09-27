@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.FormattedText.
 sap.ui.define([
 	'./library',
+	"sap/ui/core/Element",
 	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'./FormattedTextAnchorGenerator',
@@ -14,11 +15,11 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/base/security/URLListValidator",
 	"sap/base/security/sanitizeHTML",
-	"sap/ui/util/openWindow",
-	'sap/ui/core/Core'
+	"sap/ui/util/openWindow"
 ],
 function(
 	library,
+	Element,
 	coreLibrary,
 	Control,
 	FormattedTextAnchorGenerator,
@@ -26,8 +27,7 @@ function(
 	Log,
 	URLListValidator,
 	sanitizeHTML0,
-	openWindow,
-	Core
+	openWindow
 	) {
 		"use strict";
 
@@ -46,7 +46,7 @@ function(
 		 * @class
 		 * The FormattedText control allows the usage of a limited set of tags for inline display of formatted text in HTML format.
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
@@ -81,6 +81,7 @@ function(
 					 *	<li><code>strong</code></li>
 					 *	<li><code>span</code></li>
 					 *	<li><code>u</code></li>
+					 *	<li><code>s</code></li>
 					 *	<li><code>dl</code></li>
 					 *	<li><code>dt</code></li>
 					 *	<li><code>dd</code></li>
@@ -143,7 +144,12 @@ function(
 					 *
 					 * @since 1.86.0
 					 */
-					textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin}
+					textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin},
+
+					/**
+					 * Disables rendering of the <code>style</code> attribute in the <code>FormattedText</code>.
+					 */
+					disableStyleAttribute : {type : "boolean", group : "Appearance", defaultValue : false}
 				},
 				aggregations: {
 
@@ -169,6 +175,7 @@ function(
 				'class' : 1,
 				'a::href' : 1,
 				'a::target' : 1,
+				'a::title' : 1,
 				'dir' : 1
 			},
 			// rules for the allowed tags
@@ -193,6 +200,7 @@ function(
 				'strong': 1,
 				'span': 1,
 				'u' : 1,
+				's' : 1,
 
 				// List Module Tags
 				'dl': 1,
@@ -206,14 +214,18 @@ function(
 		_limitedRenderingRules = {
 			ATTRIBS: {
 				'a::href' : 1,
-				'a::target' : 1
+				'a::target' : 1,
+				'span::style' : 1,
+				'span::class' : 1,
+				'span::data-sap-ui-icon-content' : 1
 			},
 			ELEMENTS: {
 				'a' : {cssClass: 'sapMLnk'},
 				'br': 1,
 				'em': 1,
 				'strong': 1,
-				'u': 1
+				'u': 1,
+				'span' : 1
 			}
 		};
 
@@ -329,7 +341,7 @@ function(
 				return;
 			}
 			oEvent.preventDefault();
-			var oLink = Core.byId(oEvent.currentTarget.id);
+			var oLink = Element.getElementById(oEvent.currentTarget.id);
 			if (oLink && oLink.isA('sap.m.Link') && (oLink.getAccessibleRole() === library.LinkAccessibleRole.Button || !oLink.getHref())) {
 				return;
 			}
@@ -373,9 +385,13 @@ function(
 					oDomRef,
 					NodeFilter.SHOW_ELEMENT
 				),
-				oCurrentNode = oWalker.nextNode();
+				oCurrentNode = oWalker.nextNode(),
+				bDisableStyle = this.getDisableStyleAttribute();
 
 			while (oCurrentNode) {
+				if (bDisableStyle) {
+					oCurrentNode.removeAttribute("style");
+				}
 				oCurrentNode.style.setProperty("position", "static", "important");
 				oCurrentNode = oWalker.nextNode();
 			}
@@ -426,6 +442,27 @@ function(
 
 		FormattedText.prototype.getFocusDomRef = function () {
 			return this.getDomRef() && this.getDomRef().querySelector("a");
+		};
+
+		/**
+		 * Returns the <code>sap.m.FormattedText</code> accessibility information.
+		 *
+		 * @see sap.ui.core.Control#getAccessibilityInfo
+		 * @protected
+		 * @returns {sap.ui.core.AccessibilityInfo} The <code>sap.m.FormattedText</code> accessibility information
+		 */
+		FormattedText.prototype.getAccessibilityInfo = function() {
+			var aLinkAccessibleTexts = this.getControls().map(function(oLink) {
+				return `${oLink.getAccessibilityInfo().type} ${oLink.getAccessibilityInfo().description}`.trim();
+			});
+			var sDescription = this.getHtmlText().replace(/<[^>]*>/g, "");
+			aLinkAccessibleTexts.forEach(function(sText, iIndex) {
+				sDescription = sDescription.replace(`%%${iIndex}`, sText);
+			});
+
+			return {
+				description: sDescription
+			};
 		};
 
 		return FormattedText;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,6 @@ sap.ui.define([
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/resource/ResourceModel",
 	"sap/ui/model/json/JSONModel",
-	"sap/ui/thirdparty/URI",
 	"sap/m/MessageBox",
 	"sap/m/MessageToast",
 	"sap/ui/core/support/Support",
@@ -21,9 +20,9 @@ sap.ui.define([
 	"sap/ui/util/Storage",
 	"sap/ui/core/syncStyleClass",
 	"sap/base/Log",
+	"sap/base/util/Version",
 	"sap/ui/core/Fragment",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/Element",
 	"sap/ui/core/Supportability",
 	"sap/ui/core/Lib",
@@ -36,7 +35,6 @@ sap.ui.define([
 	DateFormat,
 	ResourceModel,
 	JSONModel,
-	URI,
 	MessageBox,
 	MessageToast,
 	Support,
@@ -45,9 +43,9 @@ sap.ui.define([
 	Storage,
 	syncStyleClass,
 	Log,
+	Version,
 	Fragment,
 	jQuery,
-	Configuration,
 	Element,
 	Supportability,
 	Library,
@@ -182,7 +180,7 @@ sap.ui.define([
 
 		/**
 		 * Enables/Disables debug mode globally with a confirmation dialog
-		 * @param {sap.ui.base.event} oEvent The checkbox select event
+		 * @param {sap.ui.base.Event} oEvent The checkbox select event
 		 */
 		onDebugSources: function (oEvent) {
 			var bSelected = oEvent.getParameter("selected");
@@ -421,7 +419,7 @@ sap.ui.define([
 
 		/**
 		 * Writes the option for opening in new window to local storage
-		 * @param {sap.ui.base.event} oEvent The checkbox select event
+		 * @param {sap.ui.base.Event} oEvent The checkbox select event
 		 */
 		onChangeOpenInNewWindow: function (oEvent) {
 			var bSelected = oEvent.getParameter("selected");
@@ -446,7 +444,7 @@ sap.ui.define([
 				// enable or disable default option for version >= 1.48
 				var oCurrentItem = this._getControl("standardBootstrapURL", this._SUPPORT_ASSISTANT_POPOVER_ID).getItems()[0];
 				if (this._isVersionBiggerThanMinSupported()) {
-					var sAppVersion = Configuration.getVersion().toString();
+					var sAppVersion = this._oVersionInfo.version;
 					oCurrentItem.setText(oCurrentItem.getText().replace("[[version]]", sAppVersion));
 					oCurrentItem.setEnabled(true);
 				} else {
@@ -639,8 +637,16 @@ sap.ui.define([
 			this._oDialog.setModel(oI18nModel, "i18n");
 			this._oDialog.setModel(this._createViewModel(), "view");
 
+			this._oDialog.attachAfterClose(this._onDialogAfterClose, this);
+
 			// set compact/cozy style class
 			this._oDialog.addStyleClass(this._getContentDensityClass());
+		},
+
+		_onDialogAfterClose: function () {
+			if (!this._bIsBeingClosed) {
+				this.close();
+			}
 		},
 
 		_loadVersionInfo: function() {
@@ -661,7 +667,7 @@ sap.ui.define([
 		 * @return {JSONModel} Model with filled data.
 		 */
 		_createViewModel: function () {
-			var sDefaultBootstrapURL = new URI(sap.ui.require.toUrl(""), window.location.origin + window.location.pathname) + "/sap/ui/support/",
+			var sDefaultBootstrapURL = new URL(sap.ui.require.toUrl("sap/ui/support/"), document.baseURI).href,
 				sDefaultSelectedLocation = "standard",
 				sDefaultOpenInNewWindow = false;
 
@@ -702,7 +708,7 @@ sap.ui.define([
 
 			var sAppVersion;
 			try {
-				sAppVersion = this._getText("TechInfo.SupportAssistantConfigPopup.AppVersionOption", this._oVersionInfo.version);
+				sAppVersion = this._getText("TechInfo.SupportAssistantConfigPopup.AppVersionOption", [this._oVersionInfo.version]);
 			} catch (oException) {
 				sAppVersion = "Application";
 			}
@@ -725,7 +731,7 @@ sap.ui.define([
 					"Value": "https://ui5.sap.com/resources/sap/ui/support/"
 				}
 			];
-			var sDebugModulesTitle = this._getText("TechInfo.DebugModulesConfigPopup.SelectionCounter", oViewModel.DebugModuleSelectionCount);
+			var sDebugModulesTitle = this._getText("TechInfo.DebugModulesConfigPopup.SelectionCounter", [oViewModel.DebugModuleSelectionCount]);
 			oViewModel.setProperty("/DebugModulesTitle", sDebugModulesTitle);
 			oViewModel.setProperty("/SupportAssistantPopoverURLs", aSupportedUrls);
 			oViewModel.setProperty("/ApplicationURL", document.location.href);
@@ -762,7 +768,7 @@ sap.ui.define([
 		 * @private
 		 */
 		_isVersionBiggerThanMinSupported: function () {
-			var oVersion = Configuration.getVersion();
+			var oVersion = new Version(this._oVersionInfo.version);
 			if (oVersion && oVersion.compareTo(this._MIN_UI5VERSION_SUPPORT_ASSISTANT) >= 0) {
 				return true;
 			}
@@ -778,7 +784,7 @@ sap.ui.define([
 			var oDateFormat = DateFormat.getDateInstance({pattern: "dd.MM.yyyy HH:mm:ss"}),
 				sBuildDate = oDateFormat.format(this._convertBuildDate(sBuildTimestamp));
 
-			return this._getText("TechInfo.VersionBuildTime.Text", sBuildDate);
+			return this._getText("TechInfo.VersionBuildTime.Text", [sBuildDate]);
 		},
 
 		/**
@@ -986,7 +992,7 @@ sap.ui.define([
 			oModel.setProperty("/CustomDebugMode", this._treeHelper.toDebugInfo(oTreeData));
 			oModel.setProperty("/DebugModuleSelectionCount", this._treeHelper.getSelectionCount(oTreeData));
 			sDisplayCount = oModel.getProperty("/DebugModuleSelectionCount").toString();
-			oModel.setProperty("/DebugModulesTitle", this._getText("TechInfo.DebugModulesConfigPopup.SelectionCounter", sDisplayCount));
+			oModel.setProperty("/DebugModulesTitle", this._getText("TechInfo.DebugModulesConfigPopup.SelectionCounter", [sDisplayCount]));
 		},
 
 		_loadDebugPopover: function() {

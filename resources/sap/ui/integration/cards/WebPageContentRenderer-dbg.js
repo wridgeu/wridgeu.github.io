@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,11 +27,29 @@ sap.ui.define(["./BaseContentRenderer", "sap/ui/integration/util/BindingResolver
 		oRm.openStart("iframe", oWebPageContent.getId() + "-frame")
 			.class("sapUiIntWPCFrame");
 
-		oRm.style("height", "calc(" + oWebPageContent.getMinHeight() + " - " + PADDING + ")")
-			.attr("src", oWebPageContent.getSrc())
-			.attr("tabindex", "0")
-			.attr("sandbox", oWebPageContent.getSandbox())
-			.openEnd()
+		if (!oWebPageContent.getOverflowWithShowMore()) {
+			oRm.style("height", "calc(" + oWebPageContent.getMinHeight() + " - " + PADDING + ")");
+		}
+
+		if (oWebPageContent._bSrcChecked) {
+			oRm.attr("src", oWebPageContent.getSrc());
+		}
+
+		oRm.attr("tabindex", "0");
+
+		if (!oWebPageContent.getOmitSandbox()) {
+			oRm.attr("sandbox", oWebPageContent.getSandbox());
+		}
+
+		if (oWebPageContent.getAllow()) {
+			oRm.attr("allow", oWebPageContent.getAllow());
+		}
+
+		if (oWebPageContent.getAllowFullscreen()) {
+			oRm.attr("allowfullscreen", oWebPageContent.getAllowFullscreen());
+		}
+
+		oRm.openEnd()
 			.close("iframe");
 	};
 
@@ -44,6 +62,15 @@ sap.ui.define(["./BaseContentRenderer", "sap/ui/integration/util/BindingResolver
 		}
 
 		return WebPageContentRenderer.MIN_WEB_PAGE_CONTENT_HEIGHT;
+	};
+
+	/**
+	 * @override
+	 */
+	WebPageContentRenderer.renderLoadingPlaceholder = function (oRm, oCardContent) {
+		// Always render the placeholder for WebPage Content and hide it with CSS only to avoid iframe re-rendering.
+		// Unnecessary iframe re-rendering causes the iframe to reload its page.
+		oRm.renderControl(oCardContent.getAggregation("_loadingPlaceholder"));
 	};
 
 	return WebPageContentRenderer;

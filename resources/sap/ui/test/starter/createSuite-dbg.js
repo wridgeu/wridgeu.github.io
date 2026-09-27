@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -120,12 +120,11 @@
 			+ "</div>"
 			+ "<ol id='qunit-tests'>";
 		oSuiteConfig.sortedTests.forEach(function(oTestConfig) {
-			var sPageUrl = sap.ui.require.toUrl("") + "/../" + oTestConfig.page;
 			sLinkHTML += "<li class='" + (oTestConfig.skip ? "skipped" : "pass") + "'>" +
 					(oTestConfig.skip ? "<em class='qunit-skipped-label'>skipped</em>" : "") +
 					"<strong>" +
 					(oTestConfig.group ? "<span class='module-name'>" + oTestConfig.group + "<span>: " : "") +
-					"<a class='test-name' href='" + sPageUrl + "' target='_blank'>" + oTestConfig.name + "</a></strong></li>";
+					"<a class='test-name' href='" +  oTestConfig.page + "' target='_blank'>" + oTestConfig.name + "</a></strong></li>";
 		});
 		sLinkHTML += "</ol>"
 			+ "<div id='redirect-hint'><div>"
@@ -135,7 +134,7 @@
 
 		render(sLinkHTML).then(function() {
 			// Note: we use a 0.1 second timer resolution so that the blocking div disappears quickly
-			var count = 10 * (parseInt(utils.getAttribute("data-sap-ui-delay")) || 2) + 9;
+			var count = 10 * (parseInt(utils.getAttribute("data-sap-ui-delay")) || -1) + 9;
 
 			function countDown() {
 				if ( count === 6 ) {
@@ -179,6 +178,8 @@
 
 	}
 
+	utils.registerResourceRoots();
+
 	var sSuiteName = utils.getAttribute("data-sap-ui-testsuite") || utils.getDefaultSuiteName();
 	var whenLoaded = utils.getSuiteConfig(sSuiteName);
 
@@ -198,12 +199,10 @@
 	window.suite = function() {
 
 		function createSuite(oSuiteConfig) {
-			var sContextPath = new URL(sap.ui.require.toUrl("") + "/../", document.baseURI).pathname;
-
 			var oSuite = new JSUnitSuite();
 			oSuiteConfig.sortedTests.forEach(function(oTestConfig) {
 				if (!oTestConfig.skip) {
-					oSuite.addTestPage(sContextPath + oTestConfig.page, oTestConfig);
+					oSuite.addTestPage(oTestConfig.page, oTestConfig);
 				}
 			});
 			return oSuite;

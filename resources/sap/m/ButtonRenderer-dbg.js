@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,10 +10,11 @@ sap.ui.define([
 	'sap/ui/core/ShortcutHintsMixin',
 	'sap/m/library',
 	'sap/ui/core/InvisibleText',
-	'sap/ui/core/AccessKeysEnablement'
+	'sap/ui/core/AccessKeysEnablement',
+	'sap/ui/Device'
 ],
 
-	function(coreLibrary, IconPool, ShortcutHintsMixin, library, InvisibleText, AccessKeysEnablement) {
+	function(coreLibrary, IconPool, ShortcutHintsMixin, library, InvisibleText, AccessKeysEnablement, Device) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -60,7 +61,6 @@ sap.ui.define([
 		var sTooltip = oButton._getTooltip();
 		var sText = oButton._getText();
 		var sTextDir = oButton.getTextDirection();
-		// render bdi tag only if the browser is different from IE and Edge since it is not supported there
 		var bRenderBDI = (sTextDir === TextDirection.Inherit);
 
 		// get icon from icon pool
@@ -76,10 +76,6 @@ sap.ui.define([
 		// button container style class
 		if (!oButton._isUnstyled()) {
 			oRm.class("sapMBtn");
-			// extend  minimum button size if icon is set without text for button types back and up
-			if ((sType === ButtonType.Back || sType === ButtonType.Up) && oButton._getAppliedIcon() && !sText) {
-				oRm.class("sapMBtnBack");
-			}
 		}
 
 		//ARIA attributes
@@ -130,6 +126,11 @@ sap.ui.define([
 			oRm.style("min-width", sMinWidth);
 		}
 		renderTabIndex(oButton, oRm);
+
+		// For Safari on mobile devices, a button without tabindex is not treated as an interactive element
+		if (bEnabled && !oButton._bExcludeFromTabChain && !Device.system.desktop) {
+			oRm.attr("tabindex", 0);
+		}
 
 		// close button tag
 		oRm.openEnd();
@@ -294,7 +295,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Renders tabindex with value of "-1" if required by  <code>_bExcludeFromTabChain</code> property.
+	 * Renders tabindex with value of "-1" if required by <code>_bExcludeFromTabChain</code> property.
 	 * @param {sap.m.Button} oButton The sap.m.Button to be rendered
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer
 	 */

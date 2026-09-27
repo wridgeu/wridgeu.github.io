@@ -1,11 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  *
  * @function
  * @private
- * @experimental
  */
 sap.ui.define(function () {
 	"use strict";
@@ -86,20 +85,6 @@ sap.ui.define(function () {
 						}
 					}
 				}
-			},
-			"DataServiceName": {
-				"tags": aTags.concat(["data"]),
-				"label": "{i18n>CARD_EDITOR.DATA.SERVICE.NAME}",
-				"type": "string",
-				"path": sRelativePath + "data/service/name",
-				"visible": false // Currently undocumented
-			},
-			"DataServiceParameters": {
-				"tags": aTags.concat(["data"]),
-				"label": "{i18n>CARD_EDITOR.DATA.SERVICE.PARAMETERS}",
-				"type": "map",
-				"path": sRelativePath + "data/service/parameters",
-				"visible": false // Currently undocumented
 			},
 			"DataUpdateInterval": {
 				"tags": aTags.concat(["data"]),

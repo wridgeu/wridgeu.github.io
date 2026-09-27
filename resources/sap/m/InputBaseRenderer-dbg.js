@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/ValueStateSupport', 'sap/ui/Device', 'sap/ui/core/Configuration', "sap/ui/core/Lib"],
-	function(Renderer, coreLibrary, ValueStateSupport, Device, Configuration, Library) {
+sap.ui.define(["sap/ui/core/ControlBehavior", 'sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/ValueStateSupport', 'sap/ui/Device', "sap/ui/core/Lib"],
+	function(ControlBehavior, Renderer, coreLibrary, ValueStateSupport, Device, Library) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
@@ -36,7 +36,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 		var sValueState = oControl.getValueState(),
 			sTextDir = oControl.getTextDirection(),
 			sTextAlign = Renderer.getTextAlign(oControl.getTextAlign(), sTextDir),
-			bAccessibility = Configuration.getAccessibility(),
+			bAccessibility = ControlBehavior.isAccessibilityEnabled(),
 			aBeginIcons = oControl.getAggregation("_beginIcon") || [],
 			aEndIcons = oControl.getAggregation("_endIcon") || [],
 			aVisibleBeginIcons, aVisibleEndIcons;
@@ -326,16 +326,16 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 		}
 
 		var oFormattedValueStateText = oControl.getAggregation("_invisibleFormattedValueStateText");
-		var sValueStateTypeText;
-
-
-		sValueStateTypeText = Library.getResourceBundleFor("sap.m").getText("INPUTBASE_VALUE_STATE_" + sValueState.toUpperCase());
+		var sValueStateTypeText = Library.getResourceBundleFor("sap.m").getText("INPUTBASE_VALUE_STATE_" + sValueState.toUpperCase());
 
 		oRm.openStart("div", oControl.getValueStateMessageId() + "-sr")
 			.class("sapUiPseudoInvisibleText");
 
-		oRm.openEnd()
-			.text(sValueStateTypeText).text(" ");
+		oRm.openEnd();
+
+		if (sValueState !== ValueState.Error) {
+			oRm.text(sValueStateTypeText).text(" ");
+		}
 
 		if (oFormattedValueStateText) {
 			oRm.renderControl(oFormattedValueStateText);
@@ -344,7 +344,10 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 			// semantic renderer's DOM patching and update the live region
 			oRm.text(oControl.getValueStateText() || ValueStateSupport.getAdditionalText(oControl));
 		}
+
 		oRm.close("div");
+
+		this.renderValueStateLinksAcc(oRm, oControl);
 	};
 
 	/**
@@ -370,7 +373,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 			mAccessibilityState.invalid = true;
 			mAccessibilityState.errormessage = sValueStateAccNodeId;
 		} else if (oControl.getValueState() !== ValueState.None && oControl.getEditable() && oControl.getEnabled()) {
-			sAriaDescribedBy = sAriaDescribedBy ? sValueStateAccNodeId + " " + sAriaDescribedBy : sValueStateAccNodeId;
+			sAriaDescribedBy = sAriaDescribedBy ? `${sValueStateAccNodeId} ${sAriaDescribedBy}` : sValueStateAccNodeId;
 		}
 
 		if (sAriaLabelledBy) {
@@ -466,6 +469,18 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 	 * @param {sap.m.InputBase} oControl An object representation of the control that should be rendered.
 	 */
 	InputBaseRenderer.addOuterStyles = function(oRm, oControl) {};
+
+	InputBaseRenderer.renderValueStateLinksAcc = function(oRm, oControl) {
+		const aLinks = oControl.getValueStateLinksForAcc();
+
+		if (aLinks.length) {
+			oRm.openStart("span", oControl.getValueStateLinksShortcutsId())
+				.class("sapUiPseudoInvisibleText")
+				.openEnd();
+			oRm.text(oControl.getValueStateLinksShortcutsTextAcc());
+			oRm.close("span");
+		}
+	};
 
 	/**
 	 * This method is reserved for derived class to set width inline style
@@ -603,7 +618,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 	/**
 	 * This method is reserved for derived classes to add extra styles for the placeholder, if rendered as label.
 	 *
-	 * @deprecated Since version 1.58.0.
+	 * @deprecated As of version 1.58.0. This method should not be used anymore as native placeholder is used on all browsers.
 	 * @protected
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
 	 * @param {sap.m.InputBase} oControl An object representation of the control that should be rendered.
@@ -615,7 +630,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 	 * To be overwritten by subclasses.
 	 * Note that this method should not be used anymore as native placeholder is used on all browsers
 	 *
-	 * @deprecated Since version 1.58.0.
+	 * @deprecated As of version 1.58.0. This method should not be used anymore as native placeholder is used on all browsers.
 	 * @protected
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
 	 * @param {sap.m.InputBase} oControl An object representation of the control that should be rendered.

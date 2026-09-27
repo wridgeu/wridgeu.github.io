@@ -1,0 +1,2 @@
+sap.ui.define(function(){"use strict";function e(e){return{name:"Shell Session",aliases:["console","shellsession"],contains:[{className:"meta.prompt",begin:/^\s{0,3}[./~\w\d[\]()@-]*[>%$#][ ]?/,starts:{end:/[^\\](?=\s*$)/,subLanguage:"bash"}}]}}var s=Object.freeze({__proto__:null,default:e});const t=Object.isFrozen(e)?Object.assign({},e?.default||e||{__emptyModule:true}):e;Object.keys(s||{}).filter(e=>!t[e]).forEach(e=>t[e]=s[e]);Object.defineProperty(t,"__"+"esModule",{value:true});var n=Object.isFrozen(e)?Object.freeze(t):t;return n});
+//# sourceMappingURL=shell.js.map

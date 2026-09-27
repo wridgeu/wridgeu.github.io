@@ -16,6 +16,12 @@ html.sap-desktop .sapMBtnDisabled .sapMTB-Transparent-CTX .sapMBtnInner.sapMTogg
 	background-color: @sapUiHcReducedBackground;
 }
 
+.sapMBtn .sapMBtnEmphasized.sapMToggleBtnPressed {
+	background-color: var(--sapButton_Selected_Background);
+	color: var(--sapButton_Selected_TextColor);
+	border-color: var(--sapButton_Selected_BorderColor);
+}
+
 /* Icon in disabled toggled button */
 .sapMBtnDisabled .sapMToggleBtnPressed.sapMBtnInner .sapMBtnIcon {
 	color: @sapUiHcReducedAltForeground;
@@ -29,10 +35,10 @@ html.sap-desktop .sapMTB-Transparent-CTX .sapMToggleBtnPressed.sapMBtnTransparen
 
 .sapMBtnDisabled .sapMToggleBtnPressed.sapMBtnInner .sapMBtnIcon,
 .sapMBtnDisabled .sapMToggleBtnPressed.sapMBtnInner.sapMBtnTransparent .sapMBtnIcon,
-html.sap-desktop.sapMToggleBtnPressed.sapMBtnTransparent.sapMBtnDisabled > .sapMBtnIcon{
+html.sap-desktop.sapMToggleBtnPressed.sapMBtnTransparent.sapMBtnDisabled > .sapMBtnIcon {
 	color: @sapUiHcReducedAltForeground;
 }
 
 .sapUiSizeCompact .sapMBar-CTX .sapMBtnDefault.sapMBtnInner.sapMToggleBtnPressed:not(.sapMBtnDisabled) {
-	border-color: @sapUiButtonSelectedBorderColor;
+	border-color: var(--sapButton_Selected_BorderColor);
 }

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,16 +12,16 @@ sap.ui.define([],
 		};
 
 		ProductSwitchItemRenderer.render = function (oRm, oControl) {
-			var oProductSwith = oControl._getProductSwitch(),
+			var oProductSwitch = oControl._getProductSwitch(),
 				oAccessibilityState = {
 					role: "menuitemradio"
 				},
 				sTooltip = oControl.getTooltip_AsString();
 
-			if (oProductSwith) {
-				oAccessibilityState.setsize = oProductSwith._getItemsCount();
-				oAccessibilityState.posinset = oProductSwith._getItemPosition(oControl);
-				oAccessibilityState.checked = oControl.getId() === oProductSwith.getSelectedItem() ? "true" : undefined;
+			if (oProductSwitch) {
+				oAccessibilityState.setsize = oProductSwitch._getItemsCount();
+				oAccessibilityState.posinset = oProductSwitch._getItemPosition(oControl);
+				oAccessibilityState.checked = oControl.getId() === oProductSwitch.getSelectedItem() ? "true" : "false";
 			}
 
 			oRm.openStart("div", oControl);
@@ -36,9 +36,13 @@ sap.ui.define([],
 				oRm.class("sapFPSItemIconPlaceholder");
 				oRm.class("sapUiTinyMarginBottom");
 				oRm.openEnd();
-					if (oControl.getSrc()) {
-						oRm.renderControl(oControl._getIcon());
-					}
+
+				if (oControl.getImageSrc()) {
+					oRm.renderControl(oControl._getAvatar());
+				} else if (oControl.getSrc()) {
+					oRm.renderControl(oControl._getIcon());
+				}
+
 				oRm.close("span");
 				oRm.openStart("div");
 				oRm.class("sapFPSItemTextSection");

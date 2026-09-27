@@ -1,15 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"./BaseContentRenderer",
-	"../controls/ListContentItem"
+	"./BaseListContentRenderer",
+	"../controls/ListContentItem",
+	"../controls/ActionsStrip"
 ], function (
-	BaseContentRenderer,
-	ListContentItem
+	BaseListContentRenderer,
+	ListContentItem,
+	ActionsStrip
 ) {
 	"use strict";
 
@@ -18,7 +20,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @namespace
 	 */
-	var ListContentRenderer = BaseContentRenderer.extend("sap.ui.integration.cards.ListContentRenderer", {
+	var ListContentRenderer = BaseListContentRenderer.extend("sap.ui.integration.cards.ListContentRenderer", {
 		apiVersion: 2
 	});
 
@@ -31,6 +33,8 @@ sap.ui.define([
 		if (oListContent.getAggregation("_legend")) {
 			oRm.renderControl(oListContent.getAggregation("_legend"));
 		}
+
+		oListContent.getPaginator()?.render(oRm);
 	};
 
 	/**
@@ -73,7 +77,7 @@ sap.ui.define([
 			fVerticalPadding = 2;
 		}
 
-		if (oTemplate.actionsStrip) {
+		if (oTemplate.actionsStrip && ActionsStrip.hasVisibleTemplateItems(oTemplate.actionsStrip,oContent)) {
 			fItemHeight += bIsCompact ? 2 : 2.75; // actions strip height in "rem"
 			fVerticalPadding += 0.5;
 

@@ -1,27 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseListContent",
 	"./TimelineContentRenderer",
 	"sap/f/cards/loading/TimelinePlaceholder",
+	"sap/ui/core/Lib",
 	"sap/ui/integration/library",
-	"sap/ui/core/Core",
-	"sap/ui/integration/util/BindingHelper"
+	"sap/ui/integration/util/BindingHelper",
+	"sap/ui/integration/util/BindingResolver"
 ], function (
 	BaseListContent,
 	TimelineContentRenderer,
 	TimelinePlaceholder,
+	Library,
 	library,
-	Core,
-	BindingHelper
+	BindingHelper,
+	BindingResolver
 ) {
 	"use strict";
-
-	// shortcuts for sap.ui.integration.CardActionArea
-	var ActionArea = library.CardActionArea;
 
 	// lazy dependencies, loaded on the first attempt to create TimelineContent
 	var Timeline, TimelineItem;
@@ -38,10 +37,10 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
-	 * @experimental
+	 * @private
 	 * @since 1.61
 	 * @see {@link TODO Card}
 	 * @alias sap.ui.integration.cards.TimelineContent
@@ -86,7 +85,7 @@ sap.ui.define([
 	 */
 	TimelineContent.prototype.loadDependencies = function (oCardManifest) {
 		return new Promise(function (resolve, reject) {
-			Core.loadLibrary("sap.suite.ui.commons", { async: true })
+			Library.load("sap.suite.ui.commons")
 				.then(function () {
 					sap.ui.require([
 						"sap/suite/ui/commons/Timeline",
@@ -162,15 +161,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Handler for when data is changed.
-	 */
-	TimelineContent.prototype.onDataChanged = function () {
-		BaseListContent.prototype.onDataChanged.apply(this, arguments);
-
-		this._checkHiddenNavigationItems(this.getParsedConfiguration().item);
-	};
-
-	/**
 	 * Binds/Sets properties to the inner item template based on the configuration object item template which is already parsed.
 	 *
 	 * @private
@@ -197,7 +187,6 @@ sap.ui.define([
 		this._oTimeLineItemTemplate = new TimelineItem(mSettings);
 
 		this._oActions.attach({
-			area: ActionArea.ContentItem,
 			actions: mItem.actions,
 			control: this,
 			actionControl: this._oTimeLineItemTemplate,
@@ -243,6 +232,34 @@ sap.ui.define([
 	 */
 	TimelineContent.prototype.getInnerList = function () {
 		return this._getTimeline();
+	};
+
+	/**
+	* @override
+	*/
+	TimelineContent.prototype.getStaticConfiguration = function () {
+		var aItems = this.getInnerList().getContent(),
+		oConfiguration = this.getParsedConfiguration(),
+		aResolvedItems = [];
+
+		aItems.forEach(function (oItem) {
+			var oResolvedItem = BindingResolver.resolveValue(oConfiguration.item, this, oItem.getBindingContext().getPath());
+
+			if (oResolvedItem.icon && oResolvedItem.icon.src) {
+				oResolvedItem.icon.src = this._oIconFormatter.formatSrc(oResolvedItem.icon.src);
+			}
+
+			if (oResolvedItem.ownerImage && oResolvedItem.ownerImage.value) {
+				oResolvedItem.ownerImage.value = this._oIconFormatter.formatSrc(oResolvedItem.ownerImage.value);
+			}
+
+			aResolvedItems.push(oResolvedItem);
+		}.bind(this));
+		var oStaticConfiguration = {
+			items: aResolvedItems
+		};
+
+		return oStaticConfiguration;
 	};
 
 	return TimelineContent;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -117,20 +117,20 @@ sap.ui.define([
 				}
 			};
 
-			PDFViewer.prototype._initPlaceholderIllustratedMessageControl = function () {
+			PDFViewer.prototype._initErrorPlaceholderIllustratedMessageControl = function () {
 				var that = this,
-				sPlaceholderIllustratedMessageFactoryFunctionName = "getPlaceholderIllustratedMessageControl";
+				sPlaceholderIllustratedMessageFactoryFunctionName = "getErrorPlaceholderIllustratedMessageControl";
 
 				this._objectsRegister[sPlaceholderIllustratedMessageFactoryFunctionName] = function () {
 					var oIllustratedMessage = new IllustratedMessage({
 						title: that._getIllustratedMessageErrorMessage(),
-						illustrationType: IllustratedMessageType.SimpleError,
+						illustrationType: IllustratedMessageType.UnableToUpload,
 						enableDefaultTitleAndDescription: false
 					});
 					that.setAggregation("_illustratedMessage", oIllustratedMessage);
 					that._objectsRegister[sPlaceholderIllustratedMessageFactoryFunctionName] = function () {
 						oIllustratedMessage.setTitle(that._getIllustratedMessageErrorMessage());
-						oIllustratedMessage.setIllustrationType(IllustratedMessageType.SimpleError);
+						oIllustratedMessage.setIllustrationType(IllustratedMessageType.UnableToUpload);
 						oIllustratedMessage.setEnableDefaultTitleAndDescription(false);
 						return oIllustratedMessage;
 					};
@@ -237,6 +237,23 @@ sap.ui.define([
 				};
 
 			};
+
+			PDFViewer.prototype._getNonTrustedSourceIllustratedMessage = function () {
+				var oButtonContent = this._objectsRegister.getPopupDownloadButtonControl(),
+					oIllustratedMessage = this.getAggregation("_nonTrustedIllustratedMessage");
+				if (!oIllustratedMessage) {
+					oIllustratedMessage = new IllustratedMessage({
+						title: this._getLibraryResourceBundle().getText("PDF_VIEWER_NONTRUSTEDSOURCEMESSAGE_TITLE"),
+						description:  this._getLibraryResourceBundle().getText("PDF_VIEWER_NONTRUSTEDSOURCEMESSAGE_SUBTITLE"),
+						illustrationType: IllustratedMessageType.UnableToLoad,
+						enableDefaultTitleAndDescription: false,
+						additionalContent: [oButtonContent]
+					});
+					this.setAggregation("_nonTrustedIllustratedMessage", oIllustratedMessage);
+				}
+				return oIllustratedMessage;
+			};
+
 		}
 	};
 

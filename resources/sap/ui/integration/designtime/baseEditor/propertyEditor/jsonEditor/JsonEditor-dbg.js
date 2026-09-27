@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,10 +24,9 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.jsonEditor.JsonEditor
 	 * @author SAP SE
 	 * @since 1.72
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
-	 * @experimental 1.72
 	 * @ui5-restricted
 	 */
 	var JsonEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.jsonEditor.JsonEditor", {
@@ -67,10 +66,10 @@ sap.ui.define([
 					this._oDialog = oDialog;
 					this._oErrorMsg = this._oDialog.getContent()[0];
 					this._oEditor = this._oDialog.getContent()[1];
-					this._oEditor.getInternalEditorInstance().getSession().on("changeAnnotation", this.onShowError.bind(this));
+					this._oEditor.getAceEditor().getSession().on("changeAnnotation", this.onShowError.bind(this));
 					this._oDialog.attachAfterOpen(function () {
-						this._oEditor.getInternalEditorInstance().focus();
-						this._oEditor.getInternalEditorInstance().navigateFileEnd();
+						this._oEditor.getAceEditor().focus();
+						this._oEditor.getAceEditor().navigateFileEnd();
 					}, this);
 					this._oDialog.attachAfterClose(function () {
 						this._oDialog.close();
@@ -123,7 +122,7 @@ sap.ui.define([
 		},
 
 		onShowError: function () {
-			var sErrors = (this._oEditor.getInternalEditorInstance().getSession().getAnnotations() || []).map(function (oError) {
+			var sErrors = (this._oEditor.getAceEditor().getSession().getAnnotations() || []).map(function (oError) {
 				return "Line " + String(oError.row) + ": " + oError.text;
 			}).join("\n");
 			this._oErrorMsg.setText(sErrors);
@@ -143,7 +142,7 @@ sap.ui.define([
 			this._oDialog.close();
 		},
 
-		renderer: BasePropertyEditor.getMetadata().getRenderer().render
+		renderer: BasePropertyEditor.getMetadata().getRenderer()
 	});
 
 	JsonEditor.configMetadata = Object.assign(

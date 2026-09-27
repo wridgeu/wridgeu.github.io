@@ -1,20 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	'sap/ui/Device',
 	'sap/m/library',
+	'sap/ui/core/library',
+	"sap/ui/core/ControlBehavior",
 	"sap/ui/dom/getScrollbarSize",
-	"sap/ui/core/IconPool",
-	"sap/ui/core/Configuration"
+	"sap/ui/core/IconPool" // side effect: required when calling RenderManager#icon
 ],
-	function(Device, library, getScrollbarSize, IconPool, Configuration) {
+	function(Device, library, coreLibrary, ControlBehavior, getScrollbarSize) {
 		"use strict";
 
 		// shortcut for sap.m.PlacementType
 		var PlacementType = library.PlacementType;
+
+		// shortcut for sap.ui.core.OpenState
+		var OpenState = coreLibrary.OpenState;
+
 
 		/**
 		 * Popover renderer.
@@ -32,7 +37,14 @@ sap.ui.define([
 		 */
 		PopoverRenderer.render = function(oRm, oControl) {
 			oRm.openStart("div", oControl);
-			var aClassNames = this.generateRootClasses(oControl);
+			var aClassNames = this.generateRootClasses(oControl),
+				sContentWidth = oControl._getActualContentWidth(),
+				sMaxHeight = oControl.getMaxHeight();
+
+			if (!oControl.isOpen() && oControl.oPopup?.eOpenState !== OpenState.OPENING) {
+				oRm.class("sapMPopoverHidden");
+			}
+
 			aClassNames.forEach(function(sClassName) {
 				oRm.class(sClassName);
 			});
@@ -50,14 +62,20 @@ sap.ui.define([
 				oRm.attr("title", sTooltip);
 			}
 
+			if (oControl.isResized() && sContentWidth) {
+				oRm.style("width", sContentWidth);
+			}
+
+			if (sMaxHeight) {
+				oRm.style("max-height", sMaxHeight);
+			}
+
 			oRm.attr("tabindex", "-1")
 				.accessibilityState(oControl, oControl._getAccessibilityOptions()) // ARIA
 				.openEnd();
 
 			if (oControl.getResizable()) {
-				oRm.icon("sap-icon://resize-corner", ["sapMPopoverResizeHandle"], {
-					"aria-hidden": true
-				});
+				PopoverRenderer.renderResizeHandle(oRm, oControl.getId());
 			}
 
 			this.renderContent(oRm, oControl);
@@ -92,9 +110,9 @@ sap.ui.define([
 				contents = oControl._getAllContent(),
 				oFooter = oControl.getFooter(),
 				oSubHeader = oControl.getSubHeader(),
-				sContentWidth = oControl.getContentWidth(),
+				sContentWidth = oControl._getActualContentWidth(),
 				sContentMinWidth = oControl.getContentMinWidth(),
-				sContentHeight = oControl.getContentHeight();
+				sContentHeight = oControl._getActualContentHeight();
 
 			if (Device.system.desktop) {
 				// invisible element for cycling keyboard navigation
@@ -106,11 +124,22 @@ sap.ui.define([
 					.close("span");
 			}
 
+			oRm.openStart("div", sId + "-wrapper")
+				.class("sapMPopoverWrapper")
+				.openEnd();
+
 			// Header
 			if (oHeader) {
 				oRm.openStart("header")
-					.class("sapMPopoverHeader")
-					.openEnd();
+					.class("sapMPopoverHeader");
+
+				// An empty ValueStateHeader would expose an empty "banner" landmark to screen readers.
+				// Keep the element in the DOM (stable structure for the DOM patcher) but drop the landmark role.
+				if (oHeader.isA("sap.m.ValueStateHeader") && !oHeader._hasVisibleContent()) {
+					oRm.attr("role", "presentation");
+				}
+
+				oRm.openEnd();
 
 				if (oHeader._applyContextClassFor) {
 					oHeader._applyContextClassFor("header");
@@ -121,10 +150,14 @@ sap.ui.define([
 
 			// Sub header
 			if (oSubHeader) {
-
 				oRm.openStart("header")
-					.class("sapMPopoverSubHeader")
-					.openEnd();
+					.class("sapMPopoverSubHeader");
+
+				if (oSubHeader.isA("sap.m.ValueStateHeader") && !oSubHeader._hasVisibleContent()) {
+					oRm.attr("role", "presentation");
+				}
+
+				oRm.openEnd();
 
 				if (oSubHeader._applyContextClassFor) {
 					oSubHeader._applyContextClassFor("subheader");
@@ -152,7 +185,7 @@ sap.ui.define([
 
 			// Note: If this property should become public in the future, the property will have to be set on a level
 			// that will encapsulate the header and the footer of the popover as well.
-			if (Configuration.getAccessibility()
+			if (ControlBehavior.isAccessibilityEnabled()
 				&& oControl.getProperty("ariaRoleApplication")) {
 				oRm.attr("role", "application");
 			}
@@ -193,6 +226,7 @@ sap.ui.define([
 
 				oRm.close("footer");
 			}
+			oRm.close("div");	// wrapper
 
 			// Arrow
 			if (oControl.getShowArrow()) {
@@ -266,6 +300,10 @@ sap.ui.define([
 				aClassNames.push("sapMPopoverHorScrollDisabled");
 			}
 
+			if (oControl.getShowArrow()) {
+				aClassNames.push("sapMPopoverWithArrow");
+			}
+
 			aClassNames.push("sapMPopup-CTX");
 
 			// Adds styles for compact mode
@@ -275,6 +313,18 @@ sap.ui.define([
 
 			// add custom classes set by the application as well
 			return aClassNames.concat(oControl.aCustomStyleClasses);
+		};
+
+		PopoverRenderer.renderResizeHandle = function(oRm, sId) {
+			oRm.openStart("div", sId + "-resizeHandle")
+				.class("sapMPopoverResizeHandle")
+				.openEnd();
+
+			oRm.icon("sap-icon://resize-corner", ["sapMPopoverResizeHandleIcon"], {
+				"aria-hidden": true
+			});
+
+			oRm.close("div");
 		};
 
 		return PopoverRenderer;

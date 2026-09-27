@@ -1,13 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/base/util/merge",
 	"sap/ui/base/ManagedObject",
+	"sap/ui/core/Element",
+	"sap/ui/integration/util/BindingHelper",
+	"sap/ui/integration/util/BindingResolver",
 	"sap/ui/integration/util/Measurement"
 ], function (
+	merge,
 	ManagedObject,
+	Element,
+	BindingHelper,
+	BindingResolver,
 	Measurement
 ) {
 	"use strict";
@@ -22,14 +30,13 @@ sap.ui.define([
 	 * Provides data for the card, card header and card content by reading the "data" part of the card manifest.
 	 * Hides the complexity of working with different data providers like:
 	 *  - static JSON data
-	 * 	- data services which implements the interface <code>sap.ui.integration.services.Data</code> class
 	 *  - AJAX calls like <code>sap.ui.integration.cards.Data</code> class
 	 * Allows for an extensible way to add more data providers.
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -42,16 +49,17 @@ sap.ui.define([
 			library: "sap.ui.integration",
 			properties: {
 				/**
-				 * Data settings.
+				 * Data provider configuration in manifest format. May contain FormData.
 				 */
-				settings: {
+				configuration: {
 					type: "object"
 				},
 
 				/**
-				 * Data settings in json format. Will override <code>settings</code>.
+				 * Configuration in stringified JSON format. Should be used when binding resolving is wanted.
+				 * Anytime this value is changed, a new data update is triggered.
 				 */
-				settingsJson: {
+				configurationJson: {
 					type: "string"
 				},
 
@@ -110,6 +118,7 @@ sap.ui.define([
 
 	DataProvider.prototype.init = function () {
 		this._iCurrentRequestNumber = 0;
+		this._oDependencies = new Set();
 	};
 
 	/**
@@ -132,25 +141,37 @@ sap.ui.define([
 
 	/**
 	 * Sets a list of <code>sap.ui.integration.util.DataProvider</code> which will be considered dependencies of the current one.
-	 * @param {sap.ui.integration.util.DataProvider[]} aDependencies The list of dependencies.
+	 * @param {sap.ui.integration.util.DataProvider} oDependency The new dependency.
 	 */
-	DataProvider.prototype.setDependencies = function (aDependencies) {
-		this._aDependencies = aDependencies;
+	DataProvider.prototype.addDependency = function (oDependency) {
+		this._oDependencies.add(oDependency);
 	};
 
 	/**
-	 * Sets the data settings for the <code>DataProvider</code> in json format.
+	 * Sets the configuration for the <code>DataProvider</code> in JSON format.
 	 *
-	 * @param {string} sSettingsJson The data settings in json format.
+	 * @param {string} sConfigurationJson The data settings in JSON format.
 	 * @override
 	 */
-	DataProvider.prototype.setSettingsJson = function (sSettingsJson) {
-		this.setProperty("settingsJson", sSettingsJson);
-		this.setSettings(JSON.parse(sSettingsJson));
+	DataProvider.prototype.setConfigurationJson = function (sConfigurationJson) {
+		this.setProperty("configurationJson", sConfigurationJson);
 
 		if (this._bActive) {
 			this._scheduleDataUpdate(0);
 		}
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {object} The resolved configuration.
+	 */
+	DataProvider.prototype.getResolvedConfiguration = function () {
+		if (this.getConfigurationJson()) {
+			return JSON.parse(this.getConfigurationJson());
+		}
+
+		return this.getConfiguration();
 	};
 
 	/**
@@ -189,6 +210,12 @@ sap.ui.define([
 			this._pInitialRequestPromise = pDataUpdate;
 		}
 
+		pDataUpdate.catch((e) => {
+			this.fireError({
+				message: e
+			});
+		});
+
 		return pDataUpdate;
 	};
 
@@ -198,6 +225,7 @@ sap.ui.define([
 
 		this._bActive = true;
 		this._iCurrentRequestNumber++;
+		const iCurrentRequestNumber = this._iCurrentRequestNumber;
 
 		if (oCard) {
 			sMeasureId = "UI5 Integration Cards " + oCard + " " + this.getId() + " getData#" + this._iCurrentRequestNumber;
@@ -210,8 +238,10 @@ sap.ui.define([
 					Measurement.end(sMeasureId);
 				}
 
-				this.fireDataChanged({data: oData});
-				this.onDataRequestComplete();
+				if (iCurrentRequestNumber === this._iCurrentRequestNumber) {
+					this.fireDataChanged({data: oData});
+					this.onDataRequestComplete();
+				}
 			}.bind(this))
 			.catch(function (oResult) {
 				if (oCard) {
@@ -239,10 +269,11 @@ sap.ui.define([
 	 * @returns {Promise} A promise resolved when the data is available and rejected in case of an error.
 	 */
 	DataProvider.prototype.getData = function () {
-		var oDataSettings = this.getSettings();
+		const oConfiguration = this.getResolvedConfiguration();
+
 		return new Promise(function (resolve, reject) {
-			if (oDataSettings.json) {
-				resolve(oDataSettings.json);
+			if (oConfiguration.json) {
+				resolve(oConfiguration.json);
 			} else {
 				reject("Could not get card data.");
 			}
@@ -263,13 +294,13 @@ sap.ui.define([
 		ManagedObject.prototype.destroy.apply(this, arguments);
 	};
 
-	DataProvider.prototype.getInitialRequestPromise = function () {
+	DataProvider.prototype.load = function () {
 		return this._pInitialRequestPromise;
 	};
 
 	DataProvider.prototype.onDataRequestComplete = function () {
 		var iInterval;
-		var oSettings = this.getSettings();
+		var oSettings = this.getResolvedConfiguration();
 
 		if (!oSettings || !oSettings.updateInterval) {
 			return;
@@ -282,6 +313,10 @@ sap.ui.define([
 		}
 
 		this._scheduleDataUpdate(iInterval * 1000);
+	};
+
+	DataProvider.prototype.getCardInstance = function () {
+		return Element.getElementById(this.getCard());
 	};
 
 	/**
@@ -303,11 +338,14 @@ sap.ui.define([
 	 * @return {Promise} Promise which fulfills when all dependencies are ready.
 	 */
 	DataProvider.prototype._waitDependencies = function () {
-		var aDependencies = this._aDependencies || [],
-			aPromises = [];
+		const aPromises = [];
 
-		aDependencies.forEach(function (oDataProvider) {
-			aPromises.push(oDataProvider.getInitialRequestPromise());
+		this._oDependencies.forEach((oDependency) => {
+			if (oDependency instanceof Promise) {
+				aPromises.push(oDependency);
+			} else {
+				aPromises.push(oDependency.load());
+			}
 		});
 
 		return Promise.all(aPromises);

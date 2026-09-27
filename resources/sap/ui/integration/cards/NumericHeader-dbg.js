@@ -1,32 +1,38 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/core/Core",
 	"sap/base/util/extend",
+	"sap/base/util/merge",
 	"sap/f/cards/NumericHeader",
 	"sap/f/cards/NumericHeaderRenderer",
 	"sap/f/cards/NumericSideIndicator",
 	"sap/m/library",
 	"sap/m/Text",
+	"sap/ui/core/Element",
 	"sap/ui/integration/util/BindingHelper",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/integration/util/BindingResolver",
-	"sap/ui/integration/util/LoadingProvider"
+	"sap/ui/integration/util/LoadingProvider",
+	"sap/ui/integration/util/subtitleToSubTitle",
+	"sap/ui/integration/controls/Microchart"
 ], function (
-	Core,
 	extend,
+	merge,
 	FNumericHeader,
 	FNumericHeaderRenderer,
 	NumericSideIndicator,
 	mLibrary,
 	Text,
+	Element,
 	BindingHelper,
 	JSONModel,
 	BindingResolver,
-	LoadingProvider
+	LoadingProvider,
+	subtitleToSubTitle,
+	Microchart
 ) {
 	"use strict";
 
@@ -44,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.f.cards.NumericHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -52,89 +58,6 @@ sap.ui.define([
 	 * @alias sap.ui.integration.cards.NumericHeader
 	 */
 	var NumericHeader = FNumericHeader.extend("sap.ui.integration.cards.NumericHeader", {
-
-		constructor: function (sId, mConfiguration, oActionsToolbar, oIconFormatter) {
-
-			mConfiguration = mConfiguration || {};
-
-			var mSettings = {
-				title: mConfiguration.title,
-				titleMaxLines: mConfiguration.titleMaxLines,
-				subtitle: mConfiguration.subTitle,
-				subtitleMaxLines: mConfiguration.subTitleMaxLines,
-				dataTimestamp: mConfiguration.dataTimestamp,
-				visible: mConfiguration.visible
-			};
-
-			if (mConfiguration.status && mConfiguration.status.text && !mConfiguration.status.text.format) {
-				mSettings.statusText = mConfiguration.status.text;
-				mSettings.statusVisible = mConfiguration.status.visible;
-			}
-
-			// @todo move to common place with Header.js
-			if (mConfiguration.icon) {
-				var vInitials = mConfiguration.icon.initials || mConfiguration.icon.text;
-				var sBackgroundColor = mConfiguration.icon.backgroundColor || (vInitials ? AvatarColor.Accent6 : AvatarColor.Transparent);
-
-				mSettings.iconSrc = mConfiguration.icon.src;
-				mSettings.iconDisplayShape = mConfiguration.icon.shape;
-				mSettings.iconInitials = vInitials;
-				mSettings.iconAlt = mConfiguration.icon.alt;
-				mSettings.iconBackgroundColor = sBackgroundColor;
-				mSettings.iconVisible = mConfiguration.icon.visible;
-			}
-
-			if (mSettings.iconSrc) {
-				mSettings.iconSrc = BindingHelper.formattedProperty(mSettings.iconSrc, function (sValue) {
-					return oIconFormatter.formatSrc(sValue);
-				});
-			}
-
-			extend(mSettings, {
-				unitOfMeasurement: mConfiguration.unitOfMeasurement,
-				details: mConfiguration.details?.text || mConfiguration.details,
-				detailsMaxLines: mConfiguration.details?.maxLines || mConfiguration.detailsMaxLines,
-				sideIndicatorsAlignment: mConfiguration.sideIndicatorsAlignment
-			});
-
-
-			if (mConfiguration.details?.state) {
-				mSettings.detailsState = mConfiguration.details.state;
-			}
-
-			if (mConfiguration.mainIndicator) {
-				mSettings.number = mConfiguration.mainIndicator.number;
-				mSettings.scale = mConfiguration.mainIndicator.unit;
-				mSettings.trend = mConfiguration.mainIndicator.trend;
-				mSettings.state = mConfiguration.mainIndicator.state; // TODO convert ValueState to ValueColor
-				mSettings.numberVisible = mConfiguration.mainIndicator.visible;
-			}
-
-			if (mConfiguration.sideIndicators) {
-				mSettings.sideIndicators = mConfiguration.sideIndicators.map(function (mIndicator) { // TODO validate that it is an array and with no more than 2 elements
-					return new NumericSideIndicator(mIndicator);
-				});
-			}
-
-			if (mConfiguration.banner) {
-				mSettings.bannerLines = mConfiguration.banner.map(function (mBannerLine) { // TODO validate that it is an array and with no more than 2 elements
-					var oBannerLine = new Text({
-						text: mBannerLine.text,
-						visible: mBannerLine.visible
-					});
-
-					if (mBannerLine.diminished) {
-						oBannerLine.addStyleClass("sapFCardHeaderBannerLineDiminished");
-					}
-
-					return oBannerLine;
-				});
-			}
-
-			mSettings.toolbar = oActionsToolbar;
-
-			FNumericHeader.call(this, sId, mSettings);
-		},
 		metadata: {
 			library: "sap.ui.integration",
 			properties: {
@@ -155,6 +78,105 @@ sap.ui.define([
 		},
 		renderer: FNumericHeaderRenderer
 	});
+
+	NumericHeader.create = function (sId, mConfiguration, oActionsToolbar, oIconFormatter) {
+		mConfiguration = mConfiguration || {};
+
+		var mSettings = {
+			title: mConfiguration.title,
+			titleMaxLines: mConfiguration.titleMaxLines,
+			subtitle: mConfiguration.subtitle || mConfiguration.subTitle,
+			subtitleMaxLines: mConfiguration.subtitleMaxLines || mConfiguration.subTitleMaxLines,
+			dataTimestamp: mConfiguration.dataTimestamp,
+			visible: mConfiguration.visible,
+			wrappingType: mConfiguration.wrappingType
+		};
+
+		if (mConfiguration.status && mConfiguration.status.text && !mConfiguration.status.text.format) {
+			mSettings.statusText = mConfiguration.status.text;
+			mSettings.statusVisible = mConfiguration.status.visible;
+		}
+
+		// @todo move to common place with Header.js
+		if (mConfiguration.icon) {
+			var vInitials = mConfiguration.icon.initials || mConfiguration.icon.text;
+			var sBackgroundColor = mConfiguration.icon.backgroundColor || (vInitials ? AvatarColor.Accent6 : AvatarColor.Transparent);
+
+			mSettings.iconSrc = mConfiguration.icon.src;
+			mSettings.iconDisplayShape = mConfiguration.icon.shape;
+			mSettings.iconInitials = vInitials;
+			mSettings.iconAlt = mConfiguration.icon.alt;
+			mSettings.iconBackgroundColor = sBackgroundColor;
+			mSettings.iconVisible = mConfiguration.icon.visible;
+			mSettings.iconFitType = mConfiguration.icon.fitType;
+		}
+
+		if (mSettings.iconSrc) {
+			mSettings.iconSrc = BindingHelper.formattedProperty(mSettings.iconSrc, function (sValue) {
+				return oIconFormatter.formatSrc(sValue);
+			});
+		}
+
+		extend(mSettings, {
+			unitOfMeasurement: mConfiguration.unitOfMeasurement,
+			details: mConfiguration.details?.text ?? mConfiguration.details,
+			detailsMaxLines: mConfiguration.details?.maxLines || mConfiguration.detailsMaxLines,
+			sideIndicatorsAlignment: mConfiguration.sideIndicatorsAlignment
+		});
+
+		if (mConfiguration.details?.state) {
+			mSettings.detailsState = mConfiguration.details.state;
+		}
+
+		if (mConfiguration.mainIndicator) {
+			mSettings.number = mConfiguration.mainIndicator.number;
+			mSettings.scale = mConfiguration.mainIndicator.unit;
+			mSettings.trend = mConfiguration.mainIndicator.trend;
+			mSettings.state = mConfiguration.mainIndicator.state; // TODO convert ValueState to ValueColor
+			mSettings.numberVisible = mConfiguration.mainIndicator.visible;
+		}
+
+		if (mConfiguration.sideIndicators) {
+			mSettings.sideIndicators = mConfiguration.sideIndicators.map(function (mIndicator) { // TODO validate that it is an array and with no more than 2 elements
+				return new NumericSideIndicator(mIndicator);
+			});
+		}
+
+		if (mConfiguration.banner) {
+			mSettings.bannerLines = mConfiguration.banner.map(function (mBannerLine) { // TODO validate that it is an array and with no more than 2 elements
+				var oBannerLine = new Text({
+					text: mBannerLine.text,
+					visible: mBannerLine.visible
+				});
+
+				if (mBannerLine.diminished) {
+					oBannerLine.addStyleClass("sapFCardHeaderBannerLineDiminished");
+				}
+
+				return oBannerLine;
+			});
+		}
+
+		mSettings.toolbar = oActionsToolbar;
+
+		const oHeader = new NumericHeader(sId, mSettings);
+
+		if (mConfiguration.chart) {
+			Microchart.loadDependencies().then(() => {
+				oHeader.setMicroChart(Microchart.create(mConfiguration.chart, true));
+			});
+
+			if (mConfiguration.sideIndicators) {
+				oHeader.addStyleClass("sapFCardNumericHeaderSIMC");
+			} else {
+				oHeader.addStyleClass("sapFCardNumericHeaderMC");
+			}
+		}
+
+		oHeader._oConfiguration = mConfiguration;
+
+		return oHeader;
+	};
 
 	/**
 	 * Initialization hook.
@@ -182,7 +204,6 @@ sap.ui.define([
 
 		FNumericHeader.prototype.exit.call(this);
 
-		this._oServiceManager = null;
 		this._oDataProviderFactory = null;
 
 		if (this._oDataProvider) {
@@ -239,15 +260,20 @@ sap.ui.define([
 		}.bind(this)));
 	};
 
-
-	NumericHeader.prototype.setServiceManager = function (oServiceManager) {
-		this._oServiceManager = oServiceManager;
-		return this;
-	};
-
 	NumericHeader.prototype.setDataProviderFactory = function (oDataProviderFactory) {
 		this._oDataProviderFactory = oDataProviderFactory;
 		return this;
+	};
+
+	/**
+	 * @returns {object} Header configuration with static values.
+	 */
+	NumericHeader.prototype.getStaticConfiguration = function () {
+		const oConfiguration = merge({}, this._oConfiguration);
+
+		subtitleToSubTitle(oConfiguration);
+
+		return oConfiguration;
 	};
 
 	/**
@@ -261,6 +287,11 @@ sap.ui.define([
 			sPath = "/",
 			oModel;
 
+		if (!oDataSettings) {
+			this.fireEvent("_dataReady");
+			return;
+		}
+
 		if (oDataSettings && oDataSettings.path) {
 			sPath = BindingResolver.resolveValue(oDataSettings.path, this.getCardInstance());
 		}
@@ -271,7 +302,7 @@ sap.ui.define([
 			this._oDataProvider.destroy();
 		}
 
-		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings, this._oServiceManager);
+		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings);
 
 		if (oDataSettings && oDataSettings.name) {
 			oModel = oCard.getModel(oDataSettings.name);
@@ -293,7 +324,7 @@ sap.ui.define([
 			this._oDataProvider.attachError(function (oEvent) {
 				this._handleError({
 					requestErrorParams: oEvent.getParameters(),
-					requestSettings: this._oDataProvider.getSettings()
+					requestSettings: this._oDataProvider.getResolvedConfiguration()
 				});
 				this.onDataRequestComplete();
 			}.bind(this));
@@ -344,11 +375,11 @@ sap.ui.define([
 	 * @returns {sap.ui.integration.widgets.Card} The card instance.
 	 */
 	NumericHeader.prototype.getCardInstance = function () {
-		return Core.byId(this.getCard());
+		return Element.getElementById(this.getCard());
 	};
 
 	NumericHeader.prototype._isDataProviderJson = function () {
-		return this._oDataProvider && this._oDataProvider.getSettings() && this._oDataProvider.getSettings()["json"];
+		return !!this._oDataProvider?.getConfiguration()?.json;
 	};
 
 	return NumericHeader;

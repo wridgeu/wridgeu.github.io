@@ -1,18 +1,23 @@
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.TileContainer
+ */
 /* ==================================== */
 /* CSS for control sap.m/TileContainer  */
 /* Horizon High Contrast Black theme    */
 /* ==================================== */
 
-.sapMTC .sapMTCPager SPAN {
-	border: 1px solid @sapUiContentForegroundBorderColor;
+.sapMTC .sapMTCPager span {
+	border: 1px solid var(--sapContent_ForegroundBorderColor);
 }
 
-.sapMTC .sapMTCPager SPAN.sapMTCActive {
-	border: 1px solid @sapUiContentForegroundBorderColor;
+.sapMTC .sapMTCPager span.sapMTCActive {
+	border: 1px solid var(--sapContent_ForegroundBorderColor);
 }
 
-.sapMTC .sapMTCScroller:focus::before {
-	border: 0.125rem dotted @sapUiContentFocusColor;
+html.sap-desktop .sapMTC .sapMTCScroller:focus::before,
+.sapMTC .sapMTCScroller:focus-visible::before {
+	border: 0.125rem dotted var(--sapContent_FocusColor);
 	position: absolute;
 	top: -1px;
 	bottom: -1px;

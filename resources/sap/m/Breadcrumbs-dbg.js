@@ -1,18 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Breadcrumbs.
 sap.ui.define([
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	"sap/ui/dom/units/Rem",
 	"sap/ui/core/theming/Parameters",
 	"sap/ui/util/openWindow",
 	"sap/m/Text",
 	"sap/m/Link",
 	"sap/m/Select",
+	"sap/m/Button",
 	"sap/ui/core/Item",
 	"sap/ui/core/delegate/ItemNavigation",
 	"sap/ui/core/ResizeHandler",
@@ -24,12 +27,15 @@ sap.ui.define([
 	'sap/ui/core/InvisibleText'
 ], function(
 	Control,
+	Element,
+	Library,
 	Rem,
 	Parameters,
 	openWindow,
 	Text,
 	Link,
 	Select,
+	Button,
 	Item,
 	ItemNavigation,
 	ResizeHandler,
@@ -49,7 +55,9 @@ sap.ui.define([
 		SeparatorStyle = library.BreadcrumbsSeparatorStyle,
 
 		// shortcut for texts resource bundle
-		oResource = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		oResource = Library.getResourceBundleFor("sap.m"),
+
+		PICKER_OFFSET_Y = 4;
 
 	/**
 	 * Constructor for a new <code>Breadcrumbs</code>.
@@ -68,7 +76,7 @@ sap.ui.define([
 	 * @implements sap.m.IBreadcrumbs, sap.m.IOverflowToolbarContent, sap.ui.core.IShrinkable
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -92,7 +100,7 @@ sap.ui.define([
 				 * Determines the text of current/last element in the Breadcrumbs path.
 				 * @since 1.34
 				 */
-				currentLocationText: {type: "string", group: "Behavior", defaultValue: null},
+				currentLocationText: {type: "string", group: "Data", defaultValue: null},
 				/**
 				 * Determines the visual style of the separator between the <code>Breadcrumbs</code> elements.
 				 * @since 1.69
@@ -104,6 +112,12 @@ sap.ui.define([
 				}
 			},
 			aggregations: {
+
+				/**
+				 * Link determing the current/last element in the Breadcrumbs path.
+				 * @since 1.123
+				 */
+				currentLocation: {type: "sap.m.Link", multiple: false},
 
 				/**
 				 * A list of all the active link elements in the Breadcrumbs control.
@@ -196,13 +210,19 @@ sap.ui.define([
 		}
 
 		this._configureKeyboardHandling();
-		this._setMinWidth();
+		if (!this._bInOverflow) {
+			this._setMinWidth();
+		}
 
 		this.bRenderingPhase = false;
 	};
 
+	Breadcrumbs.prototype.focus = function () {
+		setTimeout(() => { Control.prototype.focus.apply(this, arguments); } , 0);
+	};
+
 	Breadcrumbs.prototype._setMinWidth = function () {
-		var oCurrentLocation = this._getCurrentLocation(),
+		var oCurrentLocation = this.getCurrentLocation(),
 			iWidth,
 			iDefaultMinWidthOFT;
 		// When in OFT, set min-width=width of the currentLocationText, so that it won't be truncated too much, before going into the overflow menu
@@ -277,6 +297,7 @@ sap.ui.define([
 				change: this._selectChangeHandler.bind(this),
 				forceSelection: false,
 				autoAdjustWidth: true,
+				wrapItemsText: true,
 				icon: IconPool.getIconURI("slim-arrow-down"),
 				type: SelectType.IconOnly,
 				tooltip: Breadcrumbs._getResourceBundleText("BREADCRUMB_SELECT_TOOLTIP")
@@ -304,14 +325,31 @@ sap.ui.define([
 		return this.getAggregation("_currentLocation");
 	};
 
+	Breadcrumbs.prototype.setCurrentLocation = function (oLink) {
+		if (oLink) {
+			oLink.addStyleClass("sapMBreadcrumbsCurrentLocation");
+		}
+
+		return this.setAggregation("currentLocation", oLink);
+	};
+
+	Breadcrumbs.prototype.getCurrentLocation = function () {
+		var oLinkAggregation = this.getAggregation("currentLocation");
+
+		if (!oLinkAggregation || !oLinkAggregation.getText()) {
+			return this._getCurrentLocation();
+		}
+
+		return oLinkAggregation;
+	};
+
 	Breadcrumbs.prototype._setCurrentLocationAccInfo = function (oCurrentLocation) {
 		var aVisibleItems = this._getControlsForBreadcrumbTrail(),
 			positionText = Breadcrumbs._getResourceBundleText("BREADCRUMB_ITEM_POS", [aVisibleItems.length, aVisibleItems.length]);
 
 		oCurrentLocation.$().attr("aria-current", "page");
 		oCurrentLocation.$().attr("tabindex", 0);
-		oCurrentLocation.$().attr("role", "link");
-		oCurrentLocation.$().attr("aria-label", this.getCurrentLocationText() + " " + positionText);
+		oCurrentLocation.$().attr("aria-label", this.getCurrentLocation().getText() + " " + positionText);
 	};
 
 	function fnConvertArguments(sAggregationName, aArguments) {
@@ -360,7 +398,7 @@ sap.ui.define([
 	Breadcrumbs.prototype._destroyInvisibleTexts = function () {
 		var oControl;
 		this._aCachedInvisibleTexts.forEach(function (oData) {
-			oControl = sap.ui.getCore().byId(oData.controlId);
+			oControl = Element.getElementById(oData.controlId);
 
 			// remove reference to the invisible text on the sap.m.Link control
 			// check for control existence as it might have been destroyed already
@@ -376,9 +414,27 @@ sap.ui.define([
 	/*************************************** Select Handling ******************************************/
 
 	Breadcrumbs.prototype._decorateSelect = function (oSelect) {
-		oSelect.getPicker()
+		var oPicker = oSelect.getPicker();
+
+		oPicker
+			.addStyleClass("sapMBreadcrumbsPicker")
 			.attachAfterOpen(this._removeItemNavigation, this)
 			.attachBeforeClose(this._restoreItemNavigation, this);
+
+		if (Device.system.phone) {
+			// Align mobile overflow dialog with desktop: remove header entirely,
+			// footer Cancel button instead.
+			oPicker.destroyCustomHeader();
+			oPicker.setShowHeader(false);
+			oPicker.setEndButton(new Button({
+				text: oResource.getText("SELECT_CANCEL_BUTTON"),
+				press: function () {
+					oSelect.close();
+				}
+			}));
+		} else {
+			oPicker.setOffsetY(PICKER_OFFSET_Y);
+		}
 
 		oSelect._onBeforeOpenDialog = this._onSelectBeforeOpenDialog.bind(this);
 		oSelect._onBeforeOpenPopover = this._onSelectBeforeOpenPopover.bind(this);
@@ -394,7 +450,7 @@ sap.ui.define([
 	Breadcrumbs.prototype._onSelectBeforeOpenDialog = function () {
 		var oSelect = this._getSelect();
 
-		if (this.getCurrentLocationText() && Device.system.phone) {
+		if (this.getCurrentLocation().getText() && Device.system.phone) {
 			oSelect.setSelectedIndex(0);
 		} else {
 			oSelect.setSelectedItem(null);
@@ -454,7 +510,7 @@ sap.ui.define([
 			return;
 		}
 
-		oLink = sap.ui.getCore().byId(oSelectedItem.getKey());
+		oLink = Element.getElementById(oSelectedItem.getKey());
 
 		/* if it's not a link, then it must be only the current location text, we shouldn't do anything */
 		if (!(oLink instanceof Link)) {
@@ -479,8 +535,8 @@ sap.ui.define([
 	Breadcrumbs.prototype._getItemsForMobile = function () {
 		var oItems = this.getLinks().filter(function (oLink) { return oLink.getVisible(); });
 
-		if (this.getCurrentLocationText()) {
-			oItems.push(this._getCurrentLocation());
+		if (this.getCurrentLocation().getText()) {
+			oItems.push(this.getCurrentLocation());
 		}
 
 		return oItems;
@@ -521,8 +577,8 @@ sap.ui.define([
 
 		aVisibleControls = this.getLinks().filter(function (oLink) { return oLink.getVisible(); });
 
-		if (this.getCurrentLocationText()) {
-			return aVisibleControls.concat([this._getCurrentLocation()]);
+		if (this.getCurrentLocation().getText()) {
+			return aVisibleControls.concat([this.getCurrentLocation()]);
 		}
 		return aVisibleControls;
 	};
@@ -717,18 +773,21 @@ sap.ui.define([
 			iSelectedDomIndex = -1,
 			aItemsToNavigate = this._getItemsToNavigate(),
 			aNavigationDomRefs = [],
+			bIsDisabledLink = false,
 			oItemDomRef;
 
 		if (aItemsToNavigate.length === 0) {
 			return;
 		}
 
-		aItemsToNavigate.forEach(function (oItem, iIndex) {
-			oItemDomRef = oItem.getDomRef();
+		aItemsToNavigate.forEach(function (oItem) {
+			oItemDomRef = oItem.getFocusDomRef();
 			if (oItemDomRef) {
-				oItemDomRef.setAttribute("tabindex", iIndex === 0 ? "0" : "-1");
+				bIsDisabledLink = oItem.isA("sap.m.Link") && !oItem.getEnabled();
+				if (!bIsDisabledLink) {
+					aNavigationDomRefs.push(oItemDomRef);
+				}
 			}
-			aNavigationDomRefs.push(oItem.getFocusDomRef());
 		});
 
 		this.addDelegate(oItemNavigation);
@@ -768,6 +827,7 @@ sap.ui.define([
 		}
 	};
 
+	/* @deprecated as of version 1.123 */
 	Breadcrumbs.prototype.setCurrentLocationText = function (sText) {
 		var oCurrentLocation = this._getCurrentLocation(),
 			vResult = this.setProperty("currentLocationText", sText, true);
@@ -829,7 +889,7 @@ sap.ui.define([
 	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar
+	 * @ui5-restricted sap.m.OverflowToolbar
 	 */
 	Breadcrumbs.prototype.getOverflowToolbarConfig = function() {
 		var oConfig = {
@@ -838,13 +898,19 @@ sap.ui.define([
 				return "Medium";
 			},
 			invalidationEvents: ["_minWidthChange"],
+			onBeforeEnterOverflow: this._onBeforeEnterOverflow.bind(this),
 			onAfterExitOverflow: this._onAfterExitOverflow.bind(this)
 		};
 
 		return oConfig;
 	};
 
+	Breadcrumbs.prototype._onBeforeEnterOverflow = function () {
+		this._bInOverflow = true;
+	};
+
 	Breadcrumbs.prototype._onAfterExitOverflow = function () {
+		this._bInOverflow = false;
 		this._resetControl();
 	};
 
@@ -855,7 +921,7 @@ sap.ui.define([
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	 Breadcrumbs.prototype._getToolbarInteractive = function () {
 		return true;

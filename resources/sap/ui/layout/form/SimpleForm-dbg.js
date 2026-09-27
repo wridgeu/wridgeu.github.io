@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,6 +8,7 @@
 sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/base/ManagedObjectObserver',
+	"sap/ui/core/Element",
 	'sap/ui/layout/library',
 	'./Form',
 	'./FormContainer',
@@ -19,6 +20,7 @@ sap.ui.define([
 ], function(
 	Control,
 	ManagedObjectObserver,
+	Element,
 	library,
 	Form,
 	FormContainer,
@@ -58,16 +60,16 @@ sap.ui.define([
 	 * <code>{@link sap.ui.layout.form.FormContainer FormContainer}</code> elements and <code>{@link sap.ui.layout.form.FormElement FormElement}</code> elements,
 	 * but the complexity in the API is not exposed to the user.
 	 * <ul>
-	 * <li>A new <code>sap.ui.core.Title</code> element or <code>Toolbar</code> control starts a new group (<code>{@link sap.ui.layout.form.FormContainer FormContainer}</code>) in the form.</li>
+	 * <li>A new {@link sap.ui.core.Title Title} element or <code>Toolbar</code> control starts a new group (<code>{@link sap.ui.layout.form.FormContainer FormContainer}</code>) in the form.</li>
 	 * <li>A new <code>Label</code> control starts a new row (<code>{@link sap.ui.layout.form.FormElement FormElement}</code>) in the form.</li>
 	 * <li>All other controls will be assigned to the row (<code>{@link sap.ui.layout.form.FormElement FormElement}</code>) that started with the last label.</li>
 	 * </ul>
-	 * Use <code>LayoutData</code> to influence the layout for special cases in the Input/Display controls.
+	 * Use {@link sap.ui.core.Element#setLayoutData LayoutData} to influence the layout for special cases in the Input/Display controls.
 	 *
 	 * <b>Note:</b> If a more complex form is needed, use the <code>{@link sap.ui.layout.form.Form Form}</code> control instead.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -119,8 +121,9 @@ sap.ui.define([
 				 * The labels and fields might be misaligned, the labels might be rendered in the wrong mode,
 				 * and the spacing between the single controls might be wrong.
 				 * Also, controls that do not fit the mode might be rendered incorrectly.
+				 * In addition to that, wrong screen reader announcements might occur.
 				 */
-				editable : {type : "boolean", group : "Misc", defaultValue : null},
+				editable : {type : "boolean", group : "Misc", defaultValue : false},
 
 				/**
 				 * Specifies the min-width in pixels of the label in all form rows.
@@ -273,7 +276,7 @@ sap.ui.define([
 				singleContainerFullSize : {type : "boolean", group : "Misc", defaultValue : true},
 
 				/**
-				 * Breakpoint between Medium size and Large size.
+				 * Breakpoint between large size and extra large size.
 				 *
 				 * <b>Note:</b> This property is only used if a <code>ResponsiveGridLayout</code> is used as a layout.
 				 * @since 1.34.0
@@ -281,7 +284,7 @@ sap.ui.define([
 				breakpointXL : {type : "int", group : "Misc", defaultValue : 1440},
 
 				/**
-				 * Breakpoint between Medium size and Large size.
+				 * Breakpoint between medium size and large size.
 				 *
 				 * <b>Note:</b> This property is only used if a <code>ResponsiveGridLayout</code> is used as a layout.
 				 * @since 1.16.3
@@ -289,7 +292,7 @@ sap.ui.define([
 				breakpointL : {type : "int", group : "Misc", defaultValue : 1024},
 
 				/**
-				 * Breakpoint between Small size and Medium size.
+				 * Breakpoint between small size and medium size.
 				 *
 				 * <b>Note:</b> This property is only used if a <code>ResponsiveGridLayout</code> is used as a layout.
 				 * @since 1.16.3
@@ -311,34 +314,34 @@ sap.ui.define([
 				/**
 				 * The content of the form is structured in the following way:
 				 * <ul>
-				 * <li>Add a <code>sap.ui.core.Title</code> element or <code>Toolbar</code> control to start a new group (<code>{@link sap.ui.layout.form.FormContainer FormContainer}</code>).</li>
-				 * <li>Add a <code>Label</code> control to start a new row (<code>{@link sap.ui.layout.form.FormElement FormElement}</code>).</li>
+				 * <li>Add a {@link sap.ui.core.Title Title} element or <code>Toolbar</code> control to start a new group (<code>{@link sap.ui.layout.form.FormContainer FormContainer}</code>).</li>
+				 * <li>Add a {@link sap.m.Label Label} control to start a new row (<code>{@link sap.ui.layout.form.FormElement FormElement}</code>).</li>
 				 * <li>Add controls as input fields, text fields or other as needed.</li>
-				 * <li>Use <code>LayoutData</code> to influence the layout for special cases in the single controls.
-				 * For example, if a <code>ColumnLayout</code> is used as a layout,
+				 * <li>Use {@link sap.ui.core.Element#setLayoutData LayoutData} to influence the layout for special cases in the single controls.
+				 * For example, if a {@link sap.ui.layout.form.ColumnLayout ColumnLayout} is used as a layout,
 				 * the form content is weighted using 4 cells for the labels and 8 cells for the field part, for large size.
 				 * If there is only little space, the labels are above the fields and each field uses 12 cells.
-				 * If your input controls should influence their width, you can add <code>sap.ui.layout.ColumnElementData</code>
-				 * to them via <code>setLayoutData</code> method.
-				 * Ensure that the sum of the weights in the <code>ColumnElementData</code> is not more than 12,
+				 * If your input controls should influence their width, you can add {@link sap.ui.layout.form.ColumnElementData ColumnElementData}
+				 * to them via the {@link sap.ui.core.Element#setLayoutData setLayoutData} method.
+				 * Ensure that the sum of the weights in the {@link sap.ui.layout.form.ColumnElementData ColumnElementData} is not more than 12,
 				 * as this is the total width of the input control part of each form row.</li>
 				 * </ul>
-				 * Example for a row where the <code>Input</code> uses 6 cells and the second <code>Input</code> uses 2 cells (using <code>ColumnElementData</code>):
+				 * Example for a row where the {@link sap.m.Input Input} uses 6 cells and the second {@link sap.m.Input Input} uses 2 cells (using {@link sap.ui.layout.form.ColumnElementData ColumnElementData}):
 				 * <pre>
 				 * new sap.m.Label({text:"Label"});
-				 * new sap.m.Input({value:"6 cells", layoutData: new sap.ui.layout.ColumnElementData({cellsLarge: 6, cellsSmall: 8})}),
-				 * new sap.m.Input({value:"2 cells", layoutData: new sap.ui.layout.ColumnElementData({cellsLarge: 2, cellsSmall: 4})}),
+				 * new sap.m.Input({value:"6 cells", layoutData: new sap.ui.layout.form.ColumnElementData({cellsLarge: 6, cellsSmall: 8})}),
+				 * new sap.m.Input({value:"2 cells", layoutData: new sap.ui.layout.form.ColumnElementData({cellsLarge: 2, cellsSmall: 4})}),
 				 * </pre>
 				 *
-				 * For example, if a <code>ResponsiveGridLayout</code> is used as a layout, there are 12 cells in one row.
+				 * For example, if a {@link sap.ui.layout.form.ResponsiveGridLayout ResponsiveGridLayout} is used as a layout, there are 12 cells in one row.
 				 * Depending on the screen size the labels use the defined <code>labelSpan</code>.
 				 * The remaining cells are used for the fields (and <code>emptySpan</code> if defined).
 				 * The available cells are distributed to all fields in the row. If one field should use a fixed number of cells
-				 * you can add <code>sap.ui.layout.GridData</code> to them via <code>setLayoutData</code> method.
+				 * you can add {@link sap.ui.layout.GridData GridData} to them via the {@link sap.ui.core.Element#setLayoutData setLayoutData} method.
 				 * If there are additional fields in the row they will get the remaining cells.
 				 * </ul>
-				 * Example for a row with two <code>Input</code> controls where one uses four cells on small screens,
-				 * one cell on medium screens and 2 cells on larger screens (using <code>ResponsiveGridLayout</code>):
+				 * Example for a row with two {@link sap.m.Input Input} controls where one uses four cells on small screens,
+				 * one cell on medium screens and 2 cells on larger screens (using {@link sap.ui.layout.form.ResponsiveGridLayout ResponsiveGridLayout}):
 				 * <pre>
 				 * new sap.m.Label({text:"Label"});
 				 * new sap.m.Input({value:"auto size"}),
@@ -347,11 +350,11 @@ sap.ui.define([
 				 *
 				 * <b>Warning:</b> Do not put any layout or other container controls in here. This could damage the visual layout,
 				 * keyboard support and screen-reader support. Only labels, titles, toolbars and form controls are allowed.
-				 * Views are also not supported. Allowed form controls implement the interface <code>sap.ui.core.IFormContent</code>.
+				 * Views are also not supported. Allowed form controls implement the interface {@link sap.ui.core.IFormContent}.
 				 *
-				 * If editable controls are used as content, the <code>editable</code> property must be set to <code>true</code>,
-				 * otherwise to <code>false</code>. If the <code>editable</code> property is set incorrectly, there will be visual issues
-				 * like wrong label alignment or wrong spacing between the controls.
+				 * If editable controls are used as content, the {@link #setEditable editable} property must be set to <code>true</code>,
+				 * otherwise to <code>false</code>. If the {@link #setEditable editable} property is set incorrectly, there will be visual issues
+				 * like wrong label alignment or wrong spacing between the controls. In addition to that, wrong screen reader announcements might occur.
 				 */
 				content : {type : "sap.ui.core.Element", multiple : true, singularName : "content"},
 
@@ -362,6 +365,12 @@ sap.ui.define([
 
 				/**
 				 * Title element of the <code>SimpleForm</code>. Can either be a <code>Title</code> element, or a string.
+				 *
+				 * <b>Note:</b> If a {@link #getToolbar Toolbar} is used, the <code>Title</code> is ignored.
+				 *
+				 * <b>Note:</b> If the title is provided as a string, the title is rendered with a theme-dependent default level.
+				 * As the <code>Form</code> control cannot know the structure of the page, this might not fit the page structure.
+				 * In this case, provide the title using a <code>Title</code> element and set its {@link sap.ui.core.Title#setLevel level} to the needed value.
 				 * @since 1.16.3
 				 */
 				title : {type : "sap.ui.core.Title", altTypes : ["string"], multiple : false},
@@ -369,17 +378,27 @@ sap.ui.define([
 				/**
 				 * Toolbar of the <code>SimpleForm</code>.
 				 *
-				 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
+				 * <b>Note:</b> If a <code>Toolbar</code> is used, the {@link #getTitle Title} is ignored.
 				 * If a title is needed inside the <code>Toolbar</code> it must be added at content to the <code>Toolbar</code>.
-				 * In this case add the <code>Title</code> to the <code>ariaLabelledBy</code> association.
+				 * In this case, add the <code>Title</code> to the {@link #addAriaLabelledBy ariaLabelledBy} association.
+				 * Use the right title level to meet the visual requirements. This might be theme-dependent.
 				 * @since 1.36.0
 				 */
-				toolbar : {type : "sap.ui.core.Toolbar", multiple : false}
+				toolbar : {type : "sap.ui.core.Toolbar", multiple : false,
+					forwarding: {
+						idSuffix: "--Form",
+						aggregation: "toolbar"
+					}
+				}
 			},
 			associations: {
 
 				/**
 				 * Association to controls / IDs which label this control (see WAI-ARIA attribute <code>aria-labelledby</code>).
+				 *
+				 * <b>Note:</b> Every <code>Form</code> needs to have some title or label (at least for screen reader support). If no {@link #getTitle Title}
+				 * is set, and the <code>SimpleForm</code> is not a child or a control with a title, such as {@link sap.m.Panel Panel} or {@link sap.m.Dialog Dialog},
+				 * a label or title needs to be assigned using the <code>ariaLabelledBy</code> association.
 				 * @since 1.32.0
 				 */
 				ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" }
@@ -396,10 +415,6 @@ sap.ui.define([
 		this._iLabelWeight = 3;
 		this._iCurrentWidth = 0;
 		var oForm = new Form(this.getId() + "--Form");
-		// use title of SimpleForm in Form
-		oForm.getTitle = function(){
-			return this.getParent().getTitle();
-		};
 		oForm._origInvalidate = oForm.invalidate;
 		oForm.invalidate = function(oOrigin) {
 			if (this.bOutput) {
@@ -424,23 +439,33 @@ sap.ui.define([
 			}
 		};
 
-		oForm._origOnLayoutDataChange = oForm.onLayoutDataChange;
-		oForm.onLayoutDataChange = function(oEvent) {
-			this._origOnLayoutDataChange(oEvent);
+		/**
+		 * @deprecated Since version 1.93.0
+		 */
+		// eslint-disable-next-line no-lone-blocks
+		{
+			oForm._origOnLayoutDataChange = oForm.onLayoutDataChange;
+			oForm.onLayoutDataChange = function(oEvent) {
+				this._origOnLayoutDataChange(oEvent);
 
-			var oSimpleForm = this.getParent();
-			if (oSimpleForm) {
-				oSimpleForm._onLayoutDataChange(oEvent);
-			}
-		};
+				var oSimpleForm = this.getParent();
+				if (oSimpleForm) {
+					oSimpleForm._onLayoutDataChange(oEvent);
+				}
+			};
+
+			this._aLayouts = [];
+		}
 
 		this.setAggregation("form",oForm);
 		this._aElements = null;
-		this._aLayouts = [];
 		this._changedFormContainers = [];
 		this._changedFormElements = [];
 
 		this._oObserver = new ManagedObjectObserver(_observeChanges.bind(this));
+		this._oObserver.observe(this, {
+			aggregations: ["title"]
+		});
 
 	};
 
@@ -449,15 +474,21 @@ sap.ui.define([
 		var oForm = this.getAggregation("form");
 		oForm.invalidate = oForm._origInvalidate;
 
-		_removeResize.call(this);
+		/**
+	 	 * @deprecated Since version 1.93.0
+	 	 */
+		// eslint-disable-next-line no-lone-blocks
+		{
+			_removeResize.call(this);
 
-		for (var i = 0; i < this._aLayouts.length; i++) {
-			var oLayout = sap.ui.getCore().byId(this._aLayouts[i]);
-			if (oLayout && oLayout.destroy) {
-				oLayout.destroy();
+			for (var i = 0; i < this._aLayouts.length; i++) {
+				var oLayout = Element.getElementById(this._aLayouts[i]);
+				if (oLayout && oLayout.destroy) {
+					oLayout.destroy();
+				}
 			}
+			this._aLayouts = [];
 		}
-		this._aLayouts = [];
 		this._aElements = null;
 		this._changedFormContainers = [];
 		this._changedFormElements = [];
@@ -472,6 +503,9 @@ sap.ui.define([
 	 */
 	SimpleForm.prototype.onBeforeRendering = function() {
 
+		/**
+		 * @deprecated Since version 1.93.0
+		 */
 		_removeResize.call(this);
 
 		var oForm = this.getAggregation("form");
@@ -525,27 +559,16 @@ sap.ui.define([
 	SimpleForm.prototype.setToolbar = function(oToolbar) {
 
 		this._bChangedByMe = true;
-		var oForm = this.getAggregation("form");
-		oForm.setToolbar(oToolbar);
-
+		this.setAggregation("toolbar", oToolbar);
 		this._bChangedByMe = false;
 		return this;
-
-	};
-
-	SimpleForm.prototype.getToolbar = function() {
-
-		var oForm = this.getAggregation("form");
-		return oForm.getToolbar();
 
 	};
 
 	SimpleForm.prototype.destroyToolbar = function() {
 
 		this._bChangedByMe = true;
-		var oForm = this.getAggregation("form");
-		oForm.destroyToolbar();
-
+		this.destroyAggregation("toolbar");
 		this._bChangedByMe = false;
 		return this;
 
@@ -649,7 +672,7 @@ sap.ui.define([
 					oFormContainer = oParent.getParent();
 					oFormElement = oParent;
 					oLayoutData = _getFieldLayoutData.call(this, oElement);
-					if (oLayoutData && oLayoutData.isA("sap.ui.layout.ResponsiveFlowLayoutData") && sLayout === SimpleFormLayout.ResponsiveLayout &&
+					if (sLayout === SimpleFormLayout.ResponsiveLayout && oLayoutData?.isA("sap.ui.layout.ResponsiveFlowLayoutData") &&
 							!_isMyLayoutData.call(this, oLayoutData) && oLayoutData.getLinebreak()) {
 						oFormElement = _addFormElement.call(this, oFormContainer);
 					}
@@ -665,6 +688,9 @@ sap.ui.define([
 				oFormElement = _addFormElement.call(this, oFormContainer);
 			}
 
+			/**
+			 * @deprecated Since version 1.93.0
+			 */
 			_createFieldLayoutData.call(this, oElement, 5, false, true);
 
 			oFormElement.addField(oElement);
@@ -843,7 +869,7 @@ sap.ui.define([
 				if (aFormElements.length == 0) {
 					// FormContainer has no FormElements -> create one
 					oFormElement = _addFormElement.call(this, oFormContainer);
-				} else if (oLayoutData && oLayoutData.isA("sap.ui.layout.ResponsiveFlowLayoutData") && sLayout === SimpleFormLayout.ResponsiveLayout &&
+				} else if (sLayout === SimpleFormLayout.ResponsiveLayout && oLayoutData?.isA("sap.ui.layout.ResponsiveFlowLayoutData") &&
 									 !_isMyLayoutData.call(this, oLayoutData) && oLayoutData.getLinebreak()) {
 					oFormElement = _addFormElement.call(this, oFormContainer);
 				} else {
@@ -860,7 +886,7 @@ sap.ui.define([
 				if (iElementIndex == 0) {
 					// it's already the first FormElement -> insert a new one before
 					oFormElement = _insertFormElement.call(this, oFormContainer, null, 0);
-				} else if (oLayoutData && oLayoutData.isA("sap.ui.layout.ResponsiveFlowLayoutData") && sLayout === SimpleFormLayout.ResponsiveLayout &&
+				} else if (sLayout === SimpleFormLayout.ResponsiveLayout && oLayoutData?.isA("sap.ui.layout.ResponsiveFlowLayoutData") &&
 									 !_isMyLayoutData.call(this, oLayoutData) && oLayoutData.getLinebreak()) {
 					oFormElement = _insertFormElement.call(this, oFormContainer, null, iElementIndex);
 				} else {
@@ -872,7 +898,7 @@ sap.ui.define([
 				// insert new field into same FormElement before old field
 				oFormElement = oOldElement.getParent();
 				iFieldIndex = oFormElement.indexOfField(oOldElement);
-				if (oLayoutData && oLayoutData.isA("sap.ui.layout.ResponsiveFlowLayoutData") && sLayout === SimpleFormLayout.ResponsiveLayout &&
+				if ( sLayout === SimpleFormLayout.ResponsiveLayout && oLayoutData?.isA("sap.ui.layout.ResponsiveFlowLayoutData") &&
 						!_isMyLayoutData.call(this, oLayoutData) && oLayoutData.getLinebreak() && iFieldIndex > 0) {
 					// split FormElement
 					oFormContainer = oFormElement.getParent();
@@ -893,6 +919,9 @@ sap.ui.define([
 			}
 			_markFormElementForUpdate(this._changedFormElements, oFormElement);
 
+			/**
+			 * @deprecated Since version 1.93.0
+			 */
 			_createFieldLayoutData.call(this, oElement, 5, false, true);
 		}
 
@@ -913,7 +942,7 @@ sap.ui.define([
 		if (this._aElements) {
 
 			if (typeof (vElement) == "string") { // ID of the element is given
-				vElement = sap.ui.getCore().byId(vElement);
+				vElement = Element.getElementById(vElement);
 			}
 
 			if (typeof (vElement) == "object") { // the element itself is given or has just been retrieved
@@ -1036,6 +1065,9 @@ sap.ui.define([
 			this._aElements.splice(iIndex, 1);
 			oElement.setParent(null);
 			this._oObserver.unobserve(oElement);
+			/**
+			 * @deprecated Since version 1.93.0
+			 */
 			_removeLayoutData.call(this, oElement);
 
 			this.invalidate();
@@ -1070,6 +1102,9 @@ sap.ui.define([
 
 			for (i = 0; i < this._aElements.length; i++) {
 				var oElement = this._aElements[i];
+				/**
+				 * @deprecated Since version 1.93.0
+				 */
 				_removeLayoutData.call(this, oElement);
 				this._oObserver.unobserve(oElement);
 			}
@@ -1116,6 +1151,9 @@ sap.ui.define([
 
 		var sOldLayout = this.getLayout();
 		var bDefault = this.isPropertyInitial("layout"); // if default is used and layout not defined setLayout is not called
+		/**
+		 * @deprecated Since version 1.93.0
+		 */
 		if (sLayout != sOldLayout) {
 			_removeOldLayoutData.call(this);
 		}
@@ -1125,6 +1163,9 @@ sap.ui.define([
 		if (sLayout != sOldLayout || bDefault) { // Layout changed or default set explicit -> we know what layout is used and can create the Control
 			var bSet = _setFormLayout.call(this);
 
+			/**
+			 * @deprecated Since version 1.93.0
+			 */
 			if (bSet) {
 				_addLayoutData.call(this);
 			}
@@ -1149,6 +1190,10 @@ sap.ui.define([
 			this._oObserver.unobserve(oElement);
 			var oElementClone = oElement.clone(sIdSuffix);
 			this._oObserver.observe(oElement, {properties: ["visible"]});
+
+			/**
+			 * @deprecated Since version 1.93.0
+			 */
 			if (oLayoutData) {
 				// mark private LayoutData
 				if (oLayoutData.isA("sap.ui.core.VariantLayoutData")) {
@@ -1176,6 +1221,9 @@ sap.ui.define([
 			if (oForm.getLayout()) {
 				this._bChangedByMe = true;
 				oForm.destroyLayout();
+				/**
+				 * @deprecated Since version 1.93.0
+				 */
 				_removeResize.call(this);
 				this._bChangedByMe = false;
 			}
@@ -1310,14 +1358,25 @@ sap.ui.define([
 
 		if (!this._bIsBeingDestroyed) {
 			_setFormLayout.call(this);
+
+			/**
+			 * @deprecated Since version 1.93.0
+			 */
 			_addLayoutData.call(this);
 			if (this.getDomRef()) {
 				_updateLayout.call(this);
+				var oForm = this.getAggregation("form");
+				if (!oForm.getDomRef()) { // Form not rendered right now - invalidate to trigger rendering
+					this.invalidate();
+				}
 			}
 		}
 
 	}
 
+	/**
+	 * @deprecated Since version 1.93.0
+	 */
 	function _removeOldLayoutData() {
 
 		this._bChangedByMe = true;
@@ -1356,6 +1415,9 @@ sap.ui.define([
 
 	}
 
+	/**
+	 * @deprecated Since version 1.93.0
+	 */
 	function _addLayoutData() {
 
 		this._bChangedByMe = true;
@@ -1449,11 +1511,12 @@ sap.ui.define([
 
 	}
 
-	/*
+	/**
 	 * Checks whether the given LayoutData is created and added by this SimpleForm
-	 * @param { sap.ui.layout.ResponsiveFlowLayoutData} optional (interface) The layout data
+	 * @param { sap.ui.layout.ResponsiveFlowLayoutData} oLayoutData The layout data
 	 * @returns {boolean} Whether the given layout was created by this SimpleForm
 	 * @private
+ 	 * @deprecated Since version 1.93.0
 	 */
 	function _isMyLayoutData(oLayoutData) {
 
@@ -1463,13 +1526,15 @@ sap.ui.define([
 
 	}
 
-	/*
+	/**
 	 * Creates new sap.ui.layout.ResponsiveFlowLayoutData with the given parameters
 	 * @param {int} iWeight the weight for the layout data
 	 * @param {boolean} bLinebreak Whether the layout data has a linebreak
 	 * @param {boolean} bLinebreakable Whether the layout data is linebreakable
+	 * @param {int} iMinWidth the minimal width of the layout data
 	 * @returns {sap.ui.layout.ResponsiveFlowLayoutData} The newly created ResponsiveFlowLayoutData
 	 * @private
+ 	 * @deprecated Since version 1.93.0
 	 */
 	function _createRFLayoutData(iWeight, bLinebreak, bLinebreakable, iMinWidth) {
 
@@ -1535,6 +1600,15 @@ sap.ui.define([
 
 	}
 
+	/**
+	 * @param {sap.ui.core.Control} oField content control
+	 * @param {int} iWeight the weight for the layout data
+	 * @param {boolean} bLinebreak Whether the layout data has a linebreak
+	 * @param {boolean} bLinebreakable Whether the layout data is linebreakable
+	 * @param {int} iMinWidth the minimal width of the layout data
+	 * @private
+ 	 * @deprecated Since version 1.93.0
+	 */
 	function _createFieldLayoutData(oField, iWeight, bLinebreak, bLinebreakable, iMinWidth) {
 
 		if (this.getLayout() != SimpleFormLayout.ResponsiveLayout) {
@@ -1564,6 +1638,10 @@ sap.ui.define([
 
 	}
 
+	/**
+	 * @param {sap.ui.layout.form.FormElement} oElement The FormElement
+	 * @deprecated Since version 1.93.0
+	 */
 	function _createElementLayoutData(oElement) {
 
 		if (this.getLayout() != SimpleFormLayout.ResponsiveLayout) {
@@ -1583,6 +1661,10 @@ sap.ui.define([
 
 	}
 
+	/**
+	 * @param {sap.ui.layout.form.FormContainer} oContainer The form container
+	 * @deprecated Since version 1.93.0
+	 */
 	function _createContainerLayoutData(oContainer) {
 
 		var sLayout = this.getLayout();
@@ -1616,6 +1698,10 @@ sap.ui.define([
 
 	}
 
+	/**
+	 * @param {sap.ui.core.Control} oElement Label or Field
+ 	 * @deprecated Since version 1.93.0
+	 */
 	function _removeLayoutData(oElement) {
 
 		this._bLayoutDataChangedByMe = true;
@@ -1669,13 +1755,19 @@ sap.ui.define([
 		if (oLabel) {
 			sId = this.getId() + "--" + oLabel.getId() + "--FE";
 			oLabel.addStyleClass("sapUiFormLabel-CTX");
+			/**
+			 * @deprecated Since version 1.93.0
+			 */
 			if (!_getFieldLayoutData.call(this, oLabel)) {
 				_createFieldLayoutData.call(this, oLabel, this._iLabelWeight, false, true, this.getLabelMinWidth());
 			}
 			mSettings["label"] = oLabel;
 		} else {
 			sId = oFormContainer.getId() + "--FE-NoLabel"; // There can be only one FormElement without Label in a FomContainer (first one)
-			if (sap.ui.getCore().byId(sId)) {
+			/**
+			 * @deprecated Since version 1.93.0
+			 */
+			if (Element.getElementById(sId)) {
 				// if ResponsiveLayout and ResponsiveFlowLayoutdata with Linebreak is used multiple FormElements without Label can exist
 				// as already deprecated just keep generatied ID in this very special case.
 				sId = undefined;
@@ -1683,6 +1775,9 @@ sap.ui.define([
 		}
 
 		var oElement = new FormElement(sId, mSettings);
+		/**
+		 * @deprecated Since version 1.93.0
+		 */
 		_createElementLayoutData.call(this, oElement);
 
 		oElement.isVisible = function(){
@@ -1730,6 +1825,9 @@ sap.ui.define([
 		}
 
 		var oContainer = new FormContainer(sId, mSettings);
+		/**
+		 * @deprecated Since version 1.93.0
+		 */
 		_createContainerLayoutData.call(this, oContainer);
 
 		oContainer.getAriaLabelledBy = function() {
@@ -1746,10 +1844,11 @@ sap.ui.define([
 
 	}
 
-	/*
+	/**
 	 * Applies the weight property for the fields in the responsive layout.
 	 * @param {sap.ui.layout.form.FormElement} oElement The FormElement where the weight is applied.
 	 * @private
+	 * @deprecated Since version 1.93.0
 	 */
 	function _applyFieldWeight(oElement){
 
@@ -1802,9 +1901,10 @@ sap.ui.define([
 		this._bLayoutDataChangedByMe = false;
 	}
 
-	/*
+	/**
 	 * Applies the linebreaks of FormContainers according to the minWidth and maxContainerCol settings of the SimpleForm
 	 * @private
+	 * @deprecated Since version 1.93.0
 	 */
 	SimpleForm.prototype._applyLinebreaks = function(){
 
@@ -1847,10 +1947,11 @@ sap.ui.define([
 
 	};
 
-	/*
+	/**
 	 * Applies size of the FormContainers in GridLayout: if only one container is in the last line -> make it full size
 	 * adapt all containers because container can be inserted or added later on
 	 * @private
+	 * @deprecated Since version 1.67.0
 	 */
 	function _applyContainerSize(){
 
@@ -1869,9 +1970,11 @@ sap.ui.define([
 		this._bLayoutDataChangedByMe = false;
 	}
 
-	/*
+	/**
 	 * Handles the resize event
+	 * @param {sap.ui.base.Event} oEvent resize event
 	 * @private
+	 * @deprecated Since version 1.93.0
 	 */
 	SimpleForm.prototype._resize = function(oEvent){
 
@@ -1880,11 +1983,16 @@ sap.ui.define([
 			return;
 		}
 		this._iCurrentWidth = oEvent.size.width;
-		this._applyLinebreaks();
+		if (this.getLayout() == SimpleFormLayout.ResponsiveLayout) {
+			this._applyLinebreaks();
+		}
 		this._bChangedByMe = false;
 
 	};
 
+	/**
+	 * @deprecated Since version 1.93.0
+	 */
 	function _removeResize() {
 
 		if (this._sResizeListenerId) {
@@ -1912,7 +2020,58 @@ sap.ui.define([
 
 	function _observeChanges(oChanges) {
 
-		if (oChanges.name == "visible") {
+		if (oChanges.object === this) { // SimpleForm changed
+			if (oChanges.name === "title") { // use title of SimpleForm in Form
+				const oForm = this.getAggregation("form");
+				const vTitle = oChanges.child;
+				if (oChanges.mutation === "insert") {
+					if (typeof vTitle === "string") {
+						oForm.setTitle(vTitle);
+					} else {
+						const oFormTitle = vTitle.clone("--Form");
+						oForm.setTitle(oFormTitle);
+						this._oObserver.observe(vTitle, {
+							properties: true,
+							aggregations: true
+						});
+					}
+				} else if (typeof vTitle === "string") { // remove text
+					oForm.setTitle();
+				} else { // remove Title element
+					this._oObserver.unobserve(vTitle);
+					oForm.destroyTitle();
+				}
+			}
+		} else if (oChanges.object.isA("sap.ui.core.Title")) {
+				const oForm = this.getAggregation("form");
+				const oFormTitle = oForm.getTitle();
+				if (oChanges.name === "tooltip") {
+					const vTooltip = oChanges.child;
+					if (oChanges.mutation === "insert") {
+						if (typeof vTooltip === "string") {
+							oFormTitle.setTooltip(vTooltip);
+						} else {
+							const oFormTooltip = vTooltip.clone("-Form");
+							oFormTitle.setTooltip(oFormTooltip);
+							this._oObserver.observe(vTooltip, {
+								properties: true
+							});
+						}
+						} else if (typeof vTooltip === "string") { // remove text
+							oFormTitle.setTooltip();
+						} else { // remove Title element
+							this._oObserver.unobserve(vTooltip);
+							oFormTitle.destroyTooltip();
+					}
+				} else {
+					oFormTitle.setProperty(oChanges.name, oChanges.current);
+				}
+		} else if (oChanges.object.isA("sap.ui.core.TooltipBase")) {
+				const oForm = this.getAggregation("form");
+				const oFormTitle = oForm.getTitle();
+				const oFormTooltip = oFormTitle.getTooltip();
+				oFormTooltip.setProperty(oChanges.name, oChanges.current);
+		} else if (oChanges.name === "visible") {
 			var oFormElement = oChanges.object.getParent();
 			oFormElement.invalidate();
 		}
@@ -1959,7 +2118,7 @@ sap.ui.define([
 
 		if (!this._bChangedByMe) {
 			// check if content is still the same like in array
-			// maybe ca Control was destroyed or removed without using the SimpleForm API
+			// maybe a Control was destroyed or removed without using the SimpleForm API
 			// as invalidate is fired for every single object only one object can be changed
 			var aContent = _getFormContent(this.getAggregation("form"));
 			var i = 0;
@@ -2008,6 +2167,11 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * @param {sap.ui.base.Event} oEvent layout data change event
+	 * @private
+	 * @deprecated Since version 1.93.0
+	 */
 	SimpleForm.prototype._onLayoutDataChange = function(oEvent){
 
 		if (!this._bLayoutDataChangedByMe && !this._bIsBeingDestroyed) {

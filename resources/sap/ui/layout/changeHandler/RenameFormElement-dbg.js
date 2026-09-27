@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,15 +39,15 @@ sap.ui.define([
 	};
 
 	RenameFormElement.completeChangeContent = function (oChange, oSpecificChangeInfo, mPropertyBag) {
-		if (!(oSpecificChangeInfo.renamedElement && oSpecificChangeInfo.renamedElement.id)) {
-			throw new Error("Rename of label cannot be executed: oSpecificChangeInfo.renamedElement attribute required");
+		if (!(oSpecificChangeInfo?.content?.renamedElement?.id)) {
+			throw new Error("Rename of label cannot be executed: oSpecificChangeInfo.content.renamedElement attribute required");
 		}
 
-		if (!isProvided(oSpecificChangeInfo.value)) {
-			throw new Error("Rename of label cannot be executed: oSpecificChangeInfo.value attribute required");
+		if (!isProvided(oSpecificChangeInfo.content.value)) {
+			throw new Error("Rename of label cannot be executed: oSpecificChangeInfo.content.value attribute required");
 		}
 
-		oChange.setText("fieldLabel", oSpecificChangeInfo.value, "XGRP");
+		oChange.setText("fieldLabel", oSpecificChangeInfo.content.value, "XGRP");
 	};
 
 	RenameFormElement.revertChange = function (oChangeWrapper, oControl, mPropertyBag) {

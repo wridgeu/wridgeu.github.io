@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,14 +8,14 @@
 sap.ui.define([
 	'./BarInPageEnabler',
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/Device',
 	'./BarRenderer',
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration"
+	"sap/ui/thirdparty/jquery"
 ],
-	function(BarInPageEnabler, library, Control, ResizeHandler, Device, BarRenderer, jQuery, Configuration) {
+	function(BarInPageEnabler, library, Localization, Control, ResizeHandler, Device, BarRenderer, jQuery) {
 	"use strict";
 
 
@@ -25,6 +25,8 @@ sap.ui.define([
 
 	// shortcut for sap.m.TitleAlignment
 	var TitleAlignment = library.TitleAlignment;
+
+	var MIN_INTERACTIVE_CONTROLS = 2;
 
 	/**
 	 * Constructor for a new <code>Bar</code>.
@@ -57,7 +59,7 @@ sap.ui.define([
 	 * @implements sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -126,6 +128,8 @@ sap.ui.define([
 
 				/**
 				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 *
+				 * <b>Note:</b>The aria-labelledby attribute will not be rendered when there are less than two interactive elements inside the Bar (for example, one Button).
 				 */
 				ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
 			},
@@ -362,7 +366,7 @@ sap.ui.define([
 	 */
 	Bar.prototype._getMidBarCss = function(iRightBarWidth, iBarWidth, iLeftBarWidth) {
 		var iMidBarPlaceholderWidth = this._$MidBarPlaceHolder.outerWidth(true),
-			bRtl = Configuration.getRTL(),
+			bRtl = Localization.getRTL(),
 			oMidBarCss = { visibility : "" };
 
 		/**
@@ -412,58 +416,19 @@ sap.ui.define([
 	 * @private
 	 */
 	Bar.prototype._getBarContainerWidth = function($Container) {
-		var i,
-			iContainerWidth = 0,
+		var iContainerWidth = 0,
 			aContainerChildren = $Container.children(),
 			iContainerChildrenTotalWidth = 0;
 
 		// Chrome browser has a problem in providing the correct div size when image inside does not have width explicitly set
-		//since ff version 24 the calculation is correct, since we don't support older versions we won't check it
-		// Edge also works correctly with this calculation unlike IE
-		if (Device.browser.webkit || Device.browser.firefox) {
+		for (let i = 0; i < aContainerChildren.length; i++) {
 
-			for (i = 0; i < aContainerChildren.length; i++) {
-
-				iContainerChildrenTotalWidth += jQuery(aContainerChildren[i]).outerWidth(true);
-
-			}
-
-			iContainerWidth = $Container.outerWidth(true);
-
-		} else {
-
-			// IE has a rounding issue with jQuery.outerWidth
-			var oContainerChildrenStyle;
-
-			for (i = 0; i < aContainerChildren.length; i++) {
-
-				oContainerChildrenStyle = window.getComputedStyle(aContainerChildren[i]);
-
-				if (oContainerChildrenStyle.width == "auto") {
-
-					iContainerChildrenTotalWidth += jQuery(aContainerChildren[i]).width() + 1; //add an additional 1 pixel because of rounding issue.
-
-				} else {
-
-					iContainerChildrenTotalWidth += parseFloat(oContainerChildrenStyle.width);
-
-				}
-
-				iContainerChildrenTotalWidth += parseFloat(oContainerChildrenStyle.marginLeft);
-				iContainerChildrenTotalWidth += parseFloat(oContainerChildrenStyle.marginRight);
-				iContainerChildrenTotalWidth += parseFloat(oContainerChildrenStyle.paddingLeft);
-				iContainerChildrenTotalWidth += parseFloat(oContainerChildrenStyle.paddingRight);
-			}
-
-			var oContainerComputedStyle = window.getComputedStyle($Container[0]);
-
-			iContainerWidth += parseFloat(oContainerComputedStyle.width);
-			iContainerWidth += parseFloat(oContainerComputedStyle.marginLeft);
-			iContainerWidth += parseFloat(oContainerComputedStyle.marginRight);
-			iContainerWidth += parseFloat(oContainerComputedStyle.paddingLeft);
-			iContainerWidth += parseFloat(oContainerComputedStyle.paddingRight);
+			iContainerChildrenTotalWidth += jQuery(aContainerChildren[i]).outerWidth(true);
 
 		}
+
+		iContainerWidth = $Container.outerWidth(true);
+
 
 		if (iContainerWidth < iContainerChildrenTotalWidth) {
 
@@ -485,6 +450,7 @@ sap.ui.define([
 	 *
 	 * @version 1.40
 	 * @protected
+	 * @alias sap.m.BarInAnyContentEnabler
 	 */
 	var BarInAnyContentEnabler = BarInPageEnabler.extend("sap.m.BarInAnyContentEnabler", /** @lends sap.m.BarInAnyContentEnabler.prototype */ {});
 
@@ -600,6 +566,15 @@ sap.ui.define([
 	 */
 	Bar.prototype._getRootAccessibilityRole = BarInAnyContentEnabler.prototype._getRootAccessibilityRole;
 
+	Bar.prototype._getAccessibilityRole = function () {
+		var sRootAccessibilityRole = this._getRootAccessibilityRole(),
+			sRole = sRootAccessibilityRole;
+		if (this._getBarInteractiveControlsCount() < MIN_INTERACTIVE_CONTROLS && sRootAccessibilityRole === "toolbar") {
+			sRole = "";
+		}
+		return sRole;
+	};
+
 	/**
 	 * Sets accessibility aria-level attribute of the Root HTML element.
 	 *
@@ -620,6 +595,32 @@ sap.ui.define([
 	 * @function
 	 */
 	Bar.prototype._getRootAriaLevel = BarInAnyContentEnabler.prototype._getRootAriaLevel;
+
+	/**
+	 *
+	 * @returns {number} Bar interactive Controls count
+	 * @private
+	 */
+	Bar.prototype._getBarInteractiveControlsCount = function () {
+		var count = 0;
+		count += this.getContentLeft().filter(this._isInteractiveControl).length;
+		count += this.getContentRight().filter(this._isInteractiveControl).length;
+		count += this.getContentMiddle().filter(this._isInteractiveControl).length;
+
+		return count;
+	};
+
+	/**
+	 *
+	 * @param {object} oControl control to be checked
+	 * @returns {boolean} returns weather the given control is interactive
+	 * @private
+	 */
+	Bar.prototype._isInteractiveControl = function (oControl) {
+		return oControl.getVisible()
+			&& oControl.isA("sap.m.IToolbarInteractiveControl")
+			&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
+	};
 
 	return Bar;
 

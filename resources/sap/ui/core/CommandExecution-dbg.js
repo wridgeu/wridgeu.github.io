@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,6 +21,7 @@ sap.ui.define([
 	/**
 	 * Creates and initializes a new CommandExecution.
 	 *
+	 * @class
 	 * The CommandExecution registers a shortcut when it is added to the dependent
 	 * aggregation of a control. The shortcut information is retrieved from the
 	 * owner components manifest (<code>/sap.ui5/commands/&lt;command&gt;</code>).
@@ -68,7 +69,6 @@ sap.ui.define([
 	 *  </li>
 	 * </ul>
 	 *
-	 * @class
 	 * @alias sap.ui.core.CommandExecution
 	 * @since 1.70
 	 *
@@ -245,51 +245,55 @@ sap.ui.define([
 
 			oCommand = this._getCommandInfo();
 
-			if (oCommand && this.getVisible()) {
-				if (oParent && oParent !== oOldParent) {
-					//register Shortcut
-					sShortcut = oCommand.shortcut;
-					bIsRegistered = Shortcut.isRegistered(this.getParent(), sShortcut);
-					if (!bIsRegistered) {
-						Shortcut.register(oParent, sShortcut, this.trigger.bind(this));
-					}
+			if (oCommand) {
+				if (this.getVisible()) {
+					if (oParent && oParent !== oOldParent) {
+						//register Shortcut
+						sShortcut = oCommand.shortcut;
+						bIsRegistered = Shortcut.isRegistered(this.getParent(), sShortcut);
+						if (!bIsRegistered) {
+							Shortcut.register(oParent, sShortcut, this.trigger.bind(this));
+						}
 
-					if (oParent.getModel("$cmd")) {
-						oParentData = getParentData();
-						this._createCommandData(oParentData);
-					} else {
-						oParent.attachModelContextChange(fnModelChange);
-					}
+						if (oParent.getModel("$cmd")) {
+							oParentData = getParentData();
+							this._createCommandData(oParentData);
+						} else {
+							oParent.attachModelContextChange(fnModelChange);
+						}
 
-					if (!oParent._propagateProperties._sapui_fnOrig) {
-						var fnOriginalPropagate = oParent._propagateProperties;
-						oParent._propagateProperties = function(vName, oObject, oProperties, bUpdateAll, sName, bUpdateListener) {
-							//call orig propagate first, as we need the model for createCommandData
-							fnOriginalPropagate.apply(oParent, arguments);
-							var oActualContext = oParent.getBindingContext("$cmd");
-							// check update of model data for any CommandExecution
-							var oControl = arguments[1];
-							if (oActualContext && oControl.isA("sap.ui.core.CommandExecution")) {
-								var oActualData = oActualContext.getObject();
-								var oOldParentData = Object.getPrototypeOf(oActualData);
-								oParentData = getParentData();
-								if (oOldParentData !== oParentData) {
-									that._createCommandData.apply(oControl, [oParentData]);
+						if (!oParent._propagateProperties._sapui_fnOrig) {
+							var fnOriginalPropagate = oParent._propagateProperties;
+							oParent._propagateProperties = function(vName, oObject, oProperties, bUpdateAll, sName, bUpdateListener) {
+								//call orig propagate first, as we need the model for createCommandData
+								fnOriginalPropagate.apply(oParent, arguments);
+								var oActualContext = oParent.getBindingContext("$cmd");
+								// check update of model data for any CommandExecution
+								var oControl = arguments[1];
+								if (oActualContext && oControl.isA("sap.ui.core.CommandExecution")) {
+									var oActualData = oActualContext.getObject();
+									var oOldParentData = Object.getPrototypeOf(oActualData);
+									oParentData = getParentData();
+									if (oOldParentData !== oParentData) {
+										that._createCommandData.apply(oControl, [oParentData]);
+									}
 								}
-							}
-						};
-						oParent._propagateProperties._sapui_fnOrig = fnOriginalPropagate;
+							};
+							oParent._propagateProperties._sapui_fnOrig = fnOriginalPropagate;
+						}
+					}
+					if (oOldParent && oOldParent != oParent) {
+						//unregister shortcut
+						sShortcut = oCommand.shortcut;
+						bIsRegistered = Shortcut.isRegistered(oOldParent, sShortcut);
+						if (bIsRegistered) {
+							Shortcut.unregister(oOldParent, oCommand.shortcut);
+						}
+						this._cleanupContext(oOldParent);
 					}
 				}
-				if (oOldParent && oOldParent != oParent) {
-					//unregister shortcut
-					sShortcut = oCommand.shortcut;
-					bIsRegistered = Shortcut.isRegistered(oOldParent, sShortcut);
-					if (bIsRegistered) {
-						Shortcut.unregister(oOldParent, oCommand.shortcut);
-					}
-					this._cleanupContext(oOldParent);
-				}
+			} else {
+				Log.error(`${this}: Command '${this.getCommand()}' is not defined in component manifest. No shortcut will be registered.`);
 			}
 			return this;
 		},
@@ -383,8 +387,8 @@ sap.ui.define([
 		/** @inheritdoc */
 		destroy: function () {
 			var oParent = this.getParent();
-			if (oParent) {
-				var oCommand = this._getCommandInfo();
+			var oCommand = this._getCommandInfo();
+			if (oParent && oCommand) {
 				Shortcut.unregister(this.getParent(), oCommand.shortcut);
 				this._cleanupContext(oParent);
 			}

@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	'sap/base/future',
 	'sap/base/Log'
-], function (Log) {
+], function (future, Log) {
 	"use strict";
 
 	var mLibThemeMetadata = {};
@@ -17,8 +18,8 @@ sap.ui.define([
 	// dark mode detection
 	const bDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-	// Theme Fallback
-	const rThemePattern = /^([a-zA-Z0-9_]*)(_(hcb|hcw|dark))$/g;
+	// Theme Fallback for variants
+	const rThemeVariantPattern = /(_hcb|_hcw|_dark)$/g;
 
 	/**
 	 * The list of all known themes incl. their variants.
@@ -37,19 +38,7 @@ sap.ui.define([
 		"sap_fiori_3",
 		"sap_fiori_3_dark",
 		"sap_fiori_3_hcb",
-		"sap_fiori_3_hcw",
-
-		// belize
-		"sap_belize",
-		"sap_belize_plus",
-		"sap_belize_hcb",
-		"sap_belize_hcw",
-
-		// bluecrystal (deprecated)
-		"sap_bluecrystal",
-
-		// hcb (deprecated) - the standard HCB theme, newer themes have a dedicated HCB/HCW variant
-		"sap_hcb"
+		"sap_fiori_3_hcw"
 	];
 
 	// cache for already calculated theme fallbacks
@@ -118,86 +107,9 @@ sap.ui.define([
 			oMetadata = JSON.parse(sMetadataJSON);
 			mLibThemeMetadata[sLibName] = oMetadata;
 		} catch (ex) {
-			Log.error("Could not parse theme metadata for library " + sLibName + ".");
+			future.errorThrows("Could not parse theme metadata for library " + sLibName + ".");
 		}
 		return oMetadata;
-	};
-
-	ThemeHelper.checkAndRemoveStyle = function(oParams) {
-		var sPrefix = oParams.prefix || "",
-			sLib = oParams.id;
-
-		var checkStyle = function(sId, bLog) {
-			var oStyle = document.getElementById(sId);
-
-			try {
-
-				var bNoLinkElement = false,
-					bLinkElementFinishedLoading = false,
-					bSheet = false,
-					bInnerHtml = false;
-
-				// Check if <link> element is missing (e.g. misconfigured library)
-				bNoLinkElement = !oStyle;
-
-				// Check if <link> element has finished loading (see sap/ui/dom/includeStyleSheet)
-				bLinkElementFinishedLoading = !!(oStyle && (oStyle.getAttribute("data-sap-ui-ready") === "true" || oStyle.getAttribute("data-sap-ui-ready") === "false"));
-
-				// Check for "sheet" object and if rules are available
-				bSheet = !!(oStyle && oStyle.sheet && oStyle.sheet.href === oStyle.href && ThemeHelper.hasSheetCssRules(oStyle.sheet));
-
-				// Check for "innerHTML" content
-				bInnerHtml = !!(oStyle && oStyle.innerHTML && oStyle.innerHTML.length > 0);
-
-				// One of the previous four checks need to be successful
-				var bResult = bNoLinkElement || bSheet || bInnerHtml || bLinkElementFinishedLoading;
-
-				if (bLog) {
-					Log.debug("ThemeHelper: " + sId + ": " + bResult + " (noLinkElement: " + bNoLinkElement + ", sheet: " + bSheet + ", innerHtml: " + bInnerHtml + ", linkElementFinishedLoading: " + bLinkElementFinishedLoading + ")");
-				}
-
-				return bResult;
-
-			} catch (e) {
-				if (bLog) {
-					Log.error("ThemeHelper: " + sId + ": Error during check styles '" + sId + "'", e);
-				}
-			}
-
-			return false;
-		};
-
-		var currentRes = checkStyle(sPrefix + sLib, true);
-		if (currentRes) {
-
-			// removes all old stylesheets (multiple could exist if theme change was triggered
-			// twice in a short timeframe) once the new stylesheet has been loaded
-			var aOldStyles = document.querySelectorAll("link[data-sap-ui-foucmarker='" + sPrefix + sLib + "']");
-			if (aOldStyles.length > 0) {
-				for (var i = 0, l = aOldStyles.length; i < l; i++) {
-					aOldStyles[i].remove();
-				}
-				Log.debug("ThemeManager: Old stylesheets removed for library: " + sLib);
-			}
-
-		}
-		return currentRes;
-	};
-
-	ThemeHelper.safeAccessSheetCssRules = function(sheet) {
-		try {
-			return sheet.cssRules;
-		} catch (e) {
-			// Firefox throws a SecurityError or InvalidAccessError if "sheet.cssRules"
-			// is accessed on a stylesheet with 404 response code.
-			// Most browsers also throw when accessing from a different origin (CORS).
-			return null;
-		}
-	};
-
-	ThemeHelper.hasSheetCssRules = function(sheet) {
-		var aCssRules = ThemeHelper.safeAccessSheetCssRules(sheet);
-		return !!aCssRules && aCssRules.length > 0;
 	};
 
 	/**
@@ -229,20 +141,20 @@ sap.ui.define([
 		//  * no theme-root is given (themes from a different endpoint (i.e. theming-service) are excluded) and
 		//  * the given theme is a standard SAP theme ('sap_' prefix)
 		//  * not supported in this version
-		if (sThemeRoot == null && sTheme.startsWith("sap_") && aKnownThemes.indexOf(sTheme) == -1) {
-			// extract the theme variant if given: "_hcb", "_hcw", "_dark"
-			const aThemeMatch = rThemePattern.exec(sTheme) || [];
-			const sVariant = aThemeMatch[2]; //match includes an underscore
-
-			if (sVariant) {
-				sNewTheme = `${DEFAULT_THEME}${sVariant}`;
+		if (sThemeRoot == null && (!sTheme || (sTheme.startsWith("sap_") && aKnownThemes.indexOf(sTheme) == -1))) {
+			let sVariant;
+			if (sTheme) {
+				// extract the theme variant if given: "_hcb", "_hcw", "_dark"
+				sVariant = sTheme.match(rThemeVariantPattern)?.[0] || "";
+				Log.warning(`The configured theme '${sTheme}' is not yet or no longer supported in this version. The valid fallback theme is '${DEFAULT_THEME}${sVariant}'.`, "Theming");
 			} else {
-				sNewTheme = DEFAULT_THEME;
+				sVariant = bDarkMode ? "_dark" : "";
 			}
+
+			sNewTheme = `${DEFAULT_THEME}${sVariant}`;
 
 			mThemeFallbacks[sTheme] = sNewTheme;
 
-			Log.warning(`The configured theme '${sTheme}' is not yet or no longer supported in this version. The valid fallback theme is '${sNewTheme}'.`, "Theming");
 		}
 
 		return sNewTheme;
@@ -253,6 +165,19 @@ sap.ui.define([
 			DEFAULT_THEME: DEFAULT_THEME,
 			DARK_MODE: bDarkMode
 		};
+	};
+
+	/**
+	 * Checks whether the theme is a SAP delivered standard theme or not.
+	 *
+	 * @param {string} sTheme Name of the theme to check
+	 * @returns {boolean} true if the theme is a standard theme, false otherwise
+	 * @private
+	 * @ui5-restricted sap/ui/core/Theming, sap.ui.core.theming.ThemeManager
+	 * @since 1.135
+	 */
+	ThemeHelper.isStandardTheme = function(sTheme) {
+		return sTheme.startsWith("sap_") || sTheme === "base";
 	};
 
 	return ThemeHelper;

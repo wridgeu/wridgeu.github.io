@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -19,7 +19,6 @@ sap.ui.define([
 	* @param {number} [oCustomConfig.maxItems] - Maximum amount of actions
 	* @returns {object} Card action configuration object
 	* @function
-	* @experimental
 	* @private
 	*/
 
@@ -50,12 +49,6 @@ sap.ui.define([
 					"path": "type",
 					"visible": "{= !!${enabled}}"
 				},
-				"service": {
-					"label": "{i18n>CARD_EDITOR.ACTION.SERVICE}",
-					"type": "string",
-					"path": "service",
-					"visible": false // Currently undocumented
-				},
 				"parameters": {
 					"label": "{i18n>CARD_EDITOR.PARAMETERS}",
 					"type": "map",
@@ -85,6 +78,13 @@ sap.ui.define([
 					"defaultValue": "_blank",
 					"path": "target",
 					"visible": "{= !!${enabled} && ${type} === 'Navigation' && !!${url}}"
+				},
+				"navigationArrow": {
+					"label": "{i18n>CARD_EDITOR.ACTION.NAVIGATION_ARROW}",
+					"type": "boolean",
+					"defaultValue": false,
+					"path": "navigationArrow",
+					"visible": "{= !!${enabled} && ${type} === 'Navigation'}"
 				}
 			}
 		}, oCustomConfig);

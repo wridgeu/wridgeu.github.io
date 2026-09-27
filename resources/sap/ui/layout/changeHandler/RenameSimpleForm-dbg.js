@@ -1,13 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Element",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/base/Log"
 ], function(
+	Element,
 	JsControlTreeModifier,
 	Log
 ) {
@@ -18,10 +20,9 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.layout.changeHandler.RenameForm
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 1.40
 	 * @private
-	 * @experimental Since 1.40. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var RenameForm = { };
 
@@ -100,15 +101,15 @@ sap.ui.define([
 	 * @private
 	 */
 	RenameForm.completeChangeContent = function(oChange, oSpecificChangeInfo, mPropertyBag) {
-		var oContent = {};
+		const oContent = {};
 
 		if (!oSpecificChangeInfo.changeType) {
 			throw new Error("oSpecificChangeInfo.changeType attribute required");
 		}
 
-		if (oSpecificChangeInfo.renamedElement && oSpecificChangeInfo.renamedElement.id) {
-			var oRenamedElement = sap.ui.getCore().byId(oSpecificChangeInfo.renamedElement.id);
-			var oStableRenamedElement;
+		if (oSpecificChangeInfo.content?.renamedElement?.id) {
+			const oRenamedElement = Element.getElementById(oSpecificChangeInfo.content.renamedElement.id);
+			let oStableRenamedElement;
 			if (oSpecificChangeInfo.changeType === "renameLabel") {
 				oStableRenamedElement = oRenamedElement.getLabel();
 			} else if (oSpecificChangeInfo.changeType === "renameTitle") {
@@ -117,13 +118,13 @@ sap.ui.define([
 			oContent.elementSelector = JsControlTreeModifier.getSelector(oStableRenamedElement, mPropertyBag.appComponent);
 			oChange.addDependentControl(oStableRenamedElement, "elementSelector", mPropertyBag);
 		} else {
-			throw new Error("oSpecificChangeInfo.renamedElement attribute required");
+			throw new Error("oSpecificChangeInfo.content.renamedElement attribute required");
 		}
 
-		if (this._isProvided(oSpecificChangeInfo.value)) {
-			oChange.setText("formText", oSpecificChangeInfo.value, "XFLD");
+		if (this._isProvided(oSpecificChangeInfo.content.value)) {
+			oChange.setText("formText", oSpecificChangeInfo.content.value, "XFLD");
 		} else {
-			throw new Error("oSpecificChangeInfo.value attribute required");
+			throw new Error("oSpecificChangeInfo.content.value attribute required");
 		}
 
 		oChange.setContent(oContent);

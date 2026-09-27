@@ -1,17 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/model/json/JSONModel",
-	"sap/ui/model/ClientPropertyBinding",
-	"./PagingModelListBinding"
+	"sap/ui/model/ClientPropertyBinding"
 ], function (
 	JSONModel,
-	ClientPropertyBinding,
-	PagingModelListBinding
+	ClientPropertyBinding
 ) {
 	"use strict";
 
@@ -25,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.json.JSONModel
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.integration.model.ObservableModel
@@ -77,17 +75,6 @@ sap.ui.define([
 	 */
 	ObservableModel.prototype._fireChange = function () {
 		this.fireEvent("change");
-	};
-
-	ObservableModel.prototype.bindList = function(sPath, oContext, aSorters, aFilters, mParameters) {
-		var oBinding = this._oListBinding  = new PagingModelListBinding(this, sPath, oContext, aSorters, aFilters, mParameters);
-		return oBinding;
-	};
-
-	ObservableModel.prototype.sliceData = function (iStartIndex, iEndIndex) {
-		this._oListBinding._iStartIndex = iStartIndex;
-		this._oListBinding._iEndIndex = iEndIndex;
-		this._oListBinding.checkUpdate(true);
 	};
 
 	return ObservableModel;

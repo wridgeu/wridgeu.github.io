@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Item
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -46,6 +46,12 @@ sap.ui.define([
 			},
 			defaultAggregation: "content",
 			aggregations: {
+				/**
+				 * The title of the action item. If not set, the title of the parent side panel will be used.
+				 *
+				 * @since 1.146
+				 */
+				title: {type: "sap.m.Title", multiple: false},
 				/**
 				 * The list of controls for side content of the action item.
 				 */

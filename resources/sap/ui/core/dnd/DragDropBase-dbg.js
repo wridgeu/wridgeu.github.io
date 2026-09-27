@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -37,7 +37,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @since 1.52
@@ -57,7 +57,18 @@ sap.ui.define([
 				 * Indicates whether this configuration is active or not.
 				 * @since 1.56
 				 */
-				enabled: {type: "boolean", defaultValue: true, invalidate: false}
+				enabled: {type: "boolean", defaultValue: true, invalidate: false},
+
+				/**
+				 * Indicates limited keyboard handling support for drag-and-drop configurations defined for aggregation reordering.
+				 *
+				 * <b>Note:</b> If the drag-and-drop configuration is defined for the aggregation reordering of a control (only if the <code>dropPosition</code> property is <code>Between</code>),
+				 * the <code>Ctrl/Cmd + Left/Right</code> keys for horizontal move or the <code>Ctrl/Cmd + Up/Down</code> keys for vertical move trigger a series of pseudo drag-and-drop events, such as
+				 * <code>dragstart, dragenter, drop, dragend</code>, to create an artificial drag-and-drop action.
+				 * This keyboard handling might not be suitable for every control where aggregation reordering is defined, and in such cases, this property must not be set to <code>true</code>.
+				 * @since 1.126
+				 */
+				keyboardHandling: {type: "boolean", defaultValue: false, invalidate: false}
 			}
 		}
 	});
@@ -70,13 +81,23 @@ sap.ui.define([
 	DragDropBase.prototype.bIgnoreMetadataCheck = false;
 
 	/**
+	 * Determines whether the specified control or its aggregation support dragging.
+	 *
+	 * @param {sap.ui.core.Element} oControl The control instance
+	 * @param {string} [sAggregationName] The draggable aggregation name
+	 * @returns {boolean} Whether the control or its aggregation is draggable
 	 * @abstract
 	 */
-	DragDropBase.prototype.isDraggable = function(oControl) {
+	DragDropBase.prototype.isDraggable = function(oControl, sAggregationName) {
 		return false;
 	};
 
 	/**
+	 * Determines whether the specified control is a valid drop target based on the given drag event.
+	 *
+	 * @param {sap.ui.core.Element} oControl The control instance
+	 * @param {DragEvent} oEvent The drag event
+	 * @returns {boolean} Whether the control can accept the drop
 	 * @abstract
 	 */
 	DragDropBase.prototype.isDroppable = function(oControl, oEvent) {

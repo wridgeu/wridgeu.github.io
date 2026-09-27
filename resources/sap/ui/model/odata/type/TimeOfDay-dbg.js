@@ -1,21 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
+	"sap/base/i18n/date/CalendarType",
 	"sap/base/util/extend",
-	"sap/ui/core/CalendarType",
+	"sap/ui/core/Lib",
 	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/type/ODataType"
-], function (Log, extend, CalendarType, UI5Date, DateFormat, FormatException, ParseException,
-		ValidateException, ODataType) {
+], function(Log, CalendarType, extend, Library, UI5Date, DateFormat, FormatException, ParseException,
+	ValidateException, ODataType) {
 	"use strict";
 
 	/*
@@ -27,7 +28,7 @@ sap.ui.define([
 	 *   The locale-dependent error message
 	 */
 	function getErrorMessage(oType) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText("EnterTime",
+		return Library.getResourceBundleFor("sap.ui.core").getText("EnterTime",
 			[oType.formatValue("23:59:58", "string")]);
 	}
 
@@ -85,14 +86,14 @@ sap.ui.define([
 	 * @alias sap.ui.model.odata.type.TimeOfDay
 	 * @author SAP SE
 	 * @class This class represents the OData V4 primitive type {@link
-	 *   http://docs.oasis-open.org/odata/odata/v4.0/errata02/os/complete/part3-csdl/odata-v4.0-errata02-os-part3-csdl-complete.html#_The_edm:Documentation_Element
+	 *   https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338
 	 *   <code>Edm.TimeOfDay</code>}.
 	 *   In {@link sap.ui.model.odata.v4.ODataModel} this type is represented as a
 	 *   <code>string</code>.
 	 * @extends sap.ui.model.odata.type.ODataType
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 */
 	var TimeOfDay = ODataType.extend("sap.ui.model.odata.type.TimeOfDay", {
 			constructor : function (oFormatOptions, oConstraints) {
@@ -314,7 +315,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.TimeOfDay"}
 	 *   The type's name
 	 *
 	 * @public

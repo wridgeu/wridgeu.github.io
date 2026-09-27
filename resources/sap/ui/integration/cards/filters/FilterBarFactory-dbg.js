@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./FilterBar",
 	"./SearchFilter",
 	"./SelectFilter",
+	"./ComboBoxFilter",
 	"./DateRangeFilter",
 	"sap/ui/base/Object",
 	"sap/m/library",
@@ -16,6 +17,7 @@ sap.ui.define([
 	FilterBar,
 	SearchFilter,
 	SelectFilter,
+	ComboBoxFilter,
 	DateRangeFilter,
 	BaseObject,
 	mLibrary,
@@ -36,7 +38,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -60,9 +62,10 @@ sap.ui.define([
 	 *
 	 * @param {map} mFiltersConfig A map of the parameters config - the same that is defined in sap.card/configuration/filters.
 	 * @param {sap.ui.model.json.JSONModel} oModel The model for filters.
+	 * @param {function} fnOnChange Handler for filter value change.
 	 * @returns {sap.ui.integration.cards.filters.FilterBar|null} The Filter bar.
 	 */
-	FilterBarFactory.prototype.create = function (mFiltersConfig, oModel) {
+	FilterBarFactory.prototype.create = function (mFiltersConfig, oModel, fnOnChange) {
 		var aFilters = [],
 			aReadyPromises = [],
 			mConfig,
@@ -83,7 +86,8 @@ sap.ui.define([
 					model: "filters",
 					path: "/" + sKey
 				},
-				visible: mConfig.visible
+				visible: mConfig.visible,
+				change: fnOnChange
 			});
 
 			oModel.setProperty("/" + sKey, oFilter.getValueForModel());
@@ -156,6 +160,8 @@ sap.ui.define([
 				return DateRangeFilter;
 			case "search":
 				return SearchFilter;
+			case "combobox":
+				return ComboBoxFilter;
 			default:
 				return undefined;
 		}

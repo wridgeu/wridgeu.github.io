@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/integration/editor/fields/BaseField",
-	"sap/m/Input"
+	"sap/m/Input",
+	"sap/ui/model/type/Float"
 ], function (
-	BaseField, Input
+	BaseField, Input, FloatType
 ) {
 	"use strict";
 
@@ -17,9 +18,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.NumberField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.83.0
 	 * @ui5-restricted
 	 */
 	var NumberField = BaseField.extend("sap.ui.integration.editor.fields.NumberField", {
@@ -37,8 +37,7 @@ sap.ui.define([
 				settings: {
 					value: {
 						path: 'currentSettings>value',
-						type: 'sap.ui.model.type.Float',
-						formatOptions: oFormatter
+						type: new FloatType(oFormatter)
 					},
 					editable: oConfig.editable,
 					type: "Number"

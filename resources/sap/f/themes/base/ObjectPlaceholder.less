@@ -1,5 +1,5 @@
 /* ====================================================== */
-/* CSS for control sap.f.cards.loading/ObjectPlaceholder  */
+/* CSS for control sap.f/cards/loading/ObjectPlaceholder  */
 /* Base theme                                             */
 /* ====================================================== */
 
@@ -13,6 +13,7 @@
 	bottom: 0;
 	right: 0;
 	z-index: 1;
+	box-sizing: border-box;
 
 	.sapFCardObjectPlaceholderColumn {
 		flex: 1;
@@ -33,6 +34,7 @@
 }
 
 .sapFCardObjectContent.sapFCardContentLoading {
+
 	> div:not(.sapFCardContentObjectPlaceholder) {
 		visibility: hidden;
 	}

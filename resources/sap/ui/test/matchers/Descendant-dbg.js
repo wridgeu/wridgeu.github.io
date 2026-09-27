@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	var oLogger = Log.getLogger("sap.ui.test.matchers.Descendant");
 	var oVisitor = new _Visitor();
 
+	// Note: changes to the parameter documentation must be reflectes in the .dtsgenrc file, too
 	/**
 	 * @class
 	 * Checks if a control has a given descendant.
@@ -42,7 +43,8 @@ sap.ui.define([
 			var oDescendantControl;
 			if (typeof vDescendantControl === "string") {
 				var oAppWindow = oVisitor._getApplicationWindow();
-				oDescendantControl = oAppWindow.sap.ui.require("sap/ui/core/Element").getElementById(vDescendantControl);
+				oDescendantControl = oAppWindow.sap.ui.require("sap/ui/test/OpaPlugin")
+					.getElementById(vDescendantControl);
 			} else {
 				oDescendantControl = vDescendantControl;
 			}

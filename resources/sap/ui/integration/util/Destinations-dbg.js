@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,9 +16,18 @@ sap.ui.define([
 	Utils
 ) {
 	"use strict";
-	/* global Map */
 
-	var rPattern = /\{\{destinations.([^\}]+)/;
+	const rDestinations = /\{\{destinations.([^\}]+)/;
+	const rMainDestinations = /\{\{mainDestinations.([^\}]+)/;
+	const MANIFEST_PATHS = {
+		DESTINATIONS: "/sap.card/configuration/destinations"
+	};
+
+	function hasDestination(oObject, rPattern) {
+		return Utils.find(oObject, (vValue) => {
+			return typeof vValue === "string" && vValue.match(rPattern);
+		});
+	}
 
 	/**
 	 * Constructor for a new <code>Destinations</code>.
@@ -29,7 +38,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @param {sap.ui.integration.Host} oHost The Host which will be used for resolving destinations.
@@ -45,10 +54,76 @@ sap.ui.define([
 			BaseObject.call(this);
 			this._oHost = mConfig.host;
 			this._oCard = mConfig.card;
+			this._oResolverCard = mConfig.resolverCard;
 			this._oConfiguration = mConfig.manifestConfig;
 			this._mResolved = new Map();
+			this._sPrefix = mConfig.prefix;
 		}
 	});
+
+	Destinations.create = function (mParameters) {
+		const oCard = mParameters.card;
+		const oMainCard = mParameters.mainCard;
+		const bIsPaginationCard = mParameters.isPaginationCard;
+
+		if (!bIsPaginationCard) {
+			Destinations._validateConfiguration(oCard, oMainCard);
+		}
+
+		let oResolverCard = oCard;
+		let sPrefix = "destinations";
+
+		const bIsChildCard = oMainCard !== oCard;
+		const bUseMainDestinations = oCard.getManifestEntry("/sap.card/configuration/useMainDestinations") === true;
+
+		if (bIsChildCard && bUseMainDestinations) {
+			oResolverCard = oMainCard;
+			sPrefix = "mainDestinations";
+		}
+
+		return new Destinations({
+			host: oCard.getHostInstance(),
+			card: oCard,
+			resolverCard: oResolverCard,
+			manifestConfig: oResolverCard.getManifestEntry(MANIFEST_PATHS.DESTINATIONS),
+			prefix: sPrefix
+		});
+	};
+
+	Destinations._validateConfiguration = function (oCard, oMainCard) {
+		const bIsChildCard = oMainCard !== oCard;
+		const bUseMainDestinations = oCard.getManifestEntry("/sap.card/configuration/useMainDestinations") === true;
+		const bHasOwnDestinations = oCard.getManifestEntry(MANIFEST_PATHS.DESTINATIONS) !== undefined;
+
+		if (bUseMainDestinations && !bIsChildCard) {
+			throw new Error(
+				"Unsupported configuration: 'sap.card/configuration/useMainDestinations' is for child cards only. "
+			);
+		}
+
+		if (bIsChildCard && bUseMainDestinations) {
+			if (bHasOwnDestinations) {
+				throw new Error(
+					"Unsupported configuration: 'sap.card/configuration/useMainDestinations' is set to true, yet 'sap.card/configuration/destinations' is also defined in the card manifest."
+					+ "Remove 'sap.card/configuration/destinations' from the card manifest and refer exclusively to the main card destinations.\n"
+				);
+			}
+
+			const sDestination = hasDestination(oCard.getManifestEntry("/sap.card"), rDestinations);
+
+			if (sDestination) {
+				Log.error(`Unsupported syntax: ${sDestination}. {{destinations.<destination>}} cannot be used in child card that has 'sap.card/configuration/useMainDestinations' set to true. Use {{mainDestinations.<destination>}} instead.`);
+			}
+		}
+
+		if (bIsChildCard && !bUseMainDestinations && bHasOwnDestinations) {
+			Log.error(
+				"The configuration 'sap.card/configuration/destinations' for child cards is deprecated since 1.140. "
+				+ "Use the property 'sap.card/configuration/useMainDestinations' instead and refer to the main card destinations.",
+				"sap.ui.integration.widgets.Card"
+			);
+		}
+	};
 
 	/**
 	 * Sets the host which is used to resolve destinations.
@@ -94,7 +169,8 @@ sap.ui.define([
 						oObj[vKey] = sProcessedString;
 					}
 				})
-				.catch(function () {
+				.catch(function (sMessage) {
+					Log.error(sMessage, "sap.ui.integration.util.Destinations");
 					if (vKey !== undefined) {
 						oObj[vKey] = "";
 					}
@@ -166,7 +242,7 @@ sap.ui.define([
 			return Promise.resolve(sDefaultUrl);
 		}
 
-		pResult = Utils.timeoutPromise(this._oHost.getDestination(sName, this._oCard));
+		pResult = Utils.timeoutPromise(this._oHost.getDestination(sName, this._oResolverCard));
 
 		if (sDefaultUrl) {
 			return pResult.catch(function (sMessage) {
@@ -179,31 +255,24 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns true if the given string contains destination placeholder.
-	 * @param {string} sString The string to check.
-	 * @returns {boolean} True if the string contains a destination.
-	 */
-	Destinations.prototype.hasDestination = function (sString) {
-		return !!sString.match(rPattern);
-	};
-
-	/**
 	 * Process a string and replaces a destination placeholder with the resolved destination.
 	 * @param {string} sString The string to process.
 	 * @returns {Promise} A Promise which resolves with the processed string.
 	 */
 	Destinations.prototype.processString = function (sString) {
-		var aMatches = sString.match(rPattern),
-			sKey;
+		const aMatches = this._sPrefix === "destinations" ? sString.match(rDestinations) : sString.match(rMainDestinations);
 
 		if (!aMatches) {
 			return Promise.resolve(sString); // no destinations to process
 		}
 
-		sKey = aMatches[1];
+		const sKey = aMatches[1];
 
 		return this.getUrl(sKey)
 			.then(function (sUrl) {
+				if (sUrl === undefined || sUrl === null) {
+					return Promise.reject("Destination '" + sKey + "' was resolved by the host with 'undefined' or 'null'.");
+				}
 				return this._replaceUrl(sString, sKey, sUrl);
 			}.bind(this));
 	};
@@ -212,9 +281,14 @@ sap.ui.define([
 	 * @private
 	 */
 	Destinations.prototype._replaceUrl = function (sString, sKey, sUrl) {
-		var sSanitizedUrl = sUrl.trim().replace(/\/$/, ""); // remove any trailing spaces and slashes
 
-		return sString.replace("{{destinations." + sKey + "}}", sSanitizedUrl);
+		const sSanitizedUrl = sUrl.trim().replace(/\/$/, ""); // remove any trailing spaces and slashes
+
+		if (this._sPrefix === "destinations") {
+			return sString.replace("{{destinations." + sKey + "}}", sSanitizedUrl);
+		}
+
+		return sString.replace("{{mainDestinations." + sKey + "}}", sSanitizedUrl);
 	};
 
 	return Destinations;

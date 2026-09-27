@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/m/DynamicDateUtil',
+	"sap/ui/core/Lib",
 	'sap/ui/core/date/UI5Date',
 	'sap/ui/model/SimpleType',
 	'sap/ui/model/FormatException',
@@ -15,6 +16,7 @@ sap.ui.define([
 ],
 	function(
 		DynamicDateUtil,
+		Library,
 		UI5Date,
 		SimpleType,
 		FormatException,
@@ -38,7 +40,7 @@ sap.ui.define([
 		 * @extends sap.ui.model.SimpleType
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
@@ -141,8 +143,7 @@ sap.ui.define([
 
 		DynamicDate.prototype.validateValue = function(oValue) {
 			if (this.oConstraints) {
-				var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
-					oMBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+				var 	oMBundle = Library.getResourceBundleFor("sap.m"),
 					aViolatedConstraints = [],
 					aMessages = [],
 					oOption = DynamicDateUtil.getOption(oValue.operator),
@@ -163,14 +164,14 @@ sap.ui.define([
 								if (iTimestamp < iConstraintValue) {
 									aViolatedConstraints.push("minimum");
 									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [UI5Date.getInstance(iTimestamp).toDateString()]));
-									aMessages.push(oBundle.getText("Date.Minimum", [UI5Date.getInstance(iConstraintValue).toDateString()]));
+									aMessages.push(oMBundle.getText("DynamicDate.Minimum", [UI5Date.getInstance(iConstraintValue).toDateString()]));
 								}
 								break;
 							case "maximum":
 								if (iTimestamp > iConstraintValue) {
 									aViolatedConstraints.push("maximum");
 									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [UI5Date.getInstance(iTimestamp).toDateString()]));
-									aMessages.push(oBundle.getText("Date.Maximum", [UI5Date.getInstance(iConstraintValue).toDateString()]));
+									aMessages.push(oMBundle.getText("DynamicDate.Maximum", [UI5Date.getInstance(iConstraintValue).toDateString()]));
 								}
 								break;
 						}

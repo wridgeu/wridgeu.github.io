@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/_Helper",
 	"sap/ui/model/CompositeType",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException"
-], function (UI5Date, DateFormat, _Helper, CompositeType, FormatException, ParseException) {
+], function(Library, UI5Date, DateFormat, _Helper, CompositeType, FormatException, ParseException) {
 	"use strict";
 
 	var sDateOrTimeRequired = "For type 'object', at least one of the format options 'showDate' or"
@@ -45,7 +46,7 @@ sap.ui.define([
 	 * @public
 	 * @see {sap.ui.model.odata.v2.ODataModel#bindProperty}
 	 * @since 1.99.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 */
 	var DateTimeWithTimezone = CompositeType.extend("sap.ui.model.odata.type.DateTimeWithTimezone",
 		{
@@ -91,7 +92,7 @@ sap.ui.define([
 				? "EnterDateTimeTimezone"
 				: "EnterDateTime";
 
-		return sap.ui.getCore().getLibraryResourceBundle()
+		return Library.getResourceBundleFor("sap.ui.core")
 			.getText(sMessageKey, [this.formatValue([oDemoDateTime, "America/New_York"],
 				"string")]);
 	};
@@ -182,7 +183,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.DateTimeWithTimezone"}
 	 *   The type's name
 	 *
 	 * @public
@@ -222,16 +223,19 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns a language-dependent placeholder text such as "e.g. <sample value>" where <sample value> is formatted
-	 * using this type.
+	 * Returns a language-dependent placeholder text such as "e.g. <sample value>" where
+	 * <sample value> is formatted using this type. If given, a sample date within the given
+	 * range is used.
 	 *
+	 * @param {module:sap/ui/core/date/UI5Date} [oMinimum] The minimum date
+	 * @param {module:sap/ui/core/date/UI5Date} [oMaximum] The maximum date
 	 * @returns {string|undefined}
 	 *   The language-dependent placeholder text or <code>undefined</code> if the type does not offer a placeholder
 	 *
 	 * @public
 	 */
-	DateTimeWithTimezone.prototype.getPlaceholderText = function () {
-		return this.getFormat().getPlaceholderText();
+	DateTimeWithTimezone.prototype.getPlaceholderText = function (oMinimum, oMaximum) {
+		return this.getFormat().getPlaceholderText(oMinimum, oMaximum);
 	};
 
 	/**

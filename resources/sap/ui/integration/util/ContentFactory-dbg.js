@@ -1,10 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseFactory",
+	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/m/IllustratedMessageType",
 	"sap/ui/integration/cards/actions/CardActions",
 	"sap/ui/integration/cards/AdaptiveContent",
@@ -16,9 +18,12 @@ sap.ui.define([
 	"sap/ui/integration/cards/ObjectContent",
 	"sap/ui/integration/cards/TableContent",
 	"sap/ui/integration/cards/TimelineContent",
-	"sap/ui/integration/cards/WebPageContent"
+	"sap/ui/integration/cards/WebPageContent",
+	"sap/ui/integration/cards/BaseListContent"
 ], function (
 	BaseFactory,
+	Log,
+	Library,
 	IllustratedMessageType,
 	CardActions,
 	AdaptiveContent,
@@ -30,9 +35,12 @@ sap.ui.define([
 	ObjectContent,
 	TableContent,
 	TimelineContent,
-	WebPageContent
+	WebPageContent,
+	BaseListContent
 ) {
 	"use strict";
+
+	const oResourceBundle = Library.getResourceBundleFor("sap.ui.integration");
 
 	/**
 	 * Constructor for a new <code>ContentFactory</code>.
@@ -42,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.BaseFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -62,14 +70,14 @@ sap.ui.define([
 		}
 
 		var oContent = new Content({
-			card: oCard
+			card: oCard,
+			overflowWithShowMore: mConfig.overflowWithShowMore
 		});
 
 		if (oContent instanceof AdaptiveContent) {
 			oContent.setCardDataProvider(oCard._oDataProvider);
 		}
 
-		oContent.setServiceManager(mConfig.serviceManager);
 		oContent.setDataProviderFactory(mConfig.dataProviderFactory);
 		oContent.setIconFormatter(mConfig.iconFormatter);
 		oContent.setActions(new CardActions({
@@ -82,6 +90,10 @@ sap.ui.define([
 			oContent.setDataConfiguration(mConfig.contentManifest.data);
 		}
 
+		if (oContent instanceof BaseListContent) {
+			oContent.setPaginator(mConfig.paginator);
+		}
+
 		oContent.setLoadDependenciesPromise(
 			Promise.all([
 				oContent.loadDependencies(mConfig.cardManifest),
@@ -90,10 +102,11 @@ sap.ui.define([
 				return true;
 			}).catch(function (sError) {
 				if (sError) {
+					Log.error(sError, "sap.ui.integration.util.ContentFactory");
 					oCard._handleError({
-						type: IllustratedMessageType.ErrorScreen,
-						title: oCard.getTranslatedText("CARD_DATA_LOAD_DEPENDENCIES_ERROR"),
-						description: oCard.getTranslatedText("CARD_ERROR_REQUEST_DESCRIPTION"),
+						type: IllustratedMessageType.UnableToLoad,
+						title: oResourceBundle.getText("CARD_DATA_LOAD_DEPENDENCIES_ERROR"),
+						description: oResourceBundle.getText("CARD_ERROR_REQUEST_DESCRIPTION"),
 						details: sError
 					});
 				}

@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/base/util/merge",
 	"sap/ui/model/json/JSONModel",
-	"sap/ui/core/Core",
-	"sap/base/util/deepClone"
+	"sap/base/util/deepClone",
+	"sap/ui/integration/util/Utils"
 ], function (
 	merge,
 	JSONModel,
-	Core,
-	deepClone
+	deepClone,
+	Utils
 ) {
 	"use strict";
 
@@ -20,14 +20,32 @@ sap.ui.define([
 		layers: { "admin": 0, "content": 5, "translation": 10, "all": 20 },
 		mergeManifestPathChanges: function (oModel, oChange) {
 			Object.keys(oChange).forEach(function (s) {
+				// don't merge manifest changes for child cards
+				if (s.match(/^\/sap.card\/configuration\/childCards\/.+\/_manifestChanges$/)) {
+					return;
+				}
+
 				if (s.charAt(0) === "/") {
 					var value = oChange[s];
-					oModel.setProperty(s, value);
+					CardMerger.updateManifestProperty(oModel, s, value);
 				}
 			});
 		},
+		updateManifestProperty: function (oModel, path, value) {
+			var bSuccess = oModel.setProperty(path, value);
+			if (!bSuccess) {
+				// path not exists in model data
+				var iLastSlash = path.lastIndexOf("/");
+				// In case there is only one slash at the beginning, sParentPath must contain this slash
+				var sParentPath = path.substring(0, iLastSlash || 1);
+				var sProperty = path.substring(iLastSlash + 1);
+				var oValue = {};
+				oValue[sProperty] = value;
+				CardMerger.updateManifestProperty(oModel, sParentPath, oValue);
+			}
+		},
 		mergeTextsChanges: function (oModel, oTexts, oDesigntime) {
-			var sLanguage =  Core.getConfiguration().getLanguage().replaceAll('_', '-');
+			var sLanguage =  Utils._language;
 			if (oTexts && oTexts.hasOwnProperty(sLanguage)) {
 				var oTranslation = oTexts[sLanguage];
 				for (var sManifestPath in oTranslation) {
@@ -56,6 +74,8 @@ sap.ui.define([
 			}
 			if (Array.isArray(aChanges) && aChanges.length > 0) {
 				var oModel, oTexts, oDesigntime;
+				//map translations of unmatch languages
+				Utils.mapLanguagesInManifestChanges(aChanges);
 				aChanges.forEach(function (oChange) {
 					if (oChange.content) {
 						//merge old changes
@@ -64,7 +84,7 @@ sap.ui.define([
 						var iLayer = oChange.hasOwnProperty(":layer") ? oChange[":layer"] : 1000;
 						// for changes from translation layer, we use them as the translations of current languages
 						if (iLayer === CardMerger.layers["translation"]) {
-							var sLanguage = Core.getConfiguration().getLanguage().replaceAll('_', '-');
+							var sLanguage = Utils._language;
 							var oTranslationChange = {
 								"texts": {}
 							};
@@ -158,6 +178,15 @@ sap.ui.define([
 				oModel.setProperty(sManifestPath, oValue);
 				return;
 			}
+		},
+		extractChildCardChanges: function (aManifestChanges, sChildCardKey) {
+			return aManifestChanges.map((oChanges) => {
+				const sChangesPath = `/sap.card/configuration/childCards/${sChildCardKey}/_manifestChanges`;
+
+				return oChanges[sChangesPath];
+			}).filter((oChanges) => {
+				return oChanges && Object.keys(oChanges).length > 0;
+			});
 		}
 	};
 

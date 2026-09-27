@@ -1,10 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  *
  * @private
- * @experimental
  */
 sap.ui.define([
 	"sap/ui/integration/designtime/cardEditor/config/AppConfig",
@@ -118,22 +117,11 @@ sap.ui.define([
 					"tags": ["general"],
 					"label": "{i18n>CARD_EDITOR.TYPE}",
 					"type": "select",
-					"items": sap.ui.version.includes('SNAPSHOT') && !window.location.host.includes("openui5nightly")
-						? [
-							{ "key": "List" },
-							{ "key": "Analytical" },
-							{ "key": "Table" },
-							{ "key": "Object" },
-							{ "key": "Timeline" },
-							{ "key": "Component" },
-							{ "key": "Calendar" },
-							{ "key": "AdaptiveCard" }
-						]
-						: [
-							{ "key": "List" },
-							{ "key": "Table" },
-							{ "key": "Object" }
-						],
+					"items": [
+						{ "key": "List" },
+						{ "key": "Table" },
+						{ "key": "Object" }
+					],
 					"path": "type"
 				},
 				"parameters": {

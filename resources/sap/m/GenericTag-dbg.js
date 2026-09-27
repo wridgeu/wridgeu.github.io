@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -168,7 +168,7 @@ sap.ui.define([
 	/**
 	 * Gets the GenericTag's status icon.
 	 *
-	 * @returns {sap.m.Icon} Status icon
+	 * @returns {sap.ui.core.Icon} Status icon
 	 * @private
 	 */
 	GenericTag.prototype._getStatusIcon = function() {
@@ -185,7 +185,7 @@ sap.ui.define([
 	/**
 	 * Gets the GenericTag's error icon.
 	 *
-	 * @returns {sap.m.Icon} Error icon
+	 * @returns {sap.ui.core.Icon} Error icon
 	 * @private
 	 */
 	GenericTag.prototype._getErrorIcon = function() {
@@ -250,7 +250,7 @@ sap.ui.define([
 		}
 
 		if (oEvent.which === KeyCodes.ENTER) {
-			this.firePress(/* no parameters */);
+			this._firePress(oEvent);
 		}
 	};
 
@@ -266,7 +266,7 @@ sap.ui.define([
 
 		if (oEvent.which === KeyCodes.SPACE) {
 			if (!this._bShouldInterupt) {
-				this.firePress(/* no parameters */);
+				this._firePress(oEvent);
 			}
 			this._bShouldInterupt = false;
 			this._bSpacePressed = false;
@@ -278,8 +278,8 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	GenericTag.prototype.onclick = function(){
-		this.firePress(/* no parameters */);
+	GenericTag.prototype.onclick = function(oEvent) {
+		this._firePress(oEvent);
 	};
 
 	/**
@@ -294,6 +294,12 @@ sap.ui.define([
 	/**
 	 * @private
 	 */
+	GenericTag.prototype._firePress = function(oEvent) {
+		oEvent.setMarked();
+
+		this.firePress();
+	};
+
 	GenericTag.prototype._toggleActiveGenericTag = function(bToggle){
 		this.toggleStyleClass("sapMGenericTagActive", bToggle);
 	};
@@ -343,7 +349,7 @@ sap.ui.define([
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	GenericTag.prototype._getToolbarInteractive = function () {
 		return true;

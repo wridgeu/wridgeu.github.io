@@ -1,7 +1,7 @@
 /**
  * @license
  * Lodash (Custom Build) <https://lodash.com/>
- * Build: `lodash strict include="omit,uniq,uniqBy,uniqWith,intersection,intersectionBy,intersectionWith,pick,pickBy,debounce,throttle,max,min,castArray,curry,merge,mergeWith,toArray,xor,xorBy,xorWith,isNil,difference,differenceBy,differenceWith,flatMap,flatMapDeep,flatMapDepth,isEqual,isEqualWith,without,flatten,flattenDeep,flattenDepth,compact,zipObject,zipObjectDeep,union,unionBy,unionWith"`
+ * Build: `lodash strict include="castArray,compact,curry,debounce,difference,differenceBy,differenceWith,flatMap,flatMapDeep,flatMapDepth,flatten,flattenDeep,flattenDepth,intersection,intersectionBy,intersectionWith,isEqual,isEqualWith,isNil,max,merge,mergeWith,min,omit,pick,pickBy,throttle,toArray,union,unionBy,unionWith,uniq,uniqBy,uniqWith,without,xor,xorBy,xorWith,zipObject,zipObjectDeep"`
  * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
  * Released under MIT license <https://lodash.com/license>
  * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
@@ -20,7 +20,7 @@ sap.ui.define(function() {
   var undefined;
 
   /** Used as the semantic version number. */
-  var VERSION = '4.17.21';
+  var VERSION = '4.18.1';
 
   /** Used as the size to enable large array optimizations. */
   var LARGE_ARRAY_SIZE = 200;
@@ -1409,7 +1409,7 @@ sap.ui.define(function() {
    * @name has
    * @memberOf SetCache
    * @param {*} value The value to search for.
-   * @returns {number} Returns `true` if `value` is found, else `false`.
+   * @returns {boolean} Returns `true` if `value` is found, else `false`.
    */
   function setCacheHas(value) {
     return this.__data__.has(value);
@@ -2750,8 +2750,34 @@ sap.ui.define(function() {
    */
   function baseUnset(object, path) {
     path = castPath(path, object);
-    object = parent(object, path);
-    return object == null || delete object[toKey(last(path))];
+
+    // Prevent prototype pollution:
+    // https://github.com/lodash/lodash/security/advisories/GHSA-xxjr-mmjv-4gpg
+    // https://github.com/lodash/lodash/security/advisories/GHSA-f23m-r3pf-42rh
+    var index = -1,
+        length = path.length;
+
+    if (!length) {
+      return true;
+    }
+
+    while (++index < length) {
+      var key = toKey(path[index]);
+
+      // Always block "__proto__" anywhere in the path if it's not expected
+      if (key === '__proto__' && !hasOwnProperty.call(object, '__proto__')) {
+        return false;
+      }
+
+      // Block constructor/prototype as non-terminal traversal keys to prevent
+      // escaping the object graph into built-in constructors and prototypes.
+      if ((key === 'constructor' || key === 'prototype') && index < length - 1) {
+        return false;
+      }
+    }
+
+    var obj = parent(object, path);
+    return obj == null || delete obj[toKey(last(path))];
   }
 
   /**
@@ -4628,7 +4654,7 @@ sap.ui.define(function() {
 
   /**
    * Creates an array with all falsey values removed. The values `false`, `null`,
-   * `0`, `""`, `undefined`, and `NaN` are falsey.
+   * `0`, `-0`, `0n`, `""`, `undefined`, and `NaN` are falsy.
    *
    * @static
    * @memberOf _

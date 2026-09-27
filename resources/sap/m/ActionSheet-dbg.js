@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,26 +10,30 @@ sap.ui.define([
 	'./Popover',
 	'./library',
 	'sap/ui/core/Control',
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/Device',
 	'./ActionSheetRenderer',
 	'./Button',
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration"
+	"sap/ui/thirdparty/jquery"
 ],
 	function(
 		Dialog,
 		Popover,
 		library,
 		Control,
+		ControlBehavior,
+		Element,
+		Library,
 		ItemNavigation,
 		InvisibleText,
 		Device,
 		ActionSheetRenderer,
 		Button,
-		jQuery,
-		Configuration
+		jQuery
 	) {
 	"use strict";
 
@@ -69,16 +73,19 @@ sap.ui.define([
 	 * On tablets and desktop the action sheet is displayed in a {@link sap.m.Popover popover}.
 	 *
 	 * When an action is triggered, the action sheet closes and you can display a confirmation as a {@link sap.m.MessageToast message toast}.
+	 *
+	 * <b>Note</b>: As of version 1.149, the control is deprecated. Use {@link sap.m.Menu} / {@link sap.m.MenuItem} instead.
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.9.1
 	 * @alias sap.m.ActionSheet
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/action-sheet/ Action Sheet}
+	 * @deprecated As of version 1.149, use sap.m.Menu / sap.m.MenuItem instead.
 	 */
 	var ActionSheet = Control.extend("sap.m.ActionSheet", /** @lends sap.m.ActionSheet.prototype */ {
 		metadata : {
@@ -255,6 +262,14 @@ sap.ui.define([
 		if (oEvent.srcControl.isA("sap.m.Button") && this.getButtons().indexOf(oEvent.srcControl) !== -1) {
 			this._actionSelected = oEvent.srcControl;
 		}
+	};
+
+	ActionSheet.prototype.onsaptabnext = function(e) {
+		e.preventDefault();
+	};
+
+	ActionSheet.prototype.onsaptabprevious = function(e) {
+		e.preventDefault();
 	};
 
 	ActionSheet.prototype.onBeforeRendering = function() {
@@ -448,7 +463,7 @@ sap.ui.define([
 
 	ActionSheet.prototype._createCancelButton = function() {
 		if (!this._oCancelButton) {
-			var sCancelButtonText = (this.getCancelButtonText()) ? this.getCancelButtonText() : sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACTIONSHEET_CANCELBUTTON_TEXT"),
+			var sCancelButtonText = (this.getCancelButtonText()) ? this.getCancelButtonText() : Library.getResourceBundleFor("sap.m").getText("ACTIONSHEET_CANCELBUTTON_TEXT"),
 				that = this;
 	//			var sButtonStyle = (Device.os.ios) ? ButtonType.Unstyled : ButtonType.Default;
 			this._oCancelButton = new Button(this.getId() + '-cancelBtn', {
@@ -519,7 +534,7 @@ sap.ui.define([
 	ActionSheet.prototype._addAriaHiddenTexts = function(oButton) {
 		var sButtonId = oButton.getId(),
 			oInvisibleText;
-		if (Configuration.getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			oInvisibleText = new InvisibleText(sButtonId + "-actionSheetHiddenText");
 
 			this.addAggregation("_invisibleAriaTexts", oInvisibleText, false);
@@ -529,7 +544,7 @@ sap.ui.define([
 
 	ActionSheet.prototype._removeAriaHiddenTexts = function(oButton) {
 		oButton.getAriaDescribedBy().forEach(function(sId) {
-			var oControl = sap.ui.getCore().byId(sId);
+			var oControl = Element.getElementById(sId);
 
 			if (oControl instanceof InvisibleText && sId.indexOf("actionSheetHiddenText") > -1) {
 				this.removeAggregation("_invisibleAriaTexts", oControl, false);

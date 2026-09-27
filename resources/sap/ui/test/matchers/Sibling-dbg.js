@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /* eslint-disable no-loop-func */
@@ -13,6 +13,7 @@ sap.ui.define([
 	var oLogger = Log.getLogger("sap.ui.test.matchers.Sibling");
 	var oMatcher = new Matcher();
 
+	// Note: changes to the parameter documentation must be reflectes in the .dtsgenrc file, too
 	/**
 	 * @class
 	 * Checks if a control has a defined sibling.
@@ -47,7 +48,8 @@ sap.ui.define([
 				// declarative matchers:
 				// sibling is already resolved by opa or controlfinder - here we deal only with the id
 				var oAppWindow = oMatcher._getApplicationWindow();
-				oSiblingControl = oAppWindow.sap.ui.require("sap/ui/core/Element").getElementById(vSibling);
+				oSiblingControl = oAppWindow.sap.ui.require("sap/ui/test/OpaPlugin")
+					.getElementById(vSibling);
 			} else {
 				oSiblingControl = vSibling;
 			}

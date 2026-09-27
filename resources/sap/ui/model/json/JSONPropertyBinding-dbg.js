@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -15,37 +15,42 @@ sap.ui.define([
 
 
 	/**
-	 * Creates a new JSONListBinding.
-	 *
-	 * This constructor should only be called by subclasses or model implementations, not by application or control code.
-	 * Such code should use {@link sap.ui.model.json.JSONModel#bindProperty JSONModel#bindProperty} on the corresponding model instance instead.
-	 *
-	 * @param {sap.ui.model.json.JSONModel} oModel Model instance that this binding is created for and that it belongs to
-	 * @param {string} sPath Binding path to be used for this binding
-	 * @param {sap.ui.model.Context} oContext Binding context relative to which a relative binding path will be resolved
-	 * @param {object} [mParameters] Map of optional parameters as defined by subclasses; this class does not introduce any own parameters
-	 *
-	 * @class
-	 * Property binding implementation for JSON format.
-	 *
+	 * @class Property binding implementation for JSON model.
+	 * @hideconstructor
+	 * @protected
 	 * @alias sap.ui.model.json.JSONPropertyBinding
 	 * @extends sap.ui.model.ClientPropertyBinding
-	 * @protected
 	 */
-	var JSONPropertyBinding = ClientPropertyBinding.extend("sap.ui.model.json.JSONPropertyBinding");
+	var JSONPropertyBinding = ClientPropertyBinding.extend("sap.ui.model.json.JSONPropertyBinding", /** @lends sap.ui.model.json.JSONPropertyBinding.prototype */ {
 
-	/*
-	 * @see sap.ui.model.PropertyBinding.prototype.setValue
+		constructor : function(oModel, sPath, oContext, mParameters){
+			ClientPropertyBinding.apply(this, arguments);
+			if (this.isRelative()) {
+				this.sPreviousResolvedPath = this.getResolvedPath();
+			}
+		}
+
+	});
+
+	/**
+	 * Sets the value for this <code>JSONPropertyBinding</code> if the binding is not suspended.
+	 * If a new value is set, an {@link sap.ui.model.Model#propertyChange} event is fired with change reason
+	 * {@link sap.ui.model.ChangeReason.Binding Binding}.
+	 *
+	 * @param {any} vValue The value to set for this binding
+	 *
+	 * @public
 	 */
-	JSONPropertyBinding.prototype.setValue = function(oValue){
+	JSONPropertyBinding.prototype.setValue = function(vValue) {
 		if (this.bSuspended) {
 			return;
 		}
-		if (!deepEqual(this.oValue, oValue)) {
-			if (this.oModel.setProperty(this.sPath, oValue, this.oContext, true)) {
-				this.oValue = oValue;
+		if (!deepEqual(this.oValue, vValue)) {
+			if (this.oModel.setProperty(this.sPath, vValue, this.oContext, true)) {
+				this.oValue = vValue;
 				this.getDataState().setValue(this.oValue);
-				this.oModel.firePropertyChange({reason: ChangeReason.Binding, path: this.sPath, context: this.oContext, value: oValue});
+				this.oModel.firePropertyChange({reason: ChangeReason.Binding, path: this.sPath, context: this.oContext,
+					value: vValue});
 			}
 		}
 	};
@@ -64,10 +69,13 @@ sap.ui.define([
 		}
 
 		var oValue = this._getValue();
-		if (!deepEqual(oValue, this.oValue) || bForceupdate) {// optimize for not firing the events when unneeded
+		if (!deepEqual(oValue, this.oValue)
+				|| (this.isRelative() && this.sPreviousResolvedPath !== this.getResolvedPath())
+				|| bForceupdate) {
 			this.oValue = oValue;
 			this.getDataState().setValue(this.oValue);
 			this.checkDataState();
+			this.sPreviousResolvedPath = this.getResolvedPath();
 			this._fireChange({reason: ChangeReason.Change});
 		}
 	};

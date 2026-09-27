@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -274,7 +274,7 @@ sap.ui.define([
 	* which is the result after forwarding the control to the <code>SemanticPage</code> internally aggregated controls.
 	* This is achieved by overriding the control <code>getParent</code> method.
 	*
-	* @param oControl
+	* @param {sap.ui.core.Control} oControl
 	* @private
 	*/
 	SemanticFooter.prototype._preProcessControl = function (oControl) {
@@ -289,7 +289,7 @@ sap.ui.define([
 	* so it returns its real parent by restoring the core <code>getParent</code> method,
 	* allowing proper processing by the framework.
 	*
-	* @param {sap}oControl
+	* @param {sap.ui.core.Control} oControl
 	* @private
 	*/
 	SemanticFooter.prototype._postProcessControl = function (oControl) {

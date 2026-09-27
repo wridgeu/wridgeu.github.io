@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,8 +17,7 @@ sap.ui.define([
 		* Change handler for adding a form group.
 		* @alias sap.ui.layout.changeHandler.AddFormContainer
 		* @author SAP SE
-		* @version 1.120.0
-		* @experimental Since 1.48.0
+		* @version 1.152.0
 		*/
 	var AddGroup = { };
 
@@ -96,27 +95,27 @@ sap.ui.define([
 	 * @public
 	 */
 	AddGroup.completeChangeContent = function(oChange, oSpecificChangeInfo, mPropertyBag) {
-		var	oAppComponent = mPropertyBag.appComponent;
+		const oAppComponent = mPropertyBag.appComponent;
 
-		if (oSpecificChangeInfo.newLabel) {
-			oChange.setText("groupLabel", oSpecificChangeInfo.newLabel, "XFLD");
+		if (oSpecificChangeInfo.content?.newLabel) {
+			oChange.setText("groupLabel", oSpecificChangeInfo.content.newLabel, "XFLD");
 		} else {
-			throw new Error("Cannot create a new group: oSpecificChangeInfo.groupLabel attribute required");
+			throw new Error("Cannot create a new group: oSpecificChangeInfo.content.groupLabel attribute required");
 		}
-		var oContent = {
+		const oContent = {
 			group: {}
 		};
 
-		if (oSpecificChangeInfo.index === undefined) {
-			throw new Error("Cannot create a new group: oSpecificChangeInfo.index attribute required");
+		if (oSpecificChangeInfo.content.index === undefined) {
+			throw new Error("Cannot create a new group: oSpecificChangeInfo.content.index attribute required");
 		} else {
-			oContent.group.index = oSpecificChangeInfo.index;
+			oContent.group.index = oSpecificChangeInfo.content.index;
 		}
 
-		if ( oSpecificChangeInfo.newControlId ){
-			oContent.group.selector = JsControlTreeModifier.getSelector(oSpecificChangeInfo.newControlId, oAppComponent);
+		if (oSpecificChangeInfo.content.newControlId){
+			oContent.group.selector = JsControlTreeModifier.getSelector(oSpecificChangeInfo.content.newControlId, oAppComponent);
 		} else {
-			throw new Error("Cannot create a new group: oSpecificChangeInfo.newControlId attribute required");
+			throw new Error("Cannot create a new group: oSpecificChangeInfo.content.newControlId attribute required");
 		}
 		oChange.setContent(oContent);
 	};

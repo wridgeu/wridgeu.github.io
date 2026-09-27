@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -18,7 +18,8 @@ sap.ui.define([
 	"sap/ui/integration/controls/MicrochartLegend",
 	"sap/ui/integration/controls/ListContentItem",
 	"sap/ui/integration/controls/ActionsStrip",
-	"sap/ui/integration/cards/list/MicrochartsResizeHelper"
+	"sap/ui/integration/cards/list/MicrochartsResizeHelper",
+	"sap/ui/integration/util/SorterHelper"
 ], function (
 	BaseListContent,
 	ListContentRenderer,
@@ -34,7 +35,8 @@ sap.ui.define([
 	MicrochartLegend,
 	ListContentItem,
 	ActionsStrip,
-	MicrochartsResizeHelper
+	MicrochartsResizeHelper,
+	SorterHelper
 ) {
 	"use strict";
 
@@ -47,10 +49,7 @@ sap.ui.define([
 	// shortcut for sap.m.ListSeparators;
 	var ListSeparators = mLibrary.ListSeparators;
 
-	// shortcut for sap.ui.integration.CardActionArea
-	var ActionArea = library.CardActionArea;
-
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = mLibrary.EmptyIndicatorMode;
 
 	var LEGEND_COLORS_LOAD = "_legendColorsLoad";
@@ -67,7 +66,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -236,7 +235,11 @@ sap.ui.define([
 	ListContent.prototype.onDataChanged = function () {
 		BaseListContent.prototype.onDataChanged.apply(this, arguments);
 
-		this._checkHiddenNavigationItems(this.getParsedConfiguration().item);
+		this._getList().getItems().forEach((oItem) => {
+			if (oItem.getActionsStrip && oItem.getActionsStrip()) {
+				oItem.getActionsStrip().onDataChanged();
+			}
+		});
 	};
 
 	/**
@@ -265,12 +268,6 @@ sap.ui.define([
 					}
 				}.bind(this)
 			});
-
-			// remove the custom accessibility announcement from the sap.m.ListBase
-			// so the additional elements (like attributes) are also read
-			this._oList.onItemFocusIn = function (oItem, oFocusedControl) {
-				this._oList._handleStickyItemFocus(oItem.getDomRef());
-			}.bind(this);
 
 			this._oList.addEventDelegate({
 				onfocusin: function (oEvent) {
@@ -313,11 +310,13 @@ sap.ui.define([
 				descriptionVisible: mItem.description ? mItem.description.visible : undefined,
 				highlight: mItem.highlight,
 				highlightText: mItem.highlightText,
+				hasInfo: !!mItem.info,
 				info: mItem.info && mItem.info.value,
 				infoState: mItem.info && mItem.info.state,
 				infoVisible: mItem.info && mItem.info.visible,
 				showInfoStateIcon: mItem.info && mItem.info.showStateIcon,
 				customInfoStatusIcon: mItem.info && mItem.info.customStateIcon,
+				infoStateInverted: mItem.info && mItem.info.inverted,
 				attributes: []
 			};
 
@@ -327,6 +326,7 @@ sap.ui.define([
 			}.bind(this));
 			mSettings.iconAlt = mItem.icon.alt;
 			mSettings.iconDisplayShape = mItem.icon.shape;
+			mSettings.iconFitType = mItem.icon.fitType;
 			mSettings.iconInitials = mItem.icon.initials || mItem.icon.text;
 			mSettings.iconVisible = mItem.icon.visible;
 
@@ -341,14 +341,21 @@ sap.ui.define([
 		}
 
 		if (mItem.attributes) {
-			mItem.attributes.forEach(function (attr) {
+			mItem.attributes.forEach((attr) => {
 				oObjectStatus = new ObjectStatus({
 					text: attr.value,
 					state: attr.state,
 					emptyIndicatorMode: EmptyIndicatorMode.On,
 					visible: attr.visible,
 					showStateIcon: attr.showStateIcon,
-					icon: attr.customStateIcon
+					customIcon: attr.customStateIcon,
+					inverted: attr.inverted
+				});
+
+				this._oActions.attach({
+					actions: attr.actions,
+					control: oObjectStatus,
+					enabledPropertyName: "active"
 				});
 
 				mSettings.attributes.push(oObjectStatus);
@@ -361,7 +368,7 @@ sap.ui.define([
 			}
 
 			if (mItem.actionsStrip) {
-				mSettings.actionsStrip = ActionsStrip.create(this.getCardInstance(), mItem.actionsStrip);
+				mSettings.actionsStrip = ActionsStrip.create(mItem.actionsStrip, this.getCardInstance());
 				oList.setShowSeparators(ListSeparators.All);
 			} else {
 				oList.setShowSeparators(ListSeparators.None);
@@ -370,7 +377,6 @@ sap.ui.define([
 
 		this._oItemTemplate = new ListContentItem(mSettings);
 		this._oActions.attach({
-			area: ActionArea.ContentItem,
 			actions: mItem.actions,
 			control: this,
 			actionControl: this._oItemTemplate,
@@ -379,10 +385,31 @@ sap.ui.define([
 			disabledPropertyValue: ListType.Inactive
 		});
 
+		const oNavAction = this._getNavigationAction(mItem.actions);
+
+		if (oNavAction && oNavAction.navigationArrow) {
+			this._oItemTemplate.bindProperty("type", BindingHelper.formattedProperty(
+				[oNavAction.navigationArrow, oNavAction.enabled],
+				function (bNavigation, bEnabled) {
+					if (bEnabled === false) {
+						return ListType.Inactive;
+					}
+					return bNavigation ? ListType.Navigation : ListType.Active;
+				}
+			));
+		}
+
+		this._oActions.attach({
+			actions: mItem?.info?.actions,
+			control: this._oItemTemplate,
+			enabledPropertyName: "infoActive",
+			eventName: "infoPress"
+		});
+
 		var oGroup = oConfiguration.group;
 
 		if (oGroup) {
-			this._oSorter = this._getGroupSorter(oGroup);
+			this._oSorter = SorterHelper.getGroupSorter(oGroup);
 		}
 		var oBindingInfo = {
 			template: this._oItemTemplate,
@@ -449,9 +476,6 @@ sap.ui.define([
 			}
 			oList.addItem(oListItem);
 		});
-
-		//workaround until actions refactor
-		this.fireEvent("_actionContentReady");
 	};
 
 	/**

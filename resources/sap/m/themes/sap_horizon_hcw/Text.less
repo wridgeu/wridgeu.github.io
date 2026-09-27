@@ -9,11 +9,24 @@
 	padding-top: 0.6875rem;
 	padding-bottom: 0.6875rem;
 }
-html[data-sap-ui-browser^="cr"] .sapUiFormEdit .sapMText {
+
+html[data-sap-ui-browser^='cr'] .sapUiFormEdit .sapMText {
 	line-height: 1.4375rem;
 }
 
 .sapMTB-Info-CTX > .sapMText {
 	font-style: italic;
 	padding-right: 5px;
+}
+
+.sapMText {
+	&::selection {
+		background: var(--sapSelectedColor);
+		color: var(--sapContent_ContrastTextColor);
+	}
+
+	&::-moz-selection {
+		background: var(--sapSelectedColor);
+		color: var(--sapContent_ContrastTextColor);
+	}
 }

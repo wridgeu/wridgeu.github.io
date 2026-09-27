@@ -1,14 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/m/library",
 	"sap/ui/core/Control",
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
+	"sap/ui/core/RenderManager",
 	"sap/ui/core/delegate/ScrollEnablement",
 	"./WizardProgressNavigator",
 	"sap/ui/core/util/ResponsivePaddingsEnablement",
@@ -22,8 +24,10 @@ sap.ui.define([
 ], function(
 	library,
 	Control,
-	Core,
+	Element,
+	Library,
 	coreLibrary,
+	RenderManager,
 	ScrollEnablement,
 	WizardProgressNavigator,
 	ResponsivePaddingsEnablement,
@@ -100,7 +104,7 @@ sap.ui.define([
 		 *
 		 * @extends sap.ui.core.Control
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
@@ -226,9 +230,7 @@ sap.ui.define([
 					 * The complete event is fired when the user clicks the finish button of the Wizard.
 					 * The finish button is only available on the last step of the Wizard.
 					 */
-					complete: {
-						parameters: {}
-					}
+					complete: {}
 				},
 				dnd: { draggable: false, droppable: true }
 			},
@@ -254,7 +256,7 @@ sap.ui.define([
 			this._aStepPath = [];
 			this._bScrollLocked = false;
 			this._oScroller = this._initScrollEnablement();
-			this._oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+			this._oResourceBundle = Library.getResourceBundleFor("sap.m");
 			this._initProgressNavigator();
 			this._initResponsivePaddingsEnablement();
 			this._iNextButtonHeight = 0;
@@ -278,6 +280,8 @@ sap.ui.define([
 			this.getSteps().forEach(function(oStep){
 				oStep.setProperty("_titleLevel", sStepTitleLevel);
 			});
+
+			this._getProgressNavigator()._setStepIds(this.getSteps());
 		};
 
 		Wizard.prototype.onAfterRendering = function () {
@@ -293,6 +297,41 @@ sap.ui.define([
 
 			this._attachScrollHandler();
 			this._renderPageMode();
+			this._syncProgressNavigatorToScroll();
+		};
+
+		/**
+		 * Synchronizes the progress navigator's currently displayed step with the actual
+		 * scroll position of the step container. After a re-render (for example when the
+		 * Wizard is shown again inside a re-opened Dialog) the step-container has a fresh
+		 * DOM with <code>scrollTop = 0</code>, while the progress navigator's current step
+		 * is preserved on the control instance. Without this sync the navigator would
+		 * highlight a step that is not visible until the user scrolls.
+		 * @private
+		 */
+		Wizard.prototype._syncProgressNavigatorToScroll = function () {
+			if (this.getRenderMode() === WizardRenderMode.Page || this._bScrollLocked) {
+				return;
+			}
+
+			var oContainer = this.getDomRef("step-container");
+			if (!oContainer) {
+				return;
+			}
+
+			var oProgressNavigator = this._getProgressNavigator(),
+				iScrollTop = oContainer.scrollTop,
+				iThreshold = 100;
+
+			while (oProgressNavigator.getCurrentStep() > 1) {
+				var oCurrentStep = this._aStepPath[oProgressNavigator.getCurrentStep() - 1],
+					oCurrentStepDOM = oCurrentStep && oCurrentStep.getDomRef();
+
+				if (!oCurrentStepDOM || iScrollTop + iThreshold > oCurrentStepDOM.offsetTop) {
+					break;
+				}
+				oProgressNavigator.previousStep();
+			}
 		};
 
 		/**
@@ -316,7 +355,7 @@ sap.ui.define([
 				oCurrentStep = this._aStepPath[iCurrentStepIndex - 1];
 			}
 
-			oRenderManager = Core.createRenderManager();
+			oRenderManager = new RenderManager().getInterface();
 			oRenderManager.renderControl(
 				this._updateStepTitleNumber(oCurrentStep, iCurrentStepIndex));
 			oRenderManager.flush(this.getDomRef("step-container"));
@@ -464,6 +503,7 @@ sap.ui.define([
 				oProgressNavigator && oProgressNavigator._updateCurrentStep(this._aStepPath.indexOf(oStep) + 1);
 			};
 
+			oStep._setNumberInvisibleText(this._aStepPath.indexOf(oStep) + 1);
 			if (!this.getVisible() || this._aStepPath.indexOf(oStep) < 0) {
 				return this;
 			} else if (this.getRenderMode() === WizardRenderMode.Page) {
@@ -473,7 +513,6 @@ sap.ui.define([
 				return this;
 			}
 
-			oStep._setNumberInvisibleText(this.getProgress());
 			var that = this,
 				mScrollProps = {
 					scrollTop: this._getStepScrollOffset(oStep)
@@ -486,10 +525,16 @@ sap.ui.define([
 					},
 					complete: function () {
 						that._bScrollLocked = false;
+
+						if (that.isDestroyed()) {
+							return;
+						}
+
 						fnUpdateProgressNavigator.call(that);
 
 						if (bFocusFirstStepElement || bFocusFirstStepElement === undefined) {
 							that._focusFirstStepElement(oStep);
+							that.setPreviousStepButtonVisibility(oStep);
 						}
 					}
 				};
@@ -497,6 +542,16 @@ sap.ui.define([
 			jQuery(this.getDomRef("step-container")).animate(mScrollProps, mAnimProps);
 
 			return this;
+		};
+
+		Wizard.prototype.setPreviousStepButtonVisibility = function (oStep) {
+			const aStepPath = this._aStepPath;
+			const iCurrentStepIndex = aStepPath.indexOf(oStep);
+			const oPreviousStep = iCurrentStepIndex > 0 ? aStepPath[iCurrentStepIndex - 1] : null;
+
+			if (oPreviousStep) {
+				oPreviousStep.setButtonVisibility();
+			}
 		};
 
 		/**
@@ -558,7 +613,7 @@ sap.ui.define([
 		 * @public
 		 */
 		Wizard.prototype.setCurrentStep = function (vStepId) {
-			var oStep = (typeof vStepId === "string") ? Core.byId(vStepId) : vStepId;
+			var oStep = (typeof vStepId === "string") ? Element.getElementById(vStepId) : vStepId;
 
 			if (!this.getEnableBranching()) {
 				this.setAssociation("currentStep", vStepId, true);
@@ -624,7 +679,7 @@ sap.ui.define([
 		/**
 		 * Sets background design.
 		 *
-		 * @param {string} sBgDesign The new background design parameter.
+		 * @param {sap.m.PageBackgroundDesign} sBgDesign The new background design parameter.
 		 * @returns {this} <code>this</code> to facilitate method chaining.
 		 */
 		Wizard.prototype.setBackgroundDesign = function (sBgDesign) {
@@ -638,8 +693,7 @@ sap.ui.define([
 		/**
 		 * Dynamic step insertion is not yet supported.
 		 * @param {sap.m.WizardStep} oWizardStep The step to be inserted
-		 * @param {index} iIndex The index at which to insert
-		 * @experimental
+		 * @param {int} iIndex The index at which to insert
 		 * @private
 		 */
 		Wizard.prototype.insertStep = function (oWizardStep, iIndex) {
@@ -652,8 +706,7 @@ sap.ui.define([
 
 		/**
 		 * Dynamic step removal is not yet supported.
-		 * @param {sap.m.WizardStep} oWizardStep The step to be removed
-		 * @experimental
+		 * @param {int|sap.ui.core.ID|sap.m.WizardStep} oWizardStep The step to be removed or its ID or index
 		 * @private
 		 */
 		Wizard.prototype.removeStep = function (oWizardStep) {
@@ -1236,7 +1289,7 @@ sap.ui.define([
 		 * @private
 		 */
 		Wizard.prototype._getCurrentStepInstance = function () {
-			return Core.byId(this.getCurrentStep());
+			return Element.getElementById(this.getCurrentStep());
 		};
 
 		/**

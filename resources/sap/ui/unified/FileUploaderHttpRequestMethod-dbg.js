@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides type sap.ui.unified.FileUploaderHttpRequestMethod
-sap.ui.define([], function() {
+sap.ui.define(["sap/ui/base/DataType"], function(DataType) {
 	"use strict";
 
 	/**
@@ -22,15 +22,31 @@ sap.ui.define([], function() {
 		 * HTTP request POST method.
 		 * @public
 		 */
-		Post : "POST",
+		POST : "POST",
 
 		/**
 		 * HTTP request PUT method.
 		 * @public
 		 */
+		PUT : "PUT",
+
+		/**
+		 * HTTP request POST method.
+		 * @public
+		 * @deprecated Since 1.145.0, use {@link sap.ui.unified.FileUploaderHttpRequestMethod.POST} instead
+		 */
+		Post : "POST",
+
+		/**
+		 * HTTP request PUT method.
+		 * @public
+		 * @deprecated Since 1.145.0, use {@link sap.ui.unified.FileUploaderHttpRequestMethod.PUT} instead
+		 */
 		Put : "PUT"
 
 	};
+
+	DataType.registerEnum("sap.ui.unified.FileUploaderHttpRequestMethod", FileUploaderHttpRequestMethod);
 
 	return FileUploaderHttpRequestMethod;
 

@@ -1,0 +1,2 @@
+sap.ui.define(function(){"use strict";function e(e){return{name:"Plain text",aliases:["text","txt"],disableAutodetect:true}}var t=Object.freeze({__proto__:null,default:e});const r=Object.isFrozen(e)?Object.assign({},e?.default||e||{__emptyModule:true}):e;Object.keys(t||{}).filter(e=>!r[e]).forEach(e=>r[e]=t[e]);Object.defineProperty(r,"__"+"esModule",{value:true});var u=Object.isFrozen(e)?Object.freeze(r):r;return u});
+//# sourceMappingURL=plaintext.js.map

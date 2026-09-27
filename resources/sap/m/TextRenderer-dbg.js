@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define([
 		// shortcut for sap.m.WrappingType
 		var WrappingType = mobileLibrary.WrappingType;
 
-		// shortcut for sap.m.EmptyIndicator
+		// shortcut for sap.m.EmptyIndicatorMode
 		var EmptyIndicatorMode = mobileLibrary.EmptyIndicatorMode;
 
 		// shortcut for library resource bundle
@@ -122,13 +122,9 @@ sap.ui.define([
 		TextRenderer.renderMaxLines = function(oRm, oText) {
 			oRm.openStart("span", oText.getId() + "-inner");
 			oRm.class("sapMTextMaxLine");
-
-			// check native line clamp support
-			if (oText.canUseNativeLineClamp()) {
-				oRm.class("sapMTextLineClamp");
-				oRm.style("-webkit-line-clamp", oText.getMaxLines());
-			}
-
+			oRm.class("sapMTextLineClamp");
+			oRm.class("sapUiSelectable");
+			oRm.style("-webkit-line-clamp", oText.getMaxLines());
 			oRm.openEnd();
 			this.renderText(oRm, oText);
 			oRm.close("span");

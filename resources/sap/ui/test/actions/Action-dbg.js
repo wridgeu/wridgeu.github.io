@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -169,14 +169,11 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQuery, _OpaLogger, _FocusLis
 			var bFireArtificialEvents = false;
 			var bSimulateFocusout = false;
 			var isAlreadyFocused = this._isFocused(oDomRef);
-			var bIsNewFF = Device.browser.firefox && Device.browser.version >= 60;
 			var oLastFocusedElement;
 
-			if (isAlreadyFocused || bIsNewFF) {
-				// 1. If the event is already focused, make sure onfocusin event of the control will be properly fired when executing this action,
+			if (isAlreadyFocused) {
+				// If the event is already focused, make sure onfocusin event of the control will be properly fired when executing this action,
 				// otherwise the next blur will not be able to safely remove the focus.
-				// 2. In IE11 (and often in Firefox v61.0/v60.0 ESR), if the focus action fails and focusin is dispatched, onfocusin will be called twice.
-				// To avoid this, directly dispatch the artificial events
 				bFireArtificialEvents = true;
 			} else {
 				$DomRef.trigger("focus");
@@ -224,13 +221,16 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQuery, _OpaLogger, _FocusLis
 		 * @param {boolean} bShiftKey Indicates whether the shift key is down in addition
 	 	 * @param {boolean} bAltKey Indicates whether the alt key is down in addition
 	 	 * @param {boolean} bCtrlKey Indicates whether the ctrl key is down in addition
+		 * @param {number} iClientX X coordinate for the event
+		 * @param {number} iClientY Y coordinate for the event
+		 * @param {number} iButton Mouse button index (0=left, 1=middle, 2=right)
 		 * @private
 		 */
-		_createAndDispatchMouseEvent: function (sName, oDomRef, bShiftKey, bAltKey, bCtrlKey, iClientX, iClientY) {
+		_createAndDispatchMouseEvent: function (sName, oDomRef, bShiftKey, bAltKey, bCtrlKey, iClientX, iClientY, iButton) {
 			// ignore scrolled down stuff (client X, Y not set)
 			// and assume stuff is over the whole screen (screen X, Y not set)
 			// See file jquery.sap.events.js for some insights to the magic
-			var iLeftMouseButtonIndex = 0;
+			var iMouseButton = iButton !== undefined ? iButton : 0;
 			var oMouseEvent;
 			oMouseEvent = new MouseEvent(sName, {
 				bubbles: true,
@@ -240,7 +240,8 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQuery, _OpaLogger, _FocusLis
 				radiusX: 1,
 				radiusY: 1,
 				rotationAngle: 0,
-				button: iLeftMouseButtonIndex,
+				button: iMouseButton,
+				buttons: iMouseButton === 2 ? 2 : 1, // buttons bitmask: 1=primary, 2=secondary/right
 				type: sName, // include the type so jQuery.event.fixHooks can copy properties properly
 				shiftKey: bShiftKey,
 				altKey: bAltKey,
@@ -362,6 +363,40 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQuery, _OpaLogger, _FocusLis
 			var bDocumentHasFocus = !document.hasFocus || document.hasFocus();
 			var bIsElemInBody = !!(oDomRef.type || oDomRef.href || ~oDomRef.tabIndex);
 			return bIsActiveElement && bDocumentHasFocus && bIsElemInBody;
+		},
+
+		/**
+		 * Creates and dispatches a keyboard event on the given DOM element.
+		 *
+		 * @param {string} sName Name of the keyboard event (e.g., "keydown", "keyup")
+		 * @param {Element} oDomRef DOM element on which the event is going to be triggered
+		 * @param {object} [oOptions] Options for the keyboard event
+		 * @param {string} [oOptions.key] The key value of the key pressed (e.g., "Enter", "ArrowUp", "ArrowDown")
+		 * @param {number} [oOptions.keyCode] The keyCode of the key pressed
+		 * @param {boolean} [oOptions.shiftKey] Indicates whether the shift key is down in addition
+		 * @param {boolean} [oOptions.altKey] Indicates whether the alt key is down in addition
+		 * @param {boolean} [oOptions.ctrlKey] Indicates whether the ctrl key is down in addition
+		 * @private
+		 */
+		_createAndDispatchKeyboardEvent: function (sName, oDomRef, oOptions) {
+			oOptions = oOptions || {};
+			var oKeyboardEvent = new KeyboardEvent(sName, {
+				bubbles: true,
+				cancelable: true,
+				key: oOptions.key || "",
+				code: oOptions.code || "",
+				keyCode: oOptions.keyCode || 0,
+				which: oOptions.keyCode || 0,
+				shiftKey: !!oOptions.shiftKey,
+				altKey: !!oOptions.altKey,
+				ctrlKey: !!oOptions.ctrlKey,
+				metaKey: !!oOptions.metaKey,
+				type: sName,
+				target: oDomRef
+			});
+
+			oDomRef.dispatchEvent(oKeyboardEvent);
+			this.oLogger.info("Dispatched keyboard event: '" + sName + "'" + (oOptions.key ? " with key '" + oOptions.key + "'" : ""));
 		}
 	});
 

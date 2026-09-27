@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -120,6 +120,14 @@ sap.ui.define([
 		var mPendingPromise;
 
 		var fnWrappedExecutor = function (fnOriginalResolve, fnOriginalReject) {
+			// Handle null executor (which can happen in some polyfills like Angular's)
+			if (!fnOriginalExecutor || typeof fnOriginalExecutor !== 'function') {
+				oPromiseWaiter._oLogger.trace("Ignoring Promise with null executor");
+				// Just resolve the promise since there's no executor to call
+				fnOriginalResolve();
+				return;
+			}
+
 			var sArguments = _utils.functionToString(fnOriginalExecutor);
 
 			if (window.ES6Promise && sArguments === "'function noop() {}'") {
@@ -192,6 +200,31 @@ sap.ui.define([
 			WrappedPromise[sFunction] = OriginalPromise[sFunction];
 		}
 	});
+
+	const fnOriginalWithResolvers = OriginalPromise.withResolvers;
+	if (fnOriginalWithResolvers) {
+		WrappedPromise.withResolvers = function () {
+			const { promise, resolve, reject, ...rest } = fnOriginalWithResolvers.apply(this, arguments);
+			const mPendingPromise = _trackPromise(""); // withResolvers API does not take any arguments
+			const fnWrappedResolve = function wrappedResolve () {
+				_untrackPromise(mPendingPromise);
+				resolve.apply(this, arguments);
+			};
+			const fnWrappedReject = function wrappedReject() {
+				_untrackPromise(mPendingPromise);
+				reject.apply(this, arguments);
+			};
+
+			return {
+				promise,
+				resolve: fnWrappedResolve,
+				reject: fnWrappedReject,
+				...rest
+			};
+		};
+	} else {
+		oPromiseWaiter._oLogger.warning("Promise.withResolvers is not available in this environment. Consider updating your browser to a version that supports ES2024.");
+	}
 
 	// overwrite the global Promise object
 	window.Promise = WrappedPromise;

@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/base/Log",
+	"sap/base/future",
 	"sap/base/util/deepEqual",
 	"sap/base/util/merge",
 	"sap/ui/core/message/ControlMessageProcessor",
@@ -14,7 +14,7 @@ sap.ui.define([
 	"sap/ui/core/message/MessageProcessor",
 	"sap/ui/model/message/MessageModel"
 ], (
-	Log,
+	future,
 	deepEqual,
 	merge,
 	ControlMessageProcessor,
@@ -31,7 +31,7 @@ sap.ui.define([
 	var oControlMessageProcessor;
 
 	/**
-	 * Messaging provides a central place for managing <code>sap.ui.core.message.Messages</code>.
+	 * Messaging provides a central place for managing <code>sap.ui.core.message.Message</code>s.
 	 *
 	 * @namespace
 	 * @alias module:sap/ui/core/Messaging
@@ -43,7 +43,7 @@ sap.ui.define([
 		/**
 		 * Add messages to Messaging
 		 *
-		 * @param {sap.ui.core.message.Message|sap.ui.core.message.Message[]} vMessages Array of sap.ui.core.message.Message or single sap.ui.core.message.Message
+		 * @param {sap.ui.core.message.Message|sap.ui.core.message.Message[]} vMessages Array of <code>Message</code> or single <code>Message</code>
 		 * @public
 		 */
 		addMessages: function(vMessages) {
@@ -166,7 +166,7 @@ sap.ui.define([
 		 */
 		registerObject: function(oObject, bHandleValidation) {
 			if (!(oObject && oObject.isA && (oObject.isA(["sap.ui.base.ManagedObject", "sap.ui.core.Core"])))) {
-				Log.error("Messaging: " + oObject.toString() + " is not an instance of sap.ui.base.ManagedObject");
+				future.errorThrows("Messaging: " + oObject.toString() + " is not an instance of sap.ui.base.ManagedObject");
 			} else {
 				oObject.attachValidationSuccess(bHandleValidation, _handleSuccess);
 				oObject.attachValidationError(bHandleValidation, _handleError);
@@ -183,7 +183,7 @@ sap.ui.define([
 		 */
 		unregisterObject: function(oObject) {
 			if (!(oObject && oObject.isA && oObject.isA("sap.ui.base.ManagedObject"))) {
-				Log.error("Messaging: " + oObject.toString() + " is not an instance of sap.ui.base.ManagedObject");
+				future.errorThrows("Messaging: " + oObject.toString() + " is not an instance of sap.ui.base.ManagedObject");
 			} else {
 				oObject.detachValidationSuccess(_handleSuccess);
 				oObject.detachValidationError(_handleError);
@@ -203,6 +203,17 @@ sap.ui.define([
 				oMessageModel.setData([]);
 			}
 			return oMessageModel;
+		},
+
+		/**
+		 * Returns all messages currently managed by Messaging.
+		 *
+		 * @return {sap.ui.core.message.Message[]} An array of all current messages
+		 * @public
+		 * @since 1.151
+		 */
+		getMessages: function() {
+			return Messaging.getMessageModel().getData();
 		}
 	};
 
@@ -356,7 +367,7 @@ sap.ui.define([
 	}
 
 	/**
-	 * Like sap.ui.core.Messaging#removeMessage but with an additional argument to only remove validation
+	 * Like module:sap/ui/core/Messaging.removeMessage but with an additional argument to only remove validation
 	 * messages.
 	 *
 	 * @param {sap.ui.core.message.Message|sap.ui.core.message.Message[]} vMessages - The message(s) to be removed.
@@ -373,11 +384,11 @@ sap.ui.define([
 			// We need to work on a copy since the messages reference is changed by _removeMessage()
 			var aOriginalMessages = vMessages.slice(0);
 			for (var i = 0; i < aOriginalMessages.length; i++) {
-				if (!bOnlyValidationMessages || aOriginalMessages[i].validation) {
+				if (!bOnlyValidationMessages || aOriginalMessages[i].isValidation()) {
 					_removeMessage(aOriginalMessages[i]);
 				}
 			}
-		} else if (vMessages instanceof Message && (!bOnlyValidationMessages || vMessages.validation)){
+		} else if (vMessages instanceof Message && (!bOnlyValidationMessages || vMessages.isValidation())){
 			_removeMessage(vMessages);
 		} else {
 			//map with target as key

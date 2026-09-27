@@ -1,40 +1,50 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-    'sap/ui/unified/calendar/CalendarUtils',
-    'sap/ui/unified/calendar/CalendarDate',
-    'sap/ui/unified/CalendarLegend',
-    'sap/ui/unified/CalendarLegendRenderer',
-	'sap/ui/core/library',
-    'sap/ui/unified/library',
-    "sap/base/Log",
-    'sap/ui/core/InvisibleText',
-    'sap/ui/core/date/UI5Date',
-    "sap/ui/core/Configuration"
+	"sap/base/i18n/date/CalendarType",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	'sap/ui/unified/calendar/CalendarUtils',
+	'sap/ui/unified/calendar/CalendarDate',
+	'sap/ui/unified/CalendarLegend',
+	'sap/ui/unified/CalendarLegendRenderer',
+	'sap/ui/unified/library',
+	"sap/base/Log",
+	'sap/ui/core/InvisibleText',
+	'sap/ui/core/date/UI5Date',
+	"sap/ui/core/date/CalendarUtils",
+	"sap/ui/core/Locale",
+	"sap/ui/core/library"
 ],
 	function(
-        CalendarUtils,
-        CalendarDate,
-        CalendarLegend,
-        CalendarLegendRenderer,
-        coreLibrary,
-        library,
-        Log,
-        InvisibleText,
-        UI5Date,
-        Configuration) {
+		CalendarType,
+		Element,
+		Library,
+		CalendarUtils,
+		CalendarDate,
+		CalendarLegend,
+		CalendarLegendRenderer,
+		library,
+		Log,
+		InvisibleText,
+		UI5Date,
+		CalendarDateUtils,
+		Locale,
+		coreLibrary
+	) {
 	"use strict";
 
 
 	// shortcut for sap.ui.unified.CalendarDayType
-	var CalendarDayType = library.CalendarDayType;
+	const CalendarDayType = library.CalendarDayType;
 
-	// shortcut for sap.ui.core.CalendarType
-	var CalendarType = coreLibrary.CalendarType;
+	// shortcut for sap.ui.core.aria.HasPopup
+	const AriaHasPopup = coreLibrary.aria.HasPopup;
+
 
 
 	/**
@@ -55,9 +65,9 @@ sap.ui.define([
 
 		var oDate = this.getStartDate(oMonth),
 			sTooltip = oMonth.getTooltip_AsString(),
-			rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified"),
+			rb = Library.getResourceBundleFor("sap.ui.unified"),
 			sId = oMonth.getId(),
-			oAriaLabel = {value: "", append: true},
+			oAriaLabel = {value: "", append: !oMonth._bCalendar},
 			sDescribedBy = "",
 			sWidth = oMonth.getWidth();
 
@@ -76,12 +86,12 @@ sap.ui.define([
 		}
 
 		if (oMonth._getShowHeader()) {
-			oAriaLabel.value = oAriaLabel.value + " " + sId + "-Head";
+			oAriaLabel.value = sId + "-Head";
 		}
 
 		if (oMonth._bCalendar) {
-			sDescribedBy += " " + InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_MONTH_PICKER_OPEN_HINT") +
-				" " + InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_YEAR_PICKER_OPEN_HINT");
+			sDescribedBy = InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_MONTH_PICKER_OPEN_HINT")
+					+ " " + InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_YEAR_PICKER_OPEN_HINT");
 		}
 
 		if (sWidth) {
@@ -90,27 +100,13 @@ sap.ui.define([
 
 		oRm.accessibilityState(oMonth, {
 			role: "grid",
-			roledescription: rb.getText("CALENDAR_DIALOG"),
+			roledescription: oMonth._bCalendar ? "" : rb.getText("CALENDAR_DIALOG"),
 			multiselectable: !oMonth.getSingleSelection() || oMonth.getIntervalSelection(),
 			labelledby: oAriaLabel,
 			describedby: sDescribedBy
 		});
 
 		oRm.openEnd(); // div element
-
-		if (oMonth.getIntervalSelection()) {
-			oRm.openStart("span", sId + "-Start");
-			oRm.style("display", "none");
-			oRm.openEnd();
-			oRm.text(rb.getText("CALENDAR_START_DATE"));
-			oRm.close("span");
-
-			oRm.openStart("span", sId + "-End");
-			oRm.style("display", "none");
-			oRm.openEnd();
-			oRm.text(rb.getText("CALENDAR_END_DATE"));
-			oRm.close("span");
-		}
 
 		this.renderMonth(oRm, oMonth, oDate);
 
@@ -206,10 +202,10 @@ sap.ui.define([
 
 	MonthRenderer.renderDayNames = function(oRm, oMonth, oLocaleData, iStartDay, iDays, bDayNumberAsId, sWidth){
 
-		var iFirstDayOfWeek = oMonth._getFirstDayOfWeek();
-		var sId = oMonth.getId();
-		var sDayId = "";
-		var sCalendarType = oMonth.getPrimaryCalendarType();
+		var iFirstDayOfWeek = oMonth._getFirstDayOfWeek(),
+			sId = oMonth.getId(),
+			sCalendarType = oMonth.getPrimaryCalendarType(),
+			sDayId = "";
 
 		var aWeekDays = [];
 		if (oMonth._bLongWeekDays || !oMonth._bNamesLengthChecked) {
@@ -220,7 +216,7 @@ sap.ui.define([
 		var aWeekDaysWide = oLocaleData.getDaysStandAlone("wide", sCalendarType);
 
 		if (oMonth.getShowWeekNumbers() && sCalendarType !== CalendarType.Islamic) { // on Islamic primary calendar week numbers are not shown, do not add dummy cell
-			this.renderDummyCell(oRm, "sapUiCalWH", true, "columnheader");
+			this.renderDummyCell(oRm, "sapUiCalWH", true, oMonth._getWeekNumbersHeaderText(), "columnheader");
 		}
 
 		for ( var i = 0; i < iDays; i++) {
@@ -240,12 +236,22 @@ sap.ui.define([
 				oRm.style("width", sWidth);
 			}
 			oRm.accessibilityState(null, {
-				role: "columnheader",
-				label: aWeekDaysWide[(i + iStartDay) % 7],
-				hidden: true
+				role: "columnheader"
 			});
 			oRm.openEnd(); // div element
+
+			oRm.openStart("span");
+			oRm.attr("aria-hidden", "true");
+			oRm.openEnd();
 			oRm.text(aWeekDays[(i + iStartDay) % 7]);
+			oRm.close("span");
+
+			oRm.openStart("span");
+			oRm.class("sapUiPseudoInvisibleText");
+			oRm.openEnd();
+			oRm.text(aWeekDaysWide[(i + iStartDay) % 7]);
+			oRm.close("span");
+
 			oRm.close("div");
 		}
 
@@ -307,7 +313,7 @@ sap.ui.define([
 
 		if (iLength === 28) {
 			// there are only 4 full weeks (28 days), add one hidden 'day' div in order to open space for 5-th week
-			this.renderDummyCell(oRm, "sapUiCalItem", false, "");
+			this.renderDummyCell(oRm, "sapUiCalItem", false, "", "");
 		}
 	};
 
@@ -315,19 +321,60 @@ sap.ui.define([
 	 * Generates empty 'day' div that adds space for one more week in the calendar, in case of 4 full weeks only (28 days)
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
 	 * @param {string} sClassName css class that will be added to the dummy element styles
-	 * @param {boolean} bVisible if set to true the dummy element will be visible
+	 * @param {boolean} bShowColumn if set to true the dummy element will be visible
+	 * @param {string} sCellText text to render inside the dummy element; if empty, no text span is rendered
 	 * @param {string} sRole aria role attribute
 	 * @private
 	 */
-	MonthRenderer.renderDummyCell = function(oRm, sClassName, bVisible, sRole) {
+	MonthRenderer.renderDummyCell = function(oRm, sClassName, bShowColumn, sCellText, sRole) {
+		var sFullText = Library.getResourceBundleFor("sap.ui.unified").getText("CALENDAR_WEEK");
 		oRm.openStart("div");
 		oRm.class(sClassName);
 		oRm.class("sapUiCalDummy");
-		oRm.style("visibility", bVisible ? "visible" : "hidden");
+		oRm.style("visibility", bShowColumn ? "visible" : "hidden");
 		oRm.attr("role", sRole);
-		oRm.attr("aria-label", sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("CALENDAR_WEEK"));
+		if (sCellText) {
+			oRm.attr("title", sFullText);
+		}
 		oRm.openEnd();
+
+		if (sCellText) {
+			oRm.openStart("span");
+			oRm.attr("aria-hidden", "true");
+			oRm.openEnd();
+			oRm.text(sCellText);
+			oRm.close("span");
+		}
+
+		oRm.openStart("span");
+		oRm.class("sapUiPseudoInvisibleText");
+		oRm.openEnd();
+		oRm.text(sFullText);
+		oRm.close("span");
+
 		oRm.close('div');
+	};
+
+	MonthRenderer.isTypeAttributeRequired = function (bFilteredByTypeOrColor, sSpecialDateTypeFilter, sSpecialDateColorFilter, oDayType){
+		const sColor = oDayType.color?.toLowerCase();
+
+		if (bFilteredByTypeOrColor) {
+			return sSpecialDateColorFilter === sColor && sSpecialDateTypeFilter === oDayType.type;
+		}
+
+		return sSpecialDateTypeFilter === "" || sSpecialDateTypeFilter === CalendarDayType.None || sSpecialDateTypeFilter === oDayType.type;
+	};
+
+	MonthRenderer.isColorAttributeRequired = function (sColor, bFilteredByTypeOrColor, sSpecialDateColorFilter, sSpecialDateTypeFilter, aDayTypes) {
+		const bHasColorAndNotFiltered = sColor && !bFilteredByTypeOrColor;
+		const bHasMatchingTypeAndColor = sColor === sSpecialDateColorFilter && sSpecialDateTypeFilter === aDayTypes[0].type;
+		const bHasSameColorWithoutType = sColor === sSpecialDateColorFilter && (!sSpecialDateTypeFilter || sSpecialDateTypeFilter === CalendarDayType.None);
+
+		if (bHasColorAndNotFiltered) {
+			return true;
+		}
+
+		return bHasMatchingTypeAndColor || bHasSameColorWithoutType;
 	};
 
 	/**
@@ -356,13 +403,14 @@ sap.ui.define([
 				oFormatLong: oMonth._getFormatLong(),
 				sPrimaryCalendarType: oMonth.getPrimaryCalendarType(),
 				sSecondaryCalendarType: oMonth._getSecondaryCalendarType(),
-				oLegend: undefined
+				oLegend: undefined,
+				aSelectedDates: oMonth.getSelectedDates()
 			};
 
 		sLegendId = oMonth.getLegend();
 		// getLegend may return string or array we should proceed only if the result is a string
 		if (sLegendId && typeof sLegendId === "string") {
-			oLegend = sap.ui.getCore().byId(sLegendId);
+			oLegend = Element.getElementById(sLegendId);
 			if (oLegend) {
 				if (!(oLegend instanceof CalendarLegend)) {
 					throw new Error(oLegend + " is not an sap.ui.unified.CalendarLegend. " + oMonth);
@@ -391,34 +439,56 @@ sap.ui.define([
 	MonthRenderer.renderDay = function(oRm, oMonth, oDay, oHelper, bOtherMonth, bWeekNum, iNumber, sWidth, bDayName){
 		CalendarUtils._checkCalendarDate(oDay);
 		var oSecondaryDay = new CalendarDate(oDay, oHelper.sSecondaryCalendarType),
+			bSelectable = oMonth._getAriaRole() === "gridcell" && oMonth._getSelectableAccessibilitySemantics(),
+			sDayDescription = bSelectable ? oMonth._getDayDescription() : "",
+			sDayNameId = (!bDayName && iNumber >= 0) ? oHelper.sId + "-WH" + iNumber : "",
 			mAccProps = {
 				role: oMonth._getAriaRole(),
-				selected: false,
+				selected: bSelectable ? false : null,
 				label: "",
-				describedby: ""
+				describedby: `${sDayDescription} ${sDayNameId}`.trim() || ""
 			},
 			bBeforeFirstYear = oDay._bBeforeFirstYear,
 			sAriaType = "",
-			oLegend = oHelper.oLegend,
-			sNonWorkingDayText;
+			oLegend = oHelper.oLegend;
 
 		var sYyyymmdd = oMonth._oFormatYyyymmdd.format(oDay.toUTCJSDate(), true);
 		var iWeekDay = oDay.getDay();
 		var iSelected = oMonth._checkDateSelected(oDay);
 		var aDayTypes = oMonth._getDateTypes(oDay);
 		var sSpecialDateTypeFilter = oHelper && oHelper.oLegend ? oHelper.oLegend._getSpecialDateTypeFilter() : '';
+		var sSpecialDateColorFilter = oHelper?.oLegend ? oHelper.oLegend._getSpecialDateColorFilter().toLowerCase() : '';
 		var bEnabled = oMonth._checkDateEnabled(oDay);
-		var i = 0;
 		var bShouldBeMarkedAsSpecialDate = oMonth._isSpecialDateMarkerEnabled(oDay);
+
+		// Determine effective aria-haspopup from per-date value on matched DateTypeRange entries.
+		let sHasPopup = AriaHasPopup.None;
+		for (let i = 0; i < aDayTypes.length; i++) {
+			if (aDayTypes[i].bAriaHasPopupExplicit) {
+				sHasPopup = aDayTypes[i].ariaHasPopup;
+				break;
+			}
+		}
+
+		const sFirstSpecialDateType = aDayTypes.length > 0 && aDayTypes[0].type;
+		const sSecondaryDateType = aDayTypes.length > 0 && aDayTypes[0].secondaryType;
+		const bIsWeekend = oHelper.aNonWorkingDays && oHelper.aNonWorkingDays instanceof Array
+			? oHelper.aNonWorkingDays.some((iNonWorkingDay) => oDay.getDay() === iNonWorkingDay)
+			: CalendarUtils._isWeekend(oDay, oMonth._getLocaleData());
+		const bNonWorkingWeekend =  sFirstSpecialDateType !== CalendarDayType.Working
+			&& sSecondaryDateType !== CalendarDayType.Working
+			&& bIsWeekend;
+		const bNonWorking = sFirstSpecialDateType === CalendarDayType.NonWorking
+			|| sSecondaryDateType === CalendarDayType.NonWorking || bNonWorkingWeekend;
+		const bFilteredByTypeOrColor = !!(sSpecialDateTypeFilter || sSpecialDateColorFilter) && (sSpecialDateTypeFilter !== CalendarDayType.None || sSpecialDateColorFilter) ;
+		const sNonWorkingDayText = oMonth._oUnifiedRB.getText("LEGEND_NON_WORKING_DAY");
+		const sStartDateText = InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_START_DATE");
+		const sEndDateText = InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_END_DATE");
+		const aTooltipTexts = [];
+
 		// Days before 0001.01.01 should be disabled.
 		if (bBeforeFirstYear) {
 			bEnabled = false;
-		}
-
-		if (!bDayName) {
-			mAccProps["describedby"] = iNumber < 0
-				? oHelper.sId + "-WH" + iWeekDay
-				: oHelper.sId + "-WH" + iNumber;
 		}
 
 		oRm.openStart("div", oHelper.sId + "-" + sYyyymmdd);
@@ -436,67 +506,86 @@ sap.ui.define([
 		}
 		if (oDay.isSame(oHelper.oToday)) {
 			oRm.class("sapUiCalItemNow");
-			mAccProps["label"] = oHelper.sToday + " ";
+			aTooltipTexts.push(oMonth._oUnifiedRB.getText("LEGEND_TODAY"));
 		}
 
 		if (iSelected > 0) {
 			oRm.class("sapUiCalItemSel"); // day selected
-			mAccProps["selected"] = true;
-		} else {
+			if (bSelectable) {
+				mAccProps["selected"] = true;
+			}
+		} else if (bSelectable) {
 			mAccProps["selected"] = false;
 		}
+
 		if (iSelected === 2) {
 			oRm.class("sapUiCalItemSelStart"); // interval start
-			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-Start";
+			mAccProps["describedby"] = `${mAccProps["describedby"]} ${sStartDateText}`.trim();
 		} else if (iSelected === 3) {
 			oRm.class("sapUiCalItemSelEnd"); // interval end
-			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-End";
+			mAccProps["describedby"] = `${mAccProps["describedby"]} ${sEndDateText}`.trim();
 		} else if (iSelected === 4) {
 			oRm.class("sapUiCalItemSelBetween"); // interval between
 		} else if (iSelected === 5) {
 			oRm.class("sapUiCalItemSelStart"); // interval start
 			oRm.class("sapUiCalItemSelEnd"); // interval end
-			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-Start";
-			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-End";
+			mAccProps["describedby"] = `${mAccProps["describedby"]} ${sStartDateText}`.trim();
+			mAccProps["describedby"] = `${mAccProps["describedby"]} ${sEndDateText}`.trim();
 		}
 
-		if (this.renderWeekNumbers && oMonth._oDate) {
-			mAccProps["describedby"] = mAccProps["describedby"] + " " + oMonth.getId() + "-week-" + oMonth._calculateWeekNumber(oDay) + "-text";
+		const oParent = oMonth.getParent();
+		const bShowWeekNumbers = oMonth.getShowWeekNumbers();
+		const bHasDate = !!oMonth._oDate;
+		const bSeparateWeekNumbers = bShowWeekNumbers && bHasDate && oParent &&
+			(oParent.isA("sap.m.PlanningCalendar") ||
+			 oParent.isA("sap.ui.unified.CalendarDateInterval") ||
+			 oParent.isA("sap.ui.unified.CalendarTimeInterval") ||
+			 oParent.isA("sap.m.Toolbar"));
+
+		if (bSeparateWeekNumbers) {
+			// This path is for controls that render week numbers separately (e.g., CalendarDateInterval with WeeksRow)
+			let sParentId = oParent.getId();
+
+			// For Toolbar, we need to find the PlanningCalendar (Toolbar -> Table -> PlanningCalendar hierarchy)
+			const bIsToolbar = oParent.isA("sap.m.Toolbar");
+			const oGrandParent = bIsToolbar ? oParent.getParent() : null;
+			const oGreatGrandParent = oGrandParent ? oGrandParent.getParent() : null;
+			const bHasPlanningCalendar = oGreatGrandParent && oGreatGrandParent.isA("sap.m.PlanningCalendar");
+
+			if (bIsToolbar) {
+				sParentId = bHasPlanningCalendar ? oGreatGrandParent.getId() : oMonth.getId();
+			}
+
+			const iWeekNumber = oMonth._calculateWeekNumber(oDay);
+			mAccProps["describedby"] = mAccProps["describedby"] + " " + sParentId + "-WeekNumbersRow-week-" + iWeekNumber + "-text";
+		}
+
+		if (bNonWorking) {
+			oRm.class("sapUiCalItemWeekEnd");
+			aTooltipTexts.push(sNonWorkingDayText);
 		}
 
 		if (bShouldBeMarkedAsSpecialDate) {
-			aDayTypes.forEach(function(oDayType) {
+			const that = this;
+			aDayTypes.forEach(function(oDayType, iIndex) {
 				if (oDayType.type !== CalendarDayType.None) {
-					if (oDayType.type === CalendarDayType.NonWorking) {
-						oRm.class("sapUiCalItemWeekEnd");
-						sNonWorkingDayText = this._addNonWorkingDayText(mAccProps);
-						return;
-					}
-
-					if (sSpecialDateTypeFilter === "" || sSpecialDateTypeFilter === CalendarDayType.None || sSpecialDateTypeFilter === oDayType.type) {
-						oRm.class("sapUiCalItem" + oDayType.type);
+					if (that.isTypeAttributeRequired(bFilteredByTypeOrColor, sSpecialDateTypeFilter, sSpecialDateColorFilter, oDayType)) {
+						if (iIndex === 0) {
+							oRm.class("sapUiCalItem" + oDayType.type);
+						}
 						sAriaType = oDayType.type;
 						if (oDayType.tooltip) {
-							oRm.attr('title', oDayType.tooltip);
+							aTooltipTexts.push(oDayType.tooltip);
 						}
 					}
 				}
-			}.bind(this));
+			});
 		}
 
-
-		if (!sNonWorkingDayText) { // if sNonWorkingDayText exists, it is already included above as specialDate of type NonWorking
-			if (oHelper.aNonWorkingDays) { // check if there are nonWorkingDays passed and add text to them
-				oHelper.aNonWorkingDays.forEach(function (iNonWorkingDay) {
-					if (oDay.getDay() === iNonWorkingDay) {
-						this._addNonWorkingDayText(mAccProps);
-					}
-				}.bind(this));
-			} else if (oDay.getDay() === oHelper.iWeekendStart || oDay.getDay() === oHelper.iWeekendEnd) { // otherwise add the text to the NonWorkigDays from the locale
-				this._addNonWorkingDayText(mAccProps);
-			}
+		if (aTooltipTexts.length) {
+			const aTooltips = aTooltipTexts.filter((sText, iPos) => aTooltipTexts.indexOf(sText) === iPos );
+			oRm.attr('title', aTooltips.join(" "));
 		}
-
 
 		//oMonth.getDate() is a public date object, so it is always considered local timezones.
 		if (((oMonth.getParent() && oMonth.getParent().getMetadata().getName() === "sap.ui.unified.CalendarOneMonthInterval")
@@ -510,43 +599,41 @@ sap.ui.define([
 			mAccProps["disabled"] = true;
 		}
 
-		if (oHelper.aNonWorkingDays) {
-			for (i = 0; i < oHelper.aNonWorkingDays.length; i++) {
-				if (iWeekDay === oHelper.aNonWorkingDays[i]) {
-					oRm.class("sapUiCalItemWeekEnd");
-					break;
-				}
-			}
-		} else if ((iWeekDay >= oHelper.iWeekendStart && iWeekDay <= oHelper.iWeekendEnd) ||
-				( oHelper.iWeekendEnd < oHelper.iWeekendStart && ( iWeekDay >= oHelper.iWeekendStart || iWeekDay <= oHelper.iWeekendEnd))) {
-			oRm.class("sapUiCalItemWeekEnd");
-		}
-
 		oRm.attr("tabindex", "-1");
 		oRm.attr("data-sap-day", sYyyymmdd);
-		if (bDayName) {
-			mAccProps["label"] = mAccProps["label"] + oHelper.aWeekDaysWide[iWeekDay] + " ";
-		}
-		mAccProps["label"] = mAccProps["label"] + oHelper.oFormatLong.format(oDay.toUTCJSDate(), true);
+
+		mAccProps["label"] = this._getDayAriaLabel(oDay, oHelper, oMonth, bDayName, oSecondaryDay);
 
 		if (sAriaType !== "") {
 			CalendarLegendRenderer.addCalendarTypeAccInfo(mAccProps, sAriaType, oLegend);
 		}
 
-		if (oHelper.sSecondaryCalendarType) {
-			mAccProps["label"] = mAccProps["label"] + " " + oMonth._oFormatSecondaryLong.format(oSecondaryDay.toUTCJSDate(), true);
+		if (sHasPopup !== AriaHasPopup.None) {
+			mAccProps["haspopup"] = sHasPopup.toLowerCase();
+		}
+
+		if (aDayTypes[0] && aDayTypes[0].customData?.length && bShouldBeMarkedAsSpecialDate) {
+			//render customData
+			aDayTypes[0].customData.forEach((customData) => {
+				if (customData.getWriteToDom()) {
+					oRm.attr(`data-${customData.getKey()}`, customData.getValue());
+				}
+			});
 		}
 
 		oRm.accessibilityState(null, mAccProps);
 		oRm.openEnd(); // div element
 
-		if (aDayTypes[0] && bShouldBeMarkedAsSpecialDate){ //if there's a special date inside current month, render it
+		if (aDayTypes[0] && bShouldBeMarkedAsSpecialDate
+				&& (aDayTypes[0].type !== CalendarDayType.None || aDayTypes[0].color)) { //if there's a special date inside current month, render it
 			oRm.openStart("div");
 			oRm.class("sapUiCalSpecialDate");
-			if (aDayTypes[0].color && (sSpecialDateTypeFilter === "" || sSpecialDateTypeFilter === CalendarDayType.None)) { // if there's a custom color and no special date filtering, render it
+			const sColor = aDayTypes[0].color?.toLowerCase();
 
-				oRm.style("background-color", aDayTypes[0].color);
+			if (this.isColorAttributeRequired(sColor, bFilteredByTypeOrColor, sSpecialDateColorFilter, sSpecialDateTypeFilter, aDayTypes)) { // if there's a custom color and no special date filtering, render it
+				oRm.style("background-color", sColor);
 			}
+
 			oRm.openEnd(); // div
 			oRm.close("div");
 		}
@@ -584,16 +671,37 @@ sap.ui.define([
 
 	};
 
-	/**
-	 * Includes additional text to the DOM indicating that the day is non-working
-	 *
-	 * @param {Object} mAccProps The accessibility properties for the day to be rendered.
-	 * @returns {string} sText The text for the non-working day from the bundle
-	 */
-	MonthRenderer._addNonWorkingDayText = function (mAccProps) {
-		var sText = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("LEGEND_NON_WORKING_DAY") + " ";
-		mAccProps["label"] += sText;
-		return sText;
+	MonthRenderer._getDayAriaLabel = function(oDay, oHelper, oMonth, bDayName, oSecondaryDay){
+		let sAriaLabel = "";
+		const aSelectedDateRange = oHelper.aSelectedDates.filter((d) => d.getStartDate() && d.getEndDate());
+		if (bDayName) {
+			sAriaLabel = `${oHelper.aWeekDaysWide[oDay.getDay()]} `;
+		}
+
+		if (aSelectedDateRange.length > 0) {
+			const oStartJSDate = CalendarDate.fromLocalJSDate(aSelectedDateRange[0].getStartDate(), oHelper.sPrimaryCalendarType);
+			const oEndJSDate = CalendarDate.fromLocalJSDate(aSelectedDateRange[0].getEndDate(), oHelper.sPrimaryCalendarType);
+			const oStartDate = aSelectedDateRange[0].getStartDate();
+			const oEndDate = aSelectedDateRange[0].getEndDate();
+			if (oDay.isSame(oStartJSDate)) {
+				sAriaLabel = `${sAriaLabel}${oMonth._oUnifiedRB.getText("CALENDAR_RANGE_SELECTION_START_DATE", [oHelper.oFormatLong.format(oStartDate)])}`;
+			} else if (oDay.isSame(oEndJSDate)) {
+				sAriaLabel = `${sAriaLabel}${oMonth._oUnifiedRB.getText("CALENDAR_RANGE_SELECTION_END_DATE", [oHelper.oFormatLong.format(oEndDate)])}`;
+			} else if (oDay.isAfter(oStartJSDate) && oDay.isBefore(oEndJSDate)) {
+				sAriaLabel = `${sAriaLabel}${oMonth._oUnifiedRB.getText("CALENDAR_RANGE_SELECTION_PART_OF_RANGE", [oHelper.oFormatLong.format(oDay.toLocalJSDate())])}`;
+			} else {
+				sAriaLabel = `${sAriaLabel}${oHelper.oFormatLong.format(oDay.toUTCJSDate(), true)}`;
+			}
+
+		} else {
+			sAriaLabel = `${sAriaLabel}${oHelper.oFormatLong.format(oDay.toUTCJSDate(), true)}`;
+		}
+
+		if (oHelper.sSecondaryCalendarType) {
+			sAriaLabel = `${sAriaLabel} ${oMonth._oFormatSecondaryLong.format(oSecondaryDay.toUTCJSDate(), true)}`;
+		}
+
+		return sAriaLabel;
 	};
 
 	MonthRenderer._renderWeekNumber = function(oRm, oDay, oHelper, oMonth) {

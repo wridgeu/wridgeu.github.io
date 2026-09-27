@@ -1,10 +1,23 @@
 /* =========================================== */
 /* CSS for control sap.uxap/ObjectPageSection  */
-/* Horizon theme                               */
+/* Morning Horizon theme                       */
 /* =========================================== */
 
+.sapUxAPObjectPageSection:not(.sapUxAPObjectPageSectionFirstVisible) {
+	padding-top: 1.5rem;
+}
+
+.sapUxAPObjectPageSection.sapUxAPObjectPageSectionFirstVisible {
+	padding-top: 1rem;
+
+	.sapUxAPObjectPageSectionContainer > .sapUiRespGrid > div[class^="sapUiRespGrid"]:first-child > .sapUxAPObjectPageSubSection {
+		padding-top: 0;
+	}
+}
+
 .sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageSubSectionHeader {
-	padding-left: 2rem;
+	padding-left: 1rem;
+	padding-right: 1.25rem;
 }
 
 .sapUiSizeCompact .sapUxAPObjectPageSectionHeader,
@@ -13,78 +26,79 @@
 	line-height: 2.25rem;
 }
 
-.sapUiSizeCompact .sapUxAPObjectPageSectionTitle,
-.sapUxAPObjectPageSectionTitle {
-	height: 2.75rem;
-	line-height: 2.25rem;
-	color: @sapUiGroupTitleTextColor;
-	font-size: @sapMFontHeader4Size;
-}
-
 .sapUxAPObjectPageSectionHeader,
 .sapUxAPObjectPageSubSectionWithSeeMore .sapUxAPSubSectionSeeMoreContainer {
-	padding-right: 3rem;
+	padding-right: 2.25rem;
 }
 
 .sapUxAPObjectPageLayout-Std-Desktop,
 .sapUxAPObjectPageLayout-Std-Tablet {
+
 	.sapUxAPObjectPageSectionHeader,
 	html .sapUiContainer-Medium .sapUxAPObjectPageSectionHeader,
 	.sapUxAPObjectPageSubSectionWithSeeMore .sapUxAPSubSectionSeeMoreContainer {
-		padding-right: 2rem;
+		padding-right: 1.25rem;
 		padding-left: 2rem;
 	}
 }
 
 .sapUxAPObjectPageLayout-Std-Phone {
+
 	.sapUxAPObjectPageSectionHeader,
 	html .sapUiContainer-Narrow .sapUxAPObjectPageSectionHeader,
 	.sapUxAPObjectPageSubSectionWithSeeMore .sapUxAPSubSectionSeeMoreContainer {
 		padding-right: 1rem;
 	}
+
 	.sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {
 		margin-left: 1rem;
 		margin-right: 1rem;
 	}
 }
 
-// =====================================
-// =====================================
-// Delta Styles for Horizon
-// =====================================
+/* ========================= */
+/* Delta Styles for Horizon  */
+/* ========================= */
 
-// =====================================
-// Object Page section container style
-// =====================================
+/* ==================================== */
+/* Object Page section container style  */
+/* ==================================== */
+
 .sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {
-    padding-bottom:0;
-    padding-top: 0.5rem;
-    padding-left: 0;
-    padding-right: 0;
-    background: @sapUiGroupContentBackground;
-    margin-left: 2rem;
-    margin-right: 2rem;
-    border-radius: @sapUiElementBorderCornerRadius;
+	padding-bottom:0.5rem;
+	padding-top: 0.5rem;
+	padding-left: 0;
+	padding-right: 0;
+	background: var(--sapGroup_ContentBackground);
+	margin-left: 2rem;
+	margin-right: 2rem;
+	border-radius: var(--sapElement_BorderCornerRadius);
 }
 
-// Page Section Focus - Experimental
-.sapUxAPObjectPageSection:focus {
-	outline: 2px solid @sapUiContentFocusColor;
-    outline-offset: -0.1875rem;
+/* Page Section Focus */
+.sapUxAPObjectPageSection:focus::before {
+	content: '';
+	position: absolute;
+	display: block;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+	z-index: 6;
+	pointer-events: none;
 }
 
-.sapUiSizeCompact .sapUxAPObjectPageSectionTitle {
-    padding-bottom: 0;
+.sapUxAPObjectPageLayoutNoAnchorBar .sapUxAPObjectPageSection.sapUxAPObjectPageSectionNoTitle:focus {
+	outline: none;
+
+	&::before {
+		top: 1rem;
+	}
 }
 
-.sapUiSizeCompact .sapUxAPObjectPageSectionTitle,
-.sapUxAPObjectPageSectionTitle {
-    font-weight: bold;
-	line-height: 4rem;
-}
-
-// Styles suporting Table inside ObjectPageSubSection scenario
-.sapUiTableOnObjectPageAdjustmentsForSection.sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {
+/* Styles suporting Table inside ObjectPageSubSection scenario */
+.sapUiTableOnObjectPageAdjustmentsForSection.sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection:not(.sapUiAdjustedSectionSubsectionWithoutTable) .sapUxAPBlockContainer {
 	background: transparent;
 }
 

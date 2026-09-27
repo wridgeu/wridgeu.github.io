@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/base/i18n/Localization","sap/ui/core/Locale","sap/ui/core/Theming","sap/ui/dom/includeScript"],function(e,t,i,a){"use strict";const n={};n.WIDGET_SCRIPT_SRC="https://assets.sapanalytics.cloud/production/api/widget/sac-widget-embed.js";n.loadWidget=function(e){if(sap?.sac?.api?.widget){return Promise.resolve()}if(n._pInitialize){return n._pInitialize}let t=n.WIDGET_SCRIPT_SRC;if(e&&e.getAnalyticsCloudWidgetSrc){t=e.getAnalyticsCloudWidgetSrc()||t}const i=n._includeScript(t).then(()=>{if(!sap?.sac?.api?.widget){return Promise.reject("Object sap.sac.api.widget is undefined after the script was loaded.")}sap.sac.api.widget.setup(n._getSettings());return Promise.resolve()},()=>Promise.reject(`There was a problem loading the widget from '${t}'`));n._pInitialize=i;return i};n._getSettings=function(){const a=new t(e.getLanguageTag());const n={language:a.toString(),dataAccessLanguage:a.toString(),theme:i.getTheme()};return n};n._includeScript=function(e){return a({url:e})};return n});
+//# sourceMappingURL=AnalyticsCloudHelper.js.map

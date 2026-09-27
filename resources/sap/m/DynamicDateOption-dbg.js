@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides element sap.m.DynamicDateOption.
 sap.ui.define([
+	"sap/ui/core/Lib",
 	'sap/ui/core/date/UI5Date',
 	'sap/ui/core/Element',
 	'./Label',
@@ -15,8 +16,10 @@ sap.ui.define([
 	'sap/ui/unified/DateRange',
 	'sap/ui/unified/calendar/MonthPicker',
 	'sap/ui/unified/calendar/CustomMonthPicker',
-	'sap/ui/core/format/TimezoneUtil'],
+	'sap/ui/core/format/TimezoneUtil'
+],
 	function(
+		Library,
 		UI5Date,
 		Element,
 		Label,
@@ -26,7 +29,8 @@ sap.ui.define([
 		DateRange,
 		MonthPicker,
 		CustomMonthPicker,
-		TimezoneUtil) {
+		TimezoneUtil
+	) {
 		"use strict";
 
 		/**
@@ -40,7 +44,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @public
 		 * @since 1.92
@@ -90,6 +94,20 @@ sap.ui.define([
 		 */
 		DynamicDateOption.prototype.getValueHelpUITypes = function(oControl) {
 			throw new Error("Need implementation for method getValueHelpUITypes. Option: " + this.getKey());
+		};
+
+		/**
+		 * Returns the format type used for the ValueHelp dialog footer "Selected" date label.
+		 *
+		 * Override this in custom options when the default date-only label is not sufficient.
+		 * Return <code>datetime</code> to include the time portion.
+		 *
+		 * @param {sap.m.DynamicDateRange} oControl The control instance
+		 * @returns {string|null} <code>datetime</code> for date-and-time formatting, or <code>null</code> for date-only formatting (default).
+		 * @public
+		 */
+		DynamicDateOption.prototype.getValueHelpUIFooterFormatTypes = function() {
+			return null;
 		};
 
 		/**
@@ -274,7 +292,7 @@ sap.ui.define([
 		 */
 		DynamicDateOption.prototype.getGroupHeader = function() {
 			var iGroup = (this.getGroup() > -1 && this.getGroup() < 7) ? this.getGroup() : 0;
-			return sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("DDR_OPTIONS_GROUP_" + iGroup);
+			return Library.getResourceBundleFor("sap.m").getText("DDR_OPTIONS_GROUP_" + iGroup);
 		};
 
 		/**
@@ -303,10 +321,11 @@ sap.ui.define([
 		 * Calculates an absolute date range from the options relative value.
 		 *
 		 * @param {sap.m.DynamicDateRangeValue} oValue A <code>sap.m.DynamicDateRangeValue</code>
+	 	 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
 		 * @returns {sap.ui.core.date.UniversalDate[]} A couple of dates marking the start and the end of the range
 		 * @public
 		 */
-		DynamicDateOption.prototype.toDates = function(oValue) {
+		DynamicDateOption.prototype.toDates = function(oValue, sCalendarWeekNumbering) {
 			throw new Error("Need implementation for method toDates. Option: " + this.getKey());
 		};
 
@@ -359,7 +378,7 @@ sap.ui.define([
 
 		DynamicDateOption.prototype._createIntegerControl = function(oValue, iIndex, fnControlsUpdated) {
 			var oControl = new StepInput({
-				width: "120px"
+				width: "10rem"
 			});
 
 			if (oValue && this.getKey() === oValue.operator) {
@@ -459,6 +478,8 @@ sap.ui.define([
 					}.bind(this));
 				}
 
+				oPopupContent.getClocks()._showFirstClock();
+
 				oPopupContent.getCalendar().attachSelect(function() {
 					fnControlsUpdated(this);
 				}, this);
@@ -514,7 +535,9 @@ sap.ui.define([
 		};
 
 		DynamicDateOption.prototype._createCustomMonthControl = function(oValue, iIndex, fnControlsUpdated) {
-			var oControl = new CustomMonthPicker(),
+			var oControl = new CustomMonthPicker({
+					width: "100%"
+				}),
 				oDate = UI5Date.getInstance(),
 				iMonth = (oValue && iIndex >= 0 && this.getKey() === oValue.operator) ? oValue.values[iIndex] : oDate.getMonth(),
 				iYear = (oValue  && iIndex >= 0 && this.getKey() === oValue.operator) ? oValue.values[iIndex + 1] : oDate.getFullYear();

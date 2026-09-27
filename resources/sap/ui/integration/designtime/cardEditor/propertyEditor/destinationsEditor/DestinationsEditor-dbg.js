@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -41,17 +41,16 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.cardEditor.propertyEditor.destinationsEditor.DestinationsEditor
 	 * @author SAP SE
 	 * @since 1.77
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
-	 * @experimental 1.77
 	 * @ui5-restricted
 	 */
 	var DestinationsEditor = ComplexMapEditor.extend("sap.ui.integration.designtime.cardEditor.propertyEditor.destinationsEditor.DestinationsEditor", {
 		metadata: {
 			library: "sap.ui.integration"
 		},
-		renderer: BasePropertyEditor.getMetadata().getRenderer().render
+		renderer: BasePropertyEditor.getMetadata().getRenderer()
 	});
 
 	DestinationsEditor.configMetadata = Object.assign({}, ComplexMapEditor.configMetadata, {

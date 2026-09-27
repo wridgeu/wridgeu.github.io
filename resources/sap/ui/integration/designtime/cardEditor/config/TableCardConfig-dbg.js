@@ -1,10 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  *
  * @private
- * @experimental
  */
 sap.ui.define([
 	"sap/ui/integration/designtime/cardEditor/config/generateActionConfig"
@@ -153,8 +152,92 @@ sap.ui.define([
 					"label": "{i18n>CARD_EDITOR.TABLE.ROW.COLUMN.PROGRESSINDICATOR.TEXT}",
 					"type": "string",
 					"path": "progressIndicator/text"
+				},
+				"importance": {
+					"tags": ["content", "tableRowColumn"],
+					"label": "{i18n>CARD_EDITOR.TABLE.ROW.COLUMN.IMPORTANCE}",
+					"type": "select",
+					"items": [
+						{
+							"key": "High",
+							"title": "{i18n>CARD_EDITOR.IMPORTANCE.HIGH}"
+						},
+						{
+							"key": "Medium",
+							"title": "{i18n>CARD_EDITOR.IMPORTANCE.MEDIUM}"
+						},
+						{
+							"key": "Low",
+							"title": "{i18n>CARD_EDITOR.IMPORTANCE.LOW}"
+						},
+						{
+							"key": "None",
+							"title": "{i18n>CARD_EDITOR.IMPORTANCE.NONE}"
+						}
+					],
+					"path": "importance"
+				},
+				"autoPopinWidth": {
+					"tags": ["content", "tableRowColumn"],
+					"label": "{i18n>CARD_EDITOR.TABLE.ROW.COLUMN.AUTOPOPINWIDTH}",
+					"type": "number",
+					"path": "autoPopinWidth"
 				}
 			},
+			"visible": "{= ${context>type} === 'Table' }"
+		},
+		"tableAutoPopinMode": {
+			"tags": ["content"],
+			"label": "{i18n>CARD_EDITOR.TABLE.AUTOPOPINMODE}",
+			"type": "boolean",
+			"path": "content/autoPopinMode",
+			"visible": "{= ${context>type} === 'Table' }"
+		},
+		"tableHiddenInPopin": {
+			"tags": ["content"],
+			"label": "{i18n>CARD_EDITOR.TABLE.HIDDENINPOPIN}",
+			"type": "multiSelect",
+			"path": "content/hiddenInPopin",
+			"items": [
+				{
+					"key": "High",
+					"title": "{i18n>CARD_EDITOR.IMPORTANCE.HIGH}"
+				},
+				{
+					"key": "Medium",
+					"title": "{i18n>CARD_EDITOR.IMPORTANCE.MEDIUM}"
+				},
+				{
+					"key": "Low",
+					"title": "{i18n>CARD_EDITOR.IMPORTANCE.LOW}"
+				},
+				{
+					"key": "None",
+					"title": "{i18n>CARD_EDITOR.IMPORTANCE.NONE}"
+				}
+			],
+			"visible": "{= ${context>type} === 'Table' }"
+		},
+		"tablePopinLayout": {
+			"tags": ["content"],
+			"label": "{i18n>CARD_EDITOR.TABLE.POPINLAYOUT}",
+			"type": "select",
+			"items": [
+				{
+					"key": "Block",
+					"title": "{i18n>CARD_EDITOR.TABLE.POPINLAYOUT.BLOCK}"
+				},
+				{
+					"key": "GridSmall",
+					"title": "{i18n>CARD_EDITOR.TABLE.POPINLAYOUT.GRIDSMALL}"
+				},
+				{
+					"key": "GridLarge",
+					"title": "{i18n>CARD_EDITOR.TABLE.POPINLAYOUT.GRIDLARGE}"
+				}
+			],
+			"defaultValue": "Block",
+			"path": "content/popinLayout",
 			"visible": "{= ${context>type} === 'Table' }"
 		},
 		"tableRowActions": generateActionConfig({

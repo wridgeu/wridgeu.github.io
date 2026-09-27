@@ -1,22 +1,33 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 
 sap.ui.define([
-	'sap/ui/base/EventProvider',
-	'sap/ui/core/routing/Target',
-	'sap/ui/core/routing/async/Route',
-	'sap/ui/core/routing/sync/Route',
-	'sap/ui/core/Component',
 	"sap/base/Log",
 	"sap/base/assert",
-	"sap/base/util/deepExtend"
+	"sap/base/future",
+	"sap/base/util/deepExtend",
+	"sap/base/util/extend",
+	"sap/ui/base/EventProvider",
+	"sap/ui/core/Component",
+	"sap/ui/core/routing/Target",
+	"sap/ui/core/routing/sync/Route"
 ],
-	function(EventProvider, Target, asyncRoute, syncRoute, Component, Log, assert, deepExtend) {
-	"use strict";
+	function(
+		Log,
+		assert,
+		future,
+		deepExtend,
+		extend,
+		EventProvider,
+		Component,
+		Target,
+		SyncRoute
+	) {
+		"use strict";
 
 		/**
 		 * Configuration object for a route
@@ -34,7 +45,7 @@ sap.ui.define([
 		 * hardcoded parts: "pattern" : "product/settings" - this pattern will only match if the hash of the browser is product/settings and no arguments will be passed to the events of the route.</br>
 		 * </li>
 		 * <li>
-		 * mandatory parameters: "pattern" : "product/{id}" - {id} is a mandatory parameter, e. g. the following hashes would match: product/5, product/3. The pattenMatched event will get 5 or 3 passed as id in its arguments.The hash product/ will not match.</br>
+		 * mandatory parameters: "pattern" : "product/{id}" - {id} is a mandatory parameter, e. g. the following hashes would match: product/5, product/3. The patternMatched event will get 5 or 3 passed as id in its arguments. The hash product/ will not match.</br>
 		 * </li>
 		 * <li>
 		 * optional parameters: "pattern" : "product/{id}/detail/:detailId:" - :detailId: is an optional parameter, e. g. the following hashes would match: product/5/detail, product/3/detail/2</br>
@@ -124,12 +135,14 @@ sap.ui.define([
 					aSubRoutes,
 					sRouteName,
 					oSubRouteConfig,
-					RouteStub,
+					/** @ui5-transform-hint replace-local true */
 					async = oRouter._isAsync();
 
-				RouteStub = async ? asyncRoute : syncRoute;
-				for (var fn in RouteStub) {
-					this[fn] = RouteStub[fn];
+
+				if (!async) {
+					for (const fn in SyncRoute) {
+						this[fn] = SyncRoute[fn];
+					}
 				}
 
 				if (!Array.isArray(vRoute)) {
@@ -139,15 +152,15 @@ sap.ui.define([
 				if (oConfig.parent) {
 					var oRoute = this._getParentRoute(oConfig.parent);
 					if (!oRoute) {
-						Log.error("No parent route with '" + oConfig.parent + "' could be found", this);
+						future.errorThrows(`${this}: No parent route with "${oConfig.parent}" could be found`);
 					} else if (oRoute._aPattern.length > 1) {
-						Log.error("Routes with multiple patterns cannot be used as parent for nested routes", this);
+						future.errorThrows(`${this}: Routes with multiple patterns cannot be used as parent for nested routes`);
 						return;
 					} else {
 						this._oNestingParent = oRoute;
 						vRoute.forEach(function(sRoute, i) {
 							var sNestingRoute = oRoute._aPattern[0];
-							sNestingRoute = sNestingRoute.charAt(sNestingRoute.length) === "/" ? sNestingRoute : sNestingRoute + "/";
+							sNestingRoute = sNestingRoute.charAt(sNestingRoute.length - 1) === "/" ? sNestingRoute : sNestingRoute + "/";
 							vRoute[i] = sNestingRoute + sRoute;
 						});
 					}
@@ -280,6 +293,8 @@ sap.ui.define([
 			 *
 			 * @param {object} oParameters Parameters for the route
 			 * @return {string} the unencoded pattern with interpolated arguments
+			 * @throws {Error} Error will be thrown when any mandatory parameter in the route's pattern is missing from
+			 *  <code>oParameters</code> or assigned with empty string.
 			 * @public
 			 */
 			getURL : function (oParameters) {
@@ -368,7 +383,7 @@ sap.ui.define([
 										oHashChanger.setHash(oRoute.getURL(oRouteInfo.parameters), bParentRouteSwitched || !bRouteSwitched);
 										return oRoute._changeHashWithComponentTargets(oRouteInfo.componentTargetInfo, bParentRouteSwitched || bRouteSwitched);
 									} else {
-										Log.error("Can not navigate to route with name '" + sRouteName + "' because the route does not exist in component with id '" + oComponent.getId() + "'");
+										future.errorThrows("Can not navigate to route with name '" + sRouteName + "' because the route does not exist in component with id '" + oComponent.getId() + "'");
 									}
 								}
 							});
@@ -639,11 +654,11 @@ sap.ui.define([
 
 			_validateConfig: function(oConfig) {
 				if (!oConfig.name) {
-					Log.error("A name has to be specified for every route", this);
+					future.errorThrows(`${this}: A name has to be specified for every route`);
 				}
 
 				if (oConfig.viewName) {
-					Log.error("The 'viewName' option shouldn't be used in Route. please use 'view' instead", this);
+					future.errorThrows(`${this}: The 'viewName' option shouldn't be used in Route. please use 'view' instead`);
 				}
 			},
 
@@ -671,7 +686,7 @@ sap.ui.define([
 					assert(this._oRouter._oOwner, "No owner component for " + this._oRouter._oOwner.getId());
 					var oOwnerComponent = Component.getOwnerComponentFor(this._oRouter._oOwner);
 					while (oOwnerComponent) {
-						if (oOwnerComponent.getMetadata().getName() === aParts[0]) {
+						if (oOwnerComponent.isA(aParts[0])) {
 							var oRouter = oOwnerComponent.getRouter();
 							return oRouter.getRoute(aParts[1]);
 						}
@@ -691,6 +706,177 @@ sap.ui.define([
 			 */
 			getPatternArguments : function(sHash) {
 				return this._aRoutes[0].extrapolate(sHash);
+			},
+
+
+			/**
+			 * Executes the route matched logic
+			 *
+			 * @param {object} oArguments The arguments of the event
+			 * @param {Promise} oSequencePromise Promise chain for resolution in the correct order
+			 * @param {sap.ui.core.routing.Route} oNestingChild The nesting route
+			 * @returns {Promise} resolves with {name: *, view: *, control: *}
+			 * @private
+			 */
+			_routeMatched : function(oArguments, oSequencePromise, oNestingChild) {
+
+				var oRouter = this._oRouter,
+					oTarget,
+					oTargets,
+					oConfig,
+					oEventData,
+					oView = null,
+					oTargetControl = null,
+					bInitial,
+					oTargetData,
+					oCurrentPromise,
+					aAlignedTargets,
+					bRepeated = (oRouter._oMatchedRoute === this);
+
+				oRouter._sRouteInProgress = null;
+				oRouter._stopWaitingTitleChangedFromChild();
+
+				if (oRouter._oMatchedRoute) {
+					// clear the dynamicTarget of the previous matched route
+					delete oRouter._oMatchedRoute._oConfig.dynamicTarget;
+				}
+
+				oRouter._oMatchedRoute = this;
+				oRouter._bMatchingProcessStarted = true;
+
+				oConfig = extend({}, oRouter._oConfig, this._oConfig);
+
+				oTargets = oRouter.getTargets();
+				var sTitleName;
+				if (oTargets) {
+					sTitleName = oTargets._getTitleTargetName(oConfig.target, oConfig.titleTarget);
+					if (sTitleName && oRouter._oPreviousTitleChangedRoute !== this) {
+						oRouter._bFireTitleChanged = true;
+						if ((oRouter._oOwner && oRouter._oOwner._bRoutingPropagateTitle)) {
+							var oParentComponent = Component.getOwnerComponentFor(oRouter._oOwner);
+							var oParentRouter = oParentComponent && oParentComponent.getRouter();
+							if (oParentRouter) {
+								oParentRouter._waitForTitleChangedOn(oRouter);
+							}
+						}
+					} else {
+						oRouter._bFireTitleChanged = false;
+					}
+
+					if (this._oConfig.target) {
+						aAlignedTargets = oTargets._alignTargetsInfo(this._oConfig.target);
+						aAlignedTargets.forEach(function(oTarget){
+							oTarget.propagateTitle = oTarget.hasOwnProperty("propagateTitle") ? oTarget.propagateTitle : oRouter._oConfig.propagateTitle;
+							oTarget.routeRelevant = true;
+							oTarget.repeatedRoute = bRepeated;
+						});
+					}
+				} else {
+					aAlignedTargets = this._oConfig.target;
+				}
+
+				if (!oSequencePromise || oSequencePromise === true) {
+					bInitial = true;
+					oSequencePromise = Promise.resolve();
+				}
+
+				// Recursively fire matched event and display views of this routes parents
+				if (this._oParent) {
+					oSequencePromise = this._oParent._routeMatched(oArguments, oSequencePromise);
+				} else if (this._oNestingParent) {
+					// pass child for setting the flag in event parameter of parent
+					this._oNestingParent._routeMatched(oArguments, oSequencePromise, this);
+				}
+
+
+				// make a copy of arguments and forward route config to target
+				oTargetData = Object.assign({}, oArguments);
+				oTargetData.routeConfig = oConfig;
+
+				oEventData = {
+					name: oConfig.name,
+					arguments: oArguments,
+					config : oConfig
+				};
+
+				if (oNestingChild) {
+					// setting the event parameter of nesting child
+					oEventData.nestedRoute = oNestingChild;
+				}
+
+				// fire the beforeMatched and beforeRouteMathced events
+				this.fireBeforeMatched(oEventData);
+				oRouter.fireBeforeRouteMatched(oEventData);
+
+				// Route is defined without target in the config - use the internally created target to place the view
+				if (this._oTarget) {
+					oTarget = this._oTarget;
+					// update the targets config so defaults are taken into account - since targets cannot be added in runtime they don't merge configs like routes do
+					oTarget._updateOptions(this._convertToTargetOptions(oConfig));
+
+					oSequencePromise = oTarget._place(oSequencePromise, { legacy: true });
+
+					// this is for sap.m.routing.Router to chain the promise to the navigation promise in TargetHandler
+					if (this._oRouter._oTargetHandler && this._oRouter._oTargetHandler._chainNavigation) {
+						oCurrentPromise = oSequencePromise;
+						oSequencePromise = this._oRouter._oTargetHandler._chainNavigation(function() {
+							return oCurrentPromise;
+						});
+					}
+				} else {
+					oSequencePromise = oRouter._oTargets._display(aAlignedTargets, oTargetData, this._oConfig.titleTarget, oSequencePromise);
+				}
+
+				return oSequencePromise.then(function(oResult) {
+					oRouter._bMatchingProcessStarted = false;
+					var aResult, aViews, aControls;
+
+					// The legacy config uses single target to display which makes the promise resolve with an object
+					// However, the new config uses targets to display which makes the promise resolve with an array
+					// Both cases need to be handled here
+					if (Array.isArray(oResult)) {
+						aResult = oResult;
+						oResult = aResult[0];
+					}
+
+					oResult = oResult || {};
+
+					oView = oResult.view;
+					oTargetControl = oResult.control;
+
+					// Extend the event data with view and targetControl
+					oEventData.view = oView;
+					oEventData.targetControl = oTargetControl;
+
+					if (aResult) {
+						aViews = [];
+						aControls = [];
+
+						aResult.forEach(function(oResult) {
+							aViews.push(oResult.view);
+							aControls.push(oResult.control);
+						});
+
+						oEventData.views = aViews;
+						oEventData.targetControls = aControls;
+					}
+
+					if (oConfig.callback) {
+						//Targets don't pass TargetControl and view since there might be multiple
+						oConfig.callback(this, oArguments, oConfig, oTargetControl, oView);
+					}
+
+					this.fireEvent("matched", oEventData);
+					oRouter.fireRouteMatched(oEventData);
+					// skip this event in the recursion
+					if (bInitial) {
+						Log.info("The route named '" + oConfig.name + "' did match with its pattern", this);
+						this.fireEvent("patternMatched", oEventData);
+						oRouter.fireRoutePatternMatched(oEventData);
+					}
+
+					return oResult;
+				}.bind(this));
 			}
 		});
 

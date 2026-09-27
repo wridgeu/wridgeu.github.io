@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.widgets.Card
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
 	 * @constructor
 	 * @since 1.112
@@ -37,16 +37,16 @@ sap.ui.define([
 
 				/**
 				 * Defines if the card is readonly.
-				 * @experimental Since 1.112
 				 * @private
+				 * @ui5-restricted sap.ui.integration.designtime.editor.Card
 				 * @since 1.112
 				 */
 				readonly: {type: "boolean", group: "Behavior", defaultValue: false},
 
 				/**
 				 * Defines the z-index of the readonly dom.
-				 * @experimental Since 1.112
 				 * @private
+				 * @ui5-restricted sap.ui.integration.designtime.editor.Card
 				 * @since 1.112
 				 */
 				readonlyZIndex: {type: "int", group: "Behavior", defaultValue: 1}

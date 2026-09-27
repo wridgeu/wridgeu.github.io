@@ -1,32 +1,32 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/base/EventProvider",
 	"sap/base/Log",
 	"sap/ui/integration/library",
-	"sap/ui/integration/util/ServiceDataProvider",
 	"sap/ui/integration/util/RequestDataProvider",
 	"sap/ui/integration/util/CacheAndRequestDataProvider",
 	"sap/ui/integration/util/DataProvider",
 	"sap/ui/integration/util/ExtensionDataProvider",
 	"sap/ui/integration/util/JSONBindingHelper",
 	"sap/ui/integration/util/BindingHelper",
-	"sap/ui/integration/util/CsrfTokenHandler"
+	"sap/ui/integration/util/CsrfTokenHandler",
+	"sap/ui/model/json/JSONModel"
 ], function (
 	EventProvider,
 	Log,
 	library,
-	ServiceDataProvider,
 	RequestDataProvider,
 	CacheAndRequestDataProvider,
 	DataProvider,
 	ExtensionDataProvider,
 	JSONBindingHelper,
 	BindingHelper,
-	CsrfTokenHandler
+	CsrfTokenHandler,
+	JSONModel
 ) {
 	"use strict";
 
@@ -38,7 +38,7 @@ sap.ui.define([
 	 * When destroyed, all data providers created by this class are also destroyed.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.integration, shell-toolkit
@@ -53,20 +53,28 @@ sap.ui.define([
 
 			this._oDestinations = mSettings.destinations;
 			this._oExtension = mSettings.extension;
-			this._oCsrfTokenHandler = mSettings.csrfTokenHandler;
 			this._oCard = mSettings.card;
 			this._oEditor = mSettings.editor;
 			this._oHost = mSettings.host;
 
 			if (mSettings.csrfTokensConfig) {
+				this._oCsrfTokensModel = new JSONModel();
 				this._oCsrfTokenHandler = new CsrfTokenHandler({
+					/**
+					 * @deprecated As of version 1.121.0
+					 */
 					host: mSettings.host,
-					configuration: mSettings.csrfTokensConfig
+					configuration: mSettings.csrfTokensConfig,
+					model: this._oCsrfTokensModel,
+					dataProviderFactory: this
 				});
 			}
 
 			this._aDataProviders = [];
 			this._aFiltersProviders = [];
+			this._pFilterBarReady = new Promise((resolve) => {
+				this._oCard?.attachEventOnce("_filterBarReady", resolve);
+			});
 		}
 	});
 
@@ -113,14 +121,14 @@ sap.ui.define([
 	 * Factory function which returns an instance of <code>DataProvider</code>.
 	 *
 	 * @param {object} oDataConfiguration The data configuration.
-	 * @param {sap.ui.integration.util.ServiceManager} [oServiceManager] A reference to the service manager.
 	 * @param {boolean} [bIsFilter=false] Whether the caller of this method is Filter.
-	 * @param {boolean} [bConfigurationAlreadyResolved=false] Whether configuration bindings are already resolved. Useful, when they depend on user input. In this case they should already be resolved.
+	 * @param {boolean} [bConfigurationResolved=false] Whether parsing and resolving of the configuration is done.
+	 * @param {boolean} [bApiCardRequest=false] Whether the request is coming from a card API.
 	 * @private
 	 * @ui5-restricted sap.ui.integration, shell-toolkit
 	 * @returns {sap.ui.integration.util.DataProvider|null} A data provider instance used for data retrieval.
 	 */
-	DataProviderFactory.prototype.create = function (oDataConfiguration, oServiceManager, bIsFilter, bConfigurationAlreadyResolved) {
+	DataProviderFactory.prototype.create = function (oDataConfiguration, bIsFilter, bConfigurationResolved, bApiCardRequest) {
 		var oCard = this._oCard;
 
 		if (!DataProviderFactory.isProvidingConfiguration(oDataConfiguration) || oCard && oCard.getPreviewMode() === CardPreviewMode.Abstract) {
@@ -134,7 +142,7 @@ sap.ui.define([
 		var oEditor = this._oEditor,
 			oHost = this._oHost || (oCard && oCard.getHostInstance()) || (oEditor && oEditor.getHostInstance()),
 			bUseExperimentalCaching = oHost && oHost.bUseExperimentalCaching,
-			oSettings = this._createDataProviderSettings(oDataConfiguration, bConfigurationAlreadyResolved),
+			oSettings = this._createDataProviderSettings(oDataConfiguration, bConfigurationResolved),
 			oDataProvider;
 
 		if (oDataConfiguration.request && bUseExperimentalCaching) {
@@ -146,39 +154,39 @@ sap.ui.define([
 			if (oHost) {
 				oDataProvider.setHost(oHost);
 			}
-		} else if (oDataConfiguration.service) {
-			oDataProvider = new ServiceDataProvider(oSettings);
 		} else if (oDataConfiguration.json) {
 			oDataProvider = new DataProvider(oSettings);
 		} else if (oDataConfiguration.extension) {
 			oDataProvider = new ExtensionDataProvider(oSettings, this._oExtension);
 		}
 
+		oDataProvider.setConfiguration(oDataConfiguration);
+
 		if (oCard) {
-			oDataProvider.setCard(oCard);
 			BindingHelper.propagateModels(oCard, oDataProvider);
 		} else if (oEditor) {
 			BindingHelper.propagateModels(oEditor, oDataProvider);
 		}
+
 		oDataProvider.bindObject("/");
-
 		oDataProvider.setDestinations(this._oDestinations);
-
-		if (this._oCsrfTokenHandler) {
-			oDataProvider.setCsrfTokenHandler(this._oCsrfTokenHandler);
-			this._oCsrfTokenHandler.setDataProviderFactory(this);
-		}
-
-		if (oDataProvider.isA("sap.ui.integration.util.IServiceDataProvider")) {
-			oDataProvider.createServiceInstances(oServiceManager);
-		}
 
 		this._aDataProviders.push(oDataProvider);
 
+		if (this._oCsrfTokenHandler) {
+			const oToken = this._oCsrfTokenHandler.getUsedToken(oDataConfiguration);
+
+			if (oToken) {
+				oDataProvider.setCsrfTokenHandler(this._oCsrfTokenHandler);
+				oDataProvider.addDependency(oToken);
+				oDataProvider.setModel(this._oCsrfTokensModel, "csrfTokens");
+			}
+		}
+
 		if (bIsFilter) {
 			this._aFiltersProviders.push(oDataProvider);
-		} else {
-			oDataProvider.setDependencies(this._aFiltersProviders);
+		} else if (!bApiCardRequest && this._oCard && this._oCard.getAggregation("_filterBar")) {
+			oDataProvider.addDependency(this._pFilterBarReady);
 		}
 
 		return oDataProvider;
@@ -190,7 +198,6 @@ sap.ui.define([
 	 * @param {sap.ui.integration.util.DataProvider} oDataProvider The data provider to be removed
 	 * @private
 	 * @ui5-restricted sap.ui.integration, shell-toolkit
-	 * @experimental
 	 */
 	DataProviderFactory.prototype.remove = function (oDataProvider) {
 		var iProviderIndex = this._aDataProviders.indexOf(oDataProvider);
@@ -207,32 +214,34 @@ sap.ui.define([
 	DataProviderFactory.prototype.setHost = function (oHost) {
 		this._oHost = oHost;
 
+		/**
+		 * @deprecated As of version 1.121.0
+		 */
 		if (this._oCsrfTokenHandler) {
 			this._oCsrfTokenHandler.setHost(oHost);
 		}
 	};
 
-	DataProviderFactory.prototype._createDataProviderSettings = function (oDataConfiguration, bConfigurationAlreadyResolved) {
-		var oCard = this._oCard;
-		var oEditor = this._oEditor;
-		var oConfig = {};
+	DataProviderFactory.prototype._createDataProviderSettings = function (oDataConfiguration, bConfigurationResolved) {
+		const oSettings = {};
+		const oCard = this._oCard;
+		const oEditor = this._oEditor;
 
 		if (oCard) {
-			oConfig.baseRuntimeUrl = oCard.getRuntimeUrl("/");
+			oSettings.baseRuntimeUrl = oCard.resolveUrl();
+			oSettings.card = oCard;
 
-			if (bConfigurationAlreadyResolved) {
-				oConfig.settings = oDataConfiguration;
-			} else {
-				oConfig.settingsJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, oCard.getBindingNamespaces());
+			if (!bConfigurationResolved) {
+				oSettings.configurationJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, oCard.getBindingNamespaces());
 			}
 		} else if (oEditor) {
-			oConfig.baseRuntimeUrl = oEditor.getRuntimeUrl("/");
-			oConfig.settingsJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, oEditor.getBindingNamespaces());
+			oSettings.baseRuntimeUrl = oEditor.resolveUrl("/"); // @todo should behave the same as card.resolveUrl
+			oSettings.configurationJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, oEditor.getBindingNamespaces());
 		} else {
-			oConfig.settingsJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, {});
+			oSettings.configurationJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, {});
 		}
 
-		return oConfig;
+		return oSettings;
 	};
 
 	DataProviderFactory.prototype._applyMockDataConfiguration = function (oDataConfiguration) {
@@ -243,7 +252,6 @@ sap.ui.define([
 
 		var oNewDataConfiguration = Object.assign({}, oDataConfiguration);
 		delete oNewDataConfiguration.request;
-		delete oNewDataConfiguration.service;
 		delete oNewDataConfiguration.json;
 		delete oNewDataConfiguration.extension;
 
@@ -255,7 +263,7 @@ sap.ui.define([
 	 * @returns {boolean} Whether the configuration provides data
 	 */
 	DataProviderFactory.isProvidingConfiguration = function (oDataCfg) {
-		return oDataCfg && (oDataCfg.request || oDataCfg.service || oDataCfg.json || oDataCfg.extension);
+		return oDataCfg && (oDataCfg.request || oDataCfg.json || oDataCfg.extension);
 	};
 
 	return DataProviderFactory;

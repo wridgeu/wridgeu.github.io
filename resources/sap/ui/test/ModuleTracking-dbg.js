@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,6 +22,7 @@
 	var Log,
 		sClassName = "sap.ui.base.SyncPromise",
 		iNo = 0,
+		rSearchParamWithoutValue = /(=)(?=&|$)/g,
 		mUncaughtById = {},
 		mUncaughtPromise2Reason = new Map();
 
@@ -343,12 +344,56 @@
 					}
 				});
 
+			const oURLSearchParams = new URLSearchParams(document.location.search);
+
+			// add a button to clear the filter
+			if (oURLSearchParams.has("filter")) {
+				const oClearFilter = document.createElement("button");
+
+				oClearFilter.type = "button";
+				oClearFilter.innerText = "\u2715"; // X
+				oClearFilter.addEventListener("click", (ev) => {
+					oURLSearchParams.delete("filter");
+					document.location.search = oURLSearchParams.toString()
+						.replace(rSearchParamWithoutValue, '');
+
+				});
+				document.querySelector(".qunit-filter button")
+					.insertAdjacentElement("beforeBegin", oClearFilter);
+			}
+
+			// Add a hover effect to buttons (colors inspired by QUnit's own CSS)
+			const oStyle = document.createElement('style');
+			oStyle.innerText = `
+				button:hover {
+					background-color: #DDD !important;
+				}
+				button:focus {
+					box-shadow: 0 0 0 2px rgba(94, 116, 11, 0.5) !important;
+				}
+			`;
+			document.head.appendChild(oStyle);
+
 			// remember which lines have been covered initially, at load time
 			saveInitialCoverage();
 		});
 
 		QUnit.done(() => {
 			filterCoverage();
+
+			// "Run all tests" in "Rerunning selected tests" case: Same href as document, but remove
+			// testId
+			const oURLSearchParams = new URLSearchParams(document.location.search);
+			if (oURLSearchParams.has("testId")) {
+				const oClearFilter = document.querySelector("#qunit-clearFilter");
+				if (oClearFilter) {
+					oURLSearchParams.delete("testId");
+					const oRunModulesURL = new URL(document.location.href);
+					oRunModulesURL.search = oURLSearchParams.toString()
+						.replace(rSearchParamWithoutValue, '');
+					oClearFilter.href = oRunModulesURL;
+				}
+			}
 		});
 	}
 }());

@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/m/Popover",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	"sap/ui/model/json/JSONModel",
 	"sap/m/Button",
 	"sap/m/SegmentedButton",
@@ -25,7 +27,6 @@ sap.ui.define([
 	"sap/m/Input",
 	"sap/ui/integration/util/ParameterMap",
 	"sap/base/util/merge",
-	"sap/ui/core/Core",
 	"sap/m/Table",
 	"sap/m/Column",
 	"sap/m/ColumnListItem",
@@ -37,9 +38,11 @@ sap.ui.define([
 	"sap/ui/integration/util/Utils",
 	"sap/base/util/deepClone",
 	"sap/base/util/deepEqual"
-], function (
+], function(
 	Control,
 	Popover,
+	Element,
+	Library,
 	JSONModel,
 	Button,
 	SegmentedButton,
@@ -59,7 +62,6 @@ sap.ui.define([
 	Input,
 	ParameterMap,
 	merge,
-	Core,
 	Table,
 	Column,
 	ColumnListItem,
@@ -80,9 +82,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.Settings
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.83.0
 	 * @ui5-restricted
 	 */
 	var Settings = Control.extend("sap.ui.integration.editor.Settings", {
@@ -92,7 +93,7 @@ sap.ui.define([
 		renderer: null // Dialog-like control without renderer
 	});
 
-	var oResourceBundle = Core.getLibraryResourceBundle("sap.ui.integration"),
+	var oResourceBundle = Library.getResourceBundleFor("sap.ui.integration", Utils._language),
 		oCurrentModel,
 		bCancel,
 		oCurrentInstance = null,
@@ -112,7 +113,7 @@ sap.ui.define([
 		iOffsetMaxHeight = 450,
 		iOffsetMaxWidth = 360;
 	Settings.prototype.setConfiguration = function (oConfig) {
-		this._originalConfig = oConfig;
+		this._oOriginalConfig = oConfig;
 		oConfig = merge({}, oConfig);
 		var oModel = new JSONModel(oConfig);
 		this.setModel(oModel, "currentSettings");
@@ -122,6 +123,9 @@ sap.ui.define([
 	};
 
 	Settings.prototype.open = function (oControl, oReferrer, oEditor, oHost, oParent, fnApply, fnCancel) {
+		if (oResourceBundle && oResourceBundle.sLocale !== Utils._language) {
+			oResourceBundle = Library.getResourceBundleFor("sap.ui.integration", Utils._language);
+		}
 		var oCurrentData = this.getModel("currentSettings").getData(),
 			sParameterId = oParent.getParameterId();
 		//prepare fields in key
@@ -139,7 +143,7 @@ sap.ui.define([
 		oControl.addDependent(this);
 		//adjust page admin values table height
 		if (!oCurrentData.allowDynamicValues && oCurrentData.values && oCurrentData.values.item) {
-			Core.byId(sParameterId + "_settings_popover_scroll_container").setHeight("155px");
+			Element.getElementById(sParameterId + "_settings_popover_scroll_container").setHeight("155px");
 		}
 		//force update of all bindings
 		this.getModel("currentSettings").checkUpdate(true, true);
@@ -187,7 +191,7 @@ sap.ui.define([
 	};
 
 	Settings.prototype._cancelCurrentSettings = function () {
-		this.fnCancel(this._originalConfig);
+		this.fnCancel(this._oOriginalConfig);
 	};
 
 	Settings.prototype.destroy = function () {
@@ -241,7 +245,7 @@ sap.ui.define([
 							} else {
 								//handle page admin values
 								if (oData.values && oData.values.item) {
-									var oTable = Core.byId(sParameterId + "_settings_popover_pav_table"),
+									var oTable = Element.getElementById(sParameterId + "_settings_popover_pav_table"),
 									selectedContexts = oTable.getSelectedContexts(),
 									selectedKeys = [];
 									if (oCurrentModel.getProperty("/selectedValues") === "Partion") {
@@ -282,7 +286,7 @@ sap.ui.define([
 
 				//handle page admin values selection
 				if (oData.values && oData.values.item) {
-					var oTable = Core.byId(sParameterId + "_settings_popover_pav_table"),
+					var oTable = Element.getElementById(sParameterId + "_settings_popover_pav_table"),
 					paValues = oCurrentModel.getProperty("/_next/pageAdminValues");
 					if (paValues !== undefined && paValues.length > 0) {
 						oTable.removeSelections();
@@ -303,6 +307,7 @@ sap.ui.define([
 						oCurrentModel.setProperty("/selectedValues", "All");
 					}
 				}
+				oField.fireSettingsPanelOpened();
 			}
 		});
 		oPopover.setCustomHeader(oHeader);
@@ -385,7 +390,7 @@ sap.ui.define([
 	    oResetToDefaultButton = new Button(sParameterId + "_settings_popover_reset_btn", {
 			type: "Transparent",
 			text: oResourceBundle.getText("EDITOR_MORE_RESET"),
-			enabled: "{= ${currentSettings>_next/visible} === (typeof(${currentSettings>visibleToUser}) === 'undefined' ? false : !${currentSettings>visibleToUser}) || ${currentSettings>_next/editable} === (typeof(${currentSettings>editableToUser}) === 'undefined' ? false : !${currentSettings>editableToUser}) || ${currentSettings>_next/allowDynamicValues} === (typeof(${currentSettings>allowDynamicValues}) === 'undefined' ? false : !${currentSettings>allowDynamicValues}) || ${currentSettings>_beforeValue} !== ${currentSettings>value} || ${currentSettings>type} === 'destination'}",
+			enabled: "{= ${currentSettings>_next/visible} === (typeof(${currentSettings>visibleToUser}) === 'undefined' ? false : !${currentSettings>visibleToUser}) || ${currentSettings>_next/editable} === (typeof(${currentSettings>editableToUser}) === 'undefined' ? false : !${currentSettings>editableToUser}) || ${currentSettings>_next/allowDynamicValues} === (typeof(${currentSettings>allowDynamicValues}) === 'undefined' ? false : !${currentSettings>allowDynamicValues}) || ${currentSettings>_beforeLayerValue} !== ${currentSettings>value} || ${currentSettings>type} === 'destination'}",
 			tooltip: oResourceBundle.getText("EDITOR_MORE_SETTINGS_P_ADMIN_RESET"),
 			press: function () {
 				if (oData.type === "destination") {
@@ -407,16 +412,16 @@ sap.ui.define([
 						}
 						oCurrentModel.setProperty("/_changed", false);
 					} else {
-						oCurrentModel.setProperty("/value", oCurrentModel.getProperty("/_beforeValue"));
+						oCurrentModel.setProperty("/value", oCurrentModel.getProperty("/_beforeLayerValue"));
 						if (oData.type.indexOf("object") > -1) {
-							oField.setValue(oCurrentModel.getProperty("/_beforeValue"));
+							oField.setValue(oCurrentModel.getProperty("/_beforeLayerValue"));
 							oField.resetControl();
 						}
 					}
 
 					//reset table selection
 					if (oData.values && oData.values.item) {
-						var oTable = Core.byId(sParameterId + "_settings_popover_pav_table"),
+						var oTable = Element.getElementById(sParameterId + "_settings_popover_pav_table"),
 							sItems = oCurrentModel.getProperty("/_next/pageAdminValues"),
 							aItems = oTable.getItems();
 						// 	pavItemKey = oCurrentModel.getData().values.item.key;
@@ -439,7 +444,7 @@ sap.ui.define([
 						}
 					}
 				}
-				var oPopover = Core.byId(sParameterId + "_settings_popover");
+				var oPopover = Element.getElementById(sParameterId + "_settings_popover");
 				oPopover.getFooter().getContent()[2].firePress();
 			}
 		}).addStyleClass("resetbutton");
@@ -450,8 +455,8 @@ sap.ui.define([
 		oSettingsPanel.setVisible(true);
 		oDynamicPanel.setVisible(false);
 		oTransformPanel.setVisible(false);
-		Core.byId(sParameterId + "_settings_popover_segmented_btn").setSelectedKey("settings");
-		var oCurrentValue = Core.byId(sParameterId + "_settings_popover_currentvalue");
+		Element.getElementById(sParameterId + "_settings_popover_segmented_btn").setSelectedKey("settings");
+		var oCurrentValue = Element.getElementById(sParameterId + "_settings_popover_currentvalue");
 		oCurrentValue.setVisible(false);
 	}
 
@@ -459,7 +464,7 @@ sap.ui.define([
 		oTransformPanel.setVisible(true);
 		oSettingsPanel.setVisible(false);
 		oDynamicPanel.setVisible(false);
-		var oCurrentValue = Core.byId(sParameterId + "_settings_popover_currentvalue");
+		var oCurrentValue = Element.getElementById(sParameterId + "_settings_popover_currentvalue");
 		oCurrentValue.setVisible(false);
 	}
 
@@ -467,7 +472,7 @@ sap.ui.define([
 		oSettingsPanel.setVisible(false);
 		oTransformPanel.setVisible(false);
 		oDynamicPanel.setVisible(true);
-		Core.byId(sParameterId + "_settings_popover_segmented_btn").setSelectedKey("dynamic");
+		Element.getElementById(sParameterId + "_settings_popover_segmented_btn").setSelectedKey("dynamic");
 		var oFlat = oCurrentInstance.getModel("contextflat"),
 			o = oFlat._getValueObject(oCurrentModel.getProperty("/value"));
 		if (o && o.object.label) {
@@ -479,7 +484,7 @@ sap.ui.define([
 			updateCurrentValue(o);
 		}
 		//visible current value field
-		var oCurrentValue = Core.byId(sParameterId + "_settings_popover_currentvalue");
+		var oCurrentValue = Element.getElementById(sParameterId + "_settings_popover_currentvalue");
 		oCurrentValue.setVisible(true);
 	}
 
@@ -579,7 +584,7 @@ sap.ui.define([
 		oDynamicValueField.addStyleClass("selectvariable");
 
 		var selectDynamicValueLabel = new Label(sParameterId + "_settings_popover_dynamicvalue_label", {
-			text: "Select a dynamic value"
+			text: oResourceBundle.getText("EDITOR_MORE_DYNAMICVALUES_SELECT_DYNAMIC_VALUE")
 		});
 		oDynamicValueField.addAriaLabelledBy(selectDynamicValueLabel);
 		var oVBox = new VBox({
@@ -662,7 +667,7 @@ sap.ui.define([
 		}
 		var oBox = new VBox().addStyleClass("commonSettings");
 		oSettingsPanel.addItem(oBox);
-		oBox.addItem(new Title({
+		oBox.addItem(new Text({
 			text: oResourceBundle.getText("EDITOR_MORE_SETTINGS_P_ADMIN"),
 			wrapping: true
 		}).addStyleClass("stitle"));
@@ -927,6 +932,7 @@ sap.ui.define([
 					},
 					"cell": {
 						"type": "string",
+						"editable": true,
 						"values": {
 							"data": {
 								"json": oDestinationList,
@@ -1024,8 +1030,8 @@ sap.ui.define([
 	}
 
 	function onMultiSelectionClick(sParameterId) {
-		var oTable = Core.byId(sParameterId + "_settings_popover_pav_table"),
-		    oResetBtn = Core.byId(sParameterId + "_settings_popover_reset_btn"),
+		var oTable = Element.getElementById(sParameterId + "_settings_popover_pav_table"),
+		    oResetBtn = Element.getElementById(sParameterId + "_settings_popover_reset_btn"),
 		    selectedValues = oCurrentModel.getProperty("/selectedValues");
 		if (selectedValues === "All") {
 			oTable.removeSelections();
@@ -1043,7 +1049,7 @@ sap.ui.define([
 		var oTable = oEvent.getSource(),
 		    selectedItems = oTable.getSelectedItems(),
 		    allItems = oTable.getItems(),
-			oResetBtn = Core.byId(sParameterId + "_settings_popover_reset_btn");
+			oResetBtn = Element.getElementById(sParameterId + "_settings_popover_reset_btn");
 		if (selectedItems.length === allItems.length) {
 			oCurrentModel.setProperty("/selectedValues", "All");
 		} else if (selectedItems.length < allItems.length && selectedItems.length > 0) {

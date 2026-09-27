@@ -1,5 +1,3 @@
-"use strict";
-
 sap.ui.define(["./Base.controller"], function (__BaseController) {
   "use strict";
 

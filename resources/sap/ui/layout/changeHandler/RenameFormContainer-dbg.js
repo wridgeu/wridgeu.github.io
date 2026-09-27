@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,10 +14,9 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.layout.changeHandler.RenameFormContainer
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 1.48
 	 * @private
-	 * @experimental Since 1.48. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var RenameFormContainer = { };
 
@@ -74,16 +73,16 @@ sap.ui.define([
 	 * @private
 	 */
 	RenameFormContainer.completeChangeContent = function(oChange, oSpecificChangeInfo, mPropertyBag) {
-		if (!(oSpecificChangeInfo.renamedElement && oSpecificChangeInfo.renamedElement.id)) {
-			throw new Error("Rename of the group cannot be executed: oSpecificChangeInfo.renamedElement attribute required");
+		if (!(oSpecificChangeInfo?.content?.renamedElement?.id)) {
+			throw new Error("Rename of the group cannot be executed: oSpecificChangeInfo.content.renamedElement attribute required");
 		}
 
-		if (!this._isProvided(oSpecificChangeInfo.value)) {
-			throw new Error("Rename of the group cannot be executed: oSpecificChangeInfo.value attribute required");
+		if (!this._isProvided(oSpecificChangeInfo.content.value)) {
+			throw new Error("Rename of the group cannot be executed: oSpecificChangeInfo.content.value attribute required");
 		}
 
-		oChange.addDependentControl(oSpecificChangeInfo.renamedElement.id, _CONSTANTS.TARGET_ALIAS, mPropertyBag);
-		oChange.setText("formText", oSpecificChangeInfo.value, "XGRP");
+		oChange.addDependentControl(oSpecificChangeInfo.content.renamedElement.id, _CONSTANTS.TARGET_ALIAS, mPropertyBag);
+		oChange.setText("formText", oSpecificChangeInfo.content.value, "XGRP");
 	};
 
 	/**

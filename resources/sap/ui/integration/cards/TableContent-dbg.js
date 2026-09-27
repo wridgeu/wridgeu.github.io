@@ -1,13 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./BaseListContent",
 	"./TableContentRenderer",
-	"sap/ui/integration/library",
 	"sap/f/cards/loading/TablePlaceholder",
 	"sap/m/Table",
 	"sap/m/Column",
@@ -22,11 +21,12 @@ sap.ui.define([
 	"sap/m/library",
 	"sap/ui/integration/util/BindingResolver",
 	"sap/ui/integration/util/BindingHelper",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/integration/util/SorterHelper"
+
 ], function (
 	BaseListContent,
 	TableContentRenderer,
-	library,
 	TablePlaceholder,
 	ResponsiveTable,
 	Column,
@@ -41,7 +41,8 @@ sap.ui.define([
 	mobileLibrary,
 	BindingResolver,
 	BindingHelper,
-	Log
+	Log,
+	SorterHelper
 ) {
 	"use strict";
 
@@ -61,9 +62,6 @@ sap.ui.define([
 	var ListSeparators = mobileLibrary.ListSeparators;
 	var ListType = mobileLibrary.ListType;
 
-	// shortcuts for sap.ui.integration.CardActionArea
-	var ActionArea = library.CardActionArea;
-
 	/**
 	 * Constructor for a new <code>TableContent</code>.
 	 *
@@ -82,7 +80,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -103,7 +101,14 @@ sap.ui.define([
 	TableContent.prototype.onBeforeRendering = function () {
 		BaseListContent.prototype.onBeforeRendering.apply(this, arguments);
 
-		this._getTable().setBackgroundDesign(this.getDesign());
+		const oTable = this._getTable();
+
+		oTable.setBackgroundDesign(this.getDesign());
+
+		if (this.isInDialog()) {
+			oTable.setWidth("auto");
+			oTable.setFixedLayout(false);
+		}
 	};
 
 	TableContent.prototype.exit = function () {
@@ -139,8 +144,10 @@ sap.ui.define([
 		if (!oTable) {
 			oTable = new ResponsiveTable({
 				id: this.getId() + "-Table",
+				sticky: ["ColumnHeaders", "GroupHeaders"],
 				showSeparators: ListSeparators.None,
-				ariaLabelledBy: this.getHeaderTitleId()
+				ariaLabelledBy: this.getHeaderTitleId(),
+				contextualWidth: "Auto"
 			});
 
 			oTable.addEventDelegate({
@@ -186,6 +193,12 @@ sap.ui.define([
 		if (oConfiguration.row && oConfiguration.row.columns) {
 			this._setColumns(oConfiguration.row);
 		}
+
+		this._getTable().applySettings({
+			autoPopinMode: oConfiguration.autoPopinMode,
+			hiddenInPopin: oConfiguration.hiddenInPopin,
+			popinLayout: oConfiguration.popinLayout
+		});
 	};
 
 	/**
@@ -201,16 +214,18 @@ sap.ui.define([
 			oResolvedRow,
 			oResolvedGroup;
 
-		(oConfiguration.row.columns || []).forEach(function (oColumn) {
-			oColumn = BindingResolver.resolveValue(oColumn, this, this.getBindingContext().getPath());
+		(oConfiguration.row.columns || []).forEach(function (oRawColumn) {
+			const oColumn = {
+				title: oRawColumn.title,
+				width: oRawColumn.width,
+				hAlign: oRawColumn.hAlign,
+				importance: oRawColumn.importance,
+				autoPopinWidth: oRawColumn.autoPopinWidth,
+				...(oRawColumn.hasOwnProperty("visible") && { visible: oRawColumn.visible }),
+				...(oRawColumn.hasOwnProperty("identifier") && { identifier: oRawColumn.identifier })
+			};
 
-			aHeaders.push({
-				title: oColumn.title,
-				width: oColumn.width,
-				hAlign: oColumn.hAlign,
-				visible: oColumn.visible,
-				identifier: oColumn.identifier
-			});
+			aHeaders.push(BindingResolver.resolveValue(oColumn, this, this.getBindingContext().getPath()));
 		}.bind(this));
 
 		aRows.forEach(function (oRow) {
@@ -233,6 +248,8 @@ sap.ui.define([
 					delete oColumn.hAlign;
 					delete oColumn.visible;
 					delete oColumn.identifier;
+					delete oColumn.importance;
+					delete oColumn.autoPopinWidth;
 
 					if (oColumn.icon && oColumn.icon.src) {
 						oColumn.icon.src = this._oIconFormatter.formatSrc(oColumn.icon.src);
@@ -261,20 +278,23 @@ sap.ui.define([
 			];
 		}
 
+		if (oConfiguration.autoPopinMode !== undefined) {
+			oStaticConfiguration.autoPopinMode = BindingResolver.resolveValue(oConfiguration.autoPopinMode, this, this.getBindingContext().getPath());
+		}
+
+		if (oConfiguration.hiddenInPopin !== undefined) {
+			oStaticConfiguration.hiddenInPopin = BindingResolver.resolveValue(oConfiguration.hiddenInPopin, this, this.getBindingContext().getPath());
+		}
+
+		if (oConfiguration.popinLayout !== undefined) {
+			oStaticConfiguration.popinLayout = BindingResolver.resolveValue(oConfiguration.popinLayout, this, this.getBindingContext().getPath());
+		}
+
 		return oStaticConfiguration;
 	};
 
 	TableContent.prototype.getItemsLength = function () {
 		return this._getTable().getItems().filter((item) => !item.isA("sap.m.GroupHeaderListItem")).length;
-	};
-
-	/**
-	 * Handler for when data is changed.
-	 */
-	TableContent.prototype.onDataChanged = function () {
-		BaseListContent.prototype.onDataChanged.apply(this, arguments);
-
-		this._checkHiddenNavigationItems(this.getParsedConfiguration().row);
 	};
 
 	/**
@@ -294,7 +314,9 @@ sap.ui.define([
 				header: new Text({ text: oColumn.title }),
 				width: oColumn.width,
 				hAlign: oColumn.hAlign,
-				visible: oColumn.visible
+				visible: oColumn.visible,
+				importance: oColumn.importance,
+				autoPopinWidth: oColumn.autoPopinWidth
 			}));
 			aCells.push(this._createCell(oColumn));
 		}.bind(this));
@@ -307,7 +329,6 @@ sap.ui.define([
 		});
 
 		this._oActions.attach({
-			area: ActionArea.ContentItem,
 			actions: oRow.actions,
 			control: this,
 			actionControl: this._oItemTemplate,
@@ -316,10 +337,24 @@ sap.ui.define([
 			disabledPropertyValue: ListType.Inactive
 		});
 
+		const oNavAction = this._getNavigationAction(oRow.actions);
+
+		if (oNavAction && oNavAction.navigationArrow) {
+			this._oItemTemplate.bindProperty("type", BindingHelper.formattedProperty(
+				[oNavAction.navigationArrow, oNavAction.enabled],
+				function (bNavigation, bEnabled) {
+					if (bEnabled === false) {
+						return ListType.Inactive;
+					}
+					return bNavigation ? ListType.Navigation : ListType.Active;
+				}
+			));
+		}
+
 		var oGroup = this.getParsedConfiguration().group;
 
 		if (oGroup) {
-			this._oSorter = this._getGroupSorter(oGroup);
+			this._oSorter = SorterHelper.getGroupSorter(oGroup);
 		}
 
 		var oBindingInfo = {
@@ -355,7 +390,6 @@ sap.ui.define([
 
 			if (oRow.actions && Array.isArray(oRow.actions)) {
 				this._oActions.attach({
-					area: ActionArea.ContentItem,
 					actions: oRow.actions,
 					control: this,
 					actionControl: oItem,
@@ -364,11 +398,9 @@ sap.ui.define([
 					disabledPropertyValue: ListType.Inactive
 				});
 			}
+
 			oTable.addItem(oItem);
 		}.bind(this));
-
-		//workaround until actions refactor
-		this.fireEvent("_actionContentReady");
 	};
 
 	/**
@@ -407,7 +439,6 @@ sap.ui.define([
 				oControl.setTitleActive(true);
 
 				this._oActions.attach({
-					area: ActionArea.ContentItemDetail,
 					actions: oColumn.actions,
 					control: this,
 					actionControl: oControl,
@@ -417,6 +448,24 @@ sap.ui.define([
 			}
 
 			return oControl;
+		}
+
+		if (oColumn.state) {
+			const oStatus = new ObjectStatus({
+				text: oColumn.value,
+				state: oColumn.state,
+				showStateIcon: oColumn.showStateIcon,
+				customIcon: oColumn.customStateIcon,
+				inverted: oColumn.inverted
+			});
+
+			this._oActions.attach({
+				actions: oColumn.actions,
+				control: oStatus,
+				enabledPropertyName: "active"
+			});
+
+			return oStatus;
 		}
 
 		if (oColumn.url) {
@@ -437,7 +486,6 @@ sap.ui.define([
 			});
 
 			this._oActions.attach({
-				area: ActionArea.ContentItemDetail,
 				actions: oColumn.actions,
 				control: this,
 				actionControl: oControl,
@@ -445,15 +493,6 @@ sap.ui.define([
 			});
 
 			return oControl;
-		}
-
-		if (oColumn.state) {
-			return new ObjectStatus({
-				text: oColumn.value,
-				state: oColumn.state,
-				showStateIcon: oColumn.showStateIcon,
-				icon: oColumn.customStateIcon
-			});
 		}
 
 		if (oColumn.value) {
@@ -475,7 +514,7 @@ sap.ui.define([
 				tooltip: oColumn.icon.alt,
 				initials: vInitials,
 				backgroundColor: oColumn.icon.backgroundColor || (vInitials ? undefined : AvatarColor.Transparent),
-				imageFitType: AvatarImageFitType.Contain,
+				imageFitType: oColumn.icon.fitType || AvatarImageFitType.Cover,
 				visible: oColumn.icon.visible
 			}).addStyleClass("sapFCardIcon");
 		}

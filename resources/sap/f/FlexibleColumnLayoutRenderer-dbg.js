@@ -1,14 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/Device", "sap/ui/core/Core", "sap/m/library"],
-	function (Device, Core, mobileLibrary) {
+sap.ui.define([
+	"sap/ui/Device",
+	"sap/m/library",
+	"sap/ui/core/Lib",
+	"sap/ui/core/IconPool" // side effect: required when calling RenderManager#icon
+], function (Device, mobileLibrary, Library) {
 		"use strict";
 
-		var oResourceBundle = Core.getLibraryResourceBundle("sap.f");
+		var oResourceBundle = Library.getResourceBundleFor("sap.f");
 
 		var FCLRenderer = {
 			apiVersion: 2
@@ -92,9 +96,11 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/Core", "sap/m/library"],
 			if (!Device.system.phone) {
 				oRm.openStart("div", sBarId)
 					.attr("role", "separator")
-					.attr("title", oResourceBundle.getText("FCL_SEPARATOR_MOVE"))
+					.attr("aria-label", oResourceBundle.getText("FCL_SEPARATOR_MOVE"))
 					.attr("aria-orientation", "vertical")
 					.attr("tabindex", 0)
+					.attr("aria-valuemin", 0)
+					.attr("aria-valuemax", 100)
 					.class("sapFFCLColumnSeparator")
 					.class("sapContrastPlus")
 					.class(sClass)

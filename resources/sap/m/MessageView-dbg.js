@@ -1,18 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Lib",
+	"sap/ui/core/Messaging",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Control",
 	"sap/ui/core/CustomData",
+	"sap/ui/core/Element",
 	"sap/ui/core/IconPool",
 	"sap/ui/core/HTML",
 	"sap/ui/core/Icon",
 	"./Button",
 	"./Toolbar",
+	"./Title",
+	"sap/ui/Device",
 	"./ToolbarSpacer",
 	"./List",
 	"./MessageListItem",
@@ -25,7 +30,9 @@ sap.ui.define([
 	"./MessageItem",
 	"./GroupHeaderListItem",
 	'sap/ui/core/InvisibleText',
+	"sap/ui/core/InvisibleMessage",
 	"sap/ui/core/library",
+	"sap/ui/core/message/MessageType",
 	"sap/ui/base/ManagedObject",
 	"./MessageViewRenderer",
 	"sap/ui/events/KeyCodes",
@@ -33,14 +40,19 @@ sap.ui.define([
 	"sap/base/security/URLListValidator",
 	"sap/ui/thirdparty/caja-html-sanitizer"
 ], function(
+	Library,
+	Messaging,
 	jQuery,
 	Control,
 	CustomData,
+	Element,
 	IconPool,
 	HTML,
 	Icon,
 	Button,
 	Toolbar,
+	Title,
+	Device,
 	ToolbarSpacer,
 	List,
 	MessageListItem,
@@ -53,7 +65,9 @@ sap.ui.define([
 	MessageItem,
 	GroupHeaderListItem,
 	InvisibleText,
+	InvisibleMessage,
 	coreLibrary,
+	MessageType,
 	ManagedObject,
 	MessageViewRenderer,
 	KeyCodes,
@@ -65,8 +79,8 @@ sap.ui.define([
 	// shortcut for sap.ui.core.ValueState
 	var ValueState = coreLibrary.ValueState;
 
-	// shortcut for sap.ui.core.MessageType
-	var MessageType = coreLibrary.MessageType;
+	// shortcut for sap.ui.core.TitleLevel
+	var TitleLevel = coreLibrary.TitleLevel;
 
 	// shortcut for sap.m.ListType
 	var ListType = library.ListType;
@@ -114,7 +128,7 @@ sap.ui.define([
 	 * The responsiveness of the <code>MessageView</code> is determined by the container in which it is embedded. For that reason the control could not be visualized if the
 	 * container’s sizes are not defined.
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -203,9 +217,8 @@ sap.ui.define([
 						item: {type: "sap.m.MessageItem"},
 						/**
 						 * Refers to the type of messages being shown.
-						 * See sap.ui.core.MessageType values for types.
 						 */
-						messageTypeFilter: {type: "sap.ui.core.MessageType"}
+						messageTypeFilter: {type: "module:sap/ui/core/message/MessageType"}
 					}
 				},
 				/**
@@ -216,7 +229,7 @@ sap.ui.define([
 						/**
 						 * This parameter refers to the type of messages being shown.
 						 */
-						messageTypeFilter: {type: "sap.ui.core.MessageType"}
+						messageTypeFilter: {type: "module:sap/ui/core/message/MessageType"}
 					}
 				},
 				/**
@@ -239,7 +252,12 @@ sap.ui.define([
 						 */
 						item: { type: "sap.m.MessageItem" }
 					}
-				}
+				},
+				/**
+ 				 * Event fired when the close button in custom header is clicked.
+				 * @protected
+ 				 */
+				onClose: {}
 			}
 		},
 
@@ -311,7 +329,14 @@ sap.ui.define([
 		var that = this;
 		this._bHasHeaderButton = false;
 
-		this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		/**
+		 * Defines whether the custom header of details page will be shown.
+		 * @protected
+		 * @type boolean
+		 */
+		this._bShowCustomHeader = false;
+
+		this._oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		this._createNavigationPages();
 		this._createLists();
@@ -332,6 +357,56 @@ sap.ui.define([
 	MessageView.prototype._afterNavigate = function () {
 		setTimeout(this["_restoreFocus"].bind(this), 0);
 		setTimeout(this["_restoreItemsType"].bind(this), 0);
+	};
+
+	/**
+	 * Resets the navigation state before the enclosing container is opened.
+	 *
+	 * Clears the item-count tracker so that the next <code>onBeforeRendering</code>
+	 * treats the upcoming render as a fresh presentation. For a single navigable
+	 * item this makes <code>onBeforeRendering</code> perform a real forward
+	 * navigation via <code>_fnHandleForwardNavigation</code>, which both moves the
+	 * NavContainer to the details page and refreshes its content (title, subtitle,
+	 * description, icon) with the latest message data - restoring the documented
+	 * default single-item behaviour on every open.
+	 *
+	 * We intentionally do <b>not</b> forward the NavContainer here ourselves: a
+	 * bare <code>NavContainer.to()</code> only swaps the visible page and leaves
+	 * the previously rendered details content in place, so a message received
+	 * while the container was closed would still show the stale title on reopen.
+	 * See GitHub issue #4334.
+	 *
+	 * @private
+	 */
+	MessageView.prototype._resetNavigationState = function () {
+		this._iLastRenderedItemCount = undefined;
+	};
+
+	/**
+	 * Registers a <code>beforeOpen</code> hook on the nearest ancestor
+	 * container that supports it (Popover, ResponsivePopover, Dialog). The hook
+	 * resets the navigation state so that the next rendering treats the
+	 * current data as fresh - restoring the default single-item auto-navigate
+	 * to details each time the container is opened.
+	 *
+	 * @private
+	 */
+	MessageView.prototype._ensureContainerHook = function () {
+		if (this._oHookedContainer && !this._oHookedContainer.bIsDestroyed) {
+			return;
+		}
+
+		var oParent = this.getParent();
+		while (oParent
+			&& !(oParent.isA && oParent.isA(["sap.m.Popover", "sap.m.ResponsivePopover", "sap.m.Dialog"]))) {
+			oParent = oParent.getParent && oParent.getParent();
+		}
+		if (!oParent) {
+			return;
+		}
+
+		this._oHookedContainer = oParent;
+		oParent.attachBeforeOpen(this._resetNavigationState, this);
 	};
 
 	/**
@@ -374,9 +449,6 @@ sap.ui.define([
 
 		if (oItemTitleRef &&  (oItemTitleRef.offsetWidth < oItemTitleRef.scrollWidth)) {
 
-			// if title's text overflows, make the item type Navigation
-			oListItem.setType(ListType.Navigation);
-
 			if (this.getItems().length === 1) {
 				this._fnHandleForwardNavigation(oListItem, "show");
 			}
@@ -387,6 +459,12 @@ sap.ui.define([
 		var oGroupedItems,
 			aListItems,
 			aItems = this.getItems();
+
+		this._ensureContainerHook();
+
+		if (!this._oInvisibleMessage) {
+			this._oInvisibleMessage = InvisibleMessage.getInstance();
+		}
 
 		this._clearLists();
 		this._detailsPage.setShowHeader(this.getShowDetailsPageHeader());
@@ -414,18 +492,54 @@ sap.ui.define([
 			return oItem.isA("sap.m.MessageListItem");
 		});
 
-		if (aListItems.length === 1 && aListItems[0].getType()  === ListType.Navigation) {
+		// Auto-navigate to the details page only when the number of list items
+		// transitions to 1 (initial render, or a data update reducing to a single
+		// item). On plain re-renders triggered by resize/invalidate where the count
+		// stays the same we must not re-forward - see GitHub issue #4334.
+		var iPreviousItemCount = this._iLastRenderedItemCount;
+		this._iLastRenderedItemCount = aListItems.length;
 
-			this._fnHandleForwardNavigation(aListItems[0], "show");
+		if (aListItems.length === 1 && aListItems[0].getType() === ListType.Navigation) {
 
-			// TODO: adopt this to NavContainer's public API once a parameter for back navigation transition name is available
-			this._navContainer._pageStack[this._navContainer._pageStack.length - 1].transition = "slide";
+			if (iPreviousItemCount !== 1 && this._navContainer.getCurrentPage() !== this._detailsPage) {
+				this._fnHandleForwardNavigation(aListItems[0], "show");
+
+				// TODO: adopt this to NavContainer's public API once a parameter for back navigation transition name is available
+				this._navContainer._pageStack[this._navContainer._pageStack.length - 1].transition = "slide";
+			}
 		} else if (aListItems.length === 0) {
 			this._navContainer.backToTop();
 		}
 
 		// Bind automatically to the MessageModel if no items are bound
 		this._makeAutomaticBinding();
+	};
+
+	MessageView.prototype._updateDescription = function (oItem) {
+		if (this._isListPage()) {
+			return;
+		}
+
+		if (!oItem._oListItem) {
+			this._mapItemToListItem(oItem);
+		}
+
+		this._updateDescriptionPage(oItem, oItem._oListItem);
+	};
+
+	/**
+	 * Updates details page when a MessageItem gets updated.
+	 * @param {sap.m.MessageItem} oMessageItem Selected MessageItem.
+	 * @param {sap.m.MessageListItem} oListItem MessageListItem created from the MessageItem.
+	 * @private
+	 */
+	MessageView.prototype._updateDescriptionPage = function (oMessageItem, oListItem) {
+		this._clearDetailsPage();
+		this._setTitle(oMessageItem, oListItem);
+		this._setSubtitle(oMessageItem);
+		this._setDescription(oMessageItem);
+		this._setIcon(oMessageItem, oListItem);
+		this._detailsPage.invalidate();
 	};
 
 	/**
@@ -456,12 +570,11 @@ sap.ui.define([
 		var oHeader = new GroupHeaderListItem({
 			title: sGroupName
 		});
-
-		this._oLists["all"].addAggregation("items", oHeader, true);
+		this._oLists["all"].addItemGroup(null, oHeader, true);
 
 		["error", "warning", "success", "information"].forEach(function (sListType) {
 			if (this._hasGroupItemsOfType(aItems, sListType)) {
-				this._oLists[sListType].addAggregation("items", oHeader.clone(), true);
+				this._oLists[sListType].addItemGroup(null, oHeader.clone(), true);
 			}
 		}, this);
 
@@ -484,6 +597,11 @@ sap.ui.define([
 			this._destroyLists();
 		}
 
+		if (this._oInvisibleMessage) {
+			this._oInvisibleMessage.destroy();
+			this._oInvisibleMessage = null;
+		}
+
 		if (this._oMessageItemTemplate) {
 			this._oMessageItemTemplate.destroy();
 		}
@@ -497,10 +615,17 @@ sap.ui.define([
 		this._listPage = null;
 		this._detailsPage = null;
 		this._sCurrentList = null;
+		this._oHeaderAriaLabelledByElement = null;
+
+		if (this._oHookedContainer && !this._oHookedContainer.bIsDestroyed) {
+			this._oHookedContainer.detachBeforeOpen(this._resetNavigationState, this);
+		}
+		this._oHookedContainer = null;
+		this._iLastRenderedItemCount = undefined;
 	};
 
 	/**
-	 * If there's no items binding, attach the MessageView to the sap.ui.getCore().getMessageManager().getMessageModel()
+	 * If there's no items binding, attach the MessageView to the sap/ui/core/Messaging.getMessageModel()
 	 *
 	 * @private
 	 * @ui5-restricted sap.m.MessagePopover
@@ -521,7 +646,7 @@ sap.ui.define([
 	MessageView.prototype._bindToMessageModel = function () {
 		var that = this;
 
-		this.setModel(sap.ui.getCore().getMessageManager().getMessageModel(), "message");
+		this.setModel(Messaging.getMessageModel(), "message");
 
 		this._oMessageItemTemplate = new MessageItem({
 			type: "{message>type}",
@@ -602,19 +727,18 @@ sap.ui.define([
 			content: "<span id=\"" + sCloseBtnDescrId + "\" class=\"sapMMsgViewHiddenContainer\">" + sCloseBtnDescr + "</span>"
 		});
 
-		var sHeadingDescr = this._oResourceBundle.getText("MESSAGEPOPOVER_ARIA_HEADING"),
-		sHeadingDescrId = this.getId() + "-HeadingDescr",
-		sSegmentedBtnDescrId = InvisibleText.getStaticId("sap.m", "MESSAGEVIEW_SEGMENTED_BTN_DESCRIPTION"),
-		oHeadingARIAHiddenDescr = new HTML(sHeadingDescrId, {
-			content: "<span id=\"" + sHeadingDescrId + "\" class=\"sapMMsgViewHiddenContainer\" role=\"heading\">" + sHeadingDescr + "</span>"
-		});
+		var sSegmentedBtnDescrId = InvisibleText.getStaticId("sap.m", "MESSAGEVIEW_SEGMENTED_BTN_DESCRIPTION");
 
 		this._oSegmentedButton = new SegmentedButton(this.getId() + "-segmented", {
 			ariaLabelledBy: sSegmentedBtnDescrId
 		}).addStyleClass("sapMSegmentedButtonNoAutoWidth");
 
 		this._oListHeader = new Toolbar({
-			content: [this._oSegmentedButton, new ToolbarSpacer(), oCloseBtnARIAHiddenDescr, oHeadingARIAHiddenDescr]
+			content: [this._oSegmentedButton,
+			new ToolbarSpacer(),
+			oCloseBtnARIAHiddenDescr,
+			this._bShowCustomHeader ? this.getHeadingAriaLabelledByElement() : null
+			]
 		});
 
 		return this._oListHeader;
@@ -654,6 +778,99 @@ sap.ui.define([
 		return this._oDetailsHeader;
 	};
 
+	MessageView.prototype.getHeadingAriaLabelledByElement = function () {
+		if (!this._oHeaderAriaLabelledByElement) {
+			const sHeadingDescr = this._oResourceBundle.getText("MESSAGEPOPOVER_ARIA_HEADING"),
+				sHeadingDescrId = this.getHeadingAriaLabelledBy();
+
+			this._oHeaderAriaLabelledByElement = new HTML(sHeadingDescrId, {
+				content: "<span id=\"" + sHeadingDescrId + "\" class=\"sapMMsgViewHiddenContainer\" role=\"heading\">" + sHeadingDescr + "</span>"
+			});
+		}
+
+		return this._oHeaderAriaLabelledByElement;
+	};
+
+	/**
+ 	 * Inserts a title into the given title container of the MessageView's header.
+	 *
+ 	 * @param {sap.ui.core.Control} oTitleParent The parent control where the title should be inserted.
+	 * @protected
+	 */
+	MessageView.prototype.insertTitle = function (oTitleParent) {
+			const sText = this._oResourceBundle.getText("MESSAGEPOPOVER_ARIA_BACK_BUTTON");
+			const oTitle = new Title({
+				text: sText,
+				level: Device.system.phone ? TitleLevel.H1 : TitleLevel.H2
+			});
+
+			oTitleParent.insertContent(oTitle, 1);
+		};
+
+	/**
+	 * Creates a custom header for the MessageView's ListPage.
+	 *
+	 * @returns {sap.m.Toolbar} The custom header toolbar.
+	 * @private
+	 */
+	MessageView.prototype._createCustomHeader = function () {
+			const sText = this._oResourceBundle.getText("MESSAGEPOPOVER_ARIA_HEADING");
+			const oCustomHeader = new Toolbar({
+				content: [
+					new Title({
+						text: sText,
+						level: Device.system.phone ? TitleLevel.H1 : TitleLevel.H2
+					}),
+					new ToolbarSpacer(),
+					this.getCloseBtn(),
+					this.getHeadingAriaLabelledByElement()
+				]
+			}).addStyleClass(CSS_CLASS + "CustomHeader");
+
+			return oCustomHeader;
+		};
+
+	/**
+	* Sets up the header for the MessageView's ListPage based on the current configuration.
+	* If `showCustomHeader` is enabled, a custom header and a sub-header are applied.
+	* Otherwise, a standard list header is used.
+	*
+	* @protected
+	*/
+	MessageView.prototype.setupCustomHeader = function () {
+		if (this._bShowCustomHeader) {
+			this._listPage.setCustomHeader(this._createCustomHeader());
+			this._listPage.setSubHeader(this._getListHeader());
+		} else {
+			this._listPage.setCustomHeader(this._getListHeader());
+		}
+	};
+
+	MessageView.prototype.getHeadingAriaLabelledBy = function () {
+		return `${this.getId()}-HeadingDescr`;
+	};
+
+	/**
+ 	 * Returns the close button used in the header of the MessageView.
+ 	 * The button is only visible on non-phone devices and triggers the `onClose` event when pressed.
+ 	 *
+ 	 * @returns {sap.m.Button} The close button instance.
+ 	 * @protected
+ 	 */
+	MessageView.prototype.getCloseBtn = function () {
+		const that = this;
+			var sCloseBtnDescr = this._oResourceBundle.getText("MESSAGEPOPOVER_CLOSE"),
+				oCloseBtn = new Button({
+				icon: ICONS["close"],
+				visible: !Device.system.phone,
+				tooltip: sCloseBtnDescr,
+					press: function () {
+						that.fireOnClose();
+					}
+			}).addStyleClass("sapMMsgPopoverCloseBtn");
+
+			return oCloseBtn;
+		};
 	/**
 	 * Creates navigation pages
 	 *
@@ -663,8 +880,9 @@ sap.ui.define([
 	MessageView.prototype._createNavigationPages = function () {
 		// Create two main pages
 		this._listPage = new Page(this.getId() + "listPage", {
-			customHeader: this._getListHeader()
 		});
+
+		this.setupCustomHeader();
 
 		this._detailsPage = new Page(this.getId() + "-detailsPage", {
 			customHeader: this._getDetailsHeader()
@@ -776,7 +994,7 @@ sap.ui.define([
 		if (!oMessageItem) {
 			return null;
 		}
-
+		const nCharLimit = 140;
 		var sType = oMessageItem.getType(),
 			that = this,
 			listItemType = this._getItemType(oMessageItem),
@@ -790,6 +1008,8 @@ sap.ui.define([
 				type: listItemType,
 				messageType: oMessageItem.getType(),
 				activeTitle: oMessageItem.getActiveTitle(),
+				wrapping: true,
+				wrapCharLimit: nCharLimit,
 				activeTitlePress: function () {
 					that.fireActiveTitlePress({ item: oMessageItem });
 				}
@@ -806,6 +1026,7 @@ sap.ui.define([
 		}
 
 		oListItem._oMessageItem = oMessageItem;
+		oMessageItem._oListItem = oListItem;
 
 		return oListItem;
 	};
@@ -813,7 +1034,7 @@ sap.ui.define([
 	/**
 	 * Map ValueState according the MessageType of the message.
 	 *
-	 * @param {sap.ui.core.MessageType} sType Type of Message
+	 * @param {module:sap/ui/core/message/MessageType} sType Type of Message
 	 * @returns {sap.ui.core.ValueState | null} The ValueState
 	 * @private
 	 */
@@ -839,7 +1060,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Map a MessageType to the Icon URL.
+	 * Map a `ValueState` to the Icon URL.
 	 *
 	 * @param {sap.ui.core.ValueState} sIcon Type of Error
 	 * @returns {string | null} Icon string
@@ -920,8 +1141,14 @@ sap.ui.define([
 		// If SegmentedButton should not be visible,
 		// and there is no custom button - hide the initial page's header
 		var bListPageHeaderVisible = bSegmentedButtonVisible || this._bHasHeaderButton;
-		this._listPage.setShowHeader(bListPageHeaderVisible);
 
+		if (this._bShowCustomHeader && !bListPageHeaderVisible) {
+			this._listPage.setShowHeader(true);
+			this._listPage.setShowSubHeader(false);
+		} else {
+			this._listPage.setShowHeader(bListPageHeaderVisible);
+			this._listPage?.setShowSubHeader(true);
+		}
 
 		return this;
 	};
@@ -935,12 +1162,18 @@ sap.ui.define([
 	MessageView.prototype._setIcon = function (oMessageItem, oListItem) {
 		this._previousIconTypeClass = CSS_CLASS + "DescIcon" + oMessageItem.getType();
 		this._oMessageIcon = new Icon({
-			src: oListItem.getIcon()
+			src: oListItem.getIcon(),
+			decorative: false,
+			alt: this._oResourceBundle.getText("LIST_ITEM_STATE_" + oMessageItem.getType().toUpperCase())
 		})
 			.addStyleClass(CSS_CLASS + "DescIcon")
 			.addStyleClass(this._previousIconTypeClass);
 
-		this._detailsPage.addContent(this._oMessageIcon);
+		// Insert the icon as the first element in the details page so that screen
+		// readers announce it before the title/subtitle/description. Its visual
+		// position (top-left of the section) is controlled via CSS (position: absolute),
+		// so the DOM order does not affect the layout.
+		this._detailsPage.insertContent(this._oMessageIcon, 0);
 	};
 
 	/**
@@ -970,6 +1203,21 @@ sap.ui.define([
 
 		oDetailsContent.addStyleClass("sapMMsgViewTitleText");
 		this._detailsPage.addAggregation("content", oDetailsContent);
+	};
+
+	/**
+	 * Sets subtitle part of details page
+	 * @param {sap.m.MessageItem} oMessageItem The message item
+	 * @private
+	 */
+	MessageView.prototype._setSubtitle = function (oMessageItem) {
+		var sText = oMessageItem.getSubtitle(),
+			sId = this.getId() + "MessageSubtitleText";
+
+		this._oMessageSubtitleText = new Text(sId, {
+			text: sText
+		}).addStyleClass("sapMMsgViewSubtitleText");
+		this._detailsPage.addContent(this._oMessageSubtitleText);
 	};
 
 	/**
@@ -1062,7 +1310,11 @@ sap.ui.define([
 				promise: oPromiseArgument
 			};
 
-			fnAsyncURLHandler(config);
+			// apply validation asynchronously
+			// details page should be fully rendered to change the links inside
+			setTimeout(() => {
+				fnAsyncURLHandler(config);
+			}, 0);
 		});
 
 		oPromise.id = iValidationTaskId;
@@ -1238,10 +1490,19 @@ sap.ui.define([
 
 	MessageView.prototype._navigateToDetails = function(oMessageItem, oListItem, sTransiotionName, bSuppressNavigate) {
 		this._setTitle(oMessageItem, oListItem);
+		this._setSubtitle(oMessageItem);
 		this._setDescription(oMessageItem);
 		this._setIcon(oMessageItem, oListItem);
 		this._detailsPage.invalidate();
 		this.fireLongtextLoaded();
+
+		const oContentTitle = Element.getElementById(this.getId() + "MessageTitleText");
+
+		if (oContentTitle && !oContentTitle.isA("sap.m.Link")) {
+			const sTypeText = this._oResourceBundle.getText("LIST_ITEM_STATE_" + oMessageItem.getType().toUpperCase());
+			const sAnnouncement = sTypeText + " " + oContentTitle.getText() + " Additional information available via reading keys";
+			this._oInvisibleMessage.announce(sAnnouncement, "Assertive");
+		}
 
 		if (!bSuppressNavigate) {
 			this._navContainer.to(this._detailsPage, sTransiotionName);
@@ -1306,7 +1567,7 @@ sap.ui.define([
 	 * @private
 	 */
 	MessageView.prototype._isListPage = function () {
-		return this._navContainer.getCurrentPage() == this._listPage;
+		return this._navContainer && this._navContainer.getCurrentPage() == this._listPage;
 	};
 
 	return MessageView;

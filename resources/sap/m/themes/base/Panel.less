@@ -6,7 +6,7 @@
 .sapMPanel {
 	overflow: hidden;
 	box-sizing: border-box;
-	// The following needed for calculation of height for content child
+	/* The following needed for calculation of height for content child */
 	position: relative;
 }
 
@@ -23,44 +23,54 @@
 	height: 3rem;
 	line-height: 3rem;
 	margin: 0;
-
-	/*
-	* To improve readability Mobile Safari automatically increases
-	* the size of small text so let's disable this
-	*/
-	-webkit-text-size-adjust: none;
-
+	-webkit-text-size-adjust: none; /* To improve readability Mobile Safari automatically increases the size of small text so let's disable this */
 	font-weight: @sapUiFontHeaderWeight;
-	font-size: @sapUiGroupTitleFontSize;
-	font-family: @sapUiFontHeaderFamily;
-	color: @sapUiGroupTitleTextColor;
+	font-size: var(--sapGroup_Title_FontSize);
+	font-family: var(--sapFontHeaderFamily);
+	color: var(--sapGroup_TitleTextColor);
 }
 
 .sapMPanel {
+
 	.sapMPanelHdr,
 	.sapMTB.sapMPanelHeaderTB {
 		padding-left: 1rem;
 		padding-right: 0.5rem;
-		background-color: @sapUiGroupTitleBackground;
+		background-color: var(--sapGroup_TitleBackground);
 	}
 
 	&.sapMPanelExpandable {
-		.sapMPanelHdr, .sapMTB.sapMPanelHeaderTB {
+
+		.sapMPanelHdr,
+		.sapMTB.sapMPanelHeaderTB {
 			padding-left: 0;
 		}
 	}
 }
 
-.sapUiSizeCompact .sapMPanel .sapMPanelHdr {
-	line-height: 2rem;
-	height: 2rem;
+.sapUiSizeCompact {
+
+	.sapMPanel {
+		min-height: 2rem;
+
+		.sapMPanelHdr {
+			line-height: 2rem;
+			height: 2rem;
+		}
+
+		.sapMPanelWrappingDiv .sapUiIcon {
+			width: 2rem;
+			height: 1.5rem;
+			line-height: 1.5rem;
+		}
+	}
 }
 
 .sapMPanelStickyHeadingDiv {
 	position: sticky;
 	top: 0;
-	z-index: 4; /* The z-index of the Table sticky header is 3, so we need bigger one to make the Panel header on top*/
-	background-color: @sapUiBaseBG;
+	z-index: 4; /* The z-index of the Table sticky header is 3, so we need bigger one to make the Panel header on top */
+	background-color: var(--sapBackgroundColor);
 }
 
 .sapMPanelContent {
@@ -69,10 +79,14 @@
 	overflow: auto;
 	white-space: normal;
 
-	/* This is needed in order to remove the additional outline added by tabindex=-1*/
+	/* This is needed in order to remove the additional outline added by tabindex=-1 */
 	&:focus {
 		outline: none;
 	}
+}
+
+.sapMPanelBGContrast {
+	background-color: var(--sapGroup_ContentAlternatingBackground);
 }
 
 .sapMPanelExpandablePart {
@@ -82,27 +96,58 @@
 .sapMPanelWrappingDiv,
 .sapMPanelWrappingDivTb {
 	position: relative;
-	background-color: @sapUiGroupTitleBackground;
+	background-color: var(--sapGroup_TitleBackground);
 
 	> .sapMBtn {
 		position: absolute;
 		top: 50%;
-		-webkit-transform: translateY(-50%);
 		transform: translateY(-50%);
 		padding-left: 0.25rem;
 		padding-right: 0.25rem;
+		width: 2.5rem;
+
+		.sapMBtnInner {
+			min-width: 2rem;
+		}
+
+		.sapMBtnIcon {
+			transition: transform 0.4s ease-in-out;
+		}
+	}
+
+	> .sapMBtn.sapMPanelExpandBtnRotated .sapMBtnIcon {
+		transform: rotate(90deg);
 	}
 }
 
 .sapMPanelWrappingDiv .sapUiIcon {
+	width: 2rem;
+	height: 2.25rem;
+	line-height: 2.25rem;
 	position: absolute;
 	top: 50%;
-	-webkit-transform: translateY(-50%);
 	transform: translateY(-50%);
 	padding: 0.25rem;
 	font-size: 1rem;
 	cursor: inherit;
-	color: @sapUiContentIconColor;
+	color: var(--sapContent_IconColor);
+	transition: transform 0.4s ease-in-out;
+}
+
+.sapMPanelWrappingDiv .sapUiIcon.sapMPanelExpandIconRotated {
+	transform: translateY(-50%) rotate(90deg);
+}
+
+html[data-sap-ui-animation-mode="none"],
+html[data-sap-ui-animation-mode="minimal"] {
+	.sapMPanelWrappingDiv .sapUiIcon {
+		transition: none;
+	}
+
+	.sapMPanelWrappingDiv > .sapMBtn .sapMBtnIcon,
+	.sapMPanelWrappingDivTb > .sapMBtn .sapMBtnIcon {
+		transition: none;
+	}
 }
 
 /* if Panel is expandable, we do not wish toolbar to come with own border */
@@ -128,23 +173,36 @@ html.sap-desktop .sapUiFioriObjectPage > section > .sapMPanel {
 .sapMPanel .sapMPanelWrappingDiv .sapMPanelHdr,
 .sapMPanel .sapMPanelWrappingDivTb .sapMIBar.sapMTB {
 	margin-left: 2.75rem;
+	padding-left: 0.25rem;
 
-  	>:first-child {
-	  margin-left: 0;
+	> :first-child {
+		margin-left: 0;
 	}
 }
 
 /* mixin call for creating container content padding classes (arguments: rootContainer, contentSelector) */
 .sapUiContainerContentPadding(~".sapMPanel", ~"> .sapMPanelContent");
 
-
 .sapMPanelExpandable .sapMPanelWrappingDiv {
-	&:focus {
-		outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
-		outline-offset: -0.1875rem;
-	}
 
 	&:hover {
 		cursor: pointer;
 	}
+
+	/* Keyboard focus (TAB) should show outline on all devices */
+	&:focus-visible {
+		outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+		outline-offset: -0.1875rem;
+	}
+
+	/* Remove outline for non-keyboard focus (tap/click) on mobile/tablet */
+	&:focus:not(:focus-visible) {
+		outline: none;
+	}
+}
+
+/* On desktop, always show focus outline regardless of input method */
+html.sap-desktop .sapMPanelExpandable .sapMPanelWrappingDiv:focus {
+	outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+	outline-offset: -0.1875rem;
 }

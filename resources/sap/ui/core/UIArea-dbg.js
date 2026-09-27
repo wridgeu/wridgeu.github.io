@@ -1,15 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.UIArea
 sap.ui.define([
 	'sap/ui/base/ManagedObject',
-	'sap/ui/base/ManagedObjectRegistry',
 	'./Element',
 	'./RenderManager',
+	'./UIAreaRegistry',
 	'./FocusHandler',
 	'sap/ui/performance/trace/Interaction',
 	"sap/ui/util/ActivityDetection",
@@ -21,6 +21,7 @@ sap.ui.define([
 	"sap/base/util/uid",
 	"sap/base/util/isEmptyObject",
 	"sap/ui/core/Rendering",
+	"sap/ui/core/util/_LocalizationHelper",
 	'sap/ui/events/jquery/EventExtension',
 	"sap/ui/events/ControlEvents",
 	"sap/ui/events/F6Navigation",
@@ -28,9 +29,9 @@ sap.ui.define([
 ],
 	function(
 		ManagedObject,
-		ManagedObjectRegistry,
 		Element,
 		RenderManager,
+		UIAreaRegistry,
 		FocusHandler,
 		Interaction,
 		ActivityDetection,
@@ -42,6 +43,7 @@ sap.ui.define([
 		uid,
 		isEmptyObject,
 		Rendering,
+		_LocalizationHelper,
 		EventExtension,
 		ControlEvents,
 		F6Navigation,
@@ -168,7 +170,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
 	 * @alias sap.ui.core.UIArea
@@ -271,7 +273,11 @@ sap.ui.define([
 	 * @param {Element} oRootNode
 	 *            the hosting DOM node for this instance of <code>UIArea</code>.
 	 * @public
-	 * @deprecated as of version 1.107.0
+	 * @deprecated As of version 1.107, without a replacement. Applications should
+	 *    not create or modify <code>UIArea</code>s programmatically. They should only
+	 *    assign controls to them, by using {@link sap.ui.core.Control.prototype.placeAt
+	 *    Control.prototype.placeAt} or use the API of a <code>UIArea</code> as reachable
+	 *    via {@link sap.ui.core.Control.prototype.getUIArea Control.prototype.getUIArea}.
 	 */
 	UIArea.prototype.setRootNode = function(oRootNode) {
 		this._setRootNode(oRootNode);
@@ -634,9 +640,10 @@ sap.ui.define([
 	 *
 	 * Either renders the whole <code>UIArea</code> or a set of descendant controls that have been invalidated.
 	 *
-	 * @param {boolean} bForce Whether a re-rendering of the <code>UIArea</code> should be enforced
+	 * @param {boolean} [bForce=false] Whether a re-rendering of the <code>UIArea</code> should be enforced
 	 * @return {boolean} Whether a redraw was necessary or not
 	 * @private
+	 * @ui5-restricted sap/ui/core/Rendering
 	 */
 	 UIArea.prototype.rerender = function(bForce) {
 		var that = this;
@@ -763,7 +770,8 @@ sap.ui.define([
 				// CSN 0000834961 2011: control may have been destroyed since invalidation happened -> check whether it still exists
 				if ( oControl ) {
 					if ( !isRenderedTogetherWithAncestor(oControl) ) {
-						oControl.rerender();
+						oControl._bNeedsRendering = true;
+						UIArea.rerenderControl(oControl);
 						bUpdated = true;
 					} else {
 						aControlsRenderedTogetherWithAncestor.push(oControl);
@@ -794,7 +802,8 @@ sap.ui.define([
 				}
 				if (oControl.bOutput == true && oControl.getDomRef() ||
 					oControl.bOutput == "invisible" && document.getElementById(RenderManager.createInvisiblePlaceholderId(oControl))) {
-					oControl.rerender();
+					oControl._bNeedsRendering = true;
+					UIArea.rerenderControl(oControl);
 				}
 			});
 		}
@@ -860,7 +869,7 @@ sap.ui.define([
 		} else {
 			var oUIArea = oControl.getUIArea();
 			oUIArea && oUIArea._onControlRendered(oControl);
-			oRenderLog.warning("Couldn't rerender '" + oControl.getId() + "', as its DOM location couldn't be determined");
+			oRenderLog.info("Couldn't rerender '" + oControl.getId() + "', as its DOM location couldn't be determined");
 		}
 	};
 	var rEvents = /^(mousedown|mouseup|click|keydown|keyup|keypress|touchstart|touchend|tap)$/;
@@ -1285,7 +1294,7 @@ sap.ui.define([
 		}
 
 		var oCurrentControl = this.getFieldGroupControl();
-		if ( oControl != oCurrentControl && document.activeElement && (document.activeElement.id !== "sap-ui-static-firstfe")) {
+		if ( oControl != oCurrentControl) {
 			var aCurrentGroupIds = (oCurrentControl ? oCurrentControl._getFieldGroupIds() : []),
 				aNewGroupIds = (oControl ? oControl._getFieldGroupIds() : []),
 				aTargetFieldGroupIds = aCurrentGroupIds.filter(function(sCurrentGroupId) {
@@ -1315,14 +1324,7 @@ sap.ui.define([
 		return null;
 	};
 
-	// apply the registry mixin
-	ManagedObjectRegistry.apply(UIArea, {
-		onDuplicate: function(sId, oldUIArea, newUIArea) {
-			var sMsg = "adding UIArea with duplicate id '" + sId + "'";
-			Log.error(sMsg);
-			throw new Error("Error: " + sMsg);
-		}
-	});
+	UIAreaRegistry.init(UIArea);
 
 	// field group static members
 
@@ -1388,7 +1390,7 @@ sap.ui.define([
 
 		// create a new or fetch an existing UIArea
 		var sId = oDomRef.id;
-		var oUIArea = UIArea.registry.get(sId);
+		var oUIArea = UIAreaRegistry.get(sId);
 		if (!oUIArea) {
 			oUIArea = new UIArea(oDomRef);
 			if (oCore && !isEmptyObject(oCore.oModels)) {
@@ -1430,12 +1432,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * Registry of all <code>sap.ui.core.Element</code>s that currently exist.
+	 * Registry of all <code>sap.ui.core.UIArea</code>s that currently exist.
 	 *
 	 * @namespace sap.ui.core.UIArea.registry
 	 * @public
 	 * @since 1.107
+	 * @deprecated As of version 1.120, without a replacement. Applications should
+	 *    not be interested in the set of <code>UIArea</code>s. They should only
+	 *    assign controls to them, by using {@link sap.ui.core.Control.prototype.placeAt
+	 *    Control.prototype.placeAt} or use the API of a <code>UIArea</code> as reachable
+	 *    via {@link sap.ui.core.Control.prototype.getUIArea Control.prototype.getUIArea}.
 	 */
+	UIArea.registry = UIAreaRegistry;
 
 	/**
 	 * Number of existing UIAreas.
@@ -1444,6 +1452,11 @@ sap.ui.define([
 	 * @readonly
 	 * @name sap.ui.core.UIArea.registry.size
 	 * @public
+	 * @deprecated As of version 1.120, without a replacement. Applications should
+	 *    not be interested in the set of <code>UIArea</code>s. They should only
+	 *    assign controls to them, by using {@link sap.ui.core.Control.prototype.placeAt
+	 *    Control.prototype.placeAt} or use the API of a <code>UIArea</code> as reachable
+	 *    via {@link sap.ui.core.Control.prototype.getUIArea Control.prototype.getUIArea}.
 	 */
 
 	/**
@@ -1462,6 +1475,11 @@ sap.ui.define([
 	 * @name sap.ui.core.UIArea.registry.all
 	 * @function
 	 * @public
+	 * @deprecated As of version 1.120, without a replacement. Applications should
+	 *    not be interested in the set of all <code>UIArea</code>s. They should only
+	 *    assign controls to them, by using {@link sap.ui.core.Control.prototype.placeAt
+	 *    Control.prototype.placeAt} or use the API of a <code>UIArea</code> as reachable
+	 *    via {@link sap.ui.core.Control.prototype.getUIArea Control.prototype.getUIArea}.
 	 */
 
 	/**
@@ -1475,6 +1493,11 @@ sap.ui.define([
 	 * @name sap.ui.core.UIArea.registry.get
 	 * @function
 	 * @public
+	 * @deprecated As of version 1.120, without a replacement. Applications should
+	 *    not be interested in a certain <code>UIArea</code>. They should only
+	 *    assign controls to them, by using {@link sap.ui.core.Control.prototype.placeAt
+	 *    Control.prototype.placeAt} or use the API of a <code>UIArea</code> as reachable
+	 *    via {@link sap.ui.core.Control.prototype.getUIArea Control.prototype.getUIArea}.
 	 */
 
 	/**
@@ -1509,6 +1532,11 @@ sap.ui.define([
 	 * @name sap.ui.core.UIArea.registry.forEach
 	 * @function
 	 * @public
+	 * @deprecated As of version 1.120, without a replacement. Applications should
+	 *    not be interested in the set of all <code>UIArea</code>s. They should only
+	 *    assign controls to them, by using {@link sap.ui.core.Control.prototype.placeAt
+	 *    Control.prototype.placeAt} or use the API of a <code>UIArea</code> as reachable
+	 *    via {@link sap.ui.core.Control.prototype.getUIArea Control.prototype.getUIArea}.
 	 */
 
 	/**
@@ -1547,7 +1575,14 @@ sap.ui.define([
 	 * @name sap.ui.core.UIArea.registry.filter
 	 * @function
 	 * @public
+	 * @deprecated As of version 1.120, without a replacement. Applications should
+	 *    not be interested in the set of all <code>UIArea</code>s. They should only
+	 *    assign controls to them, by using {@link sap.ui.core.Control.prototype.placeAt
+	 *    Control.prototype.placeAt} or use the API of a <code>UIArea</code> as reachable
+	 *    via {@link sap.ui.core.Control.prototype.getUIArea Control.prototype.getUIArea}.
 	 */
+
+	_LocalizationHelper.registerForUpdate("UIAreas", UIAreaRegistry.all);
 
 	return UIArea;
 });

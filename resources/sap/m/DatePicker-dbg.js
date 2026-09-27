@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.DatePicker.
 sap.ui.define([
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Lib",
 	'sap/ui/thirdparty/jquery',
 	'sap/ui/Device',
 	"sap/ui/core/Element",
@@ -16,14 +18,12 @@ sap.ui.define([
 	'sap/ui/core/date/UniversalDate',
 	'./library',
 	'sap/ui/core/Control',
-	'sap/ui/core/library',
 	"./DatePickerRenderer",
 	"sap/base/util/deepEqual",
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/ui/core/IconPool",
 	"./InstanceManager",
-	// jQuery Plugin "cursorPos"
 	"sap/ui/unified/Calendar",
 	"sap/ui/unified/DateRange",
 	'sap/ui/unified/DateTypeRange',
@@ -31,14 +31,19 @@ sap.ui.define([
 	"sap/ui/unified/calendar/CustomYearPicker",
 	"sap/ui/core/LabelEnablement",
 	"sap/ui/unified/library",
-	"sap/ui/core/Configuration",
 	"sap/ui/unified/calendar/CalendarUtils",
 	"sap/ui/core/date/UI5Date",
-	"sap/ui/core/date/CalendarWeekNumbering",
-	"sap/ui/core/Core",
+	"sap/base/i18n/date/CalendarType",
+	"sap/base/i18n/date/CalendarWeekNumbering",
+	"sap/ui/core/InvisibleText",
+	"./DateHighZoomInputs",
+	"./Bar",
+	"./Title",
 	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
+		Localization,
+		Library,
 		jQuery,
 		Device,
 		Element,
@@ -49,7 +54,6 @@ sap.ui.define([
 		UniversalDate,
 		library,
 		Control,
-		coreLibrary,
 		DatePickerRenderer,
 		deepEqual,
 		assert,
@@ -63,19 +67,19 @@ sap.ui.define([
 		CustomYearPicker,
 		LabelEnablement,
 		unifiedLibrary,
-		Configuration,
 		CalendarUtils,
 		UI5Date,
+		CalendarType,
 		CalendarWeekNumbering,
-		Core
+		InvisibleText,
+		DateHighZoomInputs,
+		Bar,
+		Title
 	) {
 	"use strict";
 
 
-	// shortcut for sap.ui.core.CalendarType
-	var CalendarType = coreLibrary.CalendarType;
-
-	var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	var oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Constructor for a new <code>DatePicker</code>.
@@ -115,18 +119,21 @@ sap.ui.define([
 	 *
 	 * <ul><li>Use the <code>value</code> property if you want to bind the
 	 * <code>DatePicker</code> to a model using the <code>sap.ui.model.type.Date</code></li>
-	 * @example <caption> binding the <code>value</code> property by using types </caption>
+	 * <caption> binding the <code>value</code> property by using types </caption>
+	 * <pre>
+	 * // UI5Date imported from sap/ui/core/date/UI5Date
 	 * new sap.ui.model.json.JSONModel({
-	 *     date: sap.ui.core.date.UI5Date.getInstance(2022,10,10,10,10,10)
+	 *     date: UI5Date.getInstance(2022,10,10,10,10,10)
 	 * });
 	 *
 	 * new sap.m.DatePicker({
 	 *     value:{path:"/date",type:"sap.ui.model.type.Date"}
 	 * });
-	 *
+	 *</pre>
 	 * <li>Use the <code>value</code> property if the date is provided as a string from
 	 * the backend or inside the app (for example, as ABAP type DATS field)</li>
-	 * @example <caption> binding the <code>value</code> property by using types </caption>
+	 * <caption> binding the <code>value</code> property by using types </caption>
+	 * <pre>
 	 * new sap.ui.model.json.JSONModel({date:'2022-11-10');
 	 *
 	 * new sap.m.DatePicker({
@@ -140,7 +147,7 @@ sap.ui.define([
 	 *         }
 	 *     }
 	 * });
-	 *
+	 * </pre>
 	 * <b>Note:</b> There are multiple binding type choices, such as:
 	 * sap.ui.model.type.Date
 	 * sap.ui.model.odata.type.DateTime
@@ -186,7 +193,7 @@ sap.ui.define([
 	 * the close event), or select Cancel.
 	 *
 	 * @extends sap.m.DateTimeField
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -202,8 +209,8 @@ sap.ui.define([
 
 				/**
 				 * Displays date in this given type in input field. Default value is taken from locale settings.
-				 * Accepted are values of <code>sap.ui.core.CalendarType</code> or an empty string. If no type is set, the default type of the
-				 * configuration is used.
+				 * Accepted are values of {@link module:sap/base/i18n/date/CalendarType} or an empty string.
+				 * If no type is set, the default type of the configuration is used.
 				 * <b>Note:</b> If data binding on <code>value</code> property with type <code>sap.ui.model.type.Date</code> is used, this property will be ignored.
 				 * @since 1.28.6
 				 */
@@ -214,7 +221,7 @@ sap.ui.define([
 				 * If not set, the dates are only displayed in the primary calendar type
 				 * @since 1.34.1
 				 */
-				secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
+				secondaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"},
 
 				/**
 				 * Minimum date that can be shown and selected in the <code>DatePicker</code>. This must be a UI5Date or JavaScript Date object.
@@ -271,7 +278,7 @@ sap.ui.define([
 				 * If not set, the calendar week numbering of the global configuration is used.
 				 * @since 1.108.0
 				 */
-				calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
+				calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 
 			},
 
@@ -360,7 +367,7 @@ sap.ui.define([
 	 * @returns {string} the value of property <code>displayFormat</code>
 	 * @public
 	 * @name sap.m.DatePicker#getDisplayFormat
-	 * @function
+	 * @method
 	 */
 
 	/**
@@ -377,7 +384,7 @@ sap.ui.define([
 	 * @returns {string} the value of property <code>valueFormat</code>
 	 * @public
 	 * @name sap.m.DatePicker#getValueFormat
-	 * @function
+	 * @method
 	 */
 
 	/**
@@ -385,10 +392,10 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>dateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the value of property <code>dateValue</code>
 	 * @public
 	 * @name sap.m.DatePicker#getDateValue
-	 * @function
+	 * @method
 	 */
 
 	DatePicker.prototype.init = function() {
@@ -410,11 +417,17 @@ sap.ui.define([
 			noTabStop: true,
 			decorative: !Device.support.touch || Device.system.desktop ? true : false,
 			useIconTooltip: false,
+			tooltip: oResourceBundle.getText("OPEN_PICKER_TEXT"),
 			alt: oResourceBundle.getText("OPEN_PICKER_TEXT")
 		});
 
 		// idicates whether the picker is still open
 		this._bShouldClosePicker = false;
+
+		this._bHighZoom = false;
+		this._oHighZoomInputs = null;
+
+		this._startZoomWatch();
 
 		oIcon.addEventDelegate({
 			onmousedown: function (oEvent) {
@@ -451,7 +464,12 @@ sap.ui.define([
 	DatePicker.prototype.toggleOpen = function (bOpened) {
 		if (this.getEditable() && this.getEnabled()) {
 			if (bOpened) {
-				_cancel.call(this);
+				var oSelectedDate = this._getCalendar() && this._getSelectedDate();
+				if (oSelectedDate) {
+					this._selectDate();
+				} else {
+					_cancel.call(this);
+				}
 			} else {
 				_open.call(this);
 			}
@@ -465,6 +483,11 @@ sap.ui.define([
 	DatePicker.prototype.exit = function() {
 
 		InputBase.prototype.exit.apply(this, arguments);
+
+		// Clean up binding context listener
+		if (this.hasListeners("modelContextChange")) {
+			this.detachModelContextChange(this._closePopover, this);
+		}
 
 		if (this._oPopup) {
 			if (this._oPopup.isOpen()) {
@@ -491,6 +514,27 @@ sap.ui.define([
 		this._sUsedValuePattern = undefined;
 		this._sUsedValueCalendarType = undefined;
 		this._oValueFormat = undefined;
+
+		if (this._invisibleLabelText) {
+			this._invisibleLabelText.destroy();
+			this._invisibleLabelText = null;
+		}
+
+		this._stopZoomWatch();
+		if (this._oHighZoomInputs) {
+			this._oHighZoomInputs.destroy();
+			this._oHighZoomInputs = null;
+		}
+		// Destroy explicitly — on non-phone the button is not inside any aggregation
+		// so the popup destroy does not reach it. destroy() is safe on already-destroyed objects.
+		if (this._oHZCalToggleBtn) {
+			this._oHZCalToggleBtn.destroy();
+			this._oHZCalToggleBtn = null;
+		}
+		if (this._oHZTodayBtn) {
+			this._oHZTodayBtn.destroy();
+			this._oHZTodayBtn = null;
+		}
 	};
 
 	DatePicker.prototype.invalidate = function(oOrigin) {
@@ -508,14 +552,38 @@ sap.ui.define([
 
 		DateTimeField.prototype.onBeforeRendering.apply(this, arguments);
 
+		// Ensure the internal min/max boundaries respect the constraints of the bound type
+		this._syncMinMaxWithBindingConstraints();
+
 		this._checkMinMaxDate();
+
+		// Sync _bHighZoom before first render only — once the popup is in use,
+		// _bHighZoom is managed by _createPopupContent and _onZoomChange.
+		if (!this._oPopup) {
+			this._bHighZoom = this._isHighZoom();
+		}
 
 		var oValueHelpIcon = this._getValueHelpIcon();
 
 		if (oValueHelpIcon) {
-			oValueHelpIcon.setProperty("visible", this.getEditable());
+			// Always read _isHighZoom() directly — _bHighZoom may lag at initial render
+			oValueHelpIcon.setProperty("visible", this.getEditable() && !this._isHighZoom());
 		}
 
+		// Close picker when scrolling in a table
+		if (!this.hasListeners("modelContextChange")) {
+			this.attachModelContextChange(this._closePopover, this);
+		}
+	};
+
+	/**
+	 * Closes the popover of the DatePicker without setting the focus back to the input.
+	 * @private
+	 */
+	DatePicker.prototype._closePopover = function() {
+		if (this.isOpen()) {
+			this._oPopup.close();
+		}
 	};
 
 	/**
@@ -528,6 +596,10 @@ sap.ui.define([
 	 DatePicker.prototype.setDisplayFormat = function(sDisplayFormat) {
 
 		this.setProperty("displayFormat", sDisplayFormat);
+
+		if (this._invisibleLabelText) {
+			this._invisibleLabelText.setText(this._getPickerAccessibleName());
+		}
 
 		if (this._oCalendar) { // if the calendar already exists, destroy it and create new one according to the new format
 			this._oCalendar.removeDelegate(this._oCalendarAfterRenderDelegate);
@@ -578,14 +650,63 @@ sap.ui.define([
 
 	};
 
-	DatePicker.prototype.onsapshow = function(oEvent) {
+	DatePicker.prototype.onclick = function(oEvent) {
+		if (this._isHighZoom()) {
+			if (!oEvent.target.closest(".sapUiIcon")) {
+				this.toggleOpen(this.isOpen());
+			}
+		}
+	};
 
-		this.toggleOpen(this.isOpen());
-		oEvent.preventDefault(); // otherwise IE opens the address bar history
+	DatePicker.prototype.onsapshow = function(oEvent) {
+		const bIsF4 = oEvent.key === "F4";
+
+		if (bIsF4) {
+			if (!this.isOpen()) {
+				this.toggleOpen(false);
+			}
+		} else {
+			this.toggleOpen(this.isOpen());
+		}
+
+		oEvent.preventDefault();
 	};
 
 	// ALT-UP and ALT-DOWN should behave the same
-	DatePicker.prototype.onsaphide = DatePicker.prototype.onsapshow;
+	DatePicker.prototype.onsaphide = function(oEvent) {
+		this.toggleOpen(this.isOpen());
+
+		oEvent.preventDefault();
+	};
+
+	/**
+	 * Handles Alt+Up/Down and F4 keyboard events when focus is on the calendar inside the popup.
+	 * Alt+Up/Down closes the picker and takes over the selected value.
+	 * F4 switches to month view.
+	 *
+	 * @param {jQuery.Event} oEvent The event object.
+	 * @private
+	 */
+	DatePicker.prototype._handleShowHideOnCalendar = function(oEvent) {
+		if (this.isOpen()) {
+			const bIsF4 = oEvent.key === "F4";
+
+			if (bIsF4) {
+				const oCalendar = this._getCalendar();
+				if (oCalendar && oCalendar._switchToMonthView) {
+					oCalendar._switchToMonthView();
+				}
+			} else {
+				const oSelectedDate = this._getSelectedDate();
+				if (oSelectedDate) {
+					this._selectDate();
+				} else {
+					_cancel.call(this);
+				}
+			}
+			oEvent.preventDefault();
+		}
+	};
 
 	/**
 	 * Handle when escape is pressed. Escaping unsaved input will restore
@@ -596,17 +717,33 @@ sap.ui.define([
 	 * @private
 	 */
 	DatePicker.prototype.onsapescape = function(oEvent) {
-		var sLastValue = this.getLastValue(),
-			oDate = this._parseValue( this._getInputValue(), true),
-			sValueFormatInputDate = this._formatValue(oDate, true);
+		const sLastValue = this.getLastValue();
+		const sInputValue = this._getInputValue();
 
-		if (sValueFormatInputDate !== sLastValue) {
-			oEvent.setMarked();
-			oEvent.preventDefault();
-
-			this.updateDomValue(sLastValue);
-			this.onValueRevertedByEscape(sLastValue, sValueFormatInputDate);
+		if (!sInputValue) {
+			return;
 		}
+
+		const oDate = this._parseValue(sInputValue, true);
+		const sValueFormatInputDate = this._formatValue(oDate, true);
+
+		// Normalize last value into the same format for a reliable comparison.
+		let sLastValueNormalized = sLastValue;
+		const oLastDate = this._parseValue(sLastValue, true);
+		if (oLastDate) {
+			sLastValueNormalized = this._formatValue(oLastDate, true);
+		}
+
+		// If normalized values match, nothing to revert.
+		if (sValueFormatInputDate === sLastValueNormalized) {
+			return;
+		}
+
+		oEvent.setMarked();
+		oEvent.preventDefault();
+
+		this.updateDomValue(sLastValue);
+		this.onValueRevertedByEscape(sLastValue, sValueFormatInputDate);
 	};
 
 	DatePicker.prototype.onsappageup = function(oEvent){
@@ -767,7 +904,6 @@ sap.ui.define([
 			var oDateValue = this.getDateValue();
 			if (oDateValue && oDateValue.getTime() < oDate.getTime()) {
 				this._bValid = false;
-				this._bOutOfAllowedRange = true;
 				Log.warning("DateValue not in valid date range", this);
 			}
 		} else {
@@ -815,7 +951,6 @@ sap.ui.define([
 			var oDateValue = this.getDateValue();
 			if (oDateValue && oDateValue.getTime() > oDate.getTime()) {
 				this._bValid = false;
-				this._bOutOfAllowedRange = true;
 				Log.warning("DateValue not in valid date", this);
 			}
 		} else {
@@ -870,6 +1005,60 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Reads the minimum/maximum date constraints from the bound value type (if any)
+	 * and narrows the internal _oMinDate / _oMaxDate accordingly, so the DatePicker
+	 * never formats or validates a date outside the range accepted by the type.
+	 * @private
+	 */
+	DatePicker.prototype._syncMinMaxWithBindingConstraints = function () {
+		var oBinding = this.getBinding("value"),
+			oType = oBinding && oBinding.getType && oBinding.getType(),
+			oConstraints = oType && oType.oConstraints, oMin, oMax;
+
+		if (!oConstraints || !(oConstraints.minimum || oConstraints.maximum)) {
+			return;
+		}
+
+		// constraints may be Date objects or strings depending on the type/source format
+		oMin = this._toDate(oConstraints.minimum);
+		oMax = this._toDate(oConstraints.maximum);
+
+		if (oMin && oMin.getTime() > this._oMinDate.getTime()) {
+			this._oMinDate = UI5Date.getInstance(oMin.getTime());
+			this.setProperty("minDate", this._oMinDate, true);
+			if (this._getCalendar()) {
+				this._getCalendar().setMinDate(this._oMinDate);
+			}
+		}
+		if (oMax && oMax.getTime() < this._oMaxDate.getTime()) {
+			this._oMaxDate = UI5Date.getInstance(oMax.getTime());
+			this.setProperty("maxDate", this._oMaxDate, true);
+			if (this._getCalendar()) {
+				this._getCalendar().setMaxDate(this._oMaxDate);
+			}
+		}
+	};
+
+	/**
+	 * Normalizes a constraint value (Date instance or parsable string) to a Date.
+	 * @param {Date|string} vValue The constraint value.
+	 * @returns {Date|undefined} The normalized date or undefined.
+	 * @private
+	 */
+	DatePicker.prototype._toDate = function (vValue) {
+		if (!vValue) {
+			return undefined;
+		}
+
+		if (vValue instanceof Date) {
+			return vValue;
+		}
+
+		var oParsed = this._parseValue(vValue, false);
+
+		return (oParsed && oParsed.getTime) ? oParsed : undefined;
+	};
 
 	DatePicker.prototype.getDisplayFormatType = function () {
 		return this.getProperty("displayFormatType");
@@ -938,7 +1127,7 @@ sap.ui.define([
 	 * Sets <code>showFooter</code> property to the given boolean value
 	 *
 	 * @since 1.70
-	 * @param {} bFlag when true footer is displayed
+	 * @param {boolean} bFlag when true footer is displayed
 	 * @public
 	 */
 	DatePicker.prototype.setShowFooter = function(bFlag) {
@@ -1004,7 +1193,7 @@ sap.ui.define([
 	 *
 	 * @since 1.38.5
 	 * @param {sap.ui.unified.DateTypeRange} oSpecialDate The <code>specialDate</code> to remove or its index or ID
-	 * @returns {sap.ui.unified.DateTypeRange|null} The removed <code>specialDate</code> or <code>null</code>
+	 * @returns {int | string | sap.ui.unified.DateTypeRange} The removed <code>specialDate</code>
 	 * @public
 	 */
 	DatePicker.prototype.removeSpecialDate = function(oSpecialDate){
@@ -1053,7 +1242,7 @@ sap.ui.define([
 		var sId = this.getLegend();
 		if (sId) {
 			var CalendarLegend = sap.ui.require("sap/ui/unified/CalendarLegend");
-			oLegend = sap.ui.getCore().byId(sId);
+			oLegend = Element.getElementById(sId);
 			if (oLegend && !(typeof CalendarLegend == "function" && oLegend instanceof CalendarLegend)) {
 				throw new Error(oLegend + " is not an sap.ui.unified.CalendarLegend. " + this);
 			}
@@ -1065,6 +1254,26 @@ sap.ui.define([
 
 		return this;
 
+	};
+
+	/**
+	 * Checks if the current date value is outside the allowed min/max date range.
+	 *
+	 * @returns {boolean} True if the value is out of range, false otherwise.
+	 * @private
+	 */
+	DatePicker.prototype._isValueOutOfRange = function() {
+		const sDate = this._$input.val();
+		let oDate = this.getDateValue();
+		if (sDate) {
+			oDate = this._parseValue(sDate, true);
+			if (!oDate) {
+				return false;
+			}
+		}
+		const bIsLessThanMin = !!oDate && this._oMinDate && oDate.getTime() < this._oMinDate.getTime();
+		const bIsGreaterThanMax = !!oDate && this._oMaxDate && oDate.getTime() > this._oMaxDate.getTime();
+		return bIsLessThanMin || bIsGreaterThanMax;
 	};
 
 	DatePicker.prototype.onChange = function(oEvent) {
@@ -1217,22 +1426,27 @@ sap.ui.define([
 
 	// to be overwritten by DateTimePicker
 	DatePicker.prototype._createPopup = function(){
-		var sTitleText = "";
+		const bPhone = Device.system.phone;
 
 		if (!this._oPopup) {
 			this._oPopup = new ResponsivePopover(this.getId() + "-RP", {
 				showCloseButton: false,
 				showArrow: false,
-				showHeader: false,
+				showHeader: bPhone,
 				placement: library.PlacementType.VerticalPreferredBottom,
-				contentWidth: this.$().closest(".sapUiSizeCompact").length > 0 ? "18rem" : "21rem",
 				beginButton: new Button({
 					type: library.ButtonType.Emphasized,
 					text: oResourceBundle.getText("DATEPICKER_SELECTION_CONFIRM"),
 					press: this._handleOKButton.bind(this)
 				}),
+				endButton: new Button(this.getId() + "-Cancel", {
+					text: oResourceBundle.getText("DATEPICKER_SELECTION_CANCEL"),
+					press: this._handleCancelButton.bind(this)
+				}),
+				beforeOpen: _handleBeforeOpen.bind(this),
 				afterOpen: _handleOpen.bind(this),
-				afterClose: _handleClose.bind(this)
+				afterClose: _handleClose.bind(this),
+				ariaLabelledBy: this._getInvisibleLabelText().getId()
 			}).addStyleClass("sapMRPCalendar");
 
 			if (this.getShowFooter()) {
@@ -1241,33 +1455,112 @@ sap.ui.define([
 
 			this._oPopup._getPopup().setAutoClose(true);
 
-			if (Device.system.phone) {
-				sTitleText = LabelEnablement.getReferencingLabels(this)
-					.concat(this.getAriaLabelledBy())
-					.reduce(function(sAccumulator, sCurrent) {
-						var oCurrentControl = Element.registry.get(sCurrent);
-						return sAccumulator + " " + (oCurrentControl.getText ? oCurrentControl.getText() : "");
-					}, "")
-					.trim();
+			// Calendar-type toggle button — used in high-zoom mode when secondaryCalendarType is set.
+			// Created for all popup types so _updateHZCalToggleBtn works on desktop too.
+			if (!this._oHZCalToggleBtn) {
+				this._oHZCalToggleBtn = new Button(this.getId() + "-hzCalToggle", {
+					type: library.ButtonType.Transparent,
+					icon: "sap-icon://workflow-tasks",
+					visible: false,
+					press: this._onHZCalTogglePress.bind(this)
+				});
+			}
 
-				this._oPopup.setTitle(sTitleText);
-				this._oPopup.setShowHeader(true);
-				this._oPopup.setShowCloseButton(true);
+			// Today button — shown in high-zoom header when showCurrentDateButton is true.
+			if (!this._oHZTodayBtn) {
+				this._oHZTodayBtn = new Button(this.getId() + "-hzToday", {
+					type: library.ButtonType.Transparent,
+					icon: "sap-icon://appointment",
+					visible: false,
+					press: this._onHZTodayPress.bind(this)
+				});
+			}
+
+			if (bPhone) {
+				this._oPopup.setTitle(this._getLabelledText());
 			} else {
 				// sap.m.Dialog used instead of the sap.m.ResponsivePopover doesen't display
 				// correctly without an animation on mobile devices so we remove the animation
 				// only for desktop when sap.m.Popover is used instead of sap.m.Dialog
 				this._oPopup._getPopup().setDurations(0, 0);
-				this._oPopup.setEndButton(new Button({
-						text: oResourceBundle.getText("DATEPICKER_SELECTION_CANCEL"),
-						press: this._handleCancelButton.bind(this)
-					})
-				);
 			}
 
 			// define a parent-child relationship between the control's and the _picker pop-up
 			this.setAggregation("_popup", this._oPopup, true);
 		}
+	};
+
+	/**
+	 * Returns the invisible label text for the DatePicker.
+	 * @private
+	 * @returns {sap.ui.core.InvisibleText} The invisible label text
+	 */
+	DatePicker.prototype._getInvisibleLabelText = function() {
+		if (!this._invisibleLabelText) {
+			this._invisibleLabelText = new InvisibleText({
+				text: this._getPickerAccessibleName()
+			}).toStatic();
+		}
+
+		return this._invisibleLabelText;
+	};
+
+	/**
+	 * Returns the accessible name for the DatePicker.
+	 * @returns {string} The accessible name
+	 */
+	DatePicker.prototype._getPickerAccessibleName = function() {
+		return oResourceBundle.getText(this._getAccessibleNameBundleKey(), [this._getLabelledText()]);
+	};
+
+	/**
+	 * Returns the message bundle key of the invisible text for the accessible name of the popover.
+	 * @private
+	 * @returns {string} The message bundle key
+	 */
+	DatePicker.prototype._getAccessibleNameBundleKey = function() {
+		var sConstructorName = this._getCalendarConstructor().getMetadata().getName();
+
+		switch (sConstructorName) {
+			case "sap.ui.unified.internal.CustomYearPicker":
+				return "DATEPICKER_YEAR_POPOVER_ACCESSIBLE_NAME";
+			case "sap.ui.unified.internal.CustomMonthPicker":
+				return "DATEPICKER_MONTH_POPOVER_ACCESSIBLE_NAME";
+			default:
+				return "DATEPICKER_POPOVER_ACCESSIBLE_NAME";
+		}
+	};
+
+	/**
+	 * Returns the labelled text for the DatePicker.
+	 * @private
+	 * @returns {string} The labelled text
+	 */
+	DatePicker.prototype._getLabelledText = function() {
+		const aExternalLabelRefs = LabelEnablement.getReferencingLabels(this);
+		const aAriaLabelledBy = this.getAriaLabelledBy();
+
+		if (!aExternalLabelRefs.length && !aAriaLabelledBy.length) {
+			return oResourceBundle.getText("DATEPICKER_DEFAULT_TITLE");
+		}
+
+		const aLabels = aExternalLabelRefs.length ? aExternalLabelRefs : aAriaLabelledBy;
+
+		return aLabels
+			.reduce(function(sAccumulator, sCurrent) {
+				const oLabelTextControl = Element.getElementById(sCurrent);
+				const sLabelText = oLabelTextControl && oLabelTextControl.getText ? oLabelTextControl.getText() : "";
+				return `${sAccumulator} ${sLabelText}`;
+			}, "")
+			.trim();
+	};
+
+	DatePicker.prototype._getCalendarWeekNumbering = function () {
+		if (this.isPropertyInitial("calendarWeekNumbering")) {
+			return;
+		}
+
+		return this.getCalendarWeekNumbering();
 	};
 
 	// to be overwritten by DateTimePicker
@@ -1307,6 +1600,10 @@ sap.ui.define([
 	 * @private
 	 */
 	DatePicker.prototype._getVisibleDatesRange = function (oCalendar) {
+		if (this._bHighZoom) {
+			return null;
+		}
+
 		var aVisibleDays = oCalendar._getVisibleDays();
 
 		// Convert to local date instance
@@ -1329,7 +1626,6 @@ sap.ui.define([
 				minDate: this.getMinDate(),
 				maxDate: this.getMaxDate(),
 				legend: this.getLegend(),
-				calendarWeekNumbering: this.getCalendarWeekNumbering(),
 				startDateChange: function () {
 						this.fireNavigate({
 							dateRange: this._getVisibleDatesRange(this._getCalendar())
@@ -1338,11 +1634,23 @@ sap.ui.define([
 				});
 
 			this._oCalendar.setShowCurrentDateButton(this.getShowCurrentDateButton());
+			!this.isPropertyInitial("calendarWeekNumbering") && this._oCalendar.setCalendarWeekNumbering(this._getCalendarWeekNumbering());
 			this._oDateRange = new DateRange();
 			this._getCalendar().addSelectedDate(this._oDateRange);
 			this._getCalendar()._setSpecialDatesControlOrigin(this);
 			this._getCalendar().attachCancel(_cancel, this);
-			if (this.$().closest(".sapUiSizeCompact").length > 0) {
+
+			// Handle Alt+Up/Down to close the picker when focus is on the calendar
+			this._getCalendar().addDelegate({
+				onsapshow: function(oEvent) {
+					this._handleShowHideOnCalendar(oEvent);
+				}.bind(this),
+				onsaphide: function(oEvent) {
+					this._handleShowHideOnCalendar(oEvent);
+				}.bind(this)
+			});
+
+			if (this.getDomRef()?.closest(".sapUiSizeCompact")) {
 				this._getCalendar().addStyleClass("sapUiSizeCompact");
 			}
 			if (this._bSecondaryCalendarTypeSet) {
@@ -1352,7 +1660,7 @@ sap.ui.define([
 				this._getCalendar().attachSelect(this._handleCalendarSelect, this);
 				this._getCalendar().attachEvent("_renderMonth", _resizeCalendar, this);
 
-				this._oPopup._getButtonFooter().setVisible(this.getShowFooter());
+				this._oPopup._getButtonFooter().setVisible(Device.system.phone || this.getShowFooter());
 				this._getCalendar()._bSkipCancelButtonRendering = true;
 				if (!this._oPopup.getContent().length) {
 					var oHeader = this._getValueStateHeader();
@@ -1366,6 +1674,22 @@ sap.ui.define([
 				}
 			}
 			this._attachAfterRenderingDelegate();
+		}
+
+		this._bHighZoom = this._isHighZoom();
+
+		const oInputs = this._getOrCreateHighZoomInputs();
+		if (this._oPopup && this._oPopup.getContent().indexOf(oInputs) === -1) {
+			this._oPopup.addContent(oInputs);
+		}
+		// Subclasses that need extra controls (e.g. DateTimePicker creates _oClocks after
+		// calling super) set _bDeferHighZoomSwitch = true and call _switchPickerContent themselves.
+		if (!this._bDeferHighZoomSwitch) {
+			if (this._bHighZoom) {
+				this._switchPickerContent(true);
+			} else {
+				oInputs.setVisible(false);
+			}
 		}
 	};
 
@@ -1411,7 +1735,52 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Returns the effective primary calendar type — from data binding if available, otherwise from displayFormatType.
+	 * Mirrors the logic used when opening the calendar popup.
+	 * @returns {string|null}
+	 * @private
+	 */
+	DatePicker.prototype._getEffectiveCalendarType = function() {
+		const oBinding = this.getBinding("value");
+		let sCalType;
+		if (oBinding && oBinding.oType && oBinding.oType.oOutputFormat) {
+			sCalType = oBinding.oType.oOutputFormat.oFormatOptions.calendarType;
+		} else if (oBinding && oBinding.oType && oBinding.oType.oFormat) {
+			sCalType = oBinding.oType.oFormat.oFormatOptions.calendarType;
+		}
+		return sCalType || this.getDisplayFormatType() || null;
+	};
+
+	/**
+	 * Derives which input rows DateHighZoomInputs should render from the display format.
+	 * Returns <code>"Year"</code>, <code>"YearMonth"</code>, <code>"YearMonthDay"</code>,
+	 * or <code>"MonthDay"</code>.
+	 * @returns {string}
+	 * @private
+	 */
+	DatePicker.prototype._getHighZoomVisibleFields = function() {
+		const aPatternSymbolTypes = this._getFormatter(true)
+			.aFormatArray
+			.map(function(oPatternSymbolSettings) {
+				return oPatternSymbolSettings.type.toLowerCase();
+			});
+		const bDay   = aPatternSymbolTypes.indexOf("day") >= 0;
+		const bMonth = aPatternSymbolTypes.indexOf("month") >= 0 || aPatternSymbolTypes.indexOf("monthstandalone") >= 0;
+		const bYear  = aPatternSymbolTypes.indexOf("year") >= 0;
+
+		if (bDay && bMonth && bYear) { return "YearMonthDay"; }
+		if (bMonth && bYear)         { return "YearMonth"; }
+		if (bDay && bMonth)          { return "MonthDay"; }
+		return "Year";
+	};
+
 	DatePicker.prototype._fillDateRange = function(){
+		if (this._bHighZoom) {
+			this._syncHighZoomInputs();
+			return;
+		}
+
 		var oDate = this.getDateValue();
 
 		if (oDate &&
@@ -1441,6 +1810,25 @@ sap.ui.define([
 	};
 
 	/**
+	 * Syncs min/max/value and callbacks to DateHighZoomInputs, then validates.
+	 * Called on every popup open and on switch into high-zoom mode.
+	 * @private
+	 */
+	DatePicker.prototype._syncHighZoomInputs = function() {
+		this._oHighZoomInputs.setMinDate(this._oMinDate);
+		this._oHighZoomInputs.setMaxDate(this._oMaxDate);
+		// Prefer dateValue; fall back to parsing the value string so a picker
+		// configured only via value= still shows the correct date in the selects.
+		const oDate = this.getDateValue() || (this.getValue() && this._parseValue(this.getValue(), true)) || null;
+		this._oHighZoomInputs.setDateValue(oDate);
+		this._oHighZoomInputs.syncStartDate();
+		const bValid = this._oHighZoomInputs.validate();
+		if (this._oPopup && this._oPopup.getBeginButton) {
+			this._oPopup.getBeginButton().setEnabled(bValid);
+		}
+	};
+
+	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control.
 	 * @protected
@@ -1449,7 +1837,7 @@ sap.ui.define([
 		var oRenderer = this.getRenderer();
 		var oInfo = InputBase.prototype.getAccessibilityInfo.apply(this, arguments);
 		var sValue = this.getValue() || "";
-		var sRequired = this.getRequired() ? Core.getLibraryResourceBundle("sap.m").getText("ELEMENT_REQUIRED") : '';
+		var sRequired = this.getRequired() ? Library.getResourceBundleFor("sap.m").getText("ELEMENT_REQUIRED") : '';
 
 		if (this._bValid) {
 			var oDate = this.getDateValue();
@@ -1508,7 +1896,7 @@ sap.ui.define([
 	};
 
 	DatePicker.prototype._getTimezone = function(bUseDefaultAsFallback) {
-		return Configuration.getTimezone();
+		return Localization.getTimezone();
 	};
 
 	/* sets cursor inside the input in order to focus it */
@@ -1532,6 +1920,9 @@ sap.ui.define([
 	};
 
 	DatePicker.prototype._getSelectedDate = function(){
+		if (this._bHighZoom) {
+			return this._oHighZoomInputs.getDateObject();
+		}
 
 		var aSelectedDates = this._getCalendar().getSelectedDates(),
 			oDate;
@@ -1546,11 +1937,19 @@ sap.ui.define([
 
 	//when OK is pressed, select a date and close the popover
 	DatePicker.prototype._handleOKButton = function() {
+		if (this._bHighZoom && this._oHighZoomInputs) {
+			if (!this._oHighZoomInputs.validate()) {
+				return; // keep popup open, errors shown on fields
+			}
+		}
 		this._selectDate();
 	};
 
 	//when Cancel is pressed, close the popover
 	DatePicker.prototype._handleCancelButton = function (){
+		if (this._bHighZoom && this._oHighZoomInputs) {
+			this._oHighZoomInputs.resetValueState();
+		}
 		if (!this.getDateValue()) {
 			this._oPopup.getBeginButton().setEnabled(false);
 		}
@@ -1643,25 +2042,11 @@ sap.ui.define([
 
 	};
 
-
-	DatePicker.prototype._getSpecialDates = function() {
-		var specialDates = this.getSpecialDates();
-		for (var i = 0; i < specialDates.length; i++) {
-			var bNeedsSecondTypeAdding = specialDates[i].getSecondaryType() === unifiedLibrary.CalendarDayType.NonWorking
-					&& specialDates[i].getType() !== unifiedLibrary.CalendarDayType.NonWorking;
-			if (bNeedsSecondTypeAdding) {
-				var newSpecialDate = new DateTypeRange();
-				newSpecialDate.setType(specialDates[i].getSecondaryType());
-				newSpecialDate.setStartDate(specialDates[i].getStartDate());
-				if (specialDates[i].getEndDate()) {
-					newSpecialDate.setEndDate(specialDates[i].getEndDate());
-				}
-				specialDates.push(newSpecialDate);
-			}
+	function _handleBeforeOpen() {
+		if (Device.system.phone) {
+			this._oPopup.setTitle(this._getLabelledText());
 		}
-
-		return specialDates;
-	};
+	}
 
 	function _handleOpen() {
 		this.addStyleClass(InputBase.ICON_PRESSED_CSS_CLASS);
@@ -1752,6 +2137,175 @@ sap.ui.define([
 	 * @name sap.m.DatePicker#fireChange
 	 * @function
 	 */
+
+	// ============================================================
+	// High-zoom (≤320px) Year/Month/Day selects
+	// ============================================================
+
+	/**
+	 * Called by DateTimeFieldZoomMixin when the viewport width crosses the 320px boundary.
+	 * @param {boolean} bHighZoom
+	 * @private
+	 */
+	DatePicker.prototype._onZoomChange = function(bHighZoom) {
+		if (bHighZoom === this._bHighZoom) { return; }
+		this._bHighZoom = bHighZoom;
+		if (this.isOpen()) {
+			this._switchPickerContent(bHighZoom);
+		}
+	};
+
+	/**
+	 * Lazily creates and returns the DateHighZoomInputs control.
+	 * @returns {sap.m.DateHighZoomInputs}
+	 * @private
+	 */
+	DatePicker.prototype._getOrCreateHighZoomInputs = function() {
+		if (this._oHighZoomInputs) { return this._oHighZoomInputs; }
+
+		this._oHighZoomInputs = new DateHighZoomInputs(this.getId() + "-hzInputs", {
+			change: this._onHighZoomChange.bind(this)
+		});
+
+		return this._oHighZoomInputs;
+	};
+
+	/**
+	 * Called when DateHighZoomInputs fires its change event.
+	 * Validates the composed date — never auto-closes; user confirms via OK.
+	 * @private
+	 */
+	DatePicker.prototype._onHighZoomChange = function() {
+		const bValid = this._oHighZoomInputs.validate();
+		if (this._oPopup && this._oPopup.getBeginButton) {
+			this._oPopup.getBeginButton().setEnabled(bValid);
+		}
+	};
+
+	/**
+	 * Switches between Calendar and DateHighZoomInputs in the popup.
+	 * @param {boolean} bHighZoom
+	 * @private
+	 */
+	DatePicker.prototype._switchPickerContent = function(bHighZoom) {
+		if (!this._oCalendar || !this._oHighZoomInputs) {
+			return;
+		}
+
+		this._oCalendar.setVisible(!bHighZoom);
+		this._oHighZoomInputs.setVisible(bHighZoom);
+
+		if (this._oPopup) {
+			const bShowFooter = bHighZoom || this.getShowFooter();
+			this._oPopup._getButtonFooter?.().setVisible(bShowFooter);
+		}
+		if (bHighZoom) {
+			this._oHighZoomInputs.setPrimaryCalendarType(this._getEffectiveCalendarType());
+			this._oHighZoomInputs.setSecondaryCalendarType(
+				this._bSecondaryCalendarTypeSet ? this.getSecondaryCalendarType() : null
+			);
+			this._oHighZoomInputs.setProperty("_visibleFields", this._getHighZoomVisibleFields(), true);
+			this._syncHighZoomInputs();
+			this._updateHZCalToggleBtn();
+		} else {
+			if (this._oHighZoomInputs) {
+				this._oHighZoomInputs.switchCalendarType(this._getEffectiveCalendarType() || "Gregorian");
+			}
+			this._fillDateRange();
+			this._updateHZCalToggleBtn();
+		}
+	};
+
+	/**
+	 * Returns whether the Today button should be visible in high-zoom mode.
+	 * Override in subclasses to add extra conditions (e.g. active tab check).
+	 * @returns {boolean}
+	 * @private
+	 */
+	DatePicker.prototype._isHZTodayBtnVisible = function() {
+		return this.getShowCurrentDateButton();
+	};
+
+	/**
+	 * Updates the calendar-type toggle button visibility in the dialog header.
+	 * Shown only when in high-zoom mode AND a secondary calendar type has been set.
+	 * @private
+	 */
+	DatePicker.prototype._updateHZCalToggleBtn = function() {
+		const bToggleVisible = this._bHighZoom && this._bSecondaryCalendarTypeSet;
+		const bTodayVisible  = this._bHighZoom && this._isHZTodayBtnVisible();
+
+		if (this._oHZTodayBtn) {
+			this._oHZTodayBtn.setVisible(bTodayVisible);
+		}
+
+		if (!this._oHZCalToggleBtn) { return; }
+
+		// Build or tear down the custom header when either button changes visibility
+		const bNeedCustomHeader = (bToggleVisible || bTodayVisible) && this._oPopup && Device.system.phone;
+
+		if (bNeedCustomHeader) {
+			if (!this._oPopup.getCustomHeader()) {
+				const aRight = [];
+				if (bTodayVisible)  { aRight.push(this._oHZTodayBtn); }
+				if (bToggleVisible) { aRight.push(this._oHZCalToggleBtn); }
+				this._oPopup.setCustomHeader(new Bar({
+					contentMiddle: [new Title({ text: this._getLabelledText() })],
+					contentRight:  aRight
+				}).addStyleClass("sapMDialogTitle"));
+			} else {
+				const oBar = this._oPopup.getCustomHeader();
+				oBar.removeAllContentRight();
+				if (bTodayVisible)  { oBar.addContentRight(this._oHZTodayBtn); }
+				if (bToggleVisible) { oBar.addContentRight(this._oHZCalToggleBtn); }
+			}
+		} else if (!bNeedCustomHeader && this._oPopup && this._oPopup.getCustomHeader()) {
+			this._oPopup.destroyCustomHeader();
+			this._oPopup.setTitle(this._getLabelledText());
+		}
+
+		this._oHZCalToggleBtn.setVisible(bToggleVisible);
+
+		if (bToggleVisible) {
+			const sPrimary = this._getEffectiveCalendarType() || "Gregorian";
+			const sActive = this._oHighZoomInputs.getProperty("_activeCalendarType") || sPrimary;
+			const sOther = (sActive === sPrimary)
+				? this.getSecondaryCalendarType()
+				: sPrimary;
+			this._oHZCalToggleBtn.setTooltip(
+				oResourceBundle.getText("DATEPICKER_HZ_SWITCH_CAL_TYPE", [sOther])
+			);
+		}
+	};
+
+	/**
+	 * Handles press on the Today button in high-zoom mode.
+	 * @private
+	 */
+	DatePicker.prototype._onHZTodayPress = function() {
+		if (!this._oHighZoomInputs) { return; }
+		const oToday = UI5Date.getInstance();
+		this._oHighZoomInputs.setDateValue(oToday);
+		this._oHighZoomInputs.syncStartDate();
+		this._onHighZoomChange();
+	};
+
+	/**
+	 * Handles press on the calendar-type toggle button.
+	 * @private
+	 */
+	DatePicker.prototype._onHZCalTogglePress = function() {
+		if (!this._oHighZoomInputs) { return; }
+
+		const sPrimary = this._getEffectiveCalendarType() || "Gregorian";
+		const sActive = this._oHighZoomInputs.getProperty("_activeCalendarType") || sPrimary;
+		const sTarget = (sActive === sPrimary)
+			? this.getSecondaryCalendarType()
+			: sPrimary;
+
+		this._oHighZoomInputs.switchCalendarType(sTarget);
+		this._updateHZCalToggleBtn();
+	};
 
 	return DatePicker;
 

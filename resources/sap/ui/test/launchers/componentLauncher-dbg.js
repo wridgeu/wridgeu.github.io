@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/base/util/uid",
 	"sap/ui/core/Component",
-	"sap/ui/core/ComponentContainer"
-], function(uid, Component, ComponentContainer) {
+	"sap/ui/core/ComponentContainer",
+	"sap/ui/events/FocusEventFix"
+], function(uid, Component, ComponentContainer/*, FocusEventFix */) {
 	"use strict";
 
 	var _loadingStarted = false,

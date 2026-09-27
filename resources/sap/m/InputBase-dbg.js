@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
+	"sap/ui/core/Element",
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
 	'./delegate/ValueStateMessage',
@@ -14,12 +15,15 @@ sap.ui.define([
 	'sap/ui/core/InvisibleMessage',
 	'sap/ui/core/library',
 	'sap/ui/Device',
+	'sap/ui/core/Popup',
+	"sap/ui/dom/containsOrEquals",
+	"sap/ui/core/LabelEnablement",
 	'./InputBaseRenderer',
 	'sap/base/Log',
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Lib",
-    // jQuery Plugin "cursorPos"
+	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos",
 	// jQuery Plugin "getSelectedText"
 	"sap/ui/dom/jquery/getSelectedText",
@@ -29,6 +33,7 @@ sap.ui.define([
 function(
 	library,
 	Control,
+	Element,
 	EnabledPropagator,
 	IconPool,
 	ValueStateMessage,
@@ -36,6 +41,9 @@ function(
 	InvisibleMessage,
 	coreLibrary,
 	Device,
+	Popup,
+	containsOrEquals,
+	LabelEnablement,
 	InputBaseRenderer,
 	log,
 	KeyCodes,
@@ -63,10 +71,16 @@ function(
 	 * The <code>sap.m.InputBase</code> control provides a basic functionality for input controls.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.IFormContent
+	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent, sap.ui.core.ILabelable
+	 *
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormFormattedValue as #getFormFormattedValue
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormValueProperty as #getFormValueProperty
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormObservingProperties as #getFormObservingProperties
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormRenderAsControl as #getFormRenderAsControl
+	 * @borrows sap.ui.core.ILabelable.hasLabelableHTMLElement as #hasLabelableHTMLElement
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -76,7 +90,12 @@ function(
 	var InputBase = Control.extend("sap.m.InputBase", /** @lends sap.m.InputBase.prototype */ {
 		metadata: {
 
-			interfaces : ["sap.ui.core.IFormContent"],
+			interfaces : [
+				"sap.ui.core.IFormContent",
+				"sap.ui.core.ISemanticFormContent",
+				"sap.m.IToolbarInteractiveControl",
+				"sap.ui.core.ILabelable"
+			],
 			library: "sap.m",
 			properties: {
 
@@ -187,7 +206,6 @@ function(
 				 * Defines the formatted text that appears in the value state message pop-up.
 				 * It can include links. If both <code>valueStateText</code> and <code>formattedValueStateText</code>
 				 * are set - the latter is shown.
-				 * @experimental Since 1.78. This aggregation is experimental and provides only limited functionality. Also the API might be changed in future.
 				 * @since 1.78
 				 */
 				formattedValueStateText: { type: "sap.m.FormattedText", multiple: false },
@@ -195,7 +213,6 @@ function(
 				/**
 				 * Clone of the <code>formattedValueStateText</code> aggregation created for the accessibility elements used
 				 * by screen readers.
-				 * @experimental Since 1.84. This aggregation is experimental and provides only limited functionality. Also the API might be changed in future.
 				 * @since 1.84
 				 */
 				_invisibleFormattedValueStateText: { type: "sap.m.FormattedText", multiple: false, visibility: "hidden" },
@@ -305,15 +322,59 @@ function(
 		this.bRenderingPhase = false;
 
 		this._oValueStateMessage = new ValueStateMessage(this);
+		this._aValueStateLinks = [];
+
 		// handle composition events & validation of composition symbols
 		this._bIsComposingCharacter = false;
 
 		this.setLastValueStateText("");
 		this.setErrorMessageAnnouncementState(false);
 
-		this.fnCloseValueStateOnClick = function() {
-			this.closeValueStateMessage();
-		};
+		this.fnCloseValueStateOnClick = this.closeValueStateMessage.bind(this);
+	};
+
+	InputBase.prototype._oLinkDelegate = {
+		onfocusout: function (oEvent) {
+			var oRelTarget = oEvent.relatedTarget || (oEvent.relatedControlId && Element.getElementById(oEvent.relatedControlId).getDomRef());
+			const bFocusGoesInInput = oRelTarget && containsOrEquals(this.getDomRef(), oRelTarget);
+			const bFocusGoesToValueState = oRelTarget && containsOrEquals(this._oValueStateMessage.getDomRef(), oRelTarget);
+			if (!bFocusGoesInInput && !bFocusGoesToValueState) {
+				this.closeValueStateMessage();
+			}
+		},
+		onsapup: function(oEvent) {
+			// When focus is on the link, arrow keys should do nothing
+			oEvent.preventDefault();
+			oEvent.stopImmediatePropagation();
+		},
+		onsapdown: function(oEvent) {
+			// When focus is on the link, arrow keys should do nothing
+			oEvent.preventDefault();
+			oEvent.stopImmediatePropagation();
+		}
+	};
+
+	InputBase.prototype._oFirstLinkDelegate = {
+		onsaptabprevious: function(oEvent){
+			oEvent.preventDefault();
+			oEvent.stopImmediatePropagation();
+			this.getFocusDomRef().focus();
+		}
+	};
+
+	InputBase.prototype._oLastLinkDelegate = {
+		onsaptabnext: function(oEvent) {
+			this.onsapfocusleave(oEvent);
+			// Return focus to the input because the links in the value state message are rendered in the
+			// static area and TAB will focus something rendered before the input
+			this._oPreviousFocus && Popup.applyFocusInfo(this._oPreviousFocus);
+			// Value state message should be closed with delay because Popup.applyfocusInfo returns the focus
+			// to the input in order to proceed with focusing the next element in the tab chain on TAB
+			// If closeValueStateMessage is called without a delay, the next control is focused and the popup remains open
+			setTimeout(() => {
+				this.closeValueStateMessage();
+			}, 0);
+		}
 	};
 
 	/**
@@ -334,7 +395,7 @@ function(
 	InputBase.prototype.oncompositionend = function (oEvent) {
 		this._bIsComposingCharacter = false;
 
-		// In Firefox and Edge the events are fired correctly
+		// In Firefox the events are fired correctly
 		// http://blog.evanyou.me/2014/01/03/composition-event/
 		if (!Device.browser.firefox) {
 			// dom value updated other than value property
@@ -413,11 +474,14 @@ function(
 
 		// Announce error value state update, only when the visual focus is in the input field
 		if (this.getErrorMessageAnnouncementState() && this.hasStyleClass("sapMFocus")) {
-			sValueStateMessageHiddenText && this._oInvisibleMessage.announce(sValueStateMessageHiddenText.textContent);
+			if (sValueStateMessageHiddenText) {
+				const sValueStateMessageHiddenTextLinks = document.getElementById(this.getValueStateLinksShortcutsId());
+				const sLinksAnnouncement = sValueStateMessageHiddenTextLinks ? sValueStateMessageHiddenTextLinks.textContent : "";
+				const sTextToAnnounce = `${sValueStateMessageHiddenText.textContent} ${sLinksAnnouncement}`;
+				this._oInvisibleMessage.announce(sTextToAnnounce);
+			}
 			this.setErrorMessageAnnouncementState(false);
 		}
-
-		this.$("message").text(this.getValueStateText());
 
 		// now dom value is up-to-date
 		this._bCheckDomValue = false;
@@ -427,6 +491,10 @@ function(
 
 		if (bIsFocused) {
 			this[bClosedValueState ? "closeValueStateMessage" : "openValueStateMessage"]();
+		}
+
+		if (bClosedValueState) {
+			this.closeValueStateMessage();
 		}
 
 		if (this.getAggregation("_invisibleFormattedValueStateText")) {
@@ -487,8 +555,11 @@ function(
 	 * @private
 	 */
 	InputBase.prototype.onfocusout = function(oEvent) {
-		this.removeStyleClass("sapMFocus");
-		// Don't close the ValueStateMessage on focusout if it contains sap.m.Formatted text, it can contain links
+		// Keep the focus class if focus moves to an element within the control (e.g., clear icon, value help icon)
+		if (!containsOrEquals(this.getDomRef(), oEvent.relatedTarget)) {
+			this.removeStyleClass("sapMFocus");
+		}
+		// Don't close the ValueStateMessage on focusout if it contains sap.m.FormattedText, it can contain links
 		if (!this._bClickOnValueStateLink(oEvent)) {
 			this.closeValueStateMessage();
 		}
@@ -536,6 +607,10 @@ function(
 	 * @private
 	 */
 	InputBase.prototype.ontap = function(oEvent) {
+		if (!this.isMobileDevice()) {
+			this.openValueStateMessage();
+		}
+
 		// in order to stay backward compatible - we need to implement the tap
 		return;
 	};
@@ -630,6 +705,16 @@ function(
 		});
 	};
 
+	/**
+	 * Indicates whether the control should use <code>sap.m.Dialog</code> or not.
+	 *
+	 * @returns {boolean} Boolean.
+	 * @protected
+	 */
+	InputBase.prototype.isMobileDevice = function () {
+		return Device.system.phone;
+	};
+
 	/* ----------------------------------------------------------- */
 	/* Keyboard handling                                           */
 	/* ----------------------------------------------------------- */
@@ -711,6 +796,16 @@ function(
 			oEvent.preventDefault();
 		}
 	};
+
+	InputBase.prototype.areHotKeysPressed = function (oEvent) {
+		return (oEvent.ctrlKey || oEvent.metaKey) && oEvent.altKey && oEvent.which === KeyCodes.F8;
+	};
+
+	InputBase.prototype._handleValueStateLinkNav = function() {
+		const aLinks =  this._getValueStateLinks();
+		aLinks.length && aLinks[0].focus();
+	};
+
 
 	/**
 	 * Handle cut event.
@@ -846,7 +941,7 @@ function(
 		// if set to true, handle the user input and data
 		// model updates concurrency in order to not overwrite
 		// values coming from the user
-		if (this._bPreferUserInteraction) {
+		if (this._getPreferUserInteraction()) {
 			this.handleInputValueConcurrency(sValue);
 		} else {
 			oInnerDomRef.value = sValue;
@@ -855,20 +950,25 @@ function(
 		return this;
 	};
 
+	InputBase.prototype._setValueStateLinks = function(aLinks) {
+		if (this.getFormattedValueStateText() && this.getFormattedValueStateText().getHtmlText() && this.getFormattedValueStateText().getControls().length) {
+			this._aValueStateLinks = this.getFormattedValueStateText().getControls();
+			return;
+		}
+
+		this._aValueStateLinks = aLinks;
+	};
+
 	/**
 	 * If there is <code>sap.m.FormattedText</code> aggregation for value state message
 	 * return the links in it, if any.
 	 *
-	 * @returns {sap.m.Link[]} Links in a value state message containing <code>sap.m.FormattedText</code>
+	 * @returns {sap.m.Link[]|HTMLAnchorElement[]|Array} Links in a value state message containing <code>sap.m.FormattedText</code>
 	 * @private
 	 */
-	InputBase.prototype._aValueStateLinks = function() {
-		if (this.getFormattedValueStateText() && this.getFormattedValueStateText().getHtmlText() && this.getFormattedValueStateText().getControls().length) {
-			return this.getFormattedValueStateText().getControls();
-		} else {
-			return [];
-		}
-	};
+		InputBase.prototype._getValueStateLinks = function() {
+			return this._aValueStateLinks;
+		};
 
 	/**
 	 * @param {jQuery.Event} oEvent The event object.
@@ -876,11 +976,25 @@ function(
 	 * @private
 	 */
 	InputBase.prototype._bClickOnValueStateLink = function(oEvent) {
-		var aValueStateLinks = this._aValueStateLinks();
+		const aValueStateLinks = this._getValueStateLinks();
+		const oRelTarget = oEvent && oEvent.relatedTarget;
 
-		return aValueStateLinks.some(function(oLink) {
-			return oEvent.relatedTarget === oLink.getDomRef();
-		});
+		// if the links are declared as aggregation of the sap.m.FormattedText
+		if (aValueStateLinks.length) {
+			return aValueStateLinks.some(function(oLink) {
+				return !!oLink.getDomRef && oRelTarget === oLink.getDomRef();
+			});
+		}
+
+		// links can be passed directly to a sap.m.FormattedText control as part of a HTML message (not as an aggregation)
+		if (oRelTarget && oRelTarget.tagName === "A" && oRelTarget.parentElement.classList.contains("sapMFT")) {
+			this._setValueStateLinks([oRelTarget]);
+			this._attachValueStateLinkActions();
+
+			return true;
+		}
+
+		return false;
 	};
 
 	/**
@@ -889,17 +1003,39 @@ function(
 	 *
 	 * @private
 	 */
-	InputBase.prototype._attachValueStateLinkPress = function() {
-		this._aValueStateLinks().forEach(
-			function(oLink) {
-				oLink.attachPress(this.fnCloseValueStateOnClick, this);
+	InputBase.prototype._attachValueStateLinkActions = function () {
+		const aLinks = this._getValueStateLinks();
+		aLinks.forEach(
+			function (oLink, nIndex) {
+				if (oLink.attachPress) {
+					oLink.attachPress(this.fnCloseValueStateOnClick, this);
+					oLink.addDelegate(this._oLinkDelegate, this);
+					if (nIndex === 0) {
+						oLink.addDelegate(this._oFirstLinkDelegate, this);
+					}
+					if (nIndex === this._aValueStateLinks.length - 1) {
+						oLink.addDelegate(this._oLastLinkDelegate, this);
+					}
+				} else {
+					oLink.addEventListener("click", this.fnCloseValueStateOnClick);
+				}
 			}, this);
 	};
 
-	InputBase.prototype._detachValueStateLinkPress = function() {
-		this._aValueStateLinks().forEach(
-			function(oLink) {
-				oLink.detachPress(this.fnCloseValueStateOnClick, this);
+	InputBase.prototype._detachValueStateLinkActions = function () {
+		const aLinks = this._getValueStateLinks();
+		aLinks.forEach(
+			function (oLink, nIndex) {
+				if (oLink.detachPress) {
+					oLink.detachPress(this.fnCloseValueStateOnClick, this);
+					oLink.removeDelegate(this._oLinkDelegate, this);
+					if (nIndex === 0) {
+						oLink.removeDelegate(this._oFirstLinkDelegate, this);
+					}
+					if (nIndex === this._aValueStateLinks.length - 1) {
+						oLink.removeDelegate(this._oLastLinkDelegate, this);
+					}
+				}
 			}, this);
 	};
 
@@ -915,7 +1051,7 @@ function(
 			sInputDOMValue = oInnerDomRef && this._getInputValue(),
 			sInputPropertyValue = this.getProperty("value"),
 			bInputFocused = document.activeElement === oInnerDomRef,
-			bBindingUpdate = this.isBound("value") && this.getBindingInfo("value").skipModelUpdate;
+			bBindingUpdate = this.isBound("value") && this.isPropertyBeingUpdated("value");
 
 		// if the user is currently in the field and he has typed a value,
 		// the changes from the model should not overwrite the user input
@@ -934,17 +1070,41 @@ function(
 	};
 
 	/**
-	 * Sets the preferred user interaction. If set to true, overwriting the
-	 * user input with model updates will be prevented.
+	 * Sets the behavior of the control to prioritize user interaction over later model updates. When set to <code>true</code>, it prevents the model from overwriting user input.
+	 * Example:
+	 * Input's value property is bound to a model
+	 * The user starts typing and due to this action, the model receives update from the backend, thus forwarding it to the bound control property
+	 * Result when <code>false</code>: User input is overwritten by the incoming model update.
+	 * Result when <code>true</code>: User input is not overwritten by the incoming model update - the model update is skipped and the value remains unchanged.
 	 *
-	 * @param {boolean} bPrefer True, if the user interaction is prefered
+	 * @param {boolean} bPrefer True, if the user interaction is preferred
 	 *
+	 * @public
+	 */
+	InputBase.prototype.setPreferUserInteraction = function(bPrefer) {
+		this._setPreferUserInteraction(bPrefer);
+	};
+
+	/** This  method is left temporary for backward compatibility. The public setPreferUserInteraction() should be used.
+	 * @param {boolean} bPrefer True, if the user interaction is preferred
 	 * @private
-	 * @ui5-restricted sap.ui.mdc, sap.ui.comp.smartfield.SmartField
 	 */
 	InputBase.prototype._setPreferUserInteraction = function(bPrefer) {
 		this._bPreferUserInteraction = bPrefer;
 	};
+
+	/**
+	 * Gets the preferred interaction.
+	 *
+	 * @param {boolean} bPrefer True, if the user interaction is preferred
+	 *
+	 * @private
+	 */
+
+	InputBase.prototype._getPreferUserInteraction = function() {
+		return this._bPreferUserInteraction;
+	};
+
 
 	/**
 	 * Close value state message popup.
@@ -956,12 +1116,19 @@ function(
 		// To avoid execution of the opening logic after the closing one,
 		// when closing the suggestions dialog on mobile devices, due to race condition,
 		// the value state message should be closed with timeout because it's opened that way
-		setTimeout(function() {
-			if (this._oValueStateMessage) {
-				this._detachValueStateLinkPress();
-				this._oValueStateMessage.close();
-			}
-		}.bind(this), 0);
+		if (Device.system.phone) {
+			setTimeout(function () {
+				if (this._oValueStateMessage){
+					this._detachValueStateLinkActions();
+					this._oValueStateMessage.close();
+					this._oPreviousFocus = null;
+				}
+			}.bind(this), 0);
+		} else if (this._oValueStateMessage) {
+			this._detachValueStateLinkActions();
+			this._oValueStateMessage.close();
+			this._oPreviousFocus = null;
+		}
 	};
 
 	/**
@@ -995,6 +1162,38 @@ function(
 	 */
 	InputBase.prototype.getValueStateMessageId = function() {
 		return this.getId() + "-message";
+	};
+
+	/**
+	 * Gets the ID of the hidden value state message related to value state links
+	 *
+	 * @returns {string} The ID of the hidden value state message related to value state links
+	 * @protected
+	 */
+	InputBase.prototype.getValueStateLinksShortcutsId = function() {
+		return this.getValueStateMessageId() + "-shortcuts";
+	};
+
+	/**
+	 * Returns the keyboard shortcuts announcement for the value state links
+	 *
+	 * @returns {string} The text for value state links shortcuts
+	 * @protected
+	 */
+	InputBase.prototype.getValueStateLinksShortcutsTextAcc = function () {
+		const aLinks = this.getValueStateLinksForAcc();
+		if (!aLinks.length) {
+			return "";
+		}
+
+		let sSingleLinkShortcutKey = "INPUTBASE_VALUE_STATE_LINK";
+		let sMultipleLinksShortcutKey = "INPUTBASE_VALUE_STATE_LINKS";
+
+		if (Device.os.macintosh){
+			sSingleLinkShortcutKey += "_MAC";
+			sMultipleLinksShortcutKey += "_MAC";
+		}
+		return Library.getResourceBundleFor("sap.m").getText(aLinks.length === 1 ? sSingleLinkShortcutKey : sMultipleLinksShortcutKey);
 	};
 
 	/**
@@ -1042,17 +1241,15 @@ function(
 	 * @protected
 	 */
 	InputBase.prototype.getLabels = function() {
-		var aLabelIDs = this.getAriaLabelledBy().map(function(sLabelID) {
-			return sap.ui.getCore().byId(sLabelID);
+		var aLabelIDs = this.getAriaLabelledBy()
+			.concat(LabelEnablement.getReferencingLabels(this));
+
+		aLabelIDs = aLabelIDs.filter(function(sId, iIndex) {
+			return aLabelIDs.indexOf(sId) === iIndex;
+		})
+		.map(function(sLabelID) {
+			return Element.getElementById(sLabelID);
 		});
-
-		var oLabelEnablement = sap.ui.require("sap/ui/core/LabelEnablement");
-
-		if (oLabelEnablement) {
-			aLabelIDs = aLabelIDs.concat(oLabelEnablement.getReferencingLabels(this).map(function(sLabelID) {
-				return sap.ui.getCore().byId(sLabelID);
-			}));
-		}
 
 		return aLabelIDs;
 	};
@@ -1065,6 +1262,7 @@ function(
 	 */
 	InputBase.prototype.openValueStateMessage = function() {
 		if (this._oValueStateMessage && this.shouldValueStateMessageBeOpened()) {
+			this._oPreviousFocus = Popup.getCurrentFocusInfo();
 			// Render the value state message after closing of the popover
 			// is complete and the FormattedText aggregation is finished the parent
 			// switch from the ValueStateHeader to the InputBase.
@@ -1072,8 +1270,8 @@ function(
 			// in IE we should wait until the scroll ends
 			setTimeout(function () {
 				if (!this.bIsDestroyed) {
-					this._detachValueStateLinkPress();
-					this._attachValueStateLinkPress();
+					this._setValueStateLinks([]);
+					this._attachValueStateLinkActions();
 					this._oValueStateMessage.open();
 				}
 			}.bind(this), 0);
@@ -1150,6 +1348,16 @@ function(
 
 	InputBase.prototype.getIdForLabel = function() {
 		return this.getId() + "-inner";
+	};
+
+	/**
+	 * Returns if the control can be bound to a label
+	 *
+	 * @returns {boolean} <code>true</code> if the control can be bound to a label
+	 * @public
+	 */
+	InputBase.prototype.hasLabelableHTMLElement = function () {
+		return true;
 	};
 
 	/**
@@ -1259,6 +1467,44 @@ function(
 	 */
 	InputBase.prototype.getLastValue = function () {
 		return this._lastValue;
+	};
+
+	// support for SemanticFormElement
+	InputBase.prototype.getFormFormattedValue = function() {
+		return this.getValue();
+	};
+
+	InputBase.prototype.getFormValueProperty = function () {
+		return "value";
+	};
+
+	InputBase.prototype.getFormObservingProperties = function() {
+		return ["value"];
+	};
+
+	InputBase.prototype.getFormRenderAsControl = function () {
+		return false;
+	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
+	 */
+	InputBase.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
+	/**
+	 * Hook function
+	 * @returns {Array} Array of links for the value state message acc
+	 */
+	InputBase.prototype.getValueStateLinksForAcc = function(){
+		return [];
 	};
 
 	return InputBase;

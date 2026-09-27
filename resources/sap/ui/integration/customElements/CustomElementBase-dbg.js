@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -64,7 +64,7 @@ sap.ui.define([
 	/**
 	 * Called when attributed changes. Reflect such changes to the underlying control.
 	 *
-	 * @param {string} sAttributeName The attribute name in "dashed-case".
+	 * @param {string} sAttributeName The attribute name in "hyphenated-case".
 	 * @param {any} vOldValue The old value of the attribute.
 	 * @param {any} vNewValue The new value of the attribute.
 	 */
@@ -261,7 +261,7 @@ sap.ui.define([
 
 		Object.defineProperty(CustomElementSubClass, "observedAttributes", {
 			get: function () {
-				var aAllAttributes = oPrototype._aAllProperties.map(hyphenate); // all properties and associations in "dashed-case"
+				var aAllAttributes = oPrototype._aAllProperties.map(hyphenate); // all properties and associations in "hyphenated-case"
 				return aAllAttributes;
 			}
 		});

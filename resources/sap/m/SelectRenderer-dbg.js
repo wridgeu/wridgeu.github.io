@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -128,6 +128,15 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		 * @private
 		 */
 		 SelectRenderer.renderFocusElement = function (oRm, oSelect) {
+			if (!oSelect.getEnabled()) {
+				// Do not render the focus element when the Select is disabled.
+				// This ensures that when the Select becomes enabled, a new DOM node
+				// is inserted (instead of patching the existing one), which forces
+				// screen readers like JAWS to create a fresh virtual-buffer entry
+				// and correctly announce the selected value.
+				return;
+			}
+
 			var oSelectedItem = oSelect.getSelectedItem(),
 				bIconOnly = oSelect.getType() === SelectType.IconOnly;
 
@@ -140,11 +149,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 			oRm.class(SelectRenderer.CSS_CLASS + "HiddenSelect");
 
 			// Attributes
-			if (oSelect.getEnabled()) {
-				oRm.attr("tabindex", "0");
-			}
-
-			this.renderTooltip(oRm, oSelect);
+			oRm.attr("tabindex", "0");
 
 			oRm.openEnd();
 
@@ -152,40 +157,21 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 				// if icon only mode, the control is announced as standard
 				// button and the selected value is not rendered
 				oRm.text(oSelectedItem.getText());
+			} else if (bIconOnly) {
+				// For IconOnly Select (role="button"), aria-activedescendant is not allowed.
+				// Render the selected item text in a hidden span so it can be referenced via
+				// aria-describedby, letting screen readers (e.g. JAWS) announce the current
+				// selection when the button gets focus.
+				oRm.openStart("span", oSelect.getId() + "-selectedText");
+				oRm.class("sapUiPseudoInvisibleText");
+				oRm.openEnd();
+				if (oSelectedItem) {
+					oRm.text(oSelectedItem.getText());
+				}
+				oRm.close("span");
 			}
 
 			oRm.close('div');
-		};
-
-		/**
-		 * Generates and renders the tooltip text. Icon only aware.
-		 *
-		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.m.Select} oSelect An object representation of the Select control.
-		 * @private
-		 */
-		SelectRenderer.renderTooltip = function (oRm, oSelect) {
-			var oIconInfo,
-				sTooltip = oSelect.getTooltip_AsString(),
-				bIconOnly = oSelect.getType() === SelectType.IconOnly;
-
-			if (!sTooltip && bIconOnly) {
-				oIconInfo = IconPool.getIconInfo(oSelect.getIcon());
-				if (oIconInfo) {
-					sTooltip = oIconInfo.text;
-				}
-			}
-
-			if (!sTooltip) {
-				return;
-			}
-
-			oRm.attr("title", sTooltip);
-
-			if (bIconOnly) {
-				// if in IconOnly mode, similarly to sap.m.Button the tooltip should also be part of the accessibleName
-				oRm.attr("aria-label", sTooltip);
-			}
 		};
 
 		/**
@@ -226,22 +212,14 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		 * @private
 		 */
 		SelectRenderer.renderLabel = function(oRm, oSelect) {
-			var oSelectedItem = oSelect.getSelectedItem(),
-				sTextDir = oSelect.getTextDirection(),
+			var sTextDir = oSelect.getTextDirection(),
 				sTextAlign = Renderer.getTextAlign(oSelect.getTextAlign(), sTextDir),
 				CSS_CLASS = SelectRenderer.CSS_CLASS,
-				bEditabledAndEnabled = oSelect.getEnabled() && oSelect.getEditable(),
-				sTooltip = oSelect.getTooltip_AsString();
+				bEditabledAndEnabled = oSelect.getEnabled() && oSelect.getEditable();
 
 			oRm.openStart("span", oSelect.getId() + "-label");
 			oRm.attr("aria-hidden", true);
 			oRm.class(CSS_CLASS + "Label");
-
-			// since focusable element has sapUiPseudoInvisibleText class
-			// the tooltip is also set to the label element to be visually displayed
-			if (sTooltip) {
-				oRm.attr("title", sTooltip);
-			}
 
 			if (oSelect.getValueState() !== ValueState.None && bEditabledAndEnabled) {
 				oRm.class(CSS_CLASS + "LabelState");
@@ -268,9 +246,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 				oRm.openStart("span", oSelect.getId() + "-labelText");
 				oRm.class("sapMSelectListItemText");
 				oRm.openEnd();
-
-				oRm.text(oSelectedItem && oSelectedItem.getParent() ? oSelectedItem.getText() : null);
-
+				oRm.text(oSelect._getSelectedItemText());
 				oRm.close("span");
 			}
 			oRm.close("span");
@@ -284,8 +260,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		 * @private
 		 */
 		SelectRenderer.renderArrow = function(oRm, oSelect) {
-			var CSS_CLASS = SelectRenderer.CSS_CLASS,
-				sTooltip = oSelect.getTooltip_AsString();
+			var CSS_CLASS = SelectRenderer.CSS_CLASS;
 
 			oRm.openStart("span", oSelect.getId() + "-arrow");
 			oRm.attr("aria-hidden", true);
@@ -293,10 +268,6 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 
 			if (oSelect.getValueState() !== ValueState.None) {
 				oRm.class(CSS_CLASS + "ArrowState");
-			}
-
-			if (sTooltip) {
-				oRm.attr("title", sTooltip);
 			}
 
 			oRm.openEnd().close("span");
@@ -391,7 +362,11 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 					return "combobox";
 
 				case SelectType.IconOnly:
-					return "button";
+					// While the picker is open the field exposes a combobox role so that
+					// aria-activedescendant (pointing to the active option in the listbox
+					// popup) is valid - it is not allowed on role="button". When closed it is
+					// a plain icon button.
+					return oSelect.isOpen() ? "combobox" : "button";
 
 				// no default
 			}
@@ -423,6 +398,8 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 				}
 			});
 
+			// note: for an IconOnly Select the field exposes a combobox role while open
+			// (see getAriaRole), so aria-activedescendant is valid in that state.
 			if (oSelect.isOpen() && oSelectedItem && oSelectedItem.getDomRef()) {
 				sActiveDescendant = oSelectedItem.getId();
 			}
@@ -436,6 +413,14 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 
 			if (sValueState !== ValueState.None && bEditabledAndEnabled) {
 				sAriaDescribedBy = oSelect.getValueStateMessageId() + "-sr";
+			}
+
+			// For IconOnly Select (role="button"), the selected item text is rendered
+			// inside a hidden span (see renderFocusElement). Reference it via
+			// aria-describedby so screen readers announce the current selection on focus
+			// and whenever the selection changes.
+			if (bIconOnly) {
+				sAriaDescribedBy = (sAriaDescribedBy ? sAriaDescribedBy + " " : "") + oSelect.getId() + "-selectedText";
 			}
 
 			if (sDesc && oValueIcon) {

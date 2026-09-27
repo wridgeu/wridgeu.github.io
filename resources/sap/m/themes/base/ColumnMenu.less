@@ -7,6 +7,8 @@
 	display: flex;
 	flex-direction: column;
 	height: 100%;
+	min-width: 10rem;
+	max-width: 31rem;
 
 	.sapMTCMenuContainerWrapper {
 		height: 100%;
@@ -22,18 +24,15 @@
 	display: none;
 }
 
-.sapMTCMenuPopup.sapMPopover { /*Desktop, Tablet*/
+.sapMTCMenuPopup.sapMPopover { /* Desktop, Tablet */
+
 	.sapMTCMenuQAForm {
 		max-width: 25rem;
 	}
-
-	.sapMTCMenuContainerWrapper {
-		max-width: 31rem;
-		min-width: 10rem;
-	}
 }
 
-.sapMTCMenuPopup.sapMDialog { /*Phone*/
+.sapMTCMenuPopup.sapMDialog { /* Phone */
+
 	.sapMTCMenuQAForm,
 	.sapMTCMenuContainerWrapper {
 		width: 100%;

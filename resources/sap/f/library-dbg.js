@@ -1,13 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /**
  * Initialization Code and shared classes of library sap.f.
  */
-sap.ui.define(["sap/ui/base/DataType",
+sap.ui.define([
+	"sap/ui/core/Lib",
+	"sap/ui/base/DataType",
 	"sap/m/AvatarShape",
 	"sap/m/AvatarSize",
 	"sap/m/AvatarType",
@@ -19,7 +21,8 @@ sap.ui.define(["sap/ui/base/DataType",
 	"sap/ui/Global",
 	"sap/ui/core/library",
 	"sap/ui/layout/library"], // library dependency
-	function(DataType,
+	function(Library,
+			 DataType,
 			 AvatarShape,
 			 AvatarSize,
 			 AvatarType,
@@ -36,15 +39,19 @@ sap.ui.define(["sap/ui/base/DataType",
 	 * @namespace
 	 * @alias sap.f
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @since 1.44
 	 * @public
 	 */
-	var thisLib = sap.ui.getCore().initLibrary({
+	var thisLib = Library.init({
+		apiVersion: 2,
 		name : "sap.f",
-		version: "1.120.0",
+		version: "1.152.0",
 		dependencies : ["sap.ui.core", "sap.m", "sap.ui.layout"],
 		designtime: "sap/f/designtime/library.designtime",
+		...{
+			interactionDocumentation: true
+		},
 		interfaces: [
 			"sap.f.cards.IHeader",
 			"sap.f.ICard",
@@ -59,13 +66,21 @@ sap.ui.define(["sap/ui/base/DataType",
 			"sap.f.AvatarType",
 			"sap.f.AvatarColor",
 			"sap.f.AvatarGroupType",
+			"sap.f.CardBadgeVisibilityMode",
+			"sap.f.cards.SemanticRole",
 			"sap.f.cards.HeaderPosition",
 			"sap.f.cards.NumericHeaderSideIndicatorsAlignment",
+			"sap.f.DynamicPageMediaRange",
 			"sap.f.DynamicPageTitleArea",
 			"sap.f.DynamicPageTitleShrinkRatio",
 			"sap.f.IllustratedMessageSize",
 			"sap.f.IllustratedMessageType",
-			"sap.f.LayoutType"
+			"sap.f.LayoutType",
+			"sap.f.SidePanelPosition",
+			"sap.f.NavigationDirection",
+			"sap.f.HeroBannerActionsPlacement",
+			"sap.f.HeroBannerColumnsRatio",
+			"sap.f.HeroBannerHeaderBlockPlacement"
 		],
 		controls: [
 			"sap.f.Avatar",
@@ -78,6 +93,7 @@ sap.ui.define(["sap/ui/base/DataType",
 			"sap.f.CalendarInCard",
 			"sap.f.Card",
 			"sap.f.GridContainer",
+			"sap.f.HeroBanner",
 			"sap.f.DynamicPage",
 			"sap.f.DynamicPageHeader",
 			"sap.f.DynamicPageTitle",
@@ -97,6 +113,10 @@ sap.ui.define(["sap/ui/base/DataType",
 			"sap.f.DynamicPageAccessibleLandmarkInfo",
 			"sap.f.GridContainerItemLayoutData",
 			"sap.f.FlexibleColumnLayoutAccessibleLandmarkInfo",
+			"sap.f.FlexibleColumnLayoutData",
+			"sap.f.FlexibleColumnLayoutDataForDesktop",
+			"sap.f.FlexibleColumnLayoutDataForTablet",
+			"sap.f.cards.CardBadgeCustomData",
 			"sap.f.semantic.AddAction",
 			"sap.f.semantic.CloseAction",
 			"sap.f.semantic.CopyAction",
@@ -134,6 +154,11 @@ sap.ui.define(["sap/ui/base/DataType",
 				"sap.f.DynamicPageTitle" : "sap/f/flexibility/DynamicPageTitle",
 				"sap.f.semantic.SemanticPage" : {
 					"moveControls": "default"
+				},
+				"sap.f.GridContainer": {
+					"moveControls": "default",
+					"hideControl": "default",
+					"unhideControl": "default"
 				}
 			},
 			//Configuration used for rule loading of Support Assistant
@@ -172,6 +197,11 @@ sap.ui.define(["sap/ui/base/DataType",
 	};
 
 	/**
+	 * @deprecated As of version 1.54
+	 */
+	DataType.registerEnum("sap.f.DynamicPageTitleArea", thisLib.DynamicPageTitleArea);
+
+	/**
 	* @classdesc A string type that represents the shrink ratios of the areas within the <code>sap.f.DynamicPageTitle</code>.
 	*
 	* @namespace
@@ -186,15 +216,56 @@ sap.ui.define(["sap/ui/base/DataType",
 	}, DataType.getType('string'));
 
 	/**
+	 * Defines the media breakpoints for DynamicPage.
+	 *
+	 * @author SAP SE
+	 * @enum {string}
+	 * @public
+	 * @since 1.147
+	 */
+	thisLib.DynamicPageMediaRange = {
+
+		/**
+		 * Phone breakpoint (up to 600px).
+		 * @public
+		 */
+		Phone: "Phone",
+
+		/**
+		 * Tablet breakpoint (601px to 1024px).
+		 * @public
+		 */
+		Tablet: "Tablet",
+
+		/**
+		 * Desktop breakpoint (1025px to 1439px).
+		 * @public
+		 */
+		Desktop: "Desktop",
+
+		/**
+		 * Desktop Extra Large breakpoint (1440px and above).
+		 * @public
+		 */
+		DesktopExtraLarge: "DesktopExtraLarge"
+	};
+
+	DataType.registerEnum("sap.f.DynamicPageMediaRange", thisLib.DynamicPageMediaRange);
+
+	/**
 	 * Layouts, representing the number of columns to be displayed and their relative widths for a {@link sap.f.FlexibleColumnLayout} control.
 	 *
-	 * Each layout has a predefined ratio for the three columns, depending on device size. Based on the device and layout, some columns are hidden.
-	 * For more information, refer to the ratios (in %) for each value, listed below: (dash "-" means non-accessible columns).
+	 * Each layout has a default predefined ratio for the three columns, depending on device size. Based on the device and layout, some columns are hidden.
+	 * For more information, refer to the ratios (in %) for each value, listed below: (hyphen "-" means non-accessible columns).
 	 *
-	 * <b>Note:</b> Please note that on a phone device, due to the limited screen size, only one column can be displayed at a time.
+	 * <b>Notes:</b>
+	 * <ul>
+	 * <li>The user is allowed to customize the default ratio by dragging the column separators to resize the columns. The user preferences are then internally saved (in browser localStorage) and automatically re-applied whenever the user re-visits the same layout. </li>
+	 * <li>Please note that on a phone device, due to the limited screen size, only one column can be displayed at a time.
 	 * For all two-column layouts, this column is the <code>Mid</code> column, and for all three-column layouts - the <code>End</code> column,
 	 * even though the respective column may be hidden on desktop and tablet for that particular layout. Therefore some of the names
-	 * (such as <code>ThreeColumnsMidExpandedEndHidden</code> for example) are representative of the desktop scenario only.
+	 * (such as <code>ThreeColumnsMidExpandedEndHidden</code> for example) are representative of the desktop scenario only. </li>
+	 * </ul>
 	 *
 	 * For more information, see {@link topic:3b9f760da5b64adf8db7f95247879086 Types of Layout} in the documentation.
 	 *
@@ -218,9 +289,9 @@ sap.ui.define(["sap/ui/base/DataType",
 		OneColumn: "OneColumn",
 
 		/**
-		 * Desktop: 67/33/-  Begin (expanded) and Mid columns are displayed
+		 * Desktop: default ratio is 67/33/-  Begin (expanded) and Mid columns are displayed
 		 *
-		 * Tablet:  67/33/-  Begin (expanded) and Mid columns are displayed
+		 * Tablet:  default ratio is 67/33/-  Begin (expanded) and Mid columns are displayed
 		 *
 		 * Phone:   -/100/-  only the Mid column is displayed
 		 *
@@ -231,9 +302,9 @@ sap.ui.define(["sap/ui/base/DataType",
 		TwoColumnsBeginExpanded: "TwoColumnsBeginExpanded",
 
 		/**
-		 * Desktop: 33/67/-  Begin and Mid (expanded) columns are displayed
+		 * Desktop: default ratio is 33/67/-  Begin and Mid (expanded) columns are displayed
 		 *
-		 * Tablet:  33/67/-  Begin and Mid (expanded) columns are displayed
+		 * Tablet:  default ratio is 33/67/-  Begin and Mid (expanded) columns are displayed
 		 *
 		 * Phone:   -/100/-  only the Mid column is displayed
 		 *
@@ -257,9 +328,9 @@ sap.ui.define(["sap/ui/base/DataType",
 		MidColumnFullScreen: "MidColumnFullScreen",
 
 		/**
-		 * Desktop: 25/50/25 Begin, Mid (expanded) and End columns are displayed
+		 * Desktop: default ratio is 25/50/25 Begin, Mid (expanded) and End columns are displayed
 		 *
-		 * Tablet:  0/67/33  Mid (expanded) and End columns are displayed, Begin is accessible by a layout arrow
+		 * Tablet:  default ratio is 0/67/33  Mid (expanded) and End columns are displayed, Begin is accessible by dragging its adjacent column separator to expand the column.
 		 *
 		 * Phone:   -/-/100  only the End column is displayed
 		 *
@@ -270,9 +341,9 @@ sap.ui.define(["sap/ui/base/DataType",
 		ThreeColumnsMidExpanded: "ThreeColumnsMidExpanded",
 
 		/**
-		 * Desktop: 25/25/50 Begin, Mid and End (expanded) columns are displayed
+		 * Desktop: default ratio is 25/25/50 Begin, Mid and End (expanded) columns are displayed
 		 *
-		 * Tablet:  0/33/67  Mid and End (expanded) columns are displayed, Begin is accessible by layout arrows
+		 * Tablet:  default ratio is 0/33/67  Mid and End (expanded) columns are displayed, Begin is accessible by dragging the column separator to expand the column
 		 *
 		 * Phone:   -/-/100  (only the End column is displayed)
 		 *
@@ -283,28 +354,28 @@ sap.ui.define(["sap/ui/base/DataType",
 		ThreeColumnsEndExpanded: "ThreeColumnsEndExpanded",
 
 		/**
-		 * Desktop: 33/67/0  Begin and Mid (expanded) columns are displayed, End is accessible by a layout arrow
+		 * Desktop: default ratio is 33/67/0  Begin and Mid (expanded) columns are displayed, End is accessible by dragging the column-separator to expand the column.
 		 *
-		 * Tablet:  33/67/0  Begin and Mid (expanded) columns are displayed, End is accessible by a layout arrow
+		 * Tablet:  default ratio is 33/67/0  Begin and Mid (expanded) columns are displayed, End is accessible by dragging the column-separator to expand the column.
 		 *
 		 * Phone:   -/-/100  only the End column is displayed
 		 *
 		 * Use to display the master and detail pages when the user should focus on the detail.
-		 * The detail-detail is still loaded and easily accessible with a layout arrow.
+		 * The detail-detail is still loaded and easily accessible upon dragging the column-separator to expand the column.
 		 *
 		 * @public
 		 */
 		ThreeColumnsMidExpandedEndHidden: "ThreeColumnsMidExpandedEndHidden",
 
 		/**
-		 * Desktop: 67/33/0  Begin (expanded) and Mid columns are displayed, End is accessible by layout arrows
+		 * Desktop: default ratio is 67/33/0  Begin (expanded) and Mid columns are displayed, End is accessible by dragging the column separators
 		 *
-		 * Tablet:  67/33/0  Begin (expanded) and Mid columns are displayed, End is accessible by layout arrows
+		 * Tablet:  default ratio is 67/33/0  Begin (expanded) and Mid columns are displayed, End is accessible by dragging the column separators
 		 *
 		 * Phone:   -/-/100  only the End column is displayed
 		 *
 		 * Use to display the master and detail pages when the user should focus on the master.
-		 * The detail-detail is still loaded and easily accessible with layout arrows.
+		 * The detail-detail is still loaded and easily accessible by dragging the column separators.
 		 *
 		 * @public
 		 */
@@ -337,6 +408,11 @@ sap.ui.define(["sap/ui/base/DataType",
 	thisLib.AvatarShape = AvatarShape;
 
 	/**
+	 * @deprecated As of version 1.73
+	 */
+	DataType.registerEnum("sap.f.AvatarShape", thisLib.AvatarShape);
+
+	/**
 	 * Predefined sizes for the {@link sap.f.Avatar} control.
 	 *
 	 * This is an alias for {@link sap.m.AvatarSize} and only kept for compatibility reasons.
@@ -347,6 +423,11 @@ sap.ui.define(["sap/ui/base/DataType",
 	 * @since 1.46
 	 */
 	thisLib.AvatarSize = AvatarSize;
+
+	/**
+	 * @deprecated As of version 1.73
+	 */
+	DataType.registerEnum("sap.f.AvatarSize", thisLib.AvatarSize);
 
 	/**
 	 * Interface for controls suitable for the <code>stickySubheaderProvider</code>
@@ -372,6 +453,78 @@ sap.ui.define(["sap/ui/base/DataType",
 	 */
 
 	/**
+	 * Returns the content (control) used in the subheader.
+	 *
+	 * @function
+	 * @name sap.f.IDynamicPageStickyContent._getStickyContent
+	 * @returns {sap.ui.core.Control} the content (control) used in the subheader
+	 * @private
+	 */
+
+	/**
+	 * Ensures that the content (control) returned by <code>_getStickyContent</code>,
+	 * is placed back in its place in the provider
+	 *
+	 * @function
+	 * @name sap.f.IDynamicPageStickyContent._returnStickyContent
+	 * @private
+	 */
+
+	/**
+	 * Returns boolean value that shows where the sticky content is placed
+	 * (in its provider or in the code>DynamicPage</code>)
+	 *
+	 * @function
+	 * @name sap.f.IDynamicPageStickyContent._getStickySubHeaderSticked
+	 * @returns {boolean} true if content is in <code>DynamicPage</code> (sticked), false if in provider
+	 * @private
+	 */
+
+	/**
+	 * Accepts a boolean argument to notify the provider where its sticky
+	 * content is placed
+	 *
+	 * @function
+	 * @name sap.f.IDynamicPageStickyContent._setStickySubHeaderSticked
+	 * @param {boolean} bIsInStickyContainer
+	 * @private
+	 */
+
+	/**
+	 * Interface for controls suitable for the <code>items</code>
+	 * aggregation of <code>{@link sap.f.GridContainer}</code>.
+	 *
+	 * Classes implementing this interface should use the
+	 * accessibility role provided by the <code>sap.f.IGridContainerItem.getGridItemRole</code> method.
+	 *
+	 * @since 1.134
+	 * @name sap.f.IGridContainerItem
+	 * @interface
+	 * @public
+	 */
+
+	/**
+	 * Returns the accessibility role for the <code>sap.f.GridContainer</code> item.
+	 *
+	 * @function
+	 * @name sap.f.IGridContainerItem.getGridItemRole
+	 * @returns {string} The accessibility role for the <code>sap.f.GridContainer</code> item
+	 * @public
+	 */
+
+	/**
+	 * Sets the accessibility role for the <code>sap.f.GridContainer</code> item.
+	 *
+	 * **Note:** This method is automatically called by the <code>sap.f.GridContainer</code> control.
+	 *
+	 * @function
+	 * @name sap.f.IGridContainerItem.setGridItemRole
+	 * @param {string} sRole The accessibility role for the <code>sap.f.GridContainer</code> item
+	 * @private
+	 * @ui5-restricted sap.f.GridContainer
+	 */
+
+	/**
 	 * Types of {@link sap.f.Avatar} based on the displayed content.
 	 *
 	 * This is an alias for {@link sap.m.AvatarType} and only kept for compatibility reasons.
@@ -382,6 +535,11 @@ sap.ui.define(["sap/ui/base/DataType",
 	 * @since 1.46
 	 */
 	thisLib.AvatarType = AvatarType;
+
+	/**
+	 * @deprecated As of version 1.73
+	 */
+	DataType.registerEnum("sap.f.AvatarType", thisLib.AvatarType);
 
 	/**
 	 * Possible background color options for the {@link sap.f.Avatar} control.
@@ -404,6 +562,11 @@ sap.ui.define(["sap/ui/base/DataType",
 	thisLib.AvatarColor = AvatarColor;
 
 	/**
+	 * @deprecated As of version 1.73
+	 */
+	DataType.registerEnum("sap.f.AvatarColor", thisLib.AvatarColor);
+
+	/**
 	 * Types of image size and position that determine how an image fits in the {@link sap.f.Avatar} control area.
 	 *
 	 * This is an alias for {@link sap.m.AvatarImageFitType} and only kept for compatibility reasons.
@@ -416,11 +579,15 @@ sap.ui.define(["sap/ui/base/DataType",
 	thisLib.AvatarImageFitType = AvatarImageFitType;
 
 	/**
+	 * @deprecated As of version 1.73
+	 */
+	DataType.registerEnum("sap.f.AvatarImageFitType", thisLib.AvatarImageFitType);
+
+	/**
 	 * Group modes for the {@link sap.f.AvatarGroup} control.
 	 *
 	 * @enum {string}
 	 * @public
-	 * @experimental Since 1.73.
 	 * @since 1.73
 	 */
 	thisLib.AvatarGroupType = {
@@ -495,7 +662,6 @@ sap.ui.define(["sap/ui/base/DataType",
 	 *
 	 * @since 1.63
 	 * @name sap.f.IShellBar
-	 * @experimental Since 1.63, that provides only limited functionality. Also, it can be removed in future versions.
 	 * @public
 	 * @interface
 	 */
@@ -513,6 +679,28 @@ sap.ui.define(["sap/ui/base/DataType",
 	 */
 
 	thisLib.cards = thisLib.cards || {};
+
+	 /**
+	 * Different options for the semantic role in controls that implement the {@link sap.f.ICard} interface.
+	 *
+	 * @enum {string}
+	 * @ui5-experimental-since 1.131
+	 * @public
+	 */
+	 thisLib.cards.SemanticRole = {
+		/**
+		 * The card has no interactive elements.
+		 *
+		 * @public
+		 */
+		Region: "Region",
+		/**
+		 * The card has interactive elements.
+		 *
+		 * @public
+		 */
+		ListItem: "ListItem"
+	};
 
 	 /**
 	 * Different options for the position of the header in controls that implement the {@link sap.f.ICard} interface.
@@ -592,6 +780,8 @@ sap.ui.define(["sap/ui/base/DataType",
 		Right: "Right"
 	};
 
+	DataType.registerEnum("sap.f.NavigationDirection", thisLib.NavigationDirection);
+
 	/**
 	 * Enumeration for different SidePanel position.
 	 *
@@ -614,6 +804,32 @@ sap.ui.define(["sap/ui/base/DataType",
 		Right: "Right"
 	};
 
+	DataType.registerEnum("sap.f.SidePanelPosition", thisLib.SidePanelPosition);
+
+	/**
+	 * Enumeration for different visibility options for the card badge.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.128
+	 */
+	thisLib.CardBadgeVisibilityMode = {
+		/**
+		 * Badge will not be hidden after header is focused.
+		 *
+		 * @public
+		 */
+		Persist: "Persist",
+		/**
+		 * Badge will be hidden after header is focused.
+		 *
+		 * @public
+		 */
+		Disappear: "Disappear"
+	};
+
+	DataType.registerEnum("sap.f.CardBadgeVisibilityMode", thisLib.CardBadgeVisibilityMode);
+
 	/**
 	 * Available <code>Illustration</code> types for the {@link sap.f.IllustratedMessage} control.
 	 *
@@ -627,6 +843,11 @@ sap.ui.define(["sap/ui/base/DataType",
 	thisLib.IllustratedMessageType = IllustratedMessageType;
 
 	/**
+	 * @deprecated As of version 1.98
+	 */
+	DataType.registerEnum("sap.f.IllustratedMessageType", thisLib.IllustratedMessageType);
+
+	/**
 	 * Available <code>Illustration</code> sizes for the {@link sap.f.IllustratedMessage} control.
 	 *
 	 * This is an alias for {@link sap.m.IllustratedMessageSize} and only kept for compatibility reasons.
@@ -638,6 +859,11 @@ sap.ui.define(["sap/ui/base/DataType",
 	 */
 	thisLib.IllustratedMessageSize = IllustratedMessageSize;
 
+	/**
+	 * @deprecated As of version 1.98
+	 */
+	DataType.registerEnum("sap.f.IllustratedMessageSize", thisLib.IllustratedMessageSize);
+
 
 	/**
 	 * @deprecated since 1.56 as lazy loading implies sync loading
@@ -648,6 +874,87 @@ sap.ui.define(["sap/ui/base/DataType",
 		sap.ui.lazyRequire("sap.f.routing.TargetHandler");
 		sap.ui.lazyRequire("sap.f.routing.Targets");
 	}());
+
+	/*
+	* Register all of the above defined enums.
+	*/
+	DataType.registerEnum("sap.f.AvatarGroupType", thisLib.AvatarGroupType);
+	DataType.registerEnum("sap.f.cards.SemanticRole", thisLib.cards.SemanticRole);
+	DataType.registerEnum("sap.f.cards.HeaderPosition", thisLib.cards.HeaderPosition);
+	DataType.registerEnum("sap.f.cards.NumericHeaderSideIndicatorsAlignment", thisLib.cards.NumericHeaderSideIndicatorsAlignment);
+	DataType.registerEnum("sap.f.LayoutType", thisLib.LayoutType);
+
+	/**
+	 * Defines the placement of the actions slot within the {@link sap.f.HeroBanner} header area.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @ui5-experimental-since 1.152
+	 */
+	thisLib.HeroBannerActionsPlacement = {
+		/**
+		 * Actions are displayed to the right of the header text, at the top of the header row.
+		 *
+		 * @public
+		 */
+		TopEnd: "TopEnd",
+		/**
+		 * Actions are displayed below the header text, left-aligned, regardless of <code>columnsRatio</code> or slot usage.
+		 *
+		 * @public
+		 */
+		BottomStart: "BottomStart"
+	};
+	DataType.registerEnum("sap.f.HeroBannerActionsPlacement", thisLib.HeroBannerActionsPlacement);
+
+	/**
+	 * Defines the ratio between the two content columns inside the {@link sap.f.HeroBanner}.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @ui5-experimental-since 1.152
+	 */
+	thisLib.HeroBannerColumnsRatio = {
+		/**
+		 * Two equal columns. Both content blocks share the available width equally.
+		 * On smaller screens, both slots stack vertically.
+		 *
+		 * @public
+		 */
+		Equal: "Equal",
+		/**
+		 * Two unequal columns. The start content takes two-thirds of the width, the end content one-third.
+		 * On smaller screens, both slots stack vertically.
+		 *
+		 * @public
+		 */
+		FirstWider: "FirstWider"
+	};
+	DataType.registerEnum("sap.f.HeroBannerColumnsRatio", thisLib.HeroBannerColumnsRatio);
+
+	/**
+	 * Defines the vertical placement of the header block within the {@link sap.f.HeroBanner} content area.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @ui5-experimental-since 1.152
+	 */
+	thisLib.HeroBannerHeaderBlockPlacement = {
+		/**
+		 * Header block is placed at the top of the content area.
+		 *
+		 * @public
+		 */
+		Top: "Top",
+		/**
+		 * Header block is pushed to the bottom of column 1. Only takes effect when <code>columnsRatio</code>
+		 * is <code>Equal</code> or <code>FirstWider</code> and only <code>endContent</code> is provided.
+		 *
+		 * @public
+		 */
+		Bottom: "Bottom"
+	};
+	DataType.registerEnum("sap.f.HeroBannerHeaderBlockPlacement", thisLib.HeroBannerHeaderBlockPlacement);
 
 	return thisLib;
 

@@ -1,23 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/integration/cards/BaseContent",
+	"./BaseContent",
+	"./BaseListContentRenderer",
 	"sap/ui/integration/util/BindingResolver",
 	"sap/m/IllustratedMessageType",
 	"sap/ui/integration/library",
-	"sap/base/Log",
-	"sap/ui/model/Sorter"
+	"sap/ui/core/Lib",
+	"sap/base/Log"
 ], function (
 	BaseContent,
+	BaseListContentRenderer,
 	BindingResolver,
 	IllustratedMessageType,
 	library,
-	Log,
-	Sorter
+	Library,
+	Log
 ) {
 	"use strict";
 
@@ -33,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -44,9 +46,7 @@ sap.ui.define([
 		metadata: {
 			library: "sap.ui.integration"
 		},
-		renderer: {
-			apiVersion: 2
-		}
+		renderer: BaseListContentRenderer
 	});
 
 	/**
@@ -54,26 +54,48 @@ sap.ui.define([
 	 */
 	BaseListContent.prototype.init = function () {
 		BaseContent.prototype.init.apply(this, arguments);
-		this._oAwaitingPromise = null;
 		this._fMinHeight = 0;
-		this._bIsFirstRendering = true;
-	};
-
-	/**
-	 * @override
-	 */
-	BaseListContent.prototype.exit = function () {
-		BaseContent.prototype.exit.apply(this, arguments);
-
-		this._oAwaitingPromise = null;
+		this._fLastWidth = 0;
 	};
 
 	BaseListContent.prototype.onAfterRendering = function () {
-		if (!this._bIsFirstRendering) {
-			this._keepHeight();
+		BaseContent.prototype.onAfterRendering.apply(this, arguments);
+
+		if (this.isReady() && this.getCardInstance()?.isReady()) {
+			if (this._hasWidthChanged()) {
+				this._resetHeightCalculations();
+			} else {
+				this._keepHeight();
+			}
+		}
+	};
+
+	/**
+	 * Checks if the width of the content has changed since the last rendering.
+	 * @returns {boolean} <code>true</code> if the width has changed, otherwise <code>false</code>.
+	 * @private
+	 */
+	BaseListContent.prototype._hasWidthChanged = function () {
+		const fCurrentWidth = this.getCardInstance()?.getDomRef()?.getBoundingClientRect().width;
+		let bHasChanged = false;
+
+		if (this._fLastWidth && fCurrentWidth !== this._fLastWidth) {
+			// Width has changed, reset height calculations
+			bHasChanged = true;
 		}
 
-		this._bIsFirstRendering = false;
+		this._fLastWidth = fCurrentWidth;
+
+		return bHasChanged;
+	};
+
+	/**
+	 * Resets height calculations by clearing the minimum height and resetting the stored minimum height value.
+	 * @private
+	 */
+	BaseListContent.prototype._resetHeightCalculations = function () {
+		this.getDomRef().style.minHeight = "";
+		this._fMinHeight = 0;
 	};
 
 	BaseListContent.prototype.onDataChanged = function () {
@@ -82,9 +104,42 @@ sap.ui.define([
 		} else {
 			this.showNoDataMessage({
 				illustrationType: IllustratedMessageType.NoEntries,
-				title: this.getCardInstance().getTranslatedText("CARD_NO_ITEMS_ERROR_LISTS")
+				title: Library.getResourceBundleFor("sap.ui.integration").getText("CARD_NO_ITEMS_ERROR_LISTS")
 			});
 		}
+
+		this.getPaginator()?.onDataChanged(this);
+	};
+
+	/**
+	 * @override
+	 */
+	BaseListContent.prototype.setModelData = function (vData, oModel) {
+		const oPaginator = this.getPaginator();
+
+		if (oPaginator?.isLoadingMore()) {
+			oPaginator.setModelData(vData, oModel);
+		} else {
+			BaseContent.prototype.setModelData.apply(this, arguments);
+		}
+	};
+
+	/**
+	 * Checks if the width has changed and resets height calculations if needed.
+	 * @private
+	 */
+	BaseListContent.prototype._checkWidthChange = function () {
+		if (!this.getDomRef()) {
+			return;
+		}
+
+		const fCurrentWidth = this.getCardInstance()?.getDomRef()?.getBoundingClientRect().width;
+		if (this._fLastWidth && fCurrentWidth !== this._fLastWidth) {
+			// Width has changed, reset height calculations
+			this.getDomRef().style.minHeight = "";
+			this._fMinHeight = 0;
+		}
+		this._fLastWidth = fCurrentWidth;
 	};
 
 	BaseListContent.prototype._keepHeight = function () {
@@ -92,10 +147,16 @@ sap.ui.define([
 			return;
 		}
 
-		var fCurrentHeight = this.getDomRef().getBoundingClientRect().height;
-
+		const fCurrentHeight = this.getDomRef().getBoundingClientRect().height;
 		if (fCurrentHeight > this._fMinHeight) {
 			this._fMinHeight = fCurrentHeight;
+		}
+
+		// should not exceed the card content section height in cases where content is overflowing
+		const oContainer = this.getCardInstance()?.getDomRef("contentSection");
+		const fContainerHeight = oContainer?.getBoundingClientRect().height;
+		if (fContainerHeight && this._fMinHeight > fContainerHeight) {
+			this._fMinHeight = fContainerHeight;
 		}
 
 		if (this._fMinHeight) {
@@ -124,29 +185,34 @@ sap.ui.define([
 	 * @override
 	 */
 	BaseListContent.prototype.applyConfiguration = function () {
-		var oConfiguration = this.getConfiguration();
+		const oConfiguration = this.getParsedConfiguration();
+		const oList = this.getInnerList();
 
-		if (!oConfiguration) {
+		if (!oConfiguration || !oList) {
 			return;
 		}
 
-		var oList = this.getInnerList(),
-			bHasPaginator = this.getCard() ? this.getCardInstance().hasPaginator() : false,
-			maxItems = oConfiguration.maxItems;
+		this._fMinHeight = 0;
 
-		if (!Number.isNaN(parseInt(maxItems))) {
-			maxItems = parseInt(maxItems);
+		const oPaginator = this.getPaginator();
+		if (oPaginator?.getActive()) {
+			return;
 		}
 
-		if (oList && maxItems && !bHasPaginator) {
+		let vMaxItems = BindingResolver.resolveValue(oConfiguration.maxItems, this);
+		vMaxItems = parseInt(vMaxItems);
+
+		if (oPaginator && (Number.isNaN(vMaxItems) || !vMaxItems)) {
+			vMaxItems = oPaginator.getPageSize();
+		}
+
+		if (vMaxItems) {
 			oList.applySettings({
 				growing: true,
-				growingThreshold: maxItems
+				growingThreshold: vMaxItems
 			});
 			oList.addStyleClass("sapFCardMaxItems");
 		}
-
-		this._fMinHeight = 0;
 	};
 
 	/**
@@ -168,78 +234,12 @@ sap.ui.define([
 		return 0;
 	};
 
-	/**
-	 * Used to check which content items should be hidden based on the Navigation Service.
-	 *
-	 * @protected
-	 * @param {Object} mItemConfig The item template.
-	 */
-	BaseListContent.prototype._checkHiddenNavigationItems = function (mItemConfig) {
-		if (!mItemConfig.actions) {
-			return;
-		}
+	BaseListContent.prototype.setPaginator = function (oPaginator) {
+		this._oPaginator = oPaginator;
+	};
 
-		if (!this.getInnerList()) {
-			return;
-		}
-
-		var oInnerList = this.getInnerList(),
-			aItems = this.isA("sap.ui.integration.cards.TimelineContent") ? oInnerList.getContent() : oInnerList.getItems(),
-			aPromises = [],
-			oAction = mItemConfig.actions[0],
-			sActionName,
-			iVisibleItems = 0;
-
-		if (!oAction || !oAction.service || oAction.type !== "Navigation") {
-			return;
-		}
-
-		if (oAction.service === "object") {
-			sActionName = oAction.service.name;
-		} else {
-			sActionName = oAction.service;
-		}
-
-		// create new promises
-		aItems.forEach(function (oItem) {
-			var mParameters = BindingResolver.resolveValue(
-				oAction.parameters,
-				this,
-				oItem.getBindingContext().getPath()
-			);
-
-			aPromises.push(this._oServiceManager
-				.getService(sActionName)
-				.then(function (oNavigationService) {
-					if (!oNavigationService.hidden) {
-						return false;
-					}
-
-					return oNavigationService.hidden({parameters: mParameters});
-				})
-				.then(function (bHidden) {
-					oItem.setVisible(!bHidden);
-					if (!bHidden) {
-						iVisibleItems++;
-					}
-				})
-				.catch(function (sMessage) {
-					Log.error(sMessage);
-				}));
-
-		}.bind(this));
-
-		this.awaitEvent("_filterNavItemsReady");
-
-		var pCurrent = this._oAwaitingPromise = Promise.all(aPromises)
-			.then(function () {
-				if (this._oAwaitingPromise === pCurrent) {
-					if (this.getModel("parameters")) {
-						this.getModel("parameters").setProperty("/visibleItems", iVisibleItems);
-					}
-					this.fireEvent("_filterNavItemsReady");
-				}
-			}.bind(this));
+	BaseListContent.prototype.getPaginator = function () {
+		return this._oPaginator;
 	};
 
 	BaseListContent.prototype.hasData = function () {
@@ -256,31 +256,6 @@ sap.ui.define([
 		return false;
 	};
 
-	/**
-	 * Define the sorting of a group.
-	 * @param {object} oGroup The group which will be sorted
-	 * @returns {sap.ui.model.Sorter}  Sorter for a list bindings.
-	 */
-	BaseListContent.prototype._getGroupSorter = function(oGroup) {
-
-		var bDescendingOrder = false;
-		if (oGroup.order.dir && oGroup.order.dir === "DESC") {
-			bDescendingOrder = true;
-		}
-		var oSorter = new Sorter(oGroup.order.path, bDescendingOrder, function (oContext) {
-			return BindingResolver.resolveValue(oGroup.title, oContext.getModel(), oContext.getPath());
-		});
-
-		return oSorter;
-	};
-
-	BaseListContent.prototype.sliceData = function (iStartIndex, iEndIndex) {
-		this.getModel().sliceData(iStartIndex, iEndIndex);
-		if (iStartIndex !== 0) {
-			this._keepHeight();
-		}
-	};
-
 	BaseListContent.prototype.getDataLength = function () {
 		var oData = this.getModel().getProperty(this.getInnerList().getBindingContext().getPath());
 
@@ -289,6 +264,30 @@ sap.ui.define([
 		}
 
 		return Object.getOwnPropertyNames(oData).length;
+	};
+
+	/**
+	 * Returns the first action if it is of type "Navigation"; otherwise, it returns undefined.
+	 * Only one action is supported.
+	 *
+	 * @protected
+	 * @param {Array} aActions The actions array from the item/row configuration.
+	 * @returns {Object|undefined} The navigation action or undefined.
+	 */
+	BaseListContent.prototype._getNavigationAction = function (aActions) {
+		return aActions && aActions[0] && aActions[0].type === "Navigation" ? aActions[0] : undefined;
+	};
+
+	BaseListContent.prototype.ontap = function (oEvent) {
+		oEvent.stopPropagation();
+	};
+
+	BaseListContent.prototype.onsapenter = function (oEvent) {
+		oEvent.stopPropagation();
+	};
+
+	BaseListContent.prototype.onsapspace = function (oEvent) {
+		oEvent.stopPropagation();
 	};
 
 	return BaseListContent;

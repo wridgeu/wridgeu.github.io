@@ -1,13 +1,15 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 sap.ui.define([
-	'sap/ui/core/IconPool'
-], function (
-	IconPool
+	'sap/ui/core/IconPool',
+	"sap/ui/core/Lib"
+], function(
+	IconPool,
+	Library
 ) {
 	"use strict";
 
@@ -18,8 +20,8 @@ sap.ui.define([
 	var MessageStripUtilities = {};
 
 	MessageStripUtilities.MESSAGES = {
-		TYPE_NOT_SUPPORTED: "Value 'sap.ui.core.MessageType.None' for property 'type' is not supported. " +
-		"Defaulting to 'sap.ui.core.MessageType.Information'"
+		TYPE_NOT_SUPPORTED: "Value 'module:sap/ui/core/message/MessageType.None' for property 'type' is not supported. " +
+		"Defaulting to 'module:sap/ui/core/message/MessageType.Information'"
 	};
 
 	MessageStripUtilities.CLASSES = {
@@ -34,7 +36,7 @@ sap.ui.define([
 		CLOSABLE: "data-sap-ui-ms-closable"
 	};
 
-	MessageStripUtilities.RESOURCE_BUNDLE = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	MessageStripUtilities.RESOURCE_BUNDLE = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Calculate the icon uri that should be set to the control property.
@@ -86,6 +88,23 @@ sap.ui.define([
 		return {
 			role: "note"
 		};
+	};
+
+	/**
+	 * Converts an icon URI to an inline icon HTML string for use in <code>sap.m.MessageStrip</code> formatted text.
+	 *
+	 * This is a helper function to make it easier to add inline icons to message text without
+	 * having to write Unicode characters directly. The function uses IconPool to resolve the
+	 * icon URI to its Unicode representation and wraps it in an appropriately styled span element.
+	 *
+	 * @param {sap.ui.core.URI} sIconURI Icon URI (e.g. "sap-icon://alert", "sap-icon://message-success")
+	 * @returns {string} HTML string with inline icon span, or empty string if the icon is not found
+	 * @static
+	 * @public
+	 * @since 1.148
+	 */
+	MessageStripUtilities.getInlineIcon = function (sIconURI) {
+		return IconPool.getIconHTML(sIconURI);
 	};
 
 	return MessageStripUtilities;

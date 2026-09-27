@@ -1,10 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	"sap/ui/integration/library",
 	"sap/ui/core/Control",
 	"sap/m/HBox",
@@ -12,9 +15,21 @@ sap.ui.define([
 	"sap/m/ToggleButton",
 	"./Card",
 	"sap/ui/core/Core",
-	"sap/ui/dom/includeStylesheet"
-], function (
-	library, Control, HBox, Image, ToggleButton, Card, Core, includeStylesheet
+	"sap/ui/dom/includeStylesheet",
+	"sap/base/util/deepClone"
+], function(
+	Localization,
+	Element,
+	Library,
+	library,
+	Control,
+	HBox,
+	Image,
+	ToggleButton,
+	Card,
+	Core,
+	includeStylesheet,
+	deepClone
 ) {
 	"use strict";
 
@@ -29,9 +44,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.editor.CardPreview
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.83.0
 	 * @ui5-restricted
 	 */
 	var CardPreview = Control.extend("sap.ui.integration.designtime.editor.CardPreview", {
@@ -77,6 +91,9 @@ sap.ui.define([
 				}
 				oRm.openStart("div", oControl);
 				oRm.class("sapUiIntegrationDTPreview");
+				if ((!oControl.getSettings().preview || oControl.getSettings().preview.scaled !== false) && oControl._getCurrentSize() !== "Full") {
+					oRm.class("sapUiIntegrationDTPreviewScaleBackground");
+				}
 				if (isDark()) {
 					oRm.class("sapUiIntegrationDTPreviewDark");
 				}
@@ -91,7 +108,7 @@ sap.ui.define([
 				if (!oControl.getSettings().preview || oControl.getSettings().preview.scaled !== false) {
 					if (oControl._getCurrentSize() !== "Full") {
 						oRm.class("sapUiIntegrationDTPreviewScale");
-						var sLanguge = Core.getConfiguration().getLanguage().replaceAll('_', '-');
+						var sLanguge = Localization.getLanguage().replaceAll('_', '-');
 						if (sLanguge.startsWith("ar") || sLanguge.startsWith("he")) {
 							// for the languages "ar-SA"(Arabic) and "he-IL"(Hebrew) which write from right to left, use spec style
 							oRm.class("withSpec");
@@ -117,7 +134,7 @@ sap.ui.define([
 				oRm.close("div");
 				// TODO unsupported DOM structure: button is not a child of the root element
 				var sModes = oControl._getModes();
-				if (sModes.indexOf("Abstract") > -1 && (sModes.indexOf("Live") > -1 || sModes.indexOf("Mock") > -1 || sModes.indexOf("MockData") > -1)) {
+				if (sModes.indexOf("Abstract") > -1 && (sModes.indexOf("Live") > -1 || sModes.indexOf("MockData") > -1)) {
 					oRm.renderControl(oControl._getModeToggleButton());
 				}
 
@@ -138,25 +155,28 @@ sap.ui.define([
 	 */
 	CardPreview.prototype.init = function () {
 		//load translations
-		this._oResourceBundle = Core.getLibraryResourceBundle("sap.ui.integration");
-		//if the theme changes we should toggle the class
-		Core.attachThemeChanged(function () {
-			if (this.getDomRef()) {
-				if (isDark()) {
-					this.getDomRef().classList.add("sapUiIntegrationDTPreviewDark");
-				} else {
-					this.getDomRef().classList.remove("sapUiIntegrationDTPreviewDark");
-				}
+		this._oResourceBundle = Library.getResourceBundleFor("sap.ui.integration");
+	};
+
+	/**
+	 * if the theme changes we should toggle the class
+	 */
+	CardPreview.prototype.onThemeChanged = function () {
+		if (this.getDomRef()) {
+			if (isDark()) {
+				this.getDomRef().classList.add("sapUiIntegrationDTPreviewDark");
 			} else {
-				this.update();
+				this.getDomRef().classList.remove("sapUiIntegrationDTPreviewDark");
 			}
-		}.bind(this));
+		} else {
+			this.update();
+		}
 	};
 
 	/**
 	 * destroy the preview
 	 */
-	CardPreview.prototype.destroy = function () {
+	CardPreview.prototype.destroy = function (bRemoveProperties) {
 		if (this._oModeToggleButton) {
 			this._oModeToggleButton.destroy();
 		}
@@ -170,19 +190,21 @@ sap.ui.define([
 			this._oCardPlaceholder.destroy();
 		}
 		Control.prototype.destroy.apply(this, arguments);
-		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewWidth");
-		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewHeight");
-		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewCardHeight");
+		if (bRemoveProperties !== false) {
+			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewWidth");
+			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewHeight");
+			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewCardHeight");
+		}
 	};
 
 	CardPreview.prototype.onAfterRendering = function () {
 		var oPreview = this.getAggregation("cardPreview"),
 		    sModes = this._getModes();
-		if ((sModes.indexOf("Live") > -1 || sModes.indexOf("Mock") > -1 || sModes.indexOf("MockData") > -1) && oPreview && oPreview.getDomRef() && oPreview.getDomRef().getElementsByClassName("sapVizFrame")) {
+		if ((sModes.indexOf("Live") > -1 || sModes.indexOf("MockData") > -1) && oPreview && oPreview.getDomRef() && oPreview.getDomRef().getElementsByClassName("sapVizFrame")) {
 			window.setTimeout(function() {
 				try {
 					var vizFrameId = oPreview.getDomRef().getElementsByClassName("sapVizFrame")[0].id;
-					var oVizFrame = Core.byId(vizFrameId);
+					var oVizFrame = Element.getElementById(vizFrameId);
 					if (oVizFrame.getVizProperties() && oVizFrame.getVizProperties().legendGroup.layout.position === "bottom" && oVizFrame.getVizProperties().legendGroup.layout.alignment === "center") {
 						oPreview.getDomRef().getElementsByClassName("v-m-legend")[0].transform.baseVal[0].matrix.e = 110;
 					}
@@ -195,7 +217,7 @@ sap.ui.define([
 
 	CardPreview.prototype.getEditor = function () {
 		var sEditorId = this.getAssociation("_editor");
-		return Core.byId(sEditorId);
+		return Element.getElementById(sEditorId);
 	};
 
 	/**
@@ -271,11 +293,50 @@ sap.ui.define([
 		} else if (this._currentMode === "Live") {
 			this._oCardPreview.setPreviewMode(CardPreviewMode.Off);
 		}
-		this._initalChanges = this._initalChanges || this._oCardPreview.getManifestChanges() || [];
-		var aChanges = this._initalChanges.concat([this.getEditor().getCurrentSettings()]);
+		if (!this._aInitalChanges) {
+			var oBeforeLayerChange = deepClone(this.getEditor()._oBeforeLayerChange || {}, 500);
+			this._aInitalChanges = [oBeforeLayerChange];
+		}
+		var aChanges = this._aInitalChanges.concat([this.getEditor().getCurrentSettings(this.getEditor().isChild)]);
 		this._oCardPreview.setManifestChanges(aChanges);
 		this._oCardPreview.setManifest(this.getCard()._oCardManifest._oManifest.getRawJson());
 		this._oCardPreview.setHost(this.getCard().getHost());
+		// set opener reference for destinations
+		this._oCardPreview.setAssociation("openerReference", this.getCard().getAssociation("openerReference"));
+		this._oCardPreview.attachManifestApplied(function () {
+			var sShow = this._oCardPreview.getManifestEntry("/sap.card/root/show");
+			if (sShow && !this._oCardPreview._refreshedByVariant) {
+				var cardVariant = "";
+				switch (sShow) {
+					case "tile":
+						cardVariant = this._oCardPreview.getManifestEntry("/sap.card/root/tileSize");
+						break;
+					case "header":
+						cardVariant = this._oCardPreview.getManifestEntry("/sap.card/root/headerSize");
+						break;
+					default:
+						cardVariant = this._oCardPreview.getManifestEntry("/sap.card/root/contentSize");
+				}
+				this._oCardPreview.setDisplayVariant(cardVariant);
+
+				document.body.style.removeProperty("--sapUiIntegrationEditorPreviewCardHeight");
+				this._oCardPreview.removeStyleClass("sapUiIntegrationDTPreviewCard");
+
+				this._oCardPreview.removeStyleClass("sapUiIntDTPreviewCardTileStandard");
+				this._oCardPreview.removeStyleClass("sapUiIntDTPreviewCardTileFlat");
+				this._oCardPreview.removeStyleClass("sapUiIntDTPreviewCardTileFlatWide");
+				this._oCardPreview.removeStyleClass("sapUiIntDTPreviewCardTileStandardWide");
+				this._oCardPreview.removeStyleClass("sapUiIntDTPreviewCardCompactHeader");
+				this._oCardPreview.removeStyleClass("sapUiIntDTPreviewCardSmallHeader");
+				this._oCardPreview.removeStyleClass("sapUiIntDTPreviewCardStandardHeader");
+
+				this._oCardPreview.addStyleClass("sapUiIntDTPreviewCard" + cardVariant);
+
+				this._oCardPreview._refreshedByVariant = true;
+				this._oCardPreview.refresh();
+			}
+		}.bind(this));
+		this._oCardPreview._refreshedByVariant = false;
 		this._oCardPreview.refresh();
 		this._oCardPreview.editor = this._oCardPreview.editor || {};
 		this._oCardPreview.preview = this._oCardPreview.editor.preview = this;
@@ -308,7 +369,7 @@ sap.ui.define([
 					baseUrl = this.getCard().getManifest();
 					baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
 				}
-				var src = baseUrl + "/" + mSettings.preview.src;
+				var src = baseUrl + mSettings.preview.src;
 				var oImg = new Image({ src: src });
 				oImg.addStyleClass("sapUiIntegrationDTPreviewImg");
 				oHBox.addItem(oImg);
@@ -350,7 +411,6 @@ sap.ui.define([
 		var sType = this.getCard().getManifestEntry("/sap.card/type");
 		if (sType !== "Component") {
 			mSettings.preview.modes = mSettings.preview.modes.replace("MockData", "Live");
-			mSettings.preview.modes = mSettings.preview.modes.replace("Mock", "Live");
 		}
 		return mSettings.preview.modes;
 	};
@@ -364,14 +424,11 @@ sap.ui.define([
 			switch (sModes) {
 				case "Abstract":
 				case "AbstractLive":
-				case "AbstractMock":
 				case "AbstractMockData":
 					this._currentMode = "Abstract"; break;
 				case "Live":
 				case "LiveAbstract":
 					this._currentMode = "Live"; break;
-				case "Mock":
-				case "MockAbstract":
 				case "MockData":
 				case "MockDataAbstract":
 					this._currentMode = "MockData"; break;
@@ -389,7 +446,7 @@ sap.ui.define([
 		if (sModes.indexOf("Abstract") > -1) {
 			if (sModes.indexOf("Live") > -1) {
 				this._currentMode = this._getCurrentMode() === "Abstract" ? "Live" : "Abstract";
-			} else if (sModes.indexOf("Mock") > -1 || sModes.indexOf("MockData") > -1) {
+			} else if (sModes.indexOf("MockData") > -1) {
 				this._currentMode = this._getCurrentMode() === "Abstract" ? "MockData" : "Abstract";
 			}
 		}
@@ -400,7 +457,7 @@ sap.ui.define([
 	 * @returns {sap.m.ToggleButton}
 	 */
 	 CardPreview.prototype._getModeToggleButton = function () {
-		var oBundle = Core.getLibraryResourceBundle("sap.ui.integration");
+		var oBundle = Library.getResourceBundleFor("sap.ui.integration");
 
 		if (!this._oModeToggleButton) {
 			this._oModeToggleButton = new ToggleButton();
@@ -416,7 +473,7 @@ sap.ui.define([
 		this._oModeToggleButton.removeStyleClass("sapUiIntegrationDTPreviewModeButtonFullSpec");
 		this._oModeToggleButton.removeStyleClass("sapUiIntegrationDTPreviewModeButtonVerticalFull");
 		this._oModeToggleButton.removeStyleClass("sapUiIntegrationDTPreviewModeButtonVerticalFullSpec");
-		var sLanguge = Core.getConfiguration().getLanguage().replaceAll('_', '-');
+		var sLanguge = Localization.getLanguage().replaceAll('_', '-');
 		if (this._getCurrentSize() === "Full") {
 			var sPreviewPosition = this.getSettings().preview.position;
 			if (sLanguge.startsWith("ar") || sLanguge.startsWith("he")) {
@@ -445,7 +502,7 @@ sap.ui.define([
 		if (currentMode === "Abstract") {
 			tb.setIcon("sap-icon://media-play");
 			tb.setPressed(false);
-			if (this._getModes().indexOf("Mock") > -1 || this._getModes().indexOf("MockData") > -1) {
+			if (this._getModes().indexOf("MockData") > -1) {
 				tb.setTooltip(oBundle.getText("CARDEDITOR_PREVIEW_BTN_MOCKDATAPREVIEW"));
 			} else {
 				tb.setTooltip(oBundle.getText("CARDEDITOR_PREVIEW_BTN_LIVEPREVIEW"));
@@ -489,7 +546,7 @@ sap.ui.define([
 	 * @returns {sap.m.ToggleButton}
 	 */
 	 CardPreview.prototype._getResizeToggleButton = function () {
-		var oBundle = Core.getLibraryResourceBundle("sap.ui.integration");
+		var oBundle = Library.getResourceBundleFor("sap.ui.integration");
 
 		if (!this._oSizeToggleButton) {
 			this._oSizeToggleButton = new ToggleButton();
@@ -508,8 +565,8 @@ sap.ui.define([
 		this._oSizeToggleButton.removeStyleClass("sapUiIntegrationDTPreviewResizeButtonOnlySpec");
 		this._oSizeToggleButton.removeStyleClass("sapUiIntegrationDTPreviewResizeButtonOnlyFull");
 		this._oSizeToggleButton.removeStyleClass("sapUiIntegrationDTPreviewResizeButtonOnlyFullSpec");
-		var sLanguge = Core.getConfiguration().getLanguage().replaceAll('_', '-');
-		if (this._getModes() === "Mock" || this._getModes() === "MockData" || this._getModes() === "Live") {
+		var sLanguge = Localization.getLanguage().replaceAll('_', '-');
+		if (this._getModes() === "MockData" || this._getModes() === "Live") {
 			if (this._getCurrentSize() === "Full") {
 				if (sLanguge.startsWith("ar") || sLanguge.startsWith("he")) {
 					this._oSizeToggleButton.addStyleClass("sapUiIntegrationDTPreviewResizeButtonOnlyFullSpec");

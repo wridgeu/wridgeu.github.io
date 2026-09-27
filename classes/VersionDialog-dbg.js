@@ -1,14 +1,12 @@
-"use strict";
-
-sap.ui.define(["sap/ui/core/Fragment", "sap/ui/core/syncStyleClass", "sap/ui/model/json/JSONModel", "sap/ui/base/Object"], function (Fragment, syncStyleClass, JSONModel, Object) {
+sap.ui.define(["sap/ui/core/Fragment", "sap/ui/core/syncStyleClass", "sap/ui/model/json/JSONModel", "sap/ui/VersionInfo", "sap/ui/base/Object"], function (Fragment, syncStyleClass, JSONModel, VersionInfo, BaseObject) {
   "use strict";
 
   /**
    * @namespace sapmarco.projectpages.classes
    */
-  const VersionDialog = Object.extend("sapmarco.projectpages.classes.VersionDialog", {
+  const VersionDialog = BaseObject.extend("sapmarco.projectpages.classes.VersionDialog", {
     constructor: function _constructor(oView) {
-      Object.prototype.constructor.call(this);
+      BaseObject.prototype.constructor.call(this);
       this._view = oView;
     },
     open: function _open() {
@@ -25,17 +23,11 @@ sap.ui.define(["sap/ui/core/Fragment", "sap/ui/core/syncStyleClass", "sap/ui/mod
             })).then(function (_Fragment$load) {
               const fragment = _Fragment$load;
               _this._view.addDependent(fragment);
-              sap.ui.require(["sap/ui/VersionInfo"], function (oVersInfo) {
-                try {
-                  return Promise.resolve(oVersInfo.load( /* no args */).then(oVersion => {
-                    fragment.setModel(new JSONModel(oVersion, true), "versionInfo");
-                  }));
-                } catch (e) {
-                  return Promise.reject(e);
-                }
+              return Promise.resolve(VersionInfo.load()).then(function (oVersion) {
+                fragment.setModel(new JSONModel(oVersion, true), "versionInfo");
+                syncStyleClass(_this._view.getController().getOwnerComponent().getContentDensityClass(), _this._view, fragment);
+                return Promise.resolve(fragment.open()).then(function () {});
               });
-              syncStyleClass(_this._view.getController().getOwnerComponent().getContentDensityClass(), _this._view, fragment);
-              return Promise.resolve(fragment.open()).then(function () {});
             });
           } else {
             return Promise.resolve(_this._view.byId("VersionDialog").open()).then(function () {});

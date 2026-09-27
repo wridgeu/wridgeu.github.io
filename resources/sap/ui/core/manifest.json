@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.120.0"
+      "version": "1.152.0"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -54,6 +54,11 @@
         "version": "2.18.0"
       },
       {
+        "name": "qunit-2.26",
+        "packagedWithMySelf": true,
+        "version": "2.26.0"
+      },
+      {
         "name": "jquery-migrate",
         "packagedWithMySelf": true,
         "version": "3.3.1"
@@ -77,21 +82,6 @@
         "name": "qunit-reporter-junit",
         "packagedWithMySelf": true,
         "version": "1.1.1"
-      },
-      {
-        "name": "iscroll",
-        "packagedWithMySelf": true,
-        "version": "4.2.5"
-      },
-      {
-        "name": "iscroll-lite",
-        "packagedWithMySelf": true,
-        "version": "4.1.6"
-      },
-      {
-        "name": "swipeview",
-        "packagedWithMySelf": true,
-        "version": "1.0"
       },
       {
         "name": "zynga",
@@ -126,12 +116,7 @@
       {
         "name": "cldr",
         "packagedWithMySelf": true,
-        "version": "43"
-      },
-      {
-        "name": "mobiscroll",
-        "packagedWithMySelf": true,
-        "version": "2.9.0"
+        "version": "48.0.0"
       },
       {
         "name": "sinonjs",
@@ -147,6 +132,16 @@
         "name": "sinonjs14",
         "packagedWithMySelf": true,
         "version": "14.0.0"
+      },
+      {
+        "name": "sinonjs22",
+        "packagedWithMySelf": true,
+        "version": "22.0.0"
+      },
+      {
+        "name": "nise",
+        "packagedWithMySelf": true,
+        "version": "6.1.5"
       },
       {
         "name": "sinon-qunit",
@@ -166,12 +161,12 @@
       {
         "name": "handlebars",
         "packagedWithMySelf": true,
-        "version": "4.7.7"
+        "version": "4.7.9"
       },
       {
         "name": "requirejs",
         "packagedWithMySelf": true,
-        "version": "2.1.8"
+        "version": "2.3.7"
       },
       {
         "name": "crossroadsjs",
@@ -216,7 +211,7 @@
       {
         "name": "lodash",
         "packagedWithMySelf": true,
-        "version": "4.17.21"
+        "version": "4.18.1"
       },
       {
         "name": "hyphenopoly",
@@ -249,9 +244,9 @@
         "version": "2.7.3"
       },
       {
-        "name": "tzdata",
+        "name": "ui5-webcomponents",
         "packagedWithMySelf": true,
-        "version": "2023c"
+        "version": "2.11.0"
       }
     ]
   },
@@ -264,7 +259,7 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.120",
+      "minUI5Version": "1.152",
       "libs": {}
     },
     "library": {
@@ -275,6 +270,7 @@
           "ar",
           "bg",
           "ca",
+          "cnr",
           "cs",
           "cy",
           "da",
@@ -314,6 +310,7 @@
           "sh",
           "sk",
           "sl",
+          "sr",
           "sv",
           "th",
           "tr",
@@ -342,6 +339,7 @@
           "sap.ui.core.mvc.XMLView",
           "sap.ui.core.tmpl.DOMElement",
           "sap.ui.core.tmpl.TemplateControl",
+          "sap.ui.core.tooltip.Tooltip",
           "sap.ui.core.util.Export"
         ],
         "elements": [
@@ -380,6 +378,7 @@
           "sap.ui.core.BusyIndicatorSize",
           "sap.ui.core.CalendarType",
           "sap.ui.core.CSSColor",
+          "sap.ui.core.CSSGapShortHand",
           "sap.ui.core.CSSSize",
           "sap.ui.core.CSSSizeShortHand",
           "sap.ui.core.Collision",
@@ -391,6 +390,7 @@
           "sap.ui.core.IconColor",
           "sap.ui.core.ImeMode",
           "sap.ui.core.IndicationColor",
+          "sap.ui.core.ItemSelectionMode",
           "sap.ui.core.MessageType",
           "sap.ui.core.OpenState",
           "sap.ui.core.Orientation",
@@ -416,6 +416,7 @@
         "interfaces": [
           "sap.ui.core.IShrinkable",
           "sap.ui.core.Label",
+          "sap.ui.core.ILabelable",
           "sap.ui.core.PopupInterface",
           "sap.ui.core.Toolbar",
           "sap.ui.core.IContextMenu",
@@ -423,6 +424,7 @@
           "sap.ui.core.dnd.IDragInfo",
           "sap.ui.core.dnd.IDropInfo",
           "sap.ui.core.IDScope",
+          "sap.ui.core.ITitle",
           "sap.ui.core.ITitleContent",
           "sap.ui.core.IAsyncContentCreation",
           "sap.ui.core.IPlaceholderSupport",

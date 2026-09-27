@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,14 +10,20 @@ sap.ui.define([
 	"sap/base/strings/formatMessage",
 	'sap/base/util/isPlainObject',
 	"sap/base/Log",
-	"sap/ui/core/date/UI5Date"
+	"sap/ui/core/date/UI5Date",
+	"sap/base/i18n/Localization",
+	"sap/base/util/deepClone",
+	"sap/base/i18n/date/TimezoneUtils"
 ], function (
 	getCompatibilityVersion,
 	Locale,
 	formatMessage,
 	isPlainObject,
 	Log,
-	UI5Date
+	UI5Date,
+	Localization,
+	deepClone,
+	TimezoneUtils
 ) {
 	"use strict";
 
@@ -25,12 +31,89 @@ sap.ui.define([
 	 * Utility class helping with JSON strings and formatters.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.Utils
 	 */
 	var Utils = { };
+
+	/**
+	 * Currently language list of WZ Advanced Edition does not match the one used by Card Editor
+	 * Need to mapping the different languages
+	 * key/value:  language_code_in_WZ/language_code_in_CE
+	 * NOTES: skip the languages which does not match between Card Editor and UI5, eg: cy-GB/cy, nb-NO/no, sr-RS/sh
+	 */
+	Utils.languageMapping = {
+		//"cy": "cy-GB",
+		"da-DK": "da",
+		"en-US": "en",
+		"hi-IN": "hi",
+		"hu-HU": "hu",
+		"id-ID": "id",
+		"ms-MY": "ms",
+		"nl-NL": "nl",
+		//"no-NO": "nb-NO",
+		"pl-PL": "pl",
+		"ro-RO": "ro",
+		//"sh": "sr-RS",
+		"th-TH": "th"
+	};
+
+	/**
+	 * Get localization language
+	 * @returns {string} language code
+	 */
+	Utils.getLocalizationLanguage = function() {
+		var language = Localization.getLanguageTag().toString();
+		return Utils.languageMapping[language] || language;
+	};
+
+	/**
+	 * Replace underscore with hyphen of language codes in translation texts of changes
+	 * @returns {object} translation texts
+	 */
+	Utils.formatLanguageCodesInTranslationTexts = function(oTexts) {
+		var oFormattedTexts;
+		if (oTexts) {
+			oFormattedTexts = {};
+			Object.keys(oTexts).forEach(function(sLanguage) {
+				var sFormattedLanguage = sLanguage.replaceAll('_', '-');
+				oFormattedTexts[sFormattedLanguage] = oTexts[sLanguage];
+			});
+		}
+		return oFormattedTexts;
+	};
+
+	Utils.mapLanguagesInManifestChanges = function(oManifestChanges) {
+		if (typeof oManifestChanges === "object") {
+			oManifestChanges.forEach(function (oChange) {
+				if (oChange.texts) {
+					oChange.texts = Utils.formatLanguageCodesInTranslationTexts(oChange.texts);
+					for (var [sLanguage, sMappingLanguage] of Object.entries(Utils.languageMapping)) {
+						if (oChange.texts[sLanguage]) {
+							var oTranslations = deepClone(oChange.texts[sLanguage], 500);
+							delete oChange.texts[sLanguage];
+							oTranslations = Object.assign(oTranslations, oChange.texts[sMappingLanguage]);
+							oChange.texts[sMappingLanguage] = oTranslations;
+						}
+					}
+				}
+			});
+		}
+	};
+
+	Utils._language = Utils.getLocalizationLanguage();
+
+	/**
+	 * Refresh language
+	 */
+	Utils.refreshLocalizationLanguage = function() {
+		Utils._language = Utils.getLocalizationLanguage();
+	};
+
+	// listen to localizationChange event and update Utils._language
+	Localization.attachChange(Utils.refreshLocalizationLanguage);
 
 	/**
 	 * Check if given string is a JSON.
@@ -135,6 +218,14 @@ sap.ui.define([
 		return Promise.race([pOriginalPromise, pTimeoutPromise]);
 	};
 
+	Utils.parseBoolean = function (vVisible) {
+		if (typeof vVisible === "string") {
+			return !Utils.hasFalsyValueAsString(vVisible);
+		}
+
+		return vVisible;
+	};
+
 	Utils.hasFalsyValueAsString = function (sString) {
 		return typeof sString == "string" && ["null", "false", "undefined", ""].indexOf(sString.trim()) > -1;
 	};
@@ -211,6 +302,10 @@ sap.ui.define([
 		return vData;
 	};
 
+	/**
+	 * @deprecated As of version 1.119
+	 * @returns {boolean} Whether binding syntax is complex.
+	 */
 	Utils.isBindingSyntaxComplex = function () {
 		if (Utils._isBindingSyntaxComplex === undefined) {
 			Utils._isBindingSyntaxComplex = getCompatibilityVersion("sapCoreBindingSyntax").compareTo("1.26") >= 0;
@@ -252,6 +347,10 @@ sap.ui.define([
 					mFormat.parts[1].toString()
 				],
 				formatter: function (sText, vParam1, vParam2) {
+					if (!sText) {
+						return "";
+					}
+
 					var sParam1 = vParam1 || mFormat.parts[0];
 					var sParam2 = vParam2 || mFormat.parts[1];
 
@@ -271,6 +370,123 @@ sap.ui.define([
 		}
 
 		return oBindingInfo;
+	};
+
+	/**
+	 * Starts a polling which executes the <code>fnRequest</code> function with a given interval.
+	 * It will stop if the <code>fnRequest</code> returns <code>true</code> or the maximum time is reached.
+	 * @public
+	 * @param {function} fnRequest The function to repeat with each polling. This function can return <code>true</code> if the polling is done and must be stopped.
+	 * @param {int} iInterval The time between each execution of the <code>fnRequest</code> in milliseconds.
+	 * @param {int} iMaximum The maximum time to poll in milliseconds.
+	 * @returns {object} An object with a stop function to stop the polling.
+	 */
+	Utils.polling = function (fnRequest, iInterval = 3000, iMaximum = 600000) {
+		let iTotal = 0;
+		let iTimeoutHandle;
+		let bStopped = false;
+		const fnPoll = async () => {
+			if (iMaximum && iTotal >= iMaximum) {
+				return;
+			}
+
+			const bDone = await fnRequest();
+
+			if (bDone || bStopped) {
+				return;
+			}
+
+			iTotal += iInterval;
+			iTimeoutHandle = setTimeout(fnPoll, iInterval);
+		};
+
+		fnPoll();
+
+		return {
+			stop: () => {
+				clearTimeout(iTimeoutHandle);
+				bStopped = true;
+			}
+		};
+	};
+
+	/**
+	 * Recursively searches for a value in an object using a callback function.
+	 *
+	 * @param {object} oData The object in which to perform the search.
+	 * @param {function} fnPredicate The function applied to each value. It is provided with the argument (value) and returns true to stop the search.
+	 * @returns {object|false} The value that satisfies the function, or false if none is found.
+	 */
+	Utils.find = function(oData, fnPredicate) {
+		if (!isPlainObject(oData)) {
+			throw new Error("Parameter 'data' must be an object.");
+		}
+
+		function process(vValue) {
+			if (fnPredicate(vValue)) {
+				return vValue;
+			}
+
+			if (Array.isArray(vValue)) {
+				for (const item of vValue) {
+					const result = process(item);
+					if (result) {
+						return result;
+					}
+				}
+
+				return false;
+			}
+
+			if (isPlainObject(vValue)) {
+				for (const key of Object.keys(vValue)) {
+					const result = process(vValue[key]);
+
+					if (result) {
+						return result;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		return process(oData);
+	};
+
+	/**
+	 * Shifts formatter options, timezone and locale.
+	 * @param {object} oFormatOptions The format options.
+	 * @param {string} sTimezone The timezone
+	 * @param {string} sLocale Custom locale
+	 * @returns {object} arguments
+	 */
+	Utils.processDateTimeWithTimezoneFormatArguments = function (oFormatOptions, sTimezone, sLocale) {
+		// If oFormatOptions is a string and is a valid timezone, use it as sTimezone
+		if (typeof oFormatOptions === "string" && !sTimezone && !sLocale) {
+			sTimezone = oFormatOptions;
+			oFormatOptions = {};
+		} else if (!isPlainObject(oFormatOptions)) {
+			oFormatOptions = {};
+		}
+		sLocale = sLocale && new Locale(sLocale);
+
+		// If sTimezone looks like a locale, swap
+		if (sTimezone && typeof sTimezone === "string" && !TimezoneUtils.isValidTimezone(sTimezone)) {
+			try {
+				sLocale = new Locale(sTimezone);
+				sTimezone = null;
+				Log.warning("No timezone provided or the provided timezone is not valid and will be ignored.");
+			} catch (error) {
+				sLocale = sLocale && new Locale(sLocale);
+			}
+		}
+
+		return {
+			formatOptions: oFormatOptions,
+			timezone: sTimezone,
+			locale: sLocale
+		};
 	};
 
 	return Utils;

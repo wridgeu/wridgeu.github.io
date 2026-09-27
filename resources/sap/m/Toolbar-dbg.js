@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,6 +16,7 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	'./ToolbarRenderer',
 	"sap/m/Button",
+	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/library"
 ],
 function(
@@ -29,6 +30,7 @@ function(
 	KeyCodes,
 	ToolbarRenderer,
 	Button,
+	jQuery,
 	coreLibrary
 ) {
 	"use strict";
@@ -78,7 +80,7 @@ function(
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -228,7 +230,7 @@ function(
 	 * @return {string} width
 	 */
 	Toolbar.getOrigWidth = function(sId) {
-		var oControl = Element.registry.get(sId);
+		var oControl = Element.getElementById(sId);
 		if (!oControl || !oControl.getWidth) {
 			return "";
 		}
@@ -249,6 +251,10 @@ function(
 	 * @returns {true|false|undefined|Object}
 	 */
 	Toolbar.checkShrinkable = function(oControl, sShrinkClass) {
+		if (oControl.isA("sap.ui.core.HTML")) {
+			return;
+		}
+
 		if (oControl instanceof ToolbarSpacer) {
 			return this.isRelativeWidth(oControl.getWidth());
 		}
@@ -312,8 +318,7 @@ function(
 		return {
 			role: !bActive ? this._getAccessibilityRole() : undefined, // active toolbar is rendered with sap.m.Button as native button
 			haspopup: bActive ? this.getAriaHasPopup() : undefined,
-			labelledby: aAriaLabelledBy.length ? this.getAriaLabelledBy() : this.getTitleId(),
-			roledescription: this._sAriaRoleDescription
+			labelledby: aAriaLabelledBy.length ? this.getAriaLabelledBy() : this.getTitleId()
 		};
 	};
 
@@ -334,14 +339,202 @@ function(
 		this._oContentDelegate = {
 			onAfterRendering: this._onAfterContentRendering
 		};
+
+		this._handleKeyNavigationBound =  this._handleKeyNavigation.bind(this);
+
 	};
 
 	Toolbar.prototype.onAfterRendering = function() {
 		this._checkContents();
+
+		//Attach event listened needed for the arrow key navigation
+		if (this.getDomRef()) {
+			this.getDomRef().removeEventListener("keydown", this._handleKeyNavigationBound);
+			this.getDomRef().addEventListener("keydown", this._handleKeyNavigationBound);
+		}
+		this._updateActiveButtonText();
+	};
+
+	/**
+	 * @returns {Array} Toolbar interactive, visible and enabled Controls that should be included in the arrow navigation
+	 * @private
+	 */
+	Toolbar.prototype._getToolbarNavigatableControls = function () {
+		return this._getToolbarInteractiveControls().filter(function (oControl) {
+			var oDomRef = oControl.getDomRef(),
+				bDomVisible = oDomRef && oDomRef.offsetParent !== null,
+				bEnabled = (typeof oControl.getEnabled !== "function" || oControl.getEnabled() !== false);
+
+			return bDomVisible && bEnabled;
+		});
+	};
+
+	Toolbar.prototype._handleKeyNavigation = function(oEvent) {
+		const focusedElement = document.activeElement;
+		const toolbarDom = this.getDomRef();
+
+		// Prevent navigation if Ctrl, Alt, or Command is pressed
+		if (oEvent.ctrlKey || oEvent.altKey || oEvent.metaKey) {
+			return; // Let browser handle default behavior
+		}
+
+		if (toolbarDom.contains(focusedElement)) {
+			if (oEvent.keyCode === KeyCodes.ARROW_RIGHT || oEvent.keyCode === KeyCodes.ARROW_DOWN) {
+				this._moveFocus("forward", oEvent);
+			} else if (oEvent.keyCode === KeyCodes.ARROW_LEFT  || oEvent.keyCode === KeyCodes.ARROW_UP) {
+				this._moveFocus("backward", oEvent);
+			}
+		}
+	};
+
+	/**
+	 * A custom function to get the active element in the document
+	 * without relying on jQuery.is(":focus") selector check
+	 * @static
+	 * @returns {sap.ui.core.Element|undefined}
+	 */
+	Toolbar._getActiveElement = () => {
+		try {
+			var $Act = jQuery(document.activeElement);
+
+			return Element.closestTo($Act[0]);
+		} catch (err) {
+			//escape eslint check for empty block
+		}
+	};
+
+	/**
+	 * Walks the UI5 parent chain of oActiveElement and returns the first
+	 * ancestor that is a direct content item of this toolbar. Falls back to
+	 * oActiveElement itself if no content item is found in the chain.
+	 * @param {sap.ui.core.Element} oActiveElement
+	 * @returns {sap.ui.core.Element}
+	 */
+	Toolbar.prototype._getParent = function(oActiveElement) {
+		var aContent = this.getContent(),
+			oElement = oActiveElement;
+		while (oElement) {
+			if (aContent.indexOf(oElement) !== -1) {
+				return oElement;
+			}
+			oElement = oElement.getParent();
+		}
+		return oActiveElement;
+	};
+
+	Toolbar.prototype._moveFocus = function(sDirection, oEvent) {
+		var aFocusableElements = this._getToolbarNavigatableControls(),
+			oActiveElement = Toolbar._getActiveElement(),
+			oActiveDomElement = document.activeElement;
+
+		oActiveElement = this._getParent(oActiveElement);
+
+		var iCurrentIndex = aFocusableElements.indexOf(oActiveElement),
+			iNextIndex = this._calculateNextIndex(sDirection, iCurrentIndex, aFocusableElements.length),
+			bIsFirst = this._isFirst(sDirection, iCurrentIndex),
+			bIsLast = this._isLast(sDirection, iCurrentIndex, aFocusableElements);
+
+		if (this._shouldAllowDefaultBehavior(oActiveDomElement, oActiveElement, oEvent)) {
+			return;
+		}
+
+		// Handle specific behaviour for the input based controls
+		if (this._isInputBasedControl(oActiveDomElement, oActiveElement, oEvent)) {
+            var bIsAtStart = oActiveDomElement.selectionStart === 0,
+                bIsAtEnd = oActiveDomElement.selectionStart === oActiveDomElement.value.length,
+                bTextSelected = oActiveDomElement.selectionStart !== oActiveDomElement.selectionEnd;
+
+            if (bTextSelected || (sDirection === "forward" && !bIsAtEnd) || (sDirection === "backward" && !bIsAtStart)) {
+                return;
+            }
+		}
+
+		if (aFocusableElements[iNextIndex] && !bIsFirst && !bIsLast) {
+			this._focusElement(aFocusableElements[iNextIndex], oEvent);
+		}
+	};
+
+	Toolbar.prototype._isInputBasedControl = function(oActiveDomElement) {
+		return oActiveDomElement.tagName === "INPUT" && !oActiveDomElement.readOnly;
+	};
+
+	Toolbar.prototype._isFirst = function(sDirection, iCurrentIndex) {
+		return (iCurrentIndex === 0) && (sDirection === "backward" || sDirection === "up");
+	};
+
+	Toolbar.prototype._isLast = function(sDirection, iCurrentIndex, aFocusableElements) {
+		return (iCurrentIndex === aFocusableElements.length - 1) && (sDirection === "forward" || sDirection === "down");
+	};
+
+	/**
+	 * Controls that reserve Left/Right arrow keys for their own navigation.
+	 * The toolbar must not intercept Left or Right when any of these controls is focused.
+	 *
+	 * Interim solution before extending IToolbarInteractiveControl to provide the same configuration.
+	 * Once that interface is extended, these arrays can be removed.
+	 */
+	var aControlsUsingLeftRightArrowKeys = [
+		"sap.m.Slider",        // onsapdecrease/onsapincrease fire on ArrowLeft/ArrowRight -> move the Slider's thumb value
+		"sap.m.RangeSlider",   // same pseudo-events as Slider, applied to the RangeSlider's focused range handle
+		"sap.m.MultiInput"     // onsapprevious/onsapnext fire on ArrowLeft/ArrowRight -> navigate the MultiInput's token chips
+	];
+
+	/**
+	 * Controls that reserve Up/Down arrow keys for their own navigation.
+	 * The toolbar must not intercept Up or Down when any of these controls is focused.
+	 */
+	var aControlsUsingUpDownArrowKeys = [
+		"sap.m.Slider",                  // onsapdecrease/onsapincrease also fire on ArrowUp/ArrowDown -> move the Slider's thumb value
+		"sap.m.RangeSlider",             // same pseudo-events as Slider, applied to the RangeSlider's focused range handle
+		"sap.m.MultiInput",              // onsapprevious/onsapnext also fire on ArrowUp/ArrowDown -> navigate the MultiInput's token chips
+		"sap.m.Select",                  // onsapdown opens the Select's dropdown; onsapup selects the Select's previous item
+		"sap.m.ComboBox",                // onsapdown/onsapup open and navigate the ComboBox's suggestion list
+		"sap.m.MultiComboBox",           // onsapdown/onsapup open and navigate the MultiComboBox's dropdown list
+		"sap.m.MenuButton",              // onsapup/onsapdown are intercepted to prevent the toolbar stealing focus after the MenuButton's menu closes
+		"sap.m.Breadcrumbs",             // onsapprevious/onsapnext (Up/Down) navigate the Breadcrumbs' crumb links via ItemNavigation
+		"sap.m.OverflowToolbarTokenizer",// onsapprevious/onsapnext (Up/Down) navigate the OverflowToolbarTokenizer's token chips
+		"sap.m.Tokenizer",               // onsapprevious/onsapnext (Up/Down) navigate the Tokenizer's token chips
+		"sap.m.SearchField"              // onsapdown/onsapup navigate the SearchField's suggestion popup
+	];
+
+	Toolbar.prototype._shouldAllowDefaultBehavior = function(oActiveDomElement, oActiveElement, oEvent) {
+		if (!oActiveElement) {
+			return false;
+		}
+		var oClosestElement = Element.closestTo(oActiveDomElement),
+			fnFocusedControlIsA = function(vType) {
+				return [oActiveElement, oClosestElement].some(function(oElement) {
+					return oElement && oElement.isA(vType);
+				});
+			},
+			bIsLeftOrRightArrowKey = [KeyCodes.ARROW_LEFT, KeyCodes.ARROW_RIGHT].includes(oEvent.keyCode),
+			bIsUpOrDownArrowKey = [KeyCodes.ARROW_UP, KeyCodes.ARROW_DOWN].includes(oEvent.keyCode);
+
+		return (bIsLeftOrRightArrowKey && fnFocusedControlIsA(aControlsUsingLeftRightArrowKeys)) ||
+			(bIsUpOrDownArrowKey && fnFocusedControlIsA(aControlsUsingUpDownArrowKeys));
+	};
+
+	Toolbar.prototype._calculateNextIndex = function(sDirection, iCurrentIndex, length) {
+		if (sDirection === "forward") {
+			return (iCurrentIndex + 1) % length;
+		}
+
+		return (iCurrentIndex - 1 + length) % length;
+	};
+
+	Toolbar.prototype._focusElement = function(element, oEvent) {
+		element.focus();
+
+		if (document.activeElement.tagName === 'INPUT') {
+			document.activeElement.select(); // Optionally select text in input field
+		}
+
+		// Prevent the default behavior to avoid any further automatic focus movement
+		oEvent.preventDefault();
 	};
 
 	Toolbar.prototype.onLayoutDataChange = function() {
-		this.rerender();
+		this.invalidate();
 	};
 
 	Toolbar.prototype.addContent = function(oControl) {
@@ -370,18 +563,18 @@ function(
 
 	// handle tap for active toolbar, do nothing if already handled
 	Toolbar.prototype.ontap = function(oEvent) {
-		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._getActiveButton()) {
+		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._activeButton) {
 			oEvent.setMarked();
 			this.firePress({
 				srcControl : oEvent.srcControl
 			});
-			this.focus();
+			this.focus({preventScroll: true});
 		}
 	};
 
 	// fire press event when enter is hit on the active toolbar
 	Toolbar.prototype.onsapenter = function(oEvent) {
-		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._getActiveButton()) {
+		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._activeButton) {
 			oEvent.setMarked();
 			this.firePress({
 				srcControl : this
@@ -391,7 +584,7 @@ function(
 
 	Toolbar.prototype.onsapspace = function(oEvent) {
 		// Prevent browser scrolling in case of SPACE key
-		if (oEvent.srcControl === this._getActiveButton()) {
+		if ((!this.getActive() && oEvent.isMarked()) || oEvent.srcControl === this._activeButton) {
 			oEvent.preventDefault();
 		}
 	};
@@ -463,6 +656,21 @@ function(
 		if (oLayout instanceof ToolbarLayoutData) {
 			oLayout.applyProperties();
 		}
+
+		var oToolbar = this.getParent();
+		if (oToolbar && oToolbar.isA("sap.m.Toolbar")) {
+			oToolbar._updateActiveButtonText();
+		}
+	};
+
+	/**
+	 * Updates the text of the active button when toolbar content changes
+	 * @private
+	 */
+	Toolbar.prototype._updateActiveButtonText = function() {
+		if (this.getActive()) {
+			this._getActiveButton().setText(this._getToolbarTextContent());
+		}
 	};
 
 	// gets called when any content property is changed
@@ -504,16 +712,56 @@ function(
 	 * @private
 	 */
 	Toolbar.prototype._getToolbarInteractiveControlsCount = function () {
+		return this._getToolbarInteractiveControls().length;
+	};
+
+	/**
+	 *
+	 * @returns {Array} Toolbar interactive Controls
+	 * @private
+	 */
+
+	Toolbar.prototype._getToolbarInteractiveControls = function () {
 		return this.getContent().filter(function (oControl) {
 			return oControl.getVisible()
 				&& oControl.isA("sap.m.IToolbarInteractiveControl")
 				&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
-		}).length;
+		}, this);
+	};
+
+	/**
+	 * Gets the text content of the toolbar for accessibility purposes
+	 * @returns {string} The concatenated text content from all toolbar items
+	 * @private
+	 */
+	Toolbar.prototype._getToolbarTextContent = function() {
+		const aContent = this.getContent();
+		const aTexts = [];
+
+		aContent.forEach(function(oControl) {
+			if (oControl.getVisible?.()) {
+				let sText = "";
+				const oDomRef = oControl.getDomRef();
+
+				if (oDomRef) {
+					sText = oDomRef.textContent?.trim();
+				}
+
+				if (sText) {
+					aTexts.push(sText);
+				}
+			}
+		});
+
+		return aTexts.join(" ");
 	};
 
 	Toolbar.prototype._getActiveButton = function() {
 		if (!this._activeButton) {
-			this._activeButton = new Button({text: "", id:"sapMTBActiveButton" + this.getId()}).addStyleClass("sapMTBActiveButton");
+			this._activeButton = new Button({
+				text: this._getToolbarTextContent(),
+				id:"sapMTBActiveButton" + this.getId()
+			}).addStyleClass("sapMTBActiveButton");
 			this._activeButton.onfocusin = function() {
 				this.addStyleClass("sapMTBFocused");
 				if (typeof Button.prototype.onfocusin === "function") {
@@ -573,37 +821,25 @@ function(
 	};
 
 	/**
-	 * Returns the first sap.m.Title control instance inside the toolbar for the accessibility
+	 * Returns the first visible control inside the toolbar that implements the {@link sap.ui.core.ITitle} interface.
 	 *
-	 * @returns {sap.m.Title|undefined} The <code>sap.m.Title</code> instance or undefined
+	 * @returns {sap.ui.core.ITitle|undefined} The visible control implementing {@link sap.ui.core.ITitle}, or <code>undefined</code> if none exists.
 	 * @since 1.44
 	 * @protected
 	 */
 	Toolbar.prototype.getTitleControl = function() {
-		var Title = sap.ui.require("sap/m/Title");
-		if (!Title) {
-			return;
-		}
-
-		var aContent = this.getContent();
-		for (var i = 0; i < aContent.length; i++) {
-			var oContent = aContent[i];
-			if (oContent instanceof Title && oContent.getVisible()) {
-				return oContent;
-			}
-		}
+		return this.getContent().find((oContent) => oContent.isA("sap.ui.core.ITitle") && oContent.getVisible());
 	};
 
 	/**
-	 * Returns the first sap.m.Title control id inside the toolbar for the accessibility
+	 * Returns the ID of the first visible control inside the toolbar that implements the {@link sap.ui.core.ITitle} interface.
 	 *
-	 * @returns {sap.ui.core.ID} The <code>sap.m.Title</code> ID
+	 * @returns {sap.ui.core.ID} The ID of the visible control implementing {@link sap.ui.core.ITitle}, or an empty string if none exists.
 	 * @since 1.28
 	 * @protected
 	 */
 	Toolbar.prototype.getTitleId = function() {
-		var oTitle = this.getTitleControl();
-		return oTitle ? oTitle.getId() : "";
+		return this.getTitleControl()?.getId() || "";
 	};
 
 	///////////////////////////

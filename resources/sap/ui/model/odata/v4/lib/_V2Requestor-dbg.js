@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 //Provides mixin sap.ui.model.odata.v4.lib._V2Requestor
 sap.ui.define([
 	"./_Helper",
 	"./_Parser",
-	"sap/ui/core/CalendarType",
+	"sap/base/i18n/date/CalendarType",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/odata/ODataUtils"
 ], function (_Helper, _Parser, CalendarType, DateFormat, ODataUtils) {
@@ -160,13 +160,11 @@ sap.ui.define([
 		if (iPrecision > 0) {
 			sPattern += "." + "".padEnd(iPrecision, "S");
 		}
-		if (!mPattern2Formatter[sPattern]) {
-			mPattern2Formatter[sPattern] = DateFormat.getDateTimeInstance({
+		mPattern2Formatter[sPattern] ??= DateFormat.getDateTimeInstance({
 				calendarType : CalendarType.Gregorian,
 				pattern : sPattern,
 				UTC : true
 			});
-		}
 		// no need to use UI5Date.getInstance as only UTC is relevant
 		return mPattern2Formatter[sPattern].format(new Date(iTicks)) + sOffset;
 	};
@@ -344,66 +342,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Converts the resource path. Transforms literals in key predicates from V4 to V2 syntax.
-	 *
-	 * @param {string} sResourcePath The V4 resource path
-	 * @returns {string} The resource path as required for V2
-	 *
-	 * @public
-	 */
-	// @override sap.ui.model.odata.v4.lib._Requestor#convertResourcePath
-	_V2Requestor.convertResourcePath = function (sResourcePath) {
-		var iIndex = sResourcePath.indexOf("?"),
-			sQueryString = "",
-			aSegments,
-			iSubPathLength = -1,
-			that = this;
-
-		if (iIndex > 0) {
-			sQueryString = sResourcePath.slice(iIndex);
-			sResourcePath = sResourcePath.slice(0, iIndex);
-		}
-		aSegments = sResourcePath.split("/");
-		return aSegments.map(function (sSegment) {
-			var aMatches = rSegmentWithPredicate.exec(sSegment);
-
-			iSubPathLength += sSegment.length + 1;
-			if (aMatches) {
-				sSegment = aMatches[1] + that.convertKeyPredicate(aMatches[2],
-					"/" + sResourcePath.slice(0, iSubPathLength));
-			}
-			return sSegment;
-		}).join("/") + sQueryString;
-	};
-
-	/**
-	 * Converts an OData V2 value of type Edm.Time to the corresponding OData V4 Edm.TimeOfDay value
-	 *
-	 * @param {string} sV2Value
-	 *   The OData V2 value
-	 * @returns {string}
-	 *   The corresponding OData V4 value
-	 * @throws {Error}
-	 *   If the V2 value is not convertible
-	 *
-	 * @private
-	 */
-	_V2Requestor.convertTimeOfDay = function (sV2Value) {
-		var oDate,
-			aMatches = rTime.exec(sV2Value),
-			iTicks;
-
-		if (!aMatches) {
-			throw new Error("Not a valid Edm.Time value '" + sV2Value + "'");
-		}
-
-		iTicks = Date.UTC(1970, 0, 1, aMatches[1] || 0, aMatches[2] || 0, aMatches[3] || 0);
-		// no need to use UI5Date.getInstance as only UTC is relevant
-		oDate = new Date(iTicks);
-		return oTimeFormatter.format(oDate) + (aMatches[4] || "");
-	};
-
-	/**
 	 * Converts a complex value or a collection of complex values from an OData V2 response payload
 	 * to an object in OData V4 JSON format.
 	 *
@@ -512,14 +450,74 @@ sap.ui.define([
 	};
 
 	/**
+	 * Converts the resource path. Transforms literals in key predicates from V4 to V2 syntax.
+	 *
+	 * @param {string} sResourcePath The V4 resource path
+	 * @returns {string} The resource path as required for V2
+	 *
+	 * @public
+	 */
+	// @override sap.ui.model.odata.v4.lib._Requestor#convertResourcePath
+	_V2Requestor.convertResourcePath = function (sResourcePath) {
+		var iIndex = sResourcePath.indexOf("?"),
+			sQueryString = "",
+			aSegments,
+			iSubPathLength = -1,
+			that = this;
+
+		if (iIndex > 0) {
+			sQueryString = sResourcePath.slice(iIndex);
+			sResourcePath = sResourcePath.slice(0, iIndex);
+		}
+		aSegments = sResourcePath.split("/");
+		return aSegments.map(function (sSegment) {
+			var aMatches = rSegmentWithPredicate.exec(sSegment);
+
+			iSubPathLength += sSegment.length + 1;
+			if (aMatches) {
+				sSegment = aMatches[1] + that.convertKeyPredicate(aMatches[2],
+					"/" + sResourcePath.slice(0, iSubPathLength));
+			}
+			return sSegment;
+		}).join("/") + sQueryString;
+	};
+
+	/**
+	 * Converts an OData V2 value of type Edm.Time to the corresponding OData V4 Edm.TimeOfDay value
+	 *
+	 * @param {string} sV2Value
+	 *   The OData V2 value
+	 * @returns {string}
+	 *   The corresponding OData V4 value
+	 * @throws {Error}
+	 *   If the V2 value is not convertible
+	 *
+	 * @private
+	 */
+	_V2Requestor.convertTimeOfDay = function (sV2Value) {
+		var oDate,
+			aMatches = rTime.exec(sV2Value),
+			iTicks;
+
+		if (!aMatches) {
+			throw new Error("Not a valid Edm.Time value '" + sV2Value + "'");
+		}
+
+		iTicks = Date.UTC(1970, 0, 1, aMatches[1] || 0, aMatches[2] || 0, aMatches[3] || 0);
+		// no need to use UI5Date.getInstance as only UTC is relevant
+		oDate = new Date(iTicks);
+		return oTimeFormatter.format(oDate) + (aMatches[4] || "");
+	};
+
+	/**
 	 * Checks whether the "DataServiceVersion" header is not set or has the value "1.0" or "2.0"
 	 * otherwise an error is thrown.
 	 *
 	 * @param {function} fnGetHeader
 	 *   A callback function to get a header attribute for a given header name with case-insensitive
 	 *   search by header name
-	 * @param {string} sResourcePath
-	 *   The resource path of the request
+	 * @param {string} sResourcePathWithQuery
+	 *   The resource path (possibly including query options) of the request, for error messages
 	 * @param {boolean} [_bVersionOptional]
 	 *   Indicates whether the OData service version is optional, which is the case for all OData V2
 	 *   responses. So this parameter is ignored.
@@ -529,14 +527,15 @@ sap.ui.define([
 	 * @public
 	 */
 	// @override sap.ui.model.odata.v4.lib._Requestor#doCheckVersionHeader
-	_V2Requestor.doCheckVersionHeader = function (fnGetHeader, sResourcePath, _bVersionOptional) {
+	_V2Requestor.doCheckVersionHeader = function (fnGetHeader, sResourcePathWithQuery,
+			_bVersionOptional) {
 		var sDataServiceVersion = fnGetHeader("DataServiceVersion"),
 			vODataVersion = !sDataServiceVersion && fnGetHeader("OData-Version");
 
 		if (vODataVersion) {
 			throw new Error("Expected 'DataServiceVersion' header with value '1.0' or '2.0' but "
 				+ "received 'OData-Version' header with value '" + vODataVersion
-				+ "' in response for " + this.sServiceUrl + sResourcePath);
+				+ "' in response for " + this.sServiceUrl + sResourcePathWithQuery);
 		}
 		if (!sDataServiceVersion) {
 			return;
@@ -547,7 +546,7 @@ sap.ui.define([
 		}
 		throw new Error("Expected 'DataServiceVersion' header with value '1.0' or '2.0' but "
 			+ "received value '" + sDataServiceVersion + "' in response for " + this.sServiceUrl
-			+ sResourcePath);
+			+ sResourcePathWithQuery);
 	};
 
 	/**
@@ -587,14 +586,16 @@ sap.ui.define([
 				if (oCandidate === null) {
 					// no conversion needed
 					return {value : null};
-				} else if (typeof oCandidate !== "object") {
+				}
+				if (typeof oCandidate !== "object") {
 					// treat as candidate for "entityPropertyInJson"
 					return {
 						value : this.convertPrimitive(oCandidate,
 							this.oModelInterface.fetchMetadata(sMetaPath).getResult(),
 							sMetaPath, aKeys[0])
 					};
-				} else if (oCandidate.__metadata) {
+				}
+				if (oCandidate.__metadata) {
 					// drill down into candidate for "entityComplexProperty"
 					oResponsePayload = oCandidate;
 				}
@@ -766,7 +767,7 @@ sap.ui.define([
 
 	/**
 	 * Formats a given internal value into a literal suitable for usage in OData V2 URLs. See
-	 * http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem.
+	 * https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem.
 	 *
 	 * @param {any} vValue
 	 *   The value
@@ -850,7 +851,7 @@ sap.ui.define([
 	 *   The existing entity data (or a function which may be called to access it) in case of a
 	 *   bound operation (V2: "sap:action-for")
 	 * @returns {string}
-	 *   The new path without leading slash and ellipsis
+	 *   The new path without leading slash and ellipsis, possibly including query options
 	 * @throws {Error}
 	 *   If a collection-valued operation parameter is encountered
 	 *
@@ -872,9 +873,9 @@ sap.ui.define([
 			}
 			// Note: $metadata is already available because oOperationMetadata has been read!
 			oTypeMetadata = this.getTypeForName(oOperationMetadata.$Parameter[0].$Type);
-			oTypeMetadata.$Key.forEach(function (sName) {
-				mQueryOptions[sName]
-					= that.formatPropertyAsLiteral(vEntity[sName], oTypeMetadata[sName]);
+			oTypeMetadata.$Key.forEach(function (sName0) {
+				mQueryOptions[sName0]
+					= that.formatPropertyAsLiteral(vEntity[sName0], oTypeMetadata[sName0]);
 			});
 		}
 
@@ -910,15 +911,9 @@ sap.ui.define([
 	 * @private
 	 */
 	_V2Requestor.getTypeForName = function (sName) {
-		var oType;
-
-		this.mTypesByName = this.mTypesByName || {};
-		oType = this.mTypesByName[sName];
-		if (!oType) {
-			oType = this.mTypesByName[sName]
-				= this.oModelInterface.fetchMetadata("/" + sName).getResult();
-		}
-		return oType;
+		this.mTypesByName ??= {};
+		this.mTypesByName[sName] ??= this.oModelInterface.fetchMetadata("/" + sName).getResult();
+		return this.mTypesByName[sName];
 	};
 
 	/**
@@ -952,8 +947,8 @@ sap.ui.define([
 	 * Returns a sync promise that is resolved when the requestor is ready to be used. Waits for the
 	 * metadata to be available.
 	 *
-	 * @returns {sap.ui.base.SyncPromise} A sync promise that is resolved with no result when the
-	 * metadata is available
+	 * @returns {sap.ui.base.SyncPromise<void>}
+	 *   A sync promise that is resolved with no result when the metadata is available
 	 *
 	 * @public
 	 */

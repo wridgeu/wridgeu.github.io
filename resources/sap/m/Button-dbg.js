@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Button.
 sap.ui.define([
 	"./library",
-	"sap/ui/core/Core",
 	"sap/ui/core/Control",
+	"sap/ui/core/Lib",
 	"sap/ui/core/ShortcutHintsMixin",
 	"sap/ui/core/EnabledPropagator",
 	"sap/ui/core/AccessKeysEnablement",
@@ -25,8 +25,8 @@ sap.ui.define([
 	"sap/m/Image"
 ], function(
 	library,
-	Core,
 	Control,
+	Library,
 	ShortcutHintsMixin,
 	EnabledPropagator,
 	AccessKeysEnablement,
@@ -59,12 +59,16 @@ sap.ui.define([
 	// shortcut for sap.m.BadgeState
 	var BadgeState = library.BadgeState;
 
+	// shortcut for sap.m.BadgeStyle
+	var BadgeStyle = library.BadgeStyle;
+
 	// shortcut for sap.ui.core.aria.HasPopup
 	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	// constraints for the minimum and maximum Badge value
 	var BADGE_MIN_VALUE = 1,
-		BADGE_MAX_VALUE = 9999;
+		BADGE_MAX_VALUE = 9999,
+		LONG_PRESS_DURATION = 500; // milliseconds for long press detection
 
 	/**
 	 * Constructor for a new <code>Button</code>.
@@ -98,7 +102,7 @@ sap.ui.define([
 	 * @mixes sap.ui.core.ContextMenuSupport
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -206,7 +210,18 @@ sap.ui.define([
 				 *
 				 * @private
 				 */
-				accesskey: { type: "string", defaultValue: "", visibility: "hidden" }
+				accesskey: { type: "string", defaultValue: "", visibility: "hidden" },
+
+				/**
+				 * Determines the style in which the badge notification will be represented:
+				 * <ul>
+				 * <li><code>BadgeStyle.Default</code> Use for badges that contain numbers </li>
+				 * <li><code>BadgeStyle.Attention</code> This badge is rendered as a single dot designed to capture user attention </li>
+				 * </ul>
+				 * @since 1.132.0
+				 */
+				badgeStyle: {type: "sap.m.BadgeStyle", group : "Misc", defaultValue: BadgeStyle.Default }
+
 
 			},
 			associations : {
@@ -257,6 +272,9 @@ sap.ui.define([
 	Button.prototype.init = function() {
 		this._onmouseenter = this._onmouseenter.bind(this);
 		this._buttonPressed = false;
+		this._iTouchStartTimestamp = 0;
+		this._bPreventPress = false;
+		this._bFocusFromTouch = false;
 
 		ShortcutHintsMixin.addConfig(this, {
 				event: "press",
@@ -266,7 +284,8 @@ sap.ui.define([
 
 		this.initBadgeEnablement({
 			position: "topRight",
-			selector: {suffix: "inner"}
+			selector: {suffix: "inner"},
+			style: this.getBadgeStyle()
 		});
 		this._oBadgeData = {
 			value: "",
@@ -277,6 +296,13 @@ sap.ui.define([
 		this._badgeMaxValue = BADGE_MAX_VALUE;
 
 		AccessKeysEnablement.registerControl(this);
+	};
+
+	Button.prototype.setBadgeStyle = function(sValue) {
+		this._oBadgeConfig.style = sValue;
+		this.setProperty("badgeStyle", sValue);
+
+		return this;
 	};
 
 	//Formatter callback of the badge pre-set value, before it is visualized
@@ -369,7 +395,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Button.prototype._updateBadgeInvisibleText = function(vValue) {
-		var oRb = Core.getLibraryResourceBundle("sap.m"),
+		var oRb = Library.getResourceBundleFor("sap.m"),
 			sInvisibleTextValue,
 			iPlusPos;
 
@@ -378,12 +404,12 @@ sap.ui.define([
 
 		iPlusPos = vValue.indexOf("+");
 		if (iPlusPos !== -1) {
-			sInvisibleTextValue = oRb.getText("BUTTON_BADGE_MORE_THAN_ITEMS", vValue.substr(0, iPlusPos));
+			sInvisibleTextValue = oRb.getText("BUTTON_BADGE_MORE_THAN_ITEMS", [vValue.substr(0, iPlusPos)]);
 		} else {
 			switch (vValue) {
 				case "":		sInvisibleTextValue = ""; break;
-				case "1":		sInvisibleTextValue = oRb.getText("BUTTON_BADGE_ONE_ITEM", vValue); break;
-				default:		sInvisibleTextValue = oRb.getText("BUTTON_BADGE_MANY_ITEMS", vValue);
+				case "1":		sInvisibleTextValue = oRb.getText("BUTTON_BADGE_ONE_ITEM", [vValue]); break;
+				default:		sInvisibleTextValue = oRb.getText("BUTTON_BADGE_MANY_ITEMS", [vValue]);
 			}
 		}
 
@@ -425,6 +451,8 @@ sap.ui.define([
 		}
 
 		this._bFocused = null;
+		this._iTouchStartTimestamp = 0;
+		this._bPreventPress = false;
 
 		this.$().off("mouseenter", this._onmouseenter);
 	};
@@ -504,6 +532,12 @@ sap.ui.define([
 			delete this._bRenderActive;
 		}
 
+		// reset the press preventing flag
+		this._bPreventPress = false;
+
+		// capture timestamp for long-press detection
+		this._iTouchStartTimestamp = Date.now();
+
 		// change the source only when the first finger is on the control, the
 		// following fingers doesn't affect
 		if (oEvent.targetTouches.length === 1) {
@@ -513,9 +547,15 @@ sap.ui.define([
 		}
 
 		if (this.getEnabled() && this.getVisible()) {
+			this._markFocusFromTouch();
+
 			// Safari and Firefox doesn't set the focus to the clicked button tag but to the nearest parent DOM which is focusable
 			// That is why we re-set the focus manually after the browser sets the focus.
-			if ((Device.browser.safari || Device.browser.firefox) && (oEvent.originalEvent && oEvent.originalEvent.type === "mousedown")) {
+			const bIsRightClick = oEvent.which === 3 || (oEvent.ctrlKey && oEvent.which === 1);
+			const bIsSafariOrFirefox = Device.browser.safari || Device.browser.firefox;
+			const bIsMouseDown = oEvent.originalEvent && oEvent.originalEvent.type === "mousedown";
+
+			if ( bIsSafariOrFirefox && bIsMouseDown && !bIsRightClick) {
 				this._setButtonFocus();
 			}
 
@@ -533,26 +573,38 @@ sap.ui.define([
 	 * @private
 	 */
 	Button.prototype.ontouchend = function(oEvent) {
-		var sEndingTagId;
+		var sEndingTagId, bShouldSimulateTap,
+			bIsRightClick = oEvent.which === 3 || (oEvent.ctrlKey && oEvent.which === 1),
+			iTouchDuration = Date.now() - this._iTouchStartTimestamp;
 
 		this._buttonPressed = oEvent.originalEvent && oEvent.originalEvent.buttons & 1;
+
+		// check if this was a long press (> 500ms)
+		if (oEvent.originalEvent && oEvent.originalEvent.type === "touchend" && iTouchDuration >= LONG_PRESS_DURATION) {
+			this._bPreventPress = true;
+		}
 
 		// set inactive button state
 		this._inactiveButton();
 
 		if (this._bRenderActive) {
 			delete this._bRenderActive;
-			this.ontap(oEvent, true);
+
+			if (!bIsRightClick) {
+				this.ontap(oEvent, true);
+			}
 		}
 
 		// get the tag ID where the touch event ended
 		sEndingTagId = oEvent.target.id.replace(this.getId(), '');
 		// there are some cases when tap event won't come. Simulate it:
-		if (this._buttonPressed === 0
-			&& ((this._sTouchStartTargetId === "-BDI-content"
-				&& (sEndingTagId === '-content' || sEndingTagId === '-inner' || sEndingTagId === '-img'))
-				|| (this._sTouchStartTargetId === "-content" && (sEndingTagId === '-inner' || sEndingTagId === '-img'))
-				|| (this._sTouchStartTargetId === '-img' && sEndingTagId !== '-img'))) {
+		bShouldSimulateTap = this._buttonPressed === 0 && !bIsRightClick && (
+			(this._sTouchStartTargetId === "-BDI-content" && ['-content', '-inner', '-img'].includes(sEndingTagId)) ||
+			(this._sTouchStartTargetId === "-content" && ['-inner', '-img'].includes(sEndingTagId)) ||
+			(this._sTouchStartTargetId === '-img' && sEndingTagId !== '-img')
+		);
+
+		if (bShouldSimulateTap) {
 			this.ontap(oEvent, true);
 		}
 
@@ -565,8 +617,16 @@ sap.ui.define([
 	 * @private
 	 */
 	Button.prototype.ontouchcancel = function() {
+		var iTouchDuration = Date.now() - this._iTouchStartTimestamp;
+
 		this._buttonPressed = false;
 		this._sTouchStartTargetId = '';
+
+		// check if this was a long press (> 500ms)
+		if (iTouchDuration >= LONG_PRESS_DURATION) {
+			this._bPreventPress = true;
+		}
+
 		// set inactive button state
 		this._inactiveButton();
 	};
@@ -589,14 +649,18 @@ sap.ui.define([
 		if (this.getEnabled() && this.getVisible()) {
 			// note: on mobile, the press event should be fired after the focus is on the button
 			if ((oEvent.originalEvent && oEvent.originalEvent.type === "touchend")) {
-					this.focus();
+				this.focus();
 			}
 
-			/**
-			 * @deprecated As of version 1.20 the <code>tap</code> event has been replaced by the <code>press</code> event
-			 */
-			this.fireTap({/* no parameters */}); // (This event is deprecated, use the "press" event instead)
-			this.firePress({/* no parameters */ });
+			// prevent press event if long press is detected
+			if (!this._bPreventPress) {
+				/**
+				 * @deprecated As of version 1.20 the <code>tap</code> event has been replaced by the <code>press</code> event
+				 */
+				this.fireTap({/* no parameters */}); // (This event is deprecated, use the "press" event instead)
+				this.firePress({/* no parameters */ });
+			}
+			this._bPreventPress = false;
 		}
 
 		this.bFromTouchEnd = bFromTouchEnd;
@@ -616,6 +680,8 @@ sap.ui.define([
 	 * @private
 	 */
 	Button.prototype.onkeydown = function(oEvent) {
+
+		this._clearFocusFromTouch?.();
 
 		if ((oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER || oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT)
 			&& !oEvent.ctrlKey && !oEvent.metaKey) {
@@ -669,7 +735,7 @@ sap.ui.define([
 			this._inactiveButton();
 		}
 
-		if (oEvent.which === KeyCodes.SPACE) {
+		if (oEvent.which === KeyCodes.SPACE && this._bPressedSpace) {
 			if (!this._bPressedEscapeOrShift) {
 				// mark the event for components that needs to know if the event was handled by the button
 				oEvent.setMarked();
@@ -714,9 +780,32 @@ sap.ui.define([
 		this._buttonPressed = false;
 		this._bFocused = false;
 		this._sTouchStartTargetId = '';
+		this._iTouchStartTimestamp = 0;
+		this._bPreventPress = false;
+		this._clearFocusFromTouch();
 		// set inactive button state
 		this._inactiveButton();
 		this._toggleLiveChangeAnnouncement("off");
+	};
+
+	/**
+	 * Marks the current focus as touch-originated.
+	 * @private
+	 */
+	Button.prototype._markFocusFromTouch = function() {
+		this._bFocusFromTouch = true;
+		this.addStyleClass("sapMBtnFocusFromTouch");
+	};
+
+	/**
+	 * Clears touch-origin focus marker.
+	 * @private
+	 */
+	Button.prototype._clearFocusFromTouch = function() {
+		if (this._bFocusFromTouch) {
+			this._bFocusFromTouch = false;
+			this.removeStyleClass("sapMBtnFocusFromTouch");
+		}
 	};
 
 	/**
@@ -940,7 +1029,8 @@ sap.ui.define([
 	 */
 	Button.prototype.getAccessibilityInfo = function() {
 		var sDesc = this._getText() || this.getTooltip_AsString(),
-			sAccessibleRole = this.getAccessibleRole();
+			sAccessibleRole = this.getAccessibleRole(),
+			sKeyShortcutsText = this.getDomRef()?.getAttribute("aria-keyshortcuts");
 
 		if (!sDesc && this._getAppliedIcon()) {
 			var oIconInfo = IconPool.getIconInfo(this._getAppliedIcon());
@@ -951,8 +1041,8 @@ sap.ui.define([
 
 		return {
 			role: sAccessibleRole === ButtonAccessibleRole.Default ? "button" : sAccessibleRole.toLowerCase(),
-			type: Core.getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_BUTTON"),
-			description: sDesc,
+			type: Library.getResourceBundleFor("sap.m").getText("ACC_CTR_TYPE_BUTTON"),
+			description: `${sDesc} ${sKeyShortcutsText ? sKeyShortcutsText : ""}`.trim(),
 			focusable: this.getEnabled(),
 			enabled: this.getEnabled()
 		};
@@ -1029,7 +1119,7 @@ sap.ui.define([
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	 Button.prototype._getToolbarInteractive = function () {
 		return true;

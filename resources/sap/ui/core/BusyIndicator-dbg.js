@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * Provides methods to show or hide a waiting animation covering the whole
 	 * page and blocking user interaction.
 	 * @namespace
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @public
 	 * @alias sap.ui.core.BusyIndicator
 	 */
@@ -54,7 +54,7 @@ sap.ui.define([
 		sDOM_ID: "sapUiBusyIndicator"
 	});
 
-	BusyIndicator.M_EVENTS = {
+	const M_EVENTS = {
 		Open: "Open",
 
 		Close: "Close"
@@ -108,20 +108,7 @@ sap.ui.define([
 		var oRootDomRef = document.createElement("div");
 		oRootDomRef.id = this.sDOM_ID;
 
-		var oBusyContainer = document.createElement("div");
-		this._oResBundle = Library.getResourceBundleFor("sap.ui.core");
-		var sTitle = this._oResBundle.getText("BUSY_TEXT");
-		delete this._oResBundle;
-
-		oBusyContainer.className = "sapUiBusy";
-		oBusyContainer.setAttribute("tabindex", "0");
-		oBusyContainer.setAttribute("role", "progressbar");
-		oBusyContainer.setAttribute("alt", "");
-		oBusyContainer.setAttribute("title", sTitle);
-		oRootDomRef.appendChild(oBusyContainer);
-
-		var oBusyElement = BusyIndicatorUtils.getElement(BusyIndicatorSize.Large);
-		oBusyElement.setAttribute("title", sTitle);
+		const oBusyElement = BusyIndicatorUtils.getElement(BusyIndicatorSize.Large);
 		oRootDomRef.appendChild(oBusyElement);
 
 		this.oDomRef = oRootDomRef;
@@ -300,7 +287,7 @@ sap.ui.define([
 	 * @public
 	 */
 	BusyIndicator.attachOpen = function(fnFunction, oListener) {
-		this.attachEvent(BusyIndicator.M_EVENTS.Open, fnFunction, oListener);
+		this.attachEvent(M_EVENTS.Open, fnFunction, oListener);
 		return this;
 	};
 
@@ -315,7 +302,7 @@ sap.ui.define([
 	 * @public
 	 */
 	BusyIndicator.detachOpen = function(fnFunction, oListener) {
-		this.detachEvent(BusyIndicator.M_EVENTS.Open, fnFunction, oListener);
+		this.detachEvent(M_EVENTS.Open, fnFunction, oListener);
 		return this;
 	};
 
@@ -334,7 +321,7 @@ sap.ui.define([
 	 * @public
 	 */
 	BusyIndicator.attachClose = function(fnFunction, oListener) {
-		this.attachEvent(BusyIndicator.M_EVENTS.Close, fnFunction, oListener);
+		this.attachEvent(M_EVENTS.Close, fnFunction, oListener);
 		return this;
 	};
 
@@ -349,16 +336,16 @@ sap.ui.define([
 	 * @public
 	 */
 	BusyIndicator.detachClose = function(fnFunction, oListener) {
-		this.detachEvent(BusyIndicator.M_EVENTS.Close, fnFunction, oListener);
+		this.detachEvent(M_EVENTS.Close, fnFunction, oListener);
 		return this;
 	};
 
 	BusyIndicator.fireOpen = function(mParameters) {
-		this.fireEvent(BusyIndicator.M_EVENTS.Open, mParameters);
+		this.fireEvent(M_EVENTS.Open, mParameters);
 	};
 
 	BusyIndicator.fireClose = function(mParameters) {
-		this.fireEvent(BusyIndicator.M_EVENTS.Close, mParameters);
+		this.fireEvent(M_EVENTS.Close, mParameters);
 	};
 
 	return BusyIndicator;

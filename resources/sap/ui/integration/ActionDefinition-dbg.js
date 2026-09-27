@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,12 +28,11 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
-	 * @experimental Since 1.85. Disclaimer: this class is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
-	 * @since 1.85
+	 * @ui5-experimental-since 1.85
 	 * @alias sap.ui.integration.ActionDefinition
 	 */
 	var ActionDefinition = Element.extend("sap.ui.integration.ActionDefinition", {
@@ -63,6 +62,7 @@ sap.ui.define([
 
 				/**
 				 * The type of the action button.
+				 * @deprecated Since 1.130 All <code>ActionDefinitions</code> are now rendered as menu items and don't have <code>buttonType</code>.
 				 */
 				buttonType: {
 					type: "sap.m.ButtonType", defaultValue: ButtonType.Transparent
@@ -88,6 +88,14 @@ sap.ui.define([
 				 */
 				parameters: {
 					type: "object"
+				},
+
+				/**
+				 * Defines whether a visual separator should be rendered before the item.
+				 * <b>Note</b>: If an item is invisible its separator is also not displayed.
+				 */
+				startsSection: {
+					type: "boolean", defaultValue: false
 				}
 			},
 			events: {
@@ -102,10 +110,20 @@ sap.ui.define([
 				/**
 				 * The button in the actions menu, which is related to this action.
 				 */
-				_menuButton: {
-					type: "sap.m.Button",
+				_menuItem: {
+					type: "sap.m.MenuItem",
 					multiple: false,
 					visibility: "hidden"
+				}
+			},
+			aggregations: {
+				/**
+				 * Action Definitions which will appear as nested items in the menu.
+				 * <b>Note</b>: The parent action definition will not fire a press anymore, it will only be used to hold the subitem.
+				 */
+				actionDefinitions: {
+					type: "sap.ui.integration.ActionDefinition",
+					multiple: true
 				}
 			}
 		}

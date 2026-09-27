@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/m/library",
 	"sap/ui/Device",
 	"sap/ui/core/library",
-	"sap/ui/core/Lib"
+	"sap/ui/core/Lib",
+	"sap/ui/core/IconPool" // side effect: required when calling RenderManager#icon
 ], function (library, Device, coreLibrary, Library) {
 	"use strict";
 
@@ -19,6 +20,9 @@ sap.ui.define([
 
 	// shortcut for sap.ui.core.ValueState
 	var ValueState = coreLibrary.ValueState;
+
+	// shortcut for library resource bundle
+	const oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Dialog renderer.
@@ -50,19 +54,25 @@ sap.ui.define([
 			oBeginButton = oDialog.getBeginButton(),
 			oEndButton = oDialog.getEndButton(),
 			sState = oDialog.getState(),
-			bStretch = oDialog.getStretch(),
-			bStretchOnPhone = oDialog.getStretchOnPhone() && Device.system.phone,
+			bStretched = oDialog.getStretch(),
 			oValueStateText = oDialog.getAggregation("_valueState"),
-			oFooter = oDialog.getFooter();
+			oFooter = oDialog.getFooter(),
+			sContentHeight = oDialog.getContentHeight(),
+			sContentWidth = oDialog.getContentWidth(),
+			oRb = Library.getResourceBundleFor("sap.m");
 
 		// write the HTML into the render manager
 		// the initial size of the dialog have to be 0, because if there is a large dialog content the initial size can be larger than the html's height (scroller)
 		// The scroller will make the initial window width smaller and in the next recalculation the maxWidth will be larger.
 
-		oRM.openStart("div", oDialog)
-			.style("width", oDialog.getContentWidth())
-			.style("height", oDialog.getContentHeight())
-			.class("sapMDialog")
+		oRM.openStart("div", oDialog);
+
+		if (!bStretched) {
+			oRM.style("width", sContentWidth);
+			oRM.style("height", sContentHeight);
+		}
+
+		oRM.class("sapMDialog")
 			.class("sapMDialog-CTX")
 			.class("sapMPopup-CTX");
 
@@ -78,7 +88,18 @@ sap.ui.define([
 			oRM.class("sapMDialogTouched");
 		}
 
-		if (bStretch || bStretchOnPhone) {
+		if (bStretched) {
+			oRM.class("sapMDialogStretched");
+		}
+
+		if (oDialog.getResizable() && !bStretched) {
+			oRM.class("sapMDialogResizable");
+		}
+
+		/**
+		 * @deprecated As of version 1.11.2
+		 */
+		if (!bStretched && oDialog.getStretchOnPhone() && Device.system.phone) {
 			oRM.class("sapMDialogStretched");
 		}
 
@@ -105,8 +126,9 @@ sap.ui.define([
 		}
 
 		oRM.accessibilityState(oDialog, {
-			role: sRole,
-			modal: true
+			role: sRole.toLowerCase(),
+			modal: true,
+			describedby: oDialog._oAriaDescribedbyText.getText() ? oDialog._oAriaDescribedbyText.getId() : undefined
 		});
 
 		if (oSubHeader && oSubHeader.getVisible()) {
@@ -132,7 +154,7 @@ sap.ui.define([
 			oRM.class("sapMDialogPhone");
 		}
 
-		if (oDialog.getDraggable() && !bStretch) {
+		if (oDialog.getDraggable() && !bStretched) {
 			oRM.class("sapMDialogDraggable");
 		}
 
@@ -151,10 +173,13 @@ sap.ui.define([
 
 		oRM.openEnd();
 
-		if (Device.system.desktop) {
+		if (oDialog._oAriaDescribedbyText.getText()) {
+			oRM.renderControl(oDialog._oAriaDescribedbyText);
+		}
 
-			if (oDialog.getResizable() && !bStretch) {
-				oRM.icon("sap-icon://resize-corner", ["sapMDialogResizeHandler"], {"title": "", "aria-label": ""});
+		if (Device.system.desktop) {
+			if (oDialog.getResizable() && !bStretched) {
+				DialogRenderer.renderResizeHandle(oRM);
 			}
 
 			// Invisible element which is used to determine when desktop keyboard navigation
@@ -162,44 +187,66 @@ sap.ui.define([
 			// In that case, the controller will focus the last focusable element.
 			oRM.openStart("span", sId + "-firstfe")
 				.class("sapMDialogFirstFE")
+				.class("sapUiSkipFocusFail")
 				.attr("role", "none")
 				.attr("tabindex", "0")
 				.openEnd()
 				.close("span");
 		}
 
-		if (oHeader || oSubHeader) {
-			oRM.openStart("header")
-				.openEnd();
-			if (oHeader) {
-				oHeader._applyContextClassFor("header");
-				oRM.openStart("div")
-					.class("sapMDialogTitleGroup");
+		if (oDialog._isDraggableOrResizable()) {
+			let sLabel;
+			if (oDialog.getResizable() && oDialog.getDraggable()) {
+				sLabel = oRb.getText("DIALOG_DRAG_AND_RESIZE_HANDLE_ARIA_LABEL");
+			} else if (oDialog.getDraggable()) {
+				sLabel = oRb.getText("DIALOG_DRAG_HANDLE_ARIA_LABEL");
+			} else if (oDialog.getResizable()) {
+				sLabel = oRb.getText("DIALOG_RESIZE_HANDLE_ARIA_LABEL");
+			}
 
-				if (oDialog._isDraggableOrResizable()) {
-					oRM.attr("tabindex", 0)
-						.accessibilityState(oHeader, {
-							role: "group",
-							roledescription: Library.getResourceBundleFor("sap.m").getText("DIALOG_HEADER_ARIA_ROLE_DESCRIPTION"),
-							describedby: { value: oDialog.getId() + "-ariaDescribedbyText", append: true }
-						});
+			oRM.openStart("span", sId + "-dragAndResizeHandler")
+				.class("sapMDialogDragAndResizeHandler")
+				.attr("tabindex", "0")
+				.attr("role", "img")
+				.attr("aria-roledescription", oRb.getText("DIALOG_HANDLE_ARIA_ROLEDESCRIPTION"))
+				.attr("aria-label", sLabel)
+				.attr("aria-describedby", oDialog._oDescribedbyDragAndResizeHandleText.getId())
+				.openEnd()
+				.close("span");
+
+			oRM.renderControl(oDialog._oDescribedbyDragAndResizeHandleText);
+		}
+
+		if (oHeader || oSubHeader) {
+			oRM.openStart("div")
+				.attr("role", "region")
+				.attr("aria-label", oResourceBundle.getText("DIALOG_REGION_HEADER"))
+				.class("sapMDialogHeader")
+				.openEnd();
+
+			if (oHeader) {
+				if (oHeader._applyContextClassFor) {
+					oHeader._applyContextClassFor("header");
 				}
+				oRM.openStart("div", sId + "-titleGroup")
+					.class("sapMDialogTitleGroup");
 
 				oRM.openEnd()
 					.renderControl(oHeader)
-					.renderControl(oDialog._oAriaDescribedbyText)
 					.close("div");
 			}
 
 			if (oSubHeader && oSubHeader.getVisible()) {
-				oSubHeader._applyContextClassFor("subheader");
+				if (oSubHeader._applyContextClassFor) {
+					oSubHeader._applyContextClassFor("subheader");
+				}
 				oRM.openStart("div")
 					.class("sapMDialogSubHeader")
 					.openEnd()
 					.renderControl(oSubHeader)
 					.close("div");
 			}
-			oRM.close("header");
+			oRM.close("div");
 
 		}
 
@@ -207,7 +254,9 @@ sap.ui.define([
 			oRM.renderControl(oValueStateText);
 		}
 
-		oRM.openStart("section", sId + "-cont")
+		oRM.openStart("div", sId + "-cont")
+			.attr("role", "region")
+			.attr("aria-label", oResourceBundle.getText("DIALOG_REGION_CONTENT"))
 			.class("sapMDialogSection")
 			.openEnd();
 
@@ -218,7 +267,7 @@ sap.ui.define([
 		oRM.openStart("div", sId + "-scrollCont")
 			.class("sapMDialogScrollCont");
 
-		if (oDialog.getStretch() || oDialog.getContentHeight()) {
+		if (bStretched || sContentHeight) {
 			oRM.class("sapMDialogStretchContent");
 		}
 
@@ -228,20 +277,27 @@ sap.ui.define([
 
 		oRM.close("div")
 			.close("div")
-			.close("section");
+			.close("div");
 
 		if (hasFooter) {
-			oRM.openStart("footer")
+			oRM.openStart("div")
+				.attr("role", "region")
+				.attr("aria-label", oResourceBundle.getText("DIALOG_REGION_FOOTER"))
 				.class("sapMDialogFooter")
 				.openEnd();
+
 			if (oFooter) {
-				oFooter._applyContextClassFor("footer");
+				if (oFooter._applyContextClassFor) {
+					oFooter._applyContextClassFor("footer");
+				}
 				oRM.renderControl(oFooter);
 			} else {
-				oDialog._oToolbar._applyContextClassFor("footer");
+				if (oDialog._oToolbar._applyContextClassFor) {
+					oDialog._oToolbar._applyContextClassFor("footer");
+				}
 				oRM.renderControl(oDialog._oToolbar);
 			}
-			oRM.close("footer");
+			oRM.close("div");
 		}
 
 		if (Device.system.desktop) {
@@ -250,6 +306,7 @@ sap.ui.define([
 			// In that case, the controller will focus the first focusable element.
 			oRM.openStart("span", sId + "-lastfe")
 				.class("sapMDialogLastFE")
+				.class("sapUiSkipFocusFail")
 				.attr("role", "none")
 				.attr("tabindex", "0")
 				.openEnd()
@@ -259,6 +316,17 @@ sap.ui.define([
 		oRM.close("div");
 	};
 
-	return DialogRenderer;
+	DialogRenderer.renderResizeHandle = function(oRM) {
+		var oRb = Library.getResourceBundleFor("sap.m");
 
+		oRM.openStart("div")
+			.class("sapMDialogResizeHandle")
+			.openEnd();
+
+		oRM.icon("sap-icon://resize-corner", ["sapMDialogResizeHandleIcon"], { "title": oRb.getText("DIALOG_RESIZE_HANDLE_TOOLTIP"), "aria-label": null });
+
+		oRM.close("div");
+	};
+
+	return DialogRenderer;
 }, /* bExport= */ true);

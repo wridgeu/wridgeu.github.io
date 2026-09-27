@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,6 +12,7 @@ sap.ui.define([
 	var oLogger = Log.getLogger("sap.ui.test.matchers.Ancestor");
 	var oVisitor = new _Visitor();
 
+	// Note: changes to the parameter documentation must be reflectes in the .dtsgenrc file, too
 	/**
 	 * @class
 	 * Checks if a control has a defined ancestor.

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,10 +8,12 @@
 sap.ui.define([
 	'sap/ui/core/Element',
 	'sap/ui/base/ManagedObjectObserver',
+	"sap/ui/core/Lib",
 	'sap/ui/core/theming/Parameters',
 	'./FormHelper',
+	'./FormTitleUtil',
 	'sap/base/Log'
-	], function(Element, ManagedObjectObserver, Parameters, FormHelper, Log) {
+], function(Element, ManagedObjectObserver, Library, Parameters, FormHelper, FormTitleUtil, Log) {
 	"use strict";
 
 
@@ -23,12 +25,12 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * A <code>FormContainer</code> represents a group inside a <code>Form</code>. It consists of <code>FormElements</code>.
-	 * The rendering of the <code>FormContainer</code> is done by the <code>FormLayout</code> assigned to the <code>Form</code>.
+	 * A <code>FormContainer</code> represents a group inside a {@link sap.ui.layout.form.Form Form}. It consists of {@link sap.ui.layout.form.FormElement FormElements}.
+	 * The rendering of the <code>FormContainer</code> is done by the {@link sap.ui.layout.form.Form#getLayout FormLayout} assigned to the {@link sap.ui.layout.form.Form Form}.
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -43,14 +45,14 @@ sap.ui.define([
 			/**
 			 * Container is expanded.
 			 *
-			 * <b>Note:</b> This property only works if <code>expandable</code> is set to <code>true</code>.
+			 * <b>Note:</b> This property only works if {@link #getExpandable expandable} is set to <code>true</code>.
 			 */
 			expanded : {type : "boolean", group : "Misc", defaultValue : true},
 
 			/**
 			 * Defines if the <code>FormContainer</code> is expandable.
 			 *
-			 * <b>Note:</b> The expander icon will only be shown if a <code>title</code> is set for the <code>FormContainer</code>.
+			 * <b>Note:</b> The expander icon will only be shown if a {@link #getTitle Title} is set for the <code>FormContainer</code>.
 			 */
 			expandable : {type : "boolean", group : "Misc", defaultValue : false},
 
@@ -81,20 +83,32 @@ sap.ui.define([
 			 * Title of the <code>FormContainer</code>. Can either be a <code>Title</code> element or a string.
 			 * If a <code>Title</code> element is used, the style of the title can be set.
 			 *
-			 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
+			 * <b>Note:</b> If a {@link #getToolbar Toolbar} is used, the <code>Title</code> is ignored.
 			 *
 			 * <b>Note:</b> If the title is provided as a string, the title is rendered with a theme-dependent default level.
 			 * As the <code>Form</code> control cannot know the structure of the page, this might not fit the page structure.
 			 * In this case provide the title using a <code>Title</code> element and set its {@link sap.ui.core.Title#setLevel level} to the needed value.
+			 *
+			 * <b>Note:</b> Do not use {@link sap.ui.core.Title#setIcon icon} for {@link sap.ui.core.Title Title}.
+			 * If an icon is needed, use a {@link #setToolbar Toolbar} to show both title and icon.
+			 *
+			 * <b>Note:</b> Do not use {@link sap.ui.core.Title#setEmphasized emphasized} for {@link sap.ui.core.Title Title}.
+			 * This is not supported in current themes and might lead to accessibillity issues.
 			 */
 			title : {type : "sap.ui.core.Title", altTypes : ["string"], multiple : false},
 
 			/**
+			 * Title control used for rendering. It is internally created and synchronized with the setting of the {@link #setTitle title} aggregation.
+			 * @since 1.152
+			 */
+			_renderingTitle : {type : "sap.ui.core.ITitle", multiple : false, visibility: "hidden"},
+
+			/**
 			 * Toolbar of the <code>FormContainer</code>.
 			 *
-			 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
+			 * <b>Note:</b> If a <code>Toolbar</code> is used, the {@link #getTitle Title} is ignored.
 			 * If a title is needed inside the <code>Toolbar</code> it must be added at content to the <code>Toolbar</code>.
-			 * In this case add the <code>Title</code> to the <code>ariaLabelledBy</code> association.
+			 * In this case add the <code>Title</code> to the {@link #addAriaLabelledBy ariaLabelledBy} association.
 			 * Use the right title level to meet the visual requirements. This might be theme-dependent.
 			 * @since 1.36.0
 			 */
@@ -112,6 +126,10 @@ sap.ui.define([
 			 *
 			 * <b>Note:</b> This attribute is only rendered if the <code>FormContainer</code> has it's own
 			 * DOM representation in the used <code>FormLayout</code>.
+			 *
+			 * <b>Note:</b> If there is more than one <code>FormContainers</code>, every <code>FormContainer</code> needs to have some title or label
+			 * (at least for screen reader support).
+			 * If no {@link #getTitle Title} is set, a label or title needs to be assigned using the <code>ariaLabelledBy</code> association.
 			 * @since 1.36.0
 			 */
 			ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" }
@@ -124,13 +142,14 @@ sap.ui.define([
 		this._oInitPromise = FormHelper.init(); // check for used library and request needed controls
 
 
-		this._rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.layout");
+		this._rb = Library.getResourceBundleFor("sap.ui.layout");
 
 		this._oObserver = new ManagedObjectObserver(this._observeChanges.bind(this));
 
 		this._oObserver.observe(this, {
 			properties: ["expanded", "expandable"],
-			aggregations: ["formElements"]
+			aggregations: ["formElements", "title"],
+			parent: true
 		});
 
 	};
@@ -360,6 +379,17 @@ sap.ui.define([
 
 	};
 
+	FormContainer.prototype.onThemeChanged = function() {
+		_setExpanderIcon.call(this);
+	};
+
+	function _getIconUrl(sParamName) {
+		return Parameters.get({
+			name: [sParamName],
+			_restrictedParseUrls: true
+		});
+	}
+
 	function _setExpanderIcon(){
 
 		if (!this._oExpandButton) {
@@ -369,13 +399,13 @@ sap.ui.define([
 		var sIcon, sIconHovered, sText, sTooltip;
 
 		if (this.getExpanded()) {
-			sIcon = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerColImageURL');
-			sIconHovered = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerColImageDownURL');
+			sIcon = _getIconUrl('_sap_ui_layout_Form_FormContainerColImageURL');
+			sIconHovered = _getIconUrl('_sap_ui_layout_Form_FormContainerColImageDownURL');
 			sText = "-";
 			sTooltip = this._rb.getText("FORM_COLLAPSE");
 		} else {
-			sIcon = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerExpImageURL');
-			sIconHovered = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerExpImageDownURL');
+			sIcon = _getIconUrl('_sap_ui_layout_Form_FormContainerExpImageURL');
+			sIconHovered = _getIconUrl('_sap_ui_layout_Form_FormContainerExpImageDownURL');
 			sText = "+";
 			sTooltip = this._rb.getText("FORM_EXPAND");
 		}
@@ -404,8 +434,11 @@ sap.ui.define([
 			_formElementChanged.call(this, oChanges.mutation, oChanges.child);
 		} else if (oChanges.name == "expanded") {
 			_expandedChanged.call(this, oChanges.current);
-		} else if (oChanges.name == "expandable") {
+		} else {
+			if (oChanges.name == "expandable") {
 			_expandableChanged.call(this, oChanges.current);
+			}
+			FormTitleUtil.observeTitleChange.call(this, oChanges);
 		}
 
 	};

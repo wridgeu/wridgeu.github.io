@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/base/util/extend",
+	"sap/base/util/deepExtend",
 	"sap/base/util/isEmptyObject",
 	"sap/ui/base/Object",
 	"sap/ui/test/_OpaLogger",
 	"sap/ui/test/_ParameterValidator",
 	"sap/ui/thirdparty/jquery"
-], function (extend, isEmptyObject, UI5Object, _OpaLogger, _ParameterValidator) {
+], function (deepExtend, isEmptyObject, UI5Object, _OpaLogger, _ParameterValidator) {
 	"use strict";
 
 	var WaiterBase = UI5Object.extend("sap.ui.test.autowaiter.WaiterBase", {
@@ -37,7 +37,7 @@ sap.ui.define([
 					inputToValidate: oConfig,
 					validationInfo: this._getValidationInfo()
 				});
-				extend(this._mConfig, oConfig);
+				deepExtend(this._mConfig, oConfig);
 			}
 		},
 		_getDefaultConfig: function () {

@@ -1,14 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/integration/editor/fields/BaseField",
 	"sap/m/DatePicker",
-	"sap/ui/core/date/UI5Date"
+	"sap/ui/core/date/UI5Date",
+	"sap/ui/model/type/Date"
 ], function (
-	BaseField, DatePicker, UI5Date
+	BaseField, DatePicker, UI5Date, DateType
 ) {
 	"use strict";
 
@@ -18,9 +19,8 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.DateField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @private
-	 * @experimental since 1.83.0
 	 * @ui5-restricted
 	 */
 	var DateField = BaseField.extend("sap.ui.integration.editor.fields.DateField", {
@@ -42,8 +42,7 @@ sap.ui.define([
 				settings: {
 					value: {
 						path: "currentSettings>value",
-						type: 'sap.ui.model.type.Date',
-						formatOptions: oformatter
+						type: new DateType(oformatter)
 					},
 					editable: oConfig.editable,
 					//width: "16rem",

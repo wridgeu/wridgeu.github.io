@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -8,9 +8,8 @@ sap.ui.define([
 	"sap/base/strings/escapeRegExp",
 	"sap/base/util/deepEqual",
 	"sap/base/util/JSTokenizer",
-	"sap/ui/performance/Measurement",
-	"sap/ui/thirdparty/URI"
-], function (Log, escapeRegExp, deepEqual, JSTokenizer, Measurement, URI) {
+	"sap/ui/performance/Measurement"
+], function (Log, escapeRegExp, deepEqual, JSTokenizer, Measurement) {
 	"use strict";
 
 	//SAP's Independent Implementation of "Top Down Operator Precedence" by Vaughan R. Pratt,
@@ -60,18 +59,20 @@ sap.ui.define([
 					return oODataUtils.compare.apply(oODataUtils, arguments);
 				},
 				"fillUriTemplate": function (sExpression, mData) {
+					let URITemplate = sap.ui.require("sap/ui/thirdparty/URITemplate");
+
 					/** @deprecated As of version 1.120.0 */
-					if (!URI.expand) {
+					if (!URITemplate) {
 						// probing is not required since the presence of URI.expand is the indicator
 						// that URITemplate has been loaded already
-						/* URITemplate = */ sap.ui.requireSync("sap/ui/thirdparty/URITemplate");
+						URITemplate = sap.ui.requireSync("sap/ui/thirdparty/URITemplate");
 					}
-					if (!URI.expand) {
+					if (!URITemplate) {
 						throw new TypeError("Expression uses 'odata.fillUriTemplate' which requires"
 							+ " to import 'sap/ui/thirdparty/URITemplate' in advance");
 					}
 
-					return URI.expand(sExpression.trim(), mData).toString();
+					return new URITemplate(sExpression.trim()).expand(mData);
 				},
 				"uriEncode": function () {
 					var oODataUtils = sap.ui.require("sap/ui/model/odata/ODataUtils");
@@ -602,6 +603,11 @@ sap.ui.define([
 			}
 
 			for (sKey in oBinding) {
+				if (sKey === "parameters") {
+					// parameters are not converted from name to object, but even a simple binding
+					// may have the implicit object parameter "scope"
+					continue;
+				}
 				switch (typeof oBinding[sKey]) {
 					case "boolean":
 					case "number":
@@ -922,6 +928,10 @@ sap.ui.define([
 				},
 				at: oResult.at || oTokens.at
 			};
-		}
+		},
+		/**
+		 * An object containing variables that can be used as global variables in an expression.
+		 */
+		_globals: mDefaultGlobals
 	};
 }, /* bExport= */ true);

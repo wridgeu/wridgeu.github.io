@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,9 +11,10 @@ sap.ui.define([
 	'sap/ui/core/mvc/ControllerMetadata',
 	'sap/ui/core/mvc/OverrideExecution',
 	'sap/base/util/uid',
+	"sap/base/future",
 	"sap/base/Log"
 ],
-	function(BaseObject, Metadata, ControllerMetadata, OverrideExecution, uid, Log) {
+	function(BaseObject, Metadata, ControllerMetadata, OverrideExecution, uid, future, Log) {
 	"use strict";
 
 		/**
@@ -36,9 +37,11 @@ sap.ui.define([
 			metadata: {
 				stereotype: "controllerextension",
 				methods: {
-					"byId" : 				{"public": true, "final": true},
+					"byId": 				{"public": true, "final": true},
+					"getInterface" : 		{"public": false, "final": true},
+					"getMetadata" : 		{"public": true, "final": true},
 					"getView" : 			{"public": true, "final": true},
-					"getInterface" : 		{"public": false, "final": true}
+					"isA" : 				{"public": true, "final": true}
 				}
 			},
 
@@ -146,6 +149,22 @@ sap.ui.define([
 			return oClass;
 		};
 
+		/**
+		 * A placeholder for the dummy function in the TypeScript types. Correct calls in TypeScript code will be removed and should not happen at runtime.
+		 * Do not implement, override or remove!
+		 *
+		 * @param {function} oExtensionClass The controller extension class
+		 * @return {sap.ui.core.mvc.ControllerExtension} A controller extension instance
+		 * @private
+		 */
+		ControllerExtension.use = function(oExtensionClass) {
+			throw new Error("ControllerExtension.use() is not a function that may be called at runtime. It is not contained in the public API."
+			+ "It is only used in TypeScript as a dummy function to convert a ControllerExtension class to an instance, but is supposed "
+			+ "to be removed by the class transformation. If you see this error, the call has not been removed as expected. Make sure to a) "
+			+ "only call this method on the base class 'ControllerExtension', not a derived class, and to b) only call it when defining class "
+			+ "member properties in an ES6-style class, and to c) use an up-to-date version of the 'transform-modules-ui5' Babel plugin or "
+			+ "the 'ui5-tooling-transpile' task/middleware for the UI5 build tooling. Only when used like this, the call is properly recognized and removed.");
+		};
 
 		/**
 		 * Override a method depending on the overrideExecution strategy
@@ -186,7 +205,7 @@ sap.ui.define([
 					} else if (typeof fnCust === "function") {
 						oOrigDef[sMemberName] = fnCust;
 					} else {
-						Log.error("Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
+						future.errorThrows("Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
 					}
 					break;
 				case OverrideExecution.After:
@@ -195,7 +214,7 @@ sap.ui.define([
 					} else if (typeof fnCust === "function") {
 						oOrigDef[sMemberName] = fnCust;
 					} else {
-						Log.error("Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
+						future.errorThrows("Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
 					}
 					break;
 				case OverrideExecution.Instead:
@@ -205,7 +224,7 @@ sap.ui.define([
 						if (!this.getMetadata().isMethodFinal(sMemberName)) {
 							oOrigDef[sMemberName] = fnCust;
 						}  else {
-							Log.error("Error in ControllerExtension.override: Method '" + sMemberName + "' of extension '" + this.getMetadata().getName() + "' is flagged final and cannot be overridden!");
+							future.errorThrows("Error in ControllerExtension.override: Method '" + sMemberName + "' of extension '" + this.getMetadata().getName() + "' is flagged final and cannot be overridden!");
 						}
 					} else {
 						oOrigDef[sMemberName] = fnCust;

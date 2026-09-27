@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,19 +10,21 @@ sap.ui.define([
 	"./ViewType",
 	"./XMLViewRenderer",
 	"sap/base/config",
+	"sap/base/future",
 	"sap/base/Log",
+	"sap/base/i18n/Localization",
 	"sap/base/strings/hash",
 	"sap/base/util/LoaderExtensions",
 	"sap/base/util/merge",
 	"sap/ui/base/ManagedObject",
-	"sap/ui/core/Configuration",
+	"sap/ui/base/OwnStatics",
+	"sap/ui/core/Core",
 	"sap/ui/core/Control",
 	"sap/ui/core/RenderManager",
 	"sap/ui/core/XMLTemplateProcessor",
 	"sap/ui/core/cache/CacheManager",
 	"sap/ui/model/resource/ResourceModel",
 	"sap/ui/util/XMLHelper",
-	"sap/ui/Global",
 	"sap/ui/VersionInfo",
 	"sap/ui/performance/trace/Interaction",
 	"sap/ui/thirdparty/jquery"
@@ -32,24 +34,28 @@ sap.ui.define([
 		ViewType,
 		XMLViewRenderer,
 		BaseConfig,
+		future,
 		Log,
+		Localization,
 		hash,
 		LoaderExtensions,
 		merge,
 		ManagedObject,
-		Configuration,
+		OwnStatics,
+		Core,
 		Control,
 		RenderManager,
 		XMLTemplateProcessor,
 		Cache,
 		ResourceModel,
 		XMLHelper,
-		Global,
 		VersionInfo,
 		Interaction,
 		jQuery
 	) {
 	"use strict";
+
+	const { runWithPreprocessors } = OwnStatics.get(ManagedObject);
 
 	// actual constants
 	var RenderPrefixes = RenderManager.RenderPrefixes,
@@ -63,6 +69,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 * @alias sap.ui.core.mvc.XMLAfterRenderingNotifier
 	 * @private
+	 * @deprecated since 1.120 because the support of HTML and SVG tags is deprecated
 	 */
 	var XMLAfterRenderingNotifier = Control.extend("sap.ui.core.mvc.XMLAfterRenderingNotifier", {
 		metadata: {
@@ -110,7 +117,7 @@ sap.ui.define([
 	 * bound content aggregation. An error will be thrown when the above combination is detected.
 	 *
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.XMLView
@@ -141,6 +148,9 @@ sap.ui.define([
 				cache : 'Object',
 
 				/**
+				 * @deprecated because the 'Sequential' Mode is used by default and it's the only mode that will be supported
+				 * in the next major release
+				 *
 				 * The processing mode of the XMLView.
 				 */
 				processingMode: { type: "sap.ui.core.mvc.XMLProcessingMode", visibility: "hidden" },
@@ -154,8 +164,15 @@ sap.ui.define([
 				 * Only used for HTML embedded in an XMLView. This kind of HTML is processed synchronously only
 				 * and needs access to 'core:require' modules from outside.
 				 * Normally 'core:require' modules are NOT passed into nested Views and Fragments.
+				 *
+				 * The visibility is set to hidden because this is set only in internal code to propagate the
+				 * 'core:require' context into the nested XMLView which is created for the HTML or SVG node and
+				 * its sub-nodes. This isn't needed for nested Views/Fragments because 'core:require' context
+				 * isn't propagated across View/Fragment borders.
+				 *
+				 * @deprecated since 1.120 because the support of HTML and SVG in XMLView is deprecated
 				 */
-				requireContext : 'Object'
+				requireContext: { type: 'Object', visibility: "hidden" }
 			},
 
 			designtime: "sap/ui/core/designtime/mvc/XMLView.designtime"
@@ -368,6 +385,12 @@ sap.ui.define([
 		}
 	}
 
+	/**
+	 * Set the notifier for reacting to setAfterRendering
+	 *
+	 * @param {sap.ui.core.mvc.XMLView} oView The view itself
+	 * @deprecated since 1.120 because the support of HTML and SVG tags is deprecated
+	 */
 	function setAfterRenderingNotifier(oView) {
 		// Delegate for after rendering notification before onAfterRendering of child controls
 		oView.oAfterRenderingNotifier = new XMLAfterRenderingNotifier();
@@ -442,7 +465,7 @@ sap.ui.define([
 		return [
 			sComponentName || window.location.host + window.location.pathname,
 			oView.getId(),
-			Configuration.getLanguageTag()
+			Localization.getLanguageTag().toString()
 		].concat(oRootComponent && oRootComponent.getActiveTerminologies() || []);
 	}
 
@@ -480,7 +503,7 @@ sap.ui.define([
 		return VersionInfo.load().then(function(oInfo) {
 			var sTimestamp = "";
 			if (!oInfo.libraries) {
-				sTimestamp = Global.buildinfo.buildtime;
+				sTimestamp = Core.buildinfo.buildtime;
 			} else {
 				oInfo.libraries.forEach(function(oLibrary) {
 					sTimestamp += oLibrary.buildTimestamp;
@@ -518,7 +541,13 @@ sap.ui.define([
 						vAdditionalData.setAdditionalCacheData(mCacheOutput.additionalData);
 					} else {
 						// extend the additionalData which was passed into cache configuration dynamically
+						/**
+						 * @deprecated
+						 */
 						Log.error("Deprecated: Don't use an object reference for caching additional Data! Use a CacheDataProvider instead!");
+						/**
+						 * @deprecated
+						 */
 						merge(mCacheInput.additionalData, mCacheOutput.additionalData);
 					}
 				}
@@ -532,6 +561,7 @@ sap.ui.define([
 	*
 	* @param {object} mSettings with view settings
 	* @returns {Promise|null} will be returned if running in async mode
+	* @ui5-transform-hint replace-param mSettings.async true
 	*/
 	XMLView.prototype.initViewSettings = function(mSettings) {
 		var that = this, _xContent;
@@ -539,6 +569,7 @@ sap.ui.define([
 		function processView(xContent) {
 			that._xContent = xContent;
 
+			/** @deprecated since 1.120.0 */
 			if (View._supportInfo) {
 				View._supportInfo({context: that._xContent, env: {caller:"view", viewinfo: merge({}, that), settings: merge({}, mSettings || {}), type: "xmlview"}});
 			}
@@ -553,14 +584,24 @@ sap.ui.define([
 				// when used as fragment: prevent connection to controller, only top level XMLView must connect
 				delete mSettings.controller;
 			}
+			/**
+			 * @ui5-transform-hint replace-local false
+			 */
+			const bSupportHTMLAndSVG = true;
 			// vSetResourceModel is a promise if ResourceModel is created async
 			var vSetResourceModel = setResourceModel(that, mSettings);
 			if (vSetResourceModel instanceof Promise) {
-				return vSetResourceModel.then(function() {
-					setAfterRenderingNotifier(that);
-				});
+				if (bSupportHTMLAndSVG) {
+					return vSetResourceModel.then(function() {
+						setAfterRenderingNotifier(that);
+					});
+				} else {
+					return vSetResourceModel;
+				}
 			}
-			setAfterRenderingNotifier(that);
+			if (bSupportHTMLAndSVG) {
+				setAfterRenderingNotifier(that);
+			}
 		}
 
 		function runViewxmlPreprocessor(xContent, bAsync) {
@@ -620,6 +661,10 @@ sap.ui.define([
 
 		this._oContainingView = mSettings.containingView || this;
 
+		/**
+		 * @deprecated because the 'Sequential' Mode is used by default and it's the only mode that will be supported
+		 * in the next major release
+		 */
 		this._sProcessingMode = mSettings.processingMode;
 
 		if (this.oAsyncState) {
@@ -697,15 +742,19 @@ sap.ui.define([
 		// XMLView special logic for asynchronous template parsing, when component loading is async but
 		// instance creation is sync.
 		function fnRunWithPreprocessor(fn) {
-			return ManagedObject.runWithPreprocessors(fn, {
+			return runWithPreprocessors(fn, {
 				settings: that._fnSettingsPreprocessor
 			});
 		}
 
-		// parse the XML tree
-		if (!this.oAsyncState) {
+		/**
+		 * @ui5-transform-hint replace-local false
+		 */
+		const bSync = !this.oAsyncState;
+		if (bSync) {
 			this._aParsedContent = fnRunWithPreprocessor(XMLTemplateProcessor.parseTemplate.bind(null, this._xContent, this, mSettings));
 		} else {
+			// parse the XML tree
 			var fnDone = Interaction.notifyAsyncStep("VIEW PROCESSING");
 			return XMLTemplateProcessor.parseTemplatePromise(this._xContent, this, true, {
 				fnRunWithPreprocessor: fnRunWithPreprocessor
@@ -718,9 +767,28 @@ sap.ui.define([
 	};
 
 	XMLView.prototype.getControllerName = function() {
+		if (this._controllerModuleName) {
+			Log.error(`Controller name is specified using module syntax: '${this._controllerModule}'. Use #getControllerModuleName() instead.`);
+			return undefined;
+		}
+
 		return this._controllerName;
 	};
 
+	XMLView.prototype._getControllerName = function() {
+		return this._controllerName;
+	};
+
+	XMLView.prototype.getControllerModuleName = function() {
+		if (typeof this._controllerName === "string") {
+			return this._controllerName.replace(/\./g, "/") + ".controller";
+		}
+		return typeof this._controllerModuleName === "string" ? this._controllerModuleName.substring("module:".length) : "";
+	};
+
+	XMLView.prototype._getControllerModuleName = function() {
+		return this._controllerModuleName;
+	};
 
 	XMLView.prototype.isSubView = function() {
 		return this._oContainingView != this;
@@ -730,6 +798,8 @@ sap.ui.define([
 	 * If the HTML doesn't contain own content, it tries to reproduce existing content
 	 * This is executed before the onAfterRendering of the child controls, to ensure that
 	 * the HTML is already at its final position, before additional operations are executed.
+	 *
+	 * @deprecated since 1.120 because the support of HTML and SVG tags is deprecated
 	 */
 	XMLView.prototype.onAfterRenderingBeforeChildren = function() {
 
@@ -792,10 +862,11 @@ sap.ui.define([
 	 * @param {string|function(Object, sap.ui.core.mvc.View.Preprocessor.ViewInfo, object)} vPreprocessor
 	 *      module path of the preprocessor implementation or a preprocessor function
 	 * @param {string} [sViewType="XML"]
-	 *      Since 1.89, added for signature compatibility with {@link sap.ui.core.mvc.View#registerPreprocessor
+	 *      {@since 1.89} added for signature compatibility with {@link sap.ui.core.mvc.View#registerPreprocessor
 	 *      View#registerPreprocessor}. Only supported value is "XML".
 	 * @param {boolean} bSyncSupport
-	 *      declares if the vPreprocessor ensures safe sync processing. This means the preprocessor will be executed
+	 *		Deprecated as of version 1.145, because this parameter is only applicable to sync views and is no longer used.
+	 * 		Declares if the vPreprocessor ensures safe sync processing. This means the preprocessor will be executed
 	 *      also for sync views. Please be aware that any kind of async processing (like Promises, XHR, etc) may
 	 *      break the view initialization and lead to unexpected results.
 	 * @param {boolean} [bOnDemand]
@@ -821,7 +892,7 @@ sap.ui.define([
 		if (XMLView.PreprocessorType[sType]) {
 			View.registerPreprocessor(XMLView.PreprocessorType[sType], vPreprocessor, sOwnViewType, bSyncSupport, bOnDemand, mSettings);
 		} else {
-			Log.error("Preprocessor could not be registered due to unknown sType \"" + sType + "\"", this.getMetadata().getName());
+			future.errorThrows(`${this.getMetadata().getName()}: Preprocessor could not be registered due to unknown sType "${sType}"`);
 		}
 	};
 

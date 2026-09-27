@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(function () {
@@ -16,7 +16,6 @@ sap.ui.define(function () {
 	 * @returns {sap.ui.base.ManagedObject|undefined} - `undefined` if there is no control of a type in hierarchy
 	 *
 	 * @function
-	 * @experimental
 	 * @private
 	 */
 	return function (oControl, sClassName) {

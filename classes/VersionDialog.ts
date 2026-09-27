@@ -7,12 +7,12 @@ import syncStyleClass from "sap/ui/core/syncStyleClass";
 import JSONModel from "sap/ui/model/json/JSONModel";
 import VersionInfo from "sap/ui/VersionInfo";
 import Component from "../Component";
-import Object from "sap/ui/base/Object";
+import BaseObject from "sap/ui/base/Object";
 
 /**
  * @namespace sapmarco.projectpages.classes
  */
-export default class VersionDialog extends Object {
+export default class VersionDialog extends BaseObject {
 	private _view: View;
 
 	constructor(oView: View) {
@@ -32,25 +32,18 @@ export default class VersionDialog extends Object {
 
 			this._view.addDependent(fragment);
 
-			sap.ui.require(
-				["sap/ui/VersionInfo"],
-				async function (oVersInfo: VersionInfo) {
-					return await oVersInfo.load(/* no args */).then((oVersion) => {
-						fragment.setModel(new JSONModel(oVersion, true), "versionInfo");
-					});
-				}
-			);
+			const oVersion = await VersionInfo.load();
+			fragment.setModel(new JSONModel(oVersion, true), "versionInfo");
+
 			syncStyleClass(
-				(
-					this._view.getController().getOwnerComponent() as Component
-				).getContentDensityClass(),
+				(this._view.getController().getOwnerComponent() as Component).getContentDensityClass(),
 				this._view,
-				fragment
+				fragment,
 			);
 
-			await (fragment as VersionDialog).open();
+			await (fragment as Dialog).open();
 		} else {
-			await (this._view.byId("VersionDialog") as VersionDialog).open();
+			await (this._view.byId("VersionDialog") as Dialog).open();
 		}
 	}
 

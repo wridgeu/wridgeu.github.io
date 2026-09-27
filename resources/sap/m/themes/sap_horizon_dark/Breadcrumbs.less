@@ -4,55 +4,118 @@
 /* ================================= */
 
 .sapMBreadcrumbs {
+
 	.sapMBreadcrumbsCurrentLocation {
+		color: var(--sapTextColor);
+
 		&:focus {
 			outline: none;
-			box-shadow: 0px 0px 0px 0.125rem @sapUiContentFocusColor;
+			box-shadow: 0 0 0 0.125rem var(--sapContent_FocusColor);
 			border-radius: 0.25rem;
 		}
 	}
-	.sapMSltPressed:not(.sapMSltDisabled):not(.sapMSltState), .sapMSlt.sapMSltFocused:not(.sapMSltDisabled):not(.sapMSltState) {
+
+	.sapMSltPressed:not(.sapMSltDisabled):not(.sapMSltState),
+	.sapMSlt.sapMSltFocused:not(.sapMSltDisabled):not(.sapMSltState) {
 		outline-offset: 0;
 	}
 
-	.sapMSltIcon:before,
-	.sapMSltIcon:after {
-		font-size: @sapMFontMediumSize;
-		color: @sapUiLink;
-		padding-bottom: 0.0625rem;
-		speak: none;
+	.sapMBreadcrumbsItem {
+		padding: 0.125rem; /* avoid focus clip */
 	}
 
-	.sapMSltIcon:before {
-		font-family: @sapUiFontLightFamily;
-		content: "••• ";
-		vertical-align: bottom;
+	.sapMBreadcrumbsSeparator {
+		color: var(--sapTextColor);
 	}
 
-	.sapMSltIcon:after {
-		font-family: @sapUiContentIconFontFamily;
-		content: "\e1ef";
-	}
+	.sapMBreadcrumbsItem.sapMBreadcrumbsSelectItem {
 
-	.sapMBreadcrumbsItem.sapMBreadcrumbsSelectItem >
-	.sapMSlt.sapMSltIconOnly.sapMSltWithIcon.sapMSltHoverable.sapMSltWithArrow {
-		background: transparent;
-		border: none;
+		& > .sapMSlt.sapMSltWithIcon.sapMSltIconOnly.sapMSltWithArrow {
+			box-shadow: none;
 
-		&.sapMSltFocused,
-		&:hover {
+			/* Default styles */
 			.sapMSltIcon {
-				background-color: @sapUiContentFocusColor;
-				border-bottom: @sapUiContentFocusColor 0.0625rem solid;
+				display: flex;
+				align-items: center;
+				gap: 0.2rem;
+				margin-top: -0.125rem;
+
+				&::before,
+				&::after {
+					border-bottom: none;
+				}
+
+				&::before {
+					content: '••• ';
+					font-family: var(--sapFontLightFamily);
+				}
+
+				&::after {
+					content: '\e1ef';
+					font-family: var(--sapContent_IconFontFamily);
+					font-size: var(--sapFontSize);
+					color: var(--sapLinkColor);
+					speak: none;
+				}
 			}
 
-			.sapMSltIcon:before {
-				border-bottom: none;
+			/* Custom underline element
+			   In order to prevent issues with centering the content */
+			&::after {
+				content: '';
+				display: block;
+				position: relative;
+				width: 90%;
+				height: 0.0625rem;
+				margin: -0.12rem auto 0 0.15rem;
+				background-color: transparent;
 			}
 
-			.sapMSltIcon:before,
-			.sapMSltIcon:after {
-				color: @sapUiButtonHoverBackground;
+			/* States */
+			&:hover,
+			&.sapMSltFocused {
+				background-color: var(--sapContent_FocusColor);
+
+				&::after {
+					background-color: var(--sapContent_ContrastFocusColor);
+				}
+
+				.sapMSltIcon::before,
+				.sapMSltIcon::after {
+					color: var(--sapContent_ContrastTextColor);
+					border-bottom: none;
+				}
+
+				&:active {
+					background-color: transparent;
+
+					&::after {
+						background-color: transparent;
+					}
+
+					.sapMSltIcon::before,
+					.sapMSltIcon::after {
+						color: var(--sapLinkColor);
+						border-bottom: none;
+					}
+				}
+			}
+
+			&:hover.sapMSltFocused:not(:active) {
+
+				&::after {
+					background-color: var(--sapContent_FocusColor);
+				}
+			}
+
+			/* Override base theme specificity (.sapMSltHoverable) for desktop hover */
+			&.sapMSltHoverable:hover:not(:active),
+			&.sapMSltHoverable.sapMSltFocused:not(:active) {
+
+				.sapMSltIcon::before {
+					color: var(--sapContent_ContrastTextColor);
+					border-bottom: none;
+				}
 			}
 		}
 	}

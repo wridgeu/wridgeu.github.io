@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*global URL */
@@ -21,7 +21,7 @@ sap.ui.define([], function() {
 	 * @param {sap.ui.core.URI} sHref The URL to check
 	 * @returns {boolean} Whether the URL is a cross-origin URL
 	 * @private
-	 * @ui5-restricted sap.ui.model.odata.v2.ODataModel,sap.ushell
+	 * @ui5-restricted sap.ui.model.odata.v2.ODataModel, sap.ushell, sap.ui.core.performance.trace, sap.ui.core.support.trace, sap.ui.integration.cards
 	 * @alias module:sap/ui/util/isCrossOriginURL
 	 * @since 1.84
 	 */

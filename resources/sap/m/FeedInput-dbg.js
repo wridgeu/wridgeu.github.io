@@ -1,13 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./library",
 	"sap/ui/core/Control",
-	"sap/ui/core/IconPool",
 	"sap/m/TextArea",
 	"sap/m/Button",
 	"./FeedInputRenderer",
@@ -17,10 +16,11 @@ sap.ui.define([
 	"sap/m/Avatar",
 	"sap/m/AvatarShape",
 	"sap/m/AvatarSize",
-	"sap/ui/core/Lib"
+	"sap/ui/core/Lib",
+	"sap/base/Log"
 ],
-	function(library, Control, IconPool, TextArea, Button, FeedInputRenderer, jQuery, URLListValidator, sanitizeHTML0, Avatar,
-		AvatarShape, AvatarSize, CoreLib) {
+	function(library, Control, TextArea, Button, FeedInputRenderer, jQuery, URLListValidator, sanitizeHTML0, Avatar,
+		AvatarShape, AvatarSize, CoreLib, Log) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -41,7 +41,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -109,8 +109,8 @@ sap.ui.define([
 
 				/**
 				 * Defines the shape of the icon.
-				* @since 1.88
-				*/
+				 * @since 1.88
+				 */
 				iconDisplayShape: { type: "sap.m.AvatarShape", defaultValue: AvatarShape.Circle},
 
 				/**
@@ -148,8 +148,9 @@ sap.ui.define([
 				 * If a new tooltip is set, any previously set tooltip is deactivated.
 				 * The default value is set language dependent.
 				 * @since 1.28
+				 * @type {sap.ui.core.TooltipBase|string}
 				 */
-				buttonTooltip : {type : "sap.ui.core.TooltipBase", group : "Accessibility", defaultValue : "Submit"},
+				buttonTooltip : {type : "any", group : "Accessibility", defaultValue : "Submit"},
 
 				/**
 				 * Text for Picture which will be read by screenreader.
@@ -160,9 +161,17 @@ sap.ui.define([
 			},
 			aggregations : {
 				/**
-				* Defines the inner avatar control.
+				 * Defines the inner avatar control.
 				 */
-				_avatar: { type: "sap.m.Avatar", multiple: false, visibility: "hidden" }
+				_avatar: { type: "sap.m.Avatar", multiple: false, visibility: "hidden" },
+				/**
+				 * Defines the actions that are displayed next to the text area. These buttons can be used to trigger actions, such as attaching a file.
+				 * This is a {@link sap.m.Button}
+				 * If the actions are not set, the post button is displayed as the last control in the feed input.
+				 * <b>Note:</b> Only <code>sap.m.Button</code> is supported for this aggregation. If another control is provided, an error is logged and actions are ignored.
+				 * @since 1.139
+				 */
+				actions: {type: "sap.ui.core.Control", multiple: true}
 			},
 			events : {
 
@@ -394,7 +403,7 @@ sap.ui.define([
 	FeedInput.prototype.setValue = function (sValue) {
 		this.setProperty("value", sValue, true);
 		this._getTextArea().setValue(sValue);
-		this._enablePostButton();
+		this.enablePostButton();
 		return this;
 	};
 
@@ -416,7 +425,7 @@ sap.ui.define([
 			}
 		}
 		this._getTextArea().setEnabled(bEnabled);
-		this._enablePostButton();
+		this.enablePostButton();
 		return this;
 	};
 
@@ -447,7 +456,7 @@ sap.ui.define([
 				liveChange : jQuery.proxy(function (oEvt) {
 					var sValue = oEvt.getParameter("value");
 					this.setProperty("value", sValue, true); // update myself without re-rendering
-					this._enablePostButton();
+					this.enablePostButton();
 				}, this)
 			});
 			this._oTextArea.setParent(this);
@@ -486,21 +495,62 @@ sap.ui.define([
 	};
 
 	/**
-	 * Enable post button depending on the current value
+	 * Enables or disables the post button.
+	 * If a boolean parameter is provided, the post button's enabled state is set directly to that value.
+	 * @param {boolean} [bEnabled] - Sets the enabled state of the post button.
 	 */
-	FeedInput.prototype._enablePostButton = function () {
-		var bPostButtonEnabled = this._isControlEnabled();
+	FeedInput.prototype.enablePostButton = function(bEnabled) {
 		var oButton = this._getPostButton();
-		oButton.setEnabled(bPostButtonEnabled);
+		// If bEnabled is a boolean, set the button's enabled state directly
+		// Otherwise, check the control's validity to determine the button's enabled state
+		if (typeof bEnabled === "boolean") {
+			this._bEnablePostButton = bEnabled;
+			oButton.setEnabled(bEnabled);
+			// If the button is disabled and the current value is not empty, enable the button
+			// This ensures that the button is enabled when the value is set but the button is disabled
+			if (bEnabled == false && this.getValue()) {
+				oButton.setEnabled(!bEnabled);
+			}
+		} else {
+			var bPostButtonEnabled = this._isControlEnabled();
+			oButton.setEnabled(bPostButtonEnabled);
+		}
 	};
 
 	/**
-	 * Verifies if the control is enabled or not
-	 * @returns {boolean} True if control is enabled
+	 * Checks if the control is valid based on the enablePostButton flag and the value.
+	 * @param {boolean} bEnablePostButton
+	 * @returns {boolean}
 	 */
 	FeedInput.prototype._isControlEnabled = function() {
 		var sValue = this.getValue();
-		return this.getEnabled() && (typeof sValue === "string" || sValue instanceof String) && sValue.trim().length > 0;
+		if (this._bEnablePostButton) {
+			// If bEnablePostButton is true, always return true regardless of value
+			return true;
+		} else {
+			// If bEnablePostButton is false, only return true if there is a value
+			return (typeof sValue === "string" || sValue instanceof String) && sValue.trim().length > 0;
+		}
+	};
+
+	/**
+	 * Returns the action button if it is a sap.m.Button, otherwise logs an error and returns null.
+	 * @returns {sap.m.Button|null}
+	 */
+	FeedInput.prototype._getActionButtonIfValid = function () {
+		var oActionButton = this.getActions()[0]; // Get the first action button, if any
+		if (oActionButton && oActionButton.isA("sap.m.Button")) {
+			var sText = oActionButton.getText();
+			var sIcon = oActionButton.getIcon();
+			if (sIcon && (!sText || sText.trim() === "")) {
+				return oActionButton;
+			} else {
+				Log.error("FeedInput: The actionButton should only have an icon and no text.");
+			}
+		} else if (oActionButton) {
+			Log.error("FeedInput: The provided actionButton aggregation is not a sap.m.Button instance.");
+		}
+		return;
 	};
 
 	/**

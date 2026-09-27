@@ -1,16 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/base/BindingInfo",
 	"sap/ui/base/ManagedObject",
 	"sap/base/Log",
 	"sap/ui/model/Model",
 	"sap/ui/integration/util/BindingHelper",
 	"sap/base/util/extend",
 	"sap/base/util/isPlainObject"
-], function (ManagedObject, Log, Model, BindingHelper, extend, isPlainObject) {
+], function (BindingInfo, ManagedObject, Log, Model, BindingHelper, extend, isPlainObject) {
 		"use strict";
 
 		/**
@@ -33,7 +34,7 @@ sap.ui.define([
 		 * Resolves a binding syntax based on a provided model and path.
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @private
 		 * @ui5-restricted sap.ushell
@@ -105,7 +106,7 @@ sap.ui.define([
 				return vBinding;
 			}
 
-			var oBindingInfo = typeof vBinding ===  "string" ? ManagedObject.bindingParser(vBinding) : extend({}, vBinding);
+			var oBindingInfo = typeof vBinding ===  "string" ? BindingInfo.parse(vBinding) : extend({}, vBinding);
 
 			if (!oBindingInfo) {
 				return vBinding;
@@ -136,7 +137,6 @@ sap.ui.define([
 
 		/**
 		 * Resolves a binding syntax.
-		 * NOTE: This will only work with one unnamed model.
 		 *
 		 * @param {*} vValue The value to resolve.
 		 * @param {*} vModelOrObject The model.
@@ -155,6 +155,24 @@ sap.ui.define([
 			} else {
 				return vValue;
 			}
+		};
+
+		/**
+		 * Resolves list binding.
+		 *
+		 * @param {string} sListPath Path to the list.
+		 * @param {string} sRootPath The root path, which will prefix the path to the list, in case it is relative.
+		 * @param {object} oTemplate Template to create the items.
+		 * @param {*} vModelOrObject Model or object to resolve the binding.
+		 * @returns {any[]} The resolved list of items.
+		 */
+		BindingResolver.resolveListBinding = function (sListPath, sRootPath, oTemplate, vModelOrObject) {
+			const sFullPath = BindingHelper.prependPath(sListPath, sRootPath);
+			const aData = BindingResolver.resolveValue(`{${sFullPath}}`, vModelOrObject);
+
+			return aData.map(function (oItemData, iIndex) {
+				return BindingResolver.resolveValue(oTemplate, vModelOrObject, `${sFullPath}/${iIndex}/`);
+			});
 		};
 
 		return BindingResolver;

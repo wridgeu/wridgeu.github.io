@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @class
 	 * The <code>ColumnLayout</code> control renders a {@link sap.ui.layout.form.Form Form} control in a column-based responsive way.
 	 * Depending on its size, the {@link sap.ui.layout.form.Form Form} control is divided into one or more columns.
-	 * (XL - max. 4 columns, L - max. 3 columns, M -  max. 2 columns and S - 1 column.)
+	 * (XL - max. 6 columns, L - max. 4 columns, M -  max. 3 columns and S - 1 column.)
 	 *
 	 * The {@link sap.ui.layout.form.FormContainer FormContainer} elements are spread out to the columns depending on the number of {@link sap.ui.layout.form.FormContainer FormContainer}
 	 * elements and their size. For example, if there are 4 columns and 2 {@link sap.ui.layout.form.FormContainer FormContainer} elements,
@@ -38,7 +38,7 @@ sap.ui.define([
 	 * one column. So the last row of the {@link sap.ui.layout.form.Form Form} control will not be fully used.
 	 *
 	 * The default size of the {@link sap.ui.layout.form.FormContainer FormContainer} element can be overwritten by using {@link sap.ui.layout.form.ColumnContainerData ColumnContainerData}
-	 * as <code>LayoutData</code>. If one {@link sap.ui.layout.form.FormContainer FormContainer} element has {@link sap.ui.layout.form.ColumnContainerData ColumnContainerData} set,
+	 * as {@link sap.ui.core.Element#setLayoutData LayoutData}. If one {@link sap.ui.layout.form.FormContainer FormContainer} element has {@link sap.ui.layout.form.ColumnContainerData ColumnContainerData} set,
 	 * the size calculation of the other {@link sap.ui.layout.form.FormContainer FormContainer} elements might not lead to the expected result.
 	 * In this case, use {@link sap.ui.layout.form.ColumnContainerData ColumnContainerData} also for the other {@link sap.ui.layout.form.FormContainer FormContainer} elements.
 	 *
@@ -47,7 +47,7 @@ sap.ui.define([
 	 * If there is enough space, the labels are beside the fields, otherwise above the fields.
 	 *
 	 * The default size of a content control of a {@link sap.ui.layout.form.FormElement FormElement} element can be overwritten
-	 * using {@link sap.ui.layout.form.ColumnElementData ColumnElementData} as <code>LayoutData</code>.
+	 * using {@link sap.ui.layout.form.ColumnElementData ColumnElementData} as {@link sap.ui.core.Element#setLayoutData LayoutData}.
 	 * If one control assigned to a {@link sap.ui.layout.form.FormElement FormElement} element has {@link sap.ui.layout.form.ColumnElementData ColumnElementData} set,
 	 * the size calculation of the other controls assigned to the {@link sap.ui.layout.form.FormElement FormElement} element
 	 * might not lead to the expected result.
@@ -58,9 +58,9 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b>
 	 * This control cannot be used stand-alone, it just renders a {@link sap.ui.layout.form.Form Form} control,
-	 * so it must be assigned to a {@link sap.ui.layout.form.Form Form} control using the <code>layout</code> aggregation.
+	 * so it must be assigned to a {@link sap.ui.layout.form.Form Form} control using the {@link sap.ui.layout.form.Form#setLayout layout} aggregation.
 	 * @extends sap.ui.layout.form.FormLayout
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -614,25 +614,25 @@ sap.ui.define([
 		var iColumns = 1;
 
 		if (iWidth <= this._iBreakPointTablet) {
-			$DomRef.toggleClass("sapUiFormCLMedia-Std-Phone", true);
-			$DomRef.toggleClass("sapUiFormCLMedia-Std-Desktop", false).toggleClass("sapUiFormCLMedia-Std-Tablet", false).toggleClass("sapUiFormCLMedia-Std-LargeDesktop", false);
+			this.toggleStyleClass("sapUiFormCLMedia-Std-Phone", true);
+			this.toggleStyleClass("sapUiFormCLMedia-Std-Desktop", false).toggleStyleClass("sapUiFormCLMedia-Std-Tablet", false).toggleStyleClass("sapUiFormCLMedia-Std-LargeDesktop", false);
 		} else if ((iWidth > this._iBreakPointTablet) && (iWidth <= this._iBreakPointDesktop)) {
-			$DomRef.toggleClass("sapUiFormCLMedia-Std-Tablet", true);
-			$DomRef.toggleClass("sapUiFormCLMedia-Std-Desktop", false).toggleClass("sapUiFormCLMedia-Std-Phone", false).toggleClass("sapUiFormCLMedia-Std-LargeDesktop", false);
+			this.toggleStyleClass("sapUiFormCLMedia-Std-Tablet", true);
+			this.toggleStyleClass("sapUiFormCLMedia-Std-Desktop", false).toggleStyleClass("sapUiFormCLMedia-Std-Phone", false).toggleStyleClass("sapUiFormCLMedia-Std-LargeDesktop", false);
 			iColumns = this.getColumnsM();
 		} else if ((iWidth > this._iBreakPointDesktop) && (iWidth <= this._iBreakPointLargeDesktop)) {
-			$DomRef.toggleClass("sapUiFormCLMedia-Std-Desktop", true);
-			$DomRef.toggleClass("sapUiFormCLMedia-Std-Phone", false).toggleClass("sapUiFormCLMedia-Std-Tablet", false).toggleClass("sapUiFormCLMedia-Std-LargeDesktop", false);
+			this.toggleStyleClass("sapUiFormCLMedia-Std-Desktop", true);
+			this.toggleStyleClass("sapUiFormCLMedia-Std-Phone", false).toggleStyleClass("sapUiFormCLMedia-Std-Tablet", false).toggleStyleClass("sapUiFormCLMedia-Std-LargeDesktop", false);
 			iColumns = this.getColumnsL();
 		} else {
-			$DomRef.toggleClass("sapUiFormCLMedia-Std-LargeDesktop", true);
-			$DomRef.toggleClass("sapUiFormCLMedia-Std-Desktop", false).toggleClass("sapUiFormCLMedia-Std-Phone", false).toggleClass("sapUiFormCLMedia-Std-Tablet", false);
+			this.toggleStyleClass("sapUiFormCLMedia-Std-LargeDesktop", true);
+			this.toggleStyleClass("sapUiFormCLMedia-Std-Desktop", false).toggleStyleClass("sapUiFormCLMedia-Std-Phone", false).toggleStyleClass("sapUiFormCLMedia-Std-Tablet", false);
 			iColumns = this.getColumnsXL();
 		}
 
 		var bWideColumns = this.getLabelCellsLarge() < 12 && iWidth / iColumns > this._iBreakPointTablet;
-		$DomRef.toggleClass("sapUiFormCLWideColumns", bWideColumns);
-		$DomRef.toggleClass("sapUiFormCLSmallColumns", !bWideColumns);
+		this.toggleStyleClass("sapUiFormCLWideColumns", bWideColumns);
+		this.toggleStyleClass("sapUiFormCLSmallColumns", !bWideColumns);
 	}
 
 	ColumnLayout.prototype.getLayoutDataForDelimiter = function() {
@@ -684,6 +684,22 @@ sap.ui.define([
 	ColumnLayout.prototype.renderControlsForSemanticElement = function() {
 
 		return true;
+
+	};
+
+	ColumnLayout.prototype.hasLabelledContainers = function(oForm) {
+
+		const aContainers = oForm.getFormContainers();
+
+		// Let Form render role="region" also if FormContainer has no title.
+		// If only one FormContainer exist and it has no title let Form render role "form" (only in edit mode).
+		return aContainers.length !== 1 || !oForm.getEditable() || this.isContainerLabelled(aContainers[0]);
+
+	};
+
+	ColumnLayout.prototype.invalidateEditableChange = function() {
+
+		return true; // display-mode renders <dl>
 
 	};
 

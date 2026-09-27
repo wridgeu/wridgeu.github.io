@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,9 +8,10 @@
 sap.ui.define([
 	"sap/base/util/ObjectPath",
 	"sap/ui/base/DataType",
+	"sap/ui/core/Lib",
 	"sap/ui/test/generic/GenericTestCollection",
 	"require"
- ], function(ObjectPath, DataType, GenericTestCollection, require) {
+ ], function(ObjectPath, DataType, Lib, GenericTestCollection, require) {
 	"use strict";
 
 	/**
@@ -78,7 +79,7 @@ sap.ui.define([
 			var aLoadClassPromises = [];
 
 			var loadControls = function () {
-				return sap.ui.getCore().loadLibrary(sLibName, true).then(function (library) {
+				return Lib.load(sLibName).then(function (library) {
 					var aClasses = library ? library.controls : [];
 
 					if (mOptions.includeElements) {
@@ -149,13 +150,13 @@ sap.ui.define([
 		 * @param {sap.ui.test.generic.GenericTestCollection.ObjectCapabilities} oObjectCapabilities The capabilities of the corresponding control
 		 */
 		 fillControlProperties: function(oControl, oObjectCapabilities) {
-			var mProperties = oControl.getMetadata().getAllProperties(),
-				mPropertyCapabilities = oObjectCapabilities && oObjectCapabilities.properties || {},
-				vValueToSet = "test"; // just try a string as default, with some frequently happening exceptions
+			const mProperties = oControl.getMetadata().getAllProperties();
+			const mPropertyCapabilities = oObjectCapabilities && oObjectCapabilities.properties || {};
+			let vValueToSet = "test"; // just try a string as default, with some frequently happening exceptions
 
-			for (var sPropertyName in mProperties) {
-				var oProperty = mProperties[sPropertyName],
-					sPropertyCapability;
+			for (const sPropertyName in mProperties) {
+				const oProperty = mProperties[sPropertyName];
+				let sPropertyCapability;
 
 				// Check if property should be skipped because of known issues or if a specific value should be used for setting the property
 				if (mPropertyCapabilities[sPropertyName]) {
@@ -170,15 +171,11 @@ sap.ui.define([
 					sPropertyCapability !== GenericTestCollection.ExcludeReason.SetterNeedsSpecificSettings &&
 					sPropertyCapability !== GenericTestCollection.ExcludeReason.OnlyChangeableViaBinding) {
 					try {
-						if (oProperty.type === "boolean") {
-							vValueToSet = false;
-						} else if (oProperty.type === "int") {
+						const oType = DataType.getType(oProperty.type);
+						vValueToSet = oType?.getDefaultValue();
+						if (oProperty.type === "int") {
 							vValueToSet = 100;
-						} else if (oProperty.type.startsWith("sap.")) {
-							var oEnum = require(oProperty.type.replace(/\./g, "\/"));
-							vValueToSet = oEnum[Object.keys(oEnum)[0]];
 						}
-
 						oControl[oProperty._sMutator](vValueToSet);
 					} catch (e) {
 						// type check error, ignore

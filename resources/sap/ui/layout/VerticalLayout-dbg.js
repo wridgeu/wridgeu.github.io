@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,10 +22,12 @@ sap.ui.define([
 	 *
 	 * @class
 	 * In this layout the content controls are rendered one below the other.
+	 *
+	 * <b>Note:</b> <code>VerticalLayout</code> is not a focusable element and therefore the inheritance of the <code>tooltip</code> property isn't supported.
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public

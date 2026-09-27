@@ -1,22 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./BaseContentRenderer",
-	"sap/ui/core/IconPool",
+	"sap/ui/core/IconPool", // side effect: required when calling RenderManager#icon
 	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Lib",
 	"sap/ui/unified/library",
 	"sap/ui/unified/CalendarLegendRenderer"
-	],
+],
 	function(
 		BaseContentRenderer,
-		IconPool,
+		_IconPool,
 		InvisibleText,
+		Library,
 		unifiedLibrary,
-		CalendarLegendRenderer) {
+		CalendarLegendRenderer
+	) {
 	"use strict";
 
 	var CalendarDayType = unifiedLibrary.CalendarDayType;
@@ -34,7 +37,7 @@ sap.ui.define([
 	 * @override
 	 */
 	CalendarContentRenderer.renderContent = function(oRm, oCalendarContent) {
-		var oRB = sap.ui.getCore().getLibraryResourceBundle("sap.ui.integration"),
+		var oRB = Library.getResourceBundleFor("sap.ui.integration"),
 			sId = oCalendarContent.getId();
 
 		oRm.openStart("div", sId + "card-group");
@@ -82,7 +85,7 @@ sap.ui.define([
 	CalendarContentRenderer.renderAppointments = function(oRm, oCalendarContent) {
 		var aVisibleAppointments = oCalendarContent._getVisibleAppointments(),
 			oCurrentAppointment = oCalendarContent._getCurrentAppointment(),
-			oRB = sap.ui.getCore().getLibraryResourceBundle("sap.ui.integration");
+			oRB = Library.getResourceBundleFor("sap.ui.integration");
 
 		oRm.openStart("div", oCalendarContent.getId() + "appointments-list");
 		oRm.attr("role", "list");
@@ -126,12 +129,12 @@ sap.ui.define([
 		oRm.openStart("div");
 		oRm.class("sapUiCalendarAppStart");
 		oRm.openEnd();
-		oRm.text(oAppointment._getDateRangeIntersectionText(oSelectedDate).start);
+		oRm.text(oAppointment._getDateRangeIntersectionText(oSelectedDate, oCalendarContent.getUse12HourFormat()).start);
 		oRm.close("div");
 		oRm.openStart("div");
 		oRm.class("sapUiCalendarAppEnd");
 		oRm.openEnd();
-		oRm.text(oAppointment._getDateRangeIntersectionText(oSelectedDate).end);
+		oRm.text(oAppointment._getDateRangeIntersectionText(oSelectedDate, oCalendarContent.getUse12HourFormat()).end);
 		oRm.close("div");
 		oRm.close("div");
 		oRm.openStart("div");
@@ -223,7 +226,7 @@ sap.ui.define([
 	// & end of the appointment. also for the type of the appointment
 	// and how it links to the types in displayed calendar legend
 	CalendarContentRenderer.renderAdditionalAriaLabel = function(oRm, oCalendarContent, oAppointment) {
-		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified"),
+		var oRb = Library.getResourceBundleFor("sap.ui.unified"),
 			oFormatAria = oCalendarContent._oFormatAria,
 			sType = oAppointment.getType(),
 			aLegendItems = oCalendarContent._oLegend ? oCalendarContent._oLegend.getAppointmentItems() : [];

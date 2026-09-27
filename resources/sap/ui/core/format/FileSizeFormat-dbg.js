@@ -1,18 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.format.FileSizeFormat
 sap.ui.define([
-	'sap/ui/base/Object',
-	'sap/ui/core/Locale',
-	'sap/ui/core/LocaleData',
-	'sap/ui/core/format/NumberFormat',
-	'sap/ui/core/Configuration'
-],
-	function(BaseObject, Locale, LocaleData, NumberFormat, Configuration) {
+	"sap/base/i18n/Formatting",
+	"sap/ui/base/Object",
+	"sap/ui/core/Locale",
+	"sap/ui/core/LocaleData",
+	"sap/ui/core/format/NumberFormat"
+], function(Formatting, BaseObject, Locale, LocaleData, NumberFormat) {
 	"use strict";
 
 
@@ -69,14 +68,13 @@ sap.ui.define([
 	/**
 	 * Get an instance of the FileSizeFormat, which can be used for formatting.
 	 *
-	 * If no locale is given, the currently configured
-	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
-	 *
 	 * @param {object} [oFormatOptions]
 	 *   Supports the same options as {@link sap.ui.core.format.NumberFormat.getFloatInstance}
 	 * @param {boolean} [oFormatOptions.binaryFilesize=false]
 	 *   Whether to use base 2, that means 1 Kibibyte = 1024 Byte, or base 10, that means 1 Kilobyte = 1000 Byte
-	 * @param {sap.ui.core.Locale} [oLocale] The locale to get the formatter for
+	 * @param {sap.ui.core.Locale} [oLocale]
+	 *   The locale to get the formatter for; if no locale is given, a locale for the currently configured language is
+	 *   used; see {@link module:sap/base/i18n/Formatting.getLanguageTag Formatting.getLanguageTag}
 	 * @ui5-omissible-params oFormatOptions
 	 * @return {sap.ui.core.format.FileSizeFormat} instance of the FileSizeFormat
 	 * @static
@@ -89,14 +87,13 @@ sap.ui.define([
 	/**
 	 * Create an instance of the FileSizeFormat.
 	 *
-	 * If no locale is given, the currently configured
-	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
-	 *
 	 * @param {object} [oFormatOptions]
 	 *   Supports the same options as {@link sap.ui.core.format.NumberFormat.getFloatInstance}
 	 * @param {boolean} [oFormatOptions.binaryFilesize=false]
 	 *   Whether to use base 2, that means 1 Kibibyte = 1024 Byte, or base 10, that means 1 Kilobyte = 1000 Byte
-	 * @param {sap.ui.core.Locale} [oLocale] The locale to get the formatter for
+	 * @param {sap.ui.core.Locale} [oLocale]
+	 *   The locale to get the formatter for; if no locale is given, a locale for the currently configured language is
+	 *   used; see {@link module:sap/base/i18n/Formatting.getLanguageTag Formatting.getLanguageTag}
 	 * @return {sap.ui.core.format.FileSizeFormat} the instance of the FileSizeFormat
 	 * @static
 	 * @private
@@ -108,12 +105,11 @@ sap.ui.define([
 			oFormatOptions = undefined;
 		}
 		if (!oLocale) {
-			oLocale = Configuration.getFormatSettings().getFormatLocale();
+			oLocale = new Locale(Formatting.getLanguageTag());
 		}
 		oFormat.oLocale = oLocale;
 		oFormat.oLocaleData = LocaleData.getInstance(oLocale);
 		oFormat.oNumberFormat = NumberFormat.getFloatInstance(oFormatOptions, oLocale);
-		oFormat.oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core", oLocale.toString());
 
 		oFormat.bBinary = oFormatOptions ? !!oFormatOptions.binaryFilesize : false;
 
@@ -161,7 +157,7 @@ sap.ui.define([
 			}
 		}
 
-		return this.oBundle.getText("FileSize." + oUnit.unit, sValue);
+		return this.oLocaleData.getFileSizePattern(oUnit.unit).replace("{0}", sValue);
 	};
 
 	/**
@@ -180,12 +176,12 @@ sap.ui.define([
 
 		for (var i = 0; i < _UNITS.length; i++) {
 			oUnit = _UNITS[i];
-			_sValue = _checkUnit(this.oBundle, oUnit.decimalUnit, sValue);
+			_sValue = _checkUnit(this.oLocaleData, oUnit.decimalUnit, sValue);
 			if (_sValue) {
 				bBinary = false;
 				break;
 			} else {
-				_sValue = _checkUnit(this.oBundle, oUnit.binaryUnit, sValue);
+				_sValue = _checkUnit(this.oLocaleData, oUnit.binaryUnit, sValue);
 				if (_sValue) {
 					bBinary = true;
 					break;
@@ -219,8 +215,8 @@ sap.ui.define([
 	}
 
 
-	function _checkUnit(oBundle, sUnit, sValue){
-		var sPattern = oBundle.getText("FileSize." + sUnit),
+	function _checkUnit(oLocaleData, sUnit, sValue){
+		var sPattern = oLocaleData.getFileSizePattern(sUnit),
 			_oPattern;
 
 		if (sPattern.startsWith("{0}")) {

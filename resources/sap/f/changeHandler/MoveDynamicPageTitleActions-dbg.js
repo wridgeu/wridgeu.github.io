@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,8 +16,7 @@ sap.ui.define([
 		 *
 		 * @alias sap.f.changeHandler.MoveDynamicPageTitleActions
 		 * @author SAP SE
-		 * @version 1.120.0
-		 * @experimental Since 1.52
+		 * @version 1.152.0
 		 */
 		var MoveActions = { };
 		var ACTION_AGGREGATION_NAME = "actions";
@@ -110,18 +109,18 @@ sap.ui.define([
 		 * @public
 		 */
 		MoveActions.completeChangeContent = function(oChange, oSpecificChangeInfo, mPropertyBag) {
-			var oModifier = mPropertyBag.modifier,
+			const oModifier = mPropertyBag.modifier,
 				oAppComponent = mPropertyBag.appComponent;
 
 			// We need to add the information about the movedElements together with the source and target index
-			var oContent = {
+			const oContent = {
 				movedElements: [],
-				targetAggregation: oSpecificChangeInfo.target.aggregation,
+				targetAggregation: oSpecificChangeInfo.content.target.aggregation,
 				targetContainer: oSpecificChangeInfo.selector
 			};
 
-			oSpecificChangeInfo.movedElements.forEach(function (mElement) {
-				var oElement = mElement.element || oModifier.bySelector(mElement.id, oAppComponent);
+			oSpecificChangeInfo.content.movedElements.forEach(function (mElement) {
+				const oElement = mElement.element || oModifier.bySelector(mElement.id, oAppComponent);
 				oContent.movedElements.push({
 					selector: oModifier.getSelector(oElement, oAppComponent),
 					sourceIndex: mElement.sourceIndex,
@@ -134,26 +133,29 @@ sap.ui.define([
 		MoveActions.getCondenserInfo = function(oChange) {
 			var oChangeContent = oChange.getContent();
 			var oRevertData = oChange.getRevertData();
-			return {
-				affectedControl: oChangeContent.movedElements[0].selector,
-				classification: Condenser.Move,
-				sourceContainer: oRevertData.sourceParent,
-				targetContainer: oChangeContent.targetContainer,
-				sourceIndex: oRevertData.index,
-				sourceAggregation: oRevertData.aggregation,
-				targetAggregation: oChangeContent.targetAggregation,
-				setTargetIndex: function(oChange, iNewTargetIndex) {
-					oChange.getContent().movedElements[0].targetIndex = iNewTargetIndex;
-				},
-				getTargetIndex: function(oChange) {
-					return oChange.getContent().movedElements[0].targetIndex;
-				},
-				setIndexInRevertData: function(oChange, iIndex) {
-					var oRevertData = oChange.getRevertData();
-					oRevertData.index = iIndex;
-					oChange.setRevertData(oRevertData);
-				}
-			};
+			var bSupportsCondenser = oChangeContent.targetAggregation && oChangeContent.targetContainer;
+			if (bSupportsCondenser) {
+				return {
+					affectedControl: oChangeContent.movedElements[0].selector,
+					classification: Condenser.Move,
+					sourceContainer: oRevertData.sourceParent,
+					targetContainer: oChangeContent.targetContainer,
+					sourceIndex: oRevertData.index,
+					sourceAggregation: oRevertData.aggregation,
+					targetAggregation: oChangeContent.targetAggregation,
+					setTargetIndex: function(oChange, iNewTargetIndex) {
+						oChange.getContent().movedElements[0].targetIndex = iNewTargetIndex;
+					},
+					getTargetIndex: function(oChange) {
+						return oChange.getContent().movedElements[0].targetIndex;
+					},
+					setIndexInRevertData: function(oChange, iIndex) {
+						var oRevertData = oChange.getRevertData();
+						oRevertData.index = iIndex;
+						oChange.setRevertData(oRevertData);
+					}
+				};
+			}
 		};
 
 		return MoveActions;

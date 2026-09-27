@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,6 +8,8 @@
 sap.ui.define([
 	"sap/ui/core/Element",
 	"sap/ui/core/library",
+	"sap/ui/core/Lib",
+	"sap/ui/dom/detectTextSelection",
 	"./library",
 	"./ListItemBase",
 	"./ColumnListItemRenderer",
@@ -15,7 +17,7 @@ sap.ui.define([
 	// jQuery custom selectors ":sapFocusable", ":sapTabbable"
 	"sap/ui/dom/jquery/Selectors"
 ],
-	function(Element, coreLibrary, library, ListItemBase, ColumnListItemRenderer, jQuery) {
+	function(Element, coreLibrary, Lib, detectTextSelection, library, ListItemBase, ColumnListItemRenderer) {
 	"use strict";
 
 
@@ -43,7 +45,7 @@ sap.ui.define([
 	 * @implements sap.m.ITableItem
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -81,16 +83,24 @@ sap.ui.define([
 
 	/**
 	 * TablePopin element that handles own events.
+	 *
+	 * @class
+	 * @alias sap.m.TablePopin
 	 */
 	var TablePopin = Element.extend("sap.m.TablePopin", {
 		ontap: function(oEvent) {
-			// prevent the tap event if selection is done within the popin control and mark the event
-			if (oEvent.isMarked() || ListItemBase.detectTextSelection(this.getDomRef())) {
+			// prevent the tap event if selection is done within the popin control
+			if (oEvent.isMarked() || detectTextSelection(this.getDomRef())) {
 				return oEvent.stopImmediatePropagation(true);
 			}
-			if (oEvent.srcControl === this || !jQuery(oEvent.target).is(":sapFocusable")) {
-				this.getParent().focus();
+		},
+		ontouchend: function() {
+			if (document.activeElement === this.getFocusDomRef()) {
+				this.getParent().focus({ preventScroll: true });
 			}
+		},
+		getFocusDomRef: function() {
+			return this.getParent().getDomRef("subcont");
 		}
 	});
 
@@ -114,13 +124,19 @@ sap.ui.define([
 	ColumnListItem.prototype.onAfterRendering = function() {
 		if (this._oPopin) {
 			this.$().attr("aria-owns", this.aAriaOwns.join(" "));
-			this.isActionable(true) && this.$Popin().on("mouseenter mouseleave", function(oEvent) {
-				this.previousSibling.classList.toggle("sapMPopinHovered", oEvent.type == "mouseenter");
+			this.isActionable(true) && this.$Popin().on("mouseenter mouseleave", (oEvent) => {
+				this.toggleStyleClass("sapMPopinHovered", oEvent.type == "mouseenter");
 			});
 		}
 
 		ListItemBase.prototype.onAfterRendering.call(this);
 		this._checkTypeColumn();
+
+		if (this.bOutput !== false && document.activeElement.id === this.getId()) {
+			this.getTable()?._setFirstLastVisibleCells(document.activeElement);
+		}
+
+		this.informList("AfterRendering");
 	};
 
 	ColumnListItem.prototype.exit = function() {
@@ -172,7 +188,9 @@ sap.ui.define([
 				onsapup: this.onsapup,
 				onsapdown: this.onsapdown,
 				oncontextmenu: this.oncontextmenu,
-				onkeydown: this.onkeydown
+				onkeydown: this.onkeydown,
+				onfocusin: this.onfocusin,
+				onfocusout: this.onfocusout
 			}, this).setParent(this, null, true);
 		}
 
@@ -209,12 +227,14 @@ sap.ui.define([
 	 * Returns the tabbable DOM elements as a jQuery collection
 	 * When popin is available this separated dom should also be included
 	 *
+	 * @param [bContentOnly] Whether only tabbables of data cells
 	 * @returns {jQuery} jQuery object
 	 * @protected
 	 * @since 1.26
 	 */
-	ColumnListItem.prototype.getTabbables = function() {
-		return this.$().add(this.$Popin()).find(":sapTabbable");
+	ColumnListItem.prototype.getTabbables = function(bContentOnly) {
+		const $Content = bContentOnly ? this.$().find(".sapMListTblCell") : this.$();
+		return $Content.add(this.$Popin()).find(":sapTabbable");
 	};
 
 	/**
@@ -239,31 +259,62 @@ sap.ui.define([
 		return oBundle.getText("ACC_CTR_TYPE_ROW");
 	};
 
-	ColumnListItem.prototype.getContentAnnouncement = function(oBundle) {
-		var oTable = this.getTable();
+	ColumnListItem.prototype.getContentAnnouncementOfCell = function(oColumn) {
+		return getAnnouncementForColumn(oColumn, this.getCells(), false);
+	};
+
+	function getAnnouncementForColumn(oColumn, aCells, bIncludeHeader) {
+		const oCell = aCells[oColumn.getInitialOrder()];
+		let sOutput = ListItemBase.getAccessibilityText(oCell, true);
+
+		if (bIncludeHeader) {
+			const bPopinFocused = document.activeElement.classList.contains("sapMListTblSubCnt");
+			const sColumnDescription = oColumn.getAccessibilityDescription(!bPopinFocused);
+			sOutput = sColumnDescription + " " + sOutput;
+		} else if (oCell.$().parent().find(":sapTabbable").length > 0) {
+			sOutput = Lib.getResourceBundleFor("sap.m").getText("TABLE_CELL_INCLUDES", [sOutput]);
+		}
+
+		return sOutput;
+	}
+
+	ColumnListItem.prototype.getContentAnnouncementOfPopin = function() {
+		const aCells = this.getCells();
+		const aOutput = this.getTable()._getVisiblePopin().map(function(oColumn) {
+			return getAnnouncementForColumn(oColumn, aCells, true);
+		});
+
+		let sOutput = aOutput.filter(Boolean).join(" . ").trim();
+		if (this.$Popin().find(":sapTabbable").length > 0) {
+			sOutput = Lib.getResourceBundleFor("sap.m").getText("TABLE_CELL_INCLUDES", [sOutput]);
+		}
+
+		return sOutput;
+	};
+
+	ColumnListItem.prototype.getContentAnnouncementOfRowAction = function() {
+		// Only if the item is inactive, to announce empty row action cell
+		if (this.getEffectiveType() === ListItemType.Inactive) {
+			return ListItemBase.getAccessibilityText(null, true);
+		}
+	};
+
+	ColumnListItem.prototype.getContentAnnouncement = function() {
+		const oTable = this.getTable();
 		if (!oTable) {
 			return;
 		}
 
-		var aOutput = [],
-			aCells = this.getCells(),
-			aColumns = oTable.getRenderedColumns();
-
-		aColumns.forEach(function(oColumn) {
-			var oCell = aCells[oColumn.getInitialOrder()];
-			if (!oCell) {
-				return;
-			}
-
-			var oHeader = oColumn.getHeader();
-			if (oHeader && oHeader.getVisible()) {
-				aOutput.push(ListItemBase.getAccessibilityText(oHeader) + " " + ListItemBase.getAccessibilityText(oCell, true));
-			} else {
-				aOutput.push(ListItemBase.getAccessibilityText(oCell, true));
-			}
+		const aCells = this.getCells();
+		const aOutput = oTable.getRenderedColumns().map(function(oColumn) {
+			return getAnnouncementForColumn(oColumn, aCells, true);
 		});
 
 		return aOutput.filter(Boolean).join(" . ").trim();
+	};
+
+	ColumnListItem.prototype.getGroupAnnouncement = function() {
+		return this.$().prevAll(".sapMGHLI:first").text();
 	};
 
 	// update the aria-selected for the cells
@@ -285,7 +336,40 @@ sap.ui.define([
 			this.$().children(".sapMListTblCellDup").find(":sapTabbable").attr("tabindex", -1);
 		}
 
+		const oTable = this.getTable();
+		const oTarget = oEvent.target;
+		let sInvisibleText;
+
+		if (oTarget.classList.contains("sapMListTblCell")) {
+			const oColumn = Element.getElementById(oTarget.getAttribute("data-sap-ui-column"));
+			sInvisibleText = this.getContentAnnouncementOfCell(oColumn);
+		} else if (oTarget.classList.contains("sapMListTblSubCnt")) {
+			sInvisibleText = this.getContentAnnouncementOfPopin();
+		} else if (oTarget.classList.contains("sapMListTblNavCol")) {
+			sInvisibleText = this.getContentAnnouncementOfRowAction();
+		} else if (oTarget.classList.contains("sapMListTblActionsCol")) {
+			sInvisibleText = this._getCustomActionsAnnouncement(true);
+		}
+
+		if (sInvisibleText) {
+			oTable.updateInvisibleText(sInvisibleText);
+			oEvent.setMarked("contentAnnouncementGenerated");
+		}
+
 		ListItemBase.prototype.onfocusin.apply(this, arguments);
+	};
+
+	ColumnListItem.prototype.onfocusout = function(oEvent) {
+		if (oEvent.isMarked()) {
+			return;
+		}
+
+		const oTarget = oEvent.target;
+		if (oTarget.matches(".sapMListTblCell") || oTarget.matches(".sapMListTblSubCnt")) {
+			this.getTable().removeInvisibleTextAssociation(oTarget);
+		}
+
+		ListItemBase.prototype.onfocusout.apply(this, arguments);
 	};
 
 	ColumnListItem.prototype.onsapenter = ColumnListItem.prototype.onsapspace = function(oEvent) {
@@ -300,7 +384,7 @@ sap.ui.define([
 			sEventHandler = this.getMode() == "Delete" ? "onsapdelete" : "onsapspace";
 		} else if (sTargetId == this.getId() + "-TypeCell") {
 			oEvent.target = this.getDomRef();
-			if (this.getType() == "Navigation") {
+			if (this.getEffectiveType() == "Navigation") {
 				sEventHandler = "onsapenter";
 			} else {
 				oEvent.code = "KeyE";
@@ -340,13 +424,12 @@ sap.ui.define([
 
 	// determines whether type column for this item is necessary or not
 	ColumnListItem.prototype._needsTypeColumn = function() {
-		var sType = this.getType();
+		if (!this.getVisible()) {
+			return false;
+		}
 
-		return this.getVisible() && (
-			sType == ListItemType.Detail ||
-			sType == ListItemType.Navigation ||
-			sType == ListItemType.DetailAndActive
-		);
+		const sType = this.getEffectiveType();
+		return sType === ListItemType.Navigation ? true : sType.startsWith(ListItemType.Detail) && this._getMaxActionsCount() === -1;
 	};
 
 	// Adds cloned header to the local collection

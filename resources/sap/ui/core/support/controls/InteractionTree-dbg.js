@@ -1,16 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/base/ManagedObject',
 	'sap/ui/core/IconPool',
-	'sap/ui/core/Core',
 	'sap/m/library',
 	'sap/m/Popover',
 	'sap/m/Text',
+	"sap/ui/core/RenderManager",
 	'sap/ui/layout/form/SimpleForm',
 	'sap/m/Button',
 	'sap/m/Label',
@@ -23,10 +23,10 @@ sap.ui.define([
     function(
 		ManagedObject,
 	   IconPool,
-	   Core,
 	   mobileLibrary,
 	   Popover,
 	   Text,
+	   RenderManager,
 	   SimpleForm,
 	   Button,
 	   Label,
@@ -103,7 +103,7 @@ sap.ui.define([
        InteractionTree.prototype.renderAt = function (parent) {
           this.parent = parent;
 
-          var rm = Core.createRenderManager();
+          var rm = new RenderManager().getInterface();
           this.render(rm);
           rm.flush(parent, true);
           rm.destroy();
@@ -134,6 +134,9 @@ sap.ui.define([
               interactions = this.interactions;
 
           if (!interactions || !interactions.length) {
+             rm.close("ul");
+             rm.close("div");
+
              return;
           }
 
@@ -179,7 +182,7 @@ sap.ui.define([
            var gridContainer = this.gridContainer,
                range = this.timeRange,
                width = this.gridContainer.width(),
-               rm = Core.createRenderManager();
+               rm = new RenderManager().getInterface();
 
            if (this.gridContainerWidth === width) {
                return;
@@ -265,7 +268,7 @@ sap.ui.define([
           var $parent = $icon.parent();
           $icon.remove();
 
-          var rm = Core.createRenderManager();
+          var rm = new RenderManager().getInterface();
           this.renderIcon(rm, !expanded);
 
           rm.flush($parent[0], false, true);
@@ -699,7 +702,7 @@ sap.ui.define([
 
           function initializePopOverClientServerProgressBar() {
 
-              var rm = Core.createRenderManager();
+              var rm = new RenderManager().getInterface();
               var request = that.getRequestFromElement(jQuery(this));
 
               var fetchStartOffset = request.fetchStartOffset;
@@ -758,7 +761,7 @@ sap.ui.define([
               var colorClass = that.getRequestColorClass(requestType);
               var colorClass70 = colorClass + '70';
 
-              rm = Core.createRenderManager();
+              rm = new RenderManager().getInterface();
 
               rm.openStart("div")
                   .class("sapUiSupportIntProgressBarParent")
@@ -1095,26 +1098,9 @@ sap.ui.define([
        InteractionTree.prototype.renderIcon = function (rm, expanded) {
            var icon = expanded ? InteractionTree.collapseIcon : InteractionTree.expandIcon;
 
-           rm.openStart("span")
-               .attr("aria-hidden", "true")
-               .attr("expanded", expanded)
-               .class("sapUiIcon")
-               .class("sapUiInteractionTreeIcon");
-
-
-           if (iconInfo && !iconInfo.suppressMirroring) {
-               rm.class("sapUiIconMirrorInRTL");
-           }
-
-           var iconInfo = IconPool.getIconInfo(icon);
-
-           if (iconInfo) {
-               rm.attr("data-sap-ui-icon-content", iconInfo.content);
-               rm.style("font-family", "SAP-icons");
-           }
-
-           rm.openEnd()
-               .close("span");
+           rm.icon(icon, ["sapUiInteractionTreeIcon"], {
+               "expanded": expanded
+           });
        };
 
        return InteractionTree;

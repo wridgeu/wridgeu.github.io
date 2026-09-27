@@ -1,32 +1,38 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Switch.
 sap.ui.define([
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
+	"sap/ui/core/Lib",
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/events/KeyCodes',
 	'./SwitchRenderer',
 	"sap/base/assert",
-	"sap/ui/core/Configuration"
+	"sap/ui/core/InvisibleText",
+	"sap/ui/Device"
 ],
 function(
 	library,
+	Localization,
 	Control,
 	EnabledPropagator,
 	IconPool,
+	Library,
 	Parameters,
 	KeyCodes,
 	SwitchRenderer,
 	assert,
-	Configuration
-	) {
+	InvisibleText,
+	Device
+) {
 		"use strict";
 
 		// shortcut for sap.m.touch
@@ -50,7 +56,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @public
@@ -101,7 +107,15 @@ function(
 					/**
 					 * Type of a Switch. Possibles values "Default", "AcceptReject".
 					 */
-					type: { type : "sap.m.SwitchType", group: "Appearance", defaultValue: SwitchType.Default }
+					type: { type : "sap.m.SwitchType", group: "Appearance", defaultValue: SwitchType.Default },
+
+					/**
+					 * Specifies whether the user shall be allowed to change the state of the switch.
+					 * When set to <code>false</code>, the switch is in read-only mode and can still be focused
+					 * and the user can copy the text from it.
+					 * @since 1.147.0
+					 */
+					editable: { type: "boolean", group: "Behavior", defaultValue: true }
 				},
 				associations: {
 
@@ -161,7 +175,7 @@ function(
 			}
 
 			this._iCurrentPosition = iPosition;
-			this.getDomRef("inner").style[Configuration.getRTL() ? "right" : "left"] = iPosition + "px";
+			this.getDomRef("inner").style[Localization.getRTL() ? "right" : "left"] = iPosition + "px";
 			this._setTempState(Math.abs(iPosition) < Switch._SWAPPOINT);
 		};
 
@@ -178,34 +192,25 @@ function(
 			this.getDomRef("handle").setAttribute("data-sap-ui-swt", b ? this._sOn : this._sOff);
 		};
 
-		Switch.prototype._getInvisibleElement = function(){
-			return this.$("invisible");
-		};
-
 		Switch.prototype.getInvisibleElementId = function() {
 			return this.getId() + "-invisible";
 		};
 
+		Switch.prototype._getDescribedByElementId = function() {
+			return InvisibleText.getStaticId("sap.m", "CONTROL_READONLY");
+		};
+
 		Switch.prototype.getInvisibleElementText = function(bState) {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			var oBundle = Library.getResourceBundleFor("sap.m");
 			var sText = "";
 
 			switch (this.getType()) {
 				case SwitchType.Default:
-					if (bState) {
-						sText = this.getCustomTextOn().trim() || oBundle.getText("SWITCH_ON");
-					} else {
-						sText = this.getCustomTextOff().trim() || oBundle.getText("SWITCH_OFF");
-					}
+					sText = bState ? this.getCustomTextOn().trim() : this.getCustomTextOff().trim();
 					break;
 
 				case SwitchType.AcceptReject:
-					if (bState) {
-						sText = oBundle.getText("SWITCH_ARIA_ACCEPT");
-					} else {
-						sText = oBundle.getText("SWITCH_ARIA_REJECT");
-					}
-
+					sText = bState ? oBundle.getText("SWITCH_ARIA_ACCEPT") : oBundle.getText("SWITCH_ARIA_REJECT");
 					break;
 
 				// no default
@@ -241,7 +246,7 @@ function(
 		/* =========================================================== */
 
 		Switch.prototype.onBeforeRendering = function() {
-			var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			var oRb = Library.getResourceBundleFor("sap.m");
 			this._sOn = this.getCustomTextOn() || oRb.getText("SWITCH_ON");
 			this._sOff = this.getCustomTextOff() || oRb.getText("SWITCH_OFF");
 		};
@@ -267,6 +272,7 @@ function(
 			// only process single touches (only the first active touch point)
 			if (touch.countContained(oEvent.touches, this.getId()) > 1 ||
 				!this.getEnabled() ||
+				!this.getEditable() ||
 
 				// detect which mouse button caused the event and only process the standard click
 				// (this is usually the left button, oEvent.button === 0 for standard click)
@@ -287,7 +293,9 @@ function(
 			this._bDragging = false;
 
 			// note: force ie browsers to set the focus to switch
-			setTimeout(this["focus"].bind(this), 0);
+			if (Device.system.desktop) {
+				setTimeout(this["focus"].bind(this), 0);
+			}
 
 			// add active state
 			this.$("switch").addClass(CSS_CLASS + "Pressed");
@@ -315,6 +323,7 @@ function(
 				fnTouch = touch;
 
 			if (!this.getEnabled() ||
+				!this.getEditable() ||
 
 				// detect which mouse button caused the event and only process the standard click
 				// (this is usually the left button, oEvent.button === 0 for standard click)
@@ -348,7 +357,7 @@ function(
 			iPosition = ((this._iStartPressPosX - oTouch.pageX) * -1) + this._iPosition;
 
 			// RTL mirror
-			if (Configuration.getRTL()) {
+			if (Localization.getRTL()) {
 				iPosition = -iPosition;
 			}
 
@@ -370,6 +379,7 @@ function(
 				fnTouch = touch;
 
 			if (!this.getEnabled() ||
+				!this.getEditable() ||
 
 				// detect which mouse button caused the event and only process the standard click
 				// (this is usually the left button, oEvent.button === 0 for standard click)
@@ -413,7 +423,7 @@ function(
 		 * @private
 		 */
 		Switch.prototype._handleSpaceOrEnter = function(oEvent) {
-			if (this.getEnabled()) {
+			if (this.getEnabled() && this.getEditable()) {
 
 				// mark the event for components that needs to know if the event was handled by the Switch
 				oEvent.setMarked();
@@ -440,7 +450,29 @@ function(
 		*/
 		Switch.prototype.onkeyup = function (oEvent) {
 			if (oEvent.which === KeyCodes.SPACE) {
+				if (this._bShouldCancelAction) {
+					this._bShouldCancelAction = false;
+					this._bSpacePressed = false;
+					return;
+				}
+
+				this._bSpacePressed = false;
 				this._handleSpaceOrEnter(oEvent);
+			} else if ((oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT) && !this._bSpacePressed) {
+				this._bShouldCancelAction = false;
+			}
+		};
+
+		/**
+		 * Handles space key on key down
+		 *
+		 * @private
+		*/
+		Switch.prototype.onkeydown = function (oEvent) {
+			if (oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT) {
+				this._bShouldCancelAction = true;
+			} else if (oEvent.which === KeyCodes.SPACE) {
+				this._bSpacePressed = true;
 			}
 		};
 
@@ -473,16 +505,16 @@ function(
 		/* =========================================================== */
 
 		Switch.prototype.getAccessibilityInfo = function() {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
-				bState = this.getState(),
-				sDesc = this.getInvisibleElementText(bState);
+			var oBundle = Library.getResourceBundleFor("sap.m"),
+				sDesc = this._getAccDescription();
 
 			return {
 				role: "switch",
 				type: oBundle.getText("ACC_CTR_TYPE_SWITCH"),
 				description: sDesc,
 				focusable: this.getEnabled(),
-				enabled: this.getEnabled()
+				enabled: this.getEnabled(),
+				editable: this.getEditable()
 			};
 		};
 
@@ -492,7 +524,7 @@ function(
 	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar
+	 * @ui5-restricted sap.m.OverflowToolbar
 	 */
 	Switch.prototype.getOverflowToolbarConfig = function() {
 		return {
@@ -507,10 +539,27 @@ function(
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	 Switch.prototype._getToolbarInteractive = function () {
 		return true;
+	};
+
+	/**
+	 * Returns accessibility description of the control
+	 *
+	 * @returns {string} description text
+	 *
+	 * @private
+	 *
+	 */
+	 Switch.prototype._getAccDescription = function () {
+		var bState = this.getState(),
+			oBundle = Library.getResourceBundleFor("sap.m"),
+			sStateDescr = bState ? oBundle.getText("SWITCH_ON") : oBundle.getText("SWITCH_OFF"),
+			sInvisibleText = this.getInvisibleElementText(bState);
+
+		return sStateDescr + (sInvisibleText ? ", " + sInvisibleText : "");
 	};
 
 	return Switch;

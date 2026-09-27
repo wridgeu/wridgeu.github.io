@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -91,7 +91,7 @@ sap.ui.define([
 			rm.openStart("tr").class("sapUiGridTitle").openEnd();
 			rm.openStart("th").attr("colspan", iTitleCells).openEnd();
 
-			this.renderHeader(rm, oToolbar, oTitle, undefined, false, oLayout._sFormTitleSize, oForm.getId());
+			this.renderHeader(rm, oToolbar, oTitle, undefined, false, oLayout._sFormTitleLevel, oForm.getId());
 			rm.close("th");
 			rm.close("tr");
 		}

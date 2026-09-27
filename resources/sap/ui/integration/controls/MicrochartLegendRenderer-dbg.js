@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/m/library",
-	"sap/ui/core/Core"
-], function(mLibrary, Core) {
+	"sap/ui/core/Element"
+], function(mLibrary, Element) {
 	"use strict";
 
 	var ValueColor = mLibrary.ValueColor;
@@ -21,7 +21,7 @@ sap.ui.define([
 	};
 
 	MicrochartLegendRenderer.render = function (oRm, oMicrochartLegend) {
-		var oChart = Core.byId(oMicrochartLegend.getChart()),
+		var oChart = Element.getElementById(oMicrochartLegend.getChart()),
 			aLegendColors = [],
 			aTexts = oMicrochartLegend.getAggregation("_titles");
 

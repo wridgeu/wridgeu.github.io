@@ -1,20 +1,31 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/m/p13n/SelectionController',  'sap/m/p13n/SortPanel', 'sap/m/p13n/modules/xConfigAPI'
-], function (BaseController, SortPanel, xConfigAPI) {
+	'sap/m/p13n/SelectionController', 'sap/m/p13n/SortPanel', 'sap/m/p13n/modules/xConfigAPI'
+], (BaseController, SortPanel, xConfigAPI) => {
 	"use strict";
 
-     /**
+	/**
+	 * Personalization <code>SortState</code> object type. This object describes the state processed by this controller when accessing it through the {@link sap.m.p13n.Engine Engine}.
+	 *
+	 * @public
+	 * @typedef {object} sap.m.p13n.SortState
+	 * @property {string} key The key for the sort state
+	 * @property {boolean} [sorted] Defines whether the item is sorted (if a sort state is provided, it's sorted automatically)
+	 * @property {boolean} [descending] Defines whether the sorting is processed in a descending order (<code>false</code> is the default)
+	 * @property {int} [index] Describes the index of the sorter
+	 *
+	 */
+
+	 /**
 	 * Constructor for a new <code>SortController</code>.
 	 *
-	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
-	 * @param {object} [mSettings] Initial settings for the new control
-     * @param {sap.ui.core.Control} mSettings.control The control instance that is personalized by this controller
+	 * @param {object} mSettings Initial settings for the new controller
+	 * @param {sap.ui.core.Control} mSettings.control The control instance that is personalized by this controller
 	 *
 	 * @class
 	 * The <code>SortController</code> entity serves as a base class to create personalization implementations that are specific to sorting.
@@ -22,129 +33,110 @@ sap.ui.define([
 	 * @extends sap.m.p13n.SelectionController
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @public
 	 * @alias sap.m.p13n.SortController
 	 */
-    var SortController = BaseController.extend("sap.m.p13n.SortController", {
-        constructor: function() {
+	const SortController = BaseController.extend("sap.m.p13n.SortController", {
+		constructor: function() {
 			BaseController.apply(this, arguments);
 			this._bResetEnabled = true;
 		}
-    });
+	});
 
-    SortController.prototype.getStateKey = function() {
-        return "sorters";
-    };
+	SortController.prototype.getStateKey = () => {
+		return "sorters";
+	};
 
-    SortController.prototype.getDelta = function(mPropertyBag) {
-        mPropertyBag.deltaAttributes.push("descending");
-        return BaseController.prototype.getDelta.apply(this, arguments);
-    };
+	SortController.prototype.getDelta = function(mPropertyBag) {
+		mPropertyBag.deltaAttributes.push("descending");
+		return BaseController.prototype.getDelta.apply(this, arguments);
+	};
 
-    SortController.prototype.initAdaptationUI = function(oPropertyHelper){
+	SortController.prototype.initAdaptationUI = function(oPropertyHelper) {
 
-        var oSortPanel;
+		const oSortPanel = new SortPanel();
 
-        oSortPanel = new SortPanel();
+		const oAdaptationData = this.mixInfoAndState(oPropertyHelper);
+		oSortPanel.setP13nData(oAdaptationData.items);
+		this._oPanel = oSortPanel;
 
-        var oAdaptationData = this.mixInfoAndState(oPropertyHelper);
-        oSortPanel.setP13nData(oAdaptationData.items);
-        this._oPanel = oSortPanel;
+		return Promise.resolve(oSortPanel);
+	};
 
-        return Promise.resolve(oSortPanel);
-    };
+	SortController.prototype.model2State = function() {
+		const aItems = [];
+		if (this._oPanel) {
+			this._oPanel.getP13nData(true).forEach((oItem) => {
+				if (oItem.sorted) {
+					aItems.push({
+						key: oItem.key
+					});
+				}
+			});
+			return aItems;
+		}
+	};
 
-    SortController.prototype.model2State = function() {
-        var aItems = [];
-        if (this._oPanel) {
-            this._oPanel.getP13nData(true).forEach(function(oItem){
-                if (oItem.sorted){
-                    aItems.push({
-                        key: oItem.key
-                    });
-                }
-            });
-            return aItems;
-        }
-    };
+	SortController.prototype.getChangeOperations = () => {
+		return {
+			add: "addSort",
+			remove: "removeSort",
+			move: "moveSort"
+		};
+	};
 
-    SortController.prototype.getChangeOperations = function() {
-        return {
-            add: "addSort",
-            remove: "removeSort"
-        };
-    };
+	SortController.prototype.getCurrentState = function(bExternalize) {
+		const oXConfig = xConfigAPI.readConfig(this.getAdaptationControl()) || {};
+		const aSortConditions = oXConfig.hasOwnProperty("properties") ? oXConfig.properties.sortConditions : [];
 
-    SortController.prototype.getCurrentState = function(bExternalize) {
-        var oXConfig = xConfigAPI.readConfig(this.getAdaptationControl()) || {};
-        var aSortConditions = oXConfig.hasOwnProperty("properties") ? oXConfig.properties.sortConditions : [];
+		return aSortConditions || [];
+	};
 
-        return aSortConditions || [];
-    };
+	SortController.prototype._createAddRemoveChange = (oControl, sOperation, oContent) => {
+		const oAddRemoveChange = {
+			selectorElement: oControl,
+			changeSpecificData: {
+				changeType: sOperation,
+				content: oContent
+			}
+		};
+		return oAddRemoveChange;
+	};
 
-    SortController.prototype._createAddRemoveChange = function(oControl, sOperation, oContent){
-        var oAddRemoveChange = {
-            selectorElement: oControl,
-            changeSpecificData: {
-                changeType: sOperation,
-                content: oContent
-            }
-        };
-        return oAddRemoveChange;
-    };
+	SortController.prototype._getPresenceAttribute = (bexternalAppliance) => {
+		return "sorted";
+	};
 
-    SortController.prototype._createMoveChange = function(sId, sPropertykey, iNewIndex, sMoveOperation, oControl, bPersistId){
-        var oMoveChange =  {
-            selectorElement: oControl,
-            changeSpecificData: {
-                changeType: sMoveOperation,
-                content: {
-                    id: sId,
-                    key: sPropertykey,
-                    index: iNewIndex
-                }
-            }
-        };
+	SortController.prototype.mixInfoAndState = function(oPropertyHelper) {
 
-        if (!bPersistId) {
-            delete oMoveChange.changeSpecificData.content.id;
-        }
+		const aItemState = this.getCurrentState();
+		const mExistingSorters = this.arrayToMap(aItemState);
 
-        return oMoveChange;
-    };
+		const oP13nData = this.prepareAdaptationData(oPropertyHelper, (mItem, oProperty) => {
 
-    SortController.prototype._getPresenceAttribute = function(bexternalAppliance){
-        return "sorted";
-    };
+			const oExistingSorter = mExistingSorters[oProperty.key];
 
-    SortController.prototype.mixInfoAndState = function(oPropertyHelper) {
+			mItem.sorted = oExistingSorter ? true : false;
+			mItem.sortPosition = oExistingSorter ? oExistingSorter.position : -1;
+			mItem.descending = oExistingSorter ? !!oExistingSorter.descending : false;
 
-        var aItemState = this.getCurrentState();
-        var mExistingSorters = this.arrayToMap(aItemState);
+			return !(oProperty.sortable === false);
+		});
 
-        var oP13nData = this.prepareAdaptationData(oPropertyHelper, function(mItem, oProperty){
+		this.sortP13nData({
+			visible: "sorted",
+			position: "sortPosition"
+		}, oP13nData.items);
 
-            var oExistingSorter = mExistingSorters[oProperty.key];
+		oP13nData.presenceAttribute = this._getPresenceAttribute();
 
-            mItem.sorted = oExistingSorter ? true : false;
-            mItem.sortPosition = oExistingSorter ? oExistingSorter.position : -1;
-            mItem.descending = oExistingSorter ? !!oExistingSorter.descending : false;
+		oP13nData.items.forEach((oItem) => {
+			delete oItem.sortPosition;
+		});
 
-            return !(oProperty.sortable === false);
-        });
-
-        this.sortP13nData({
-            visible: "sorted",
-            position: "sortPosition"
-        }, oP13nData.items);
-
-        oP13nData.presenceAttribute = this._getPresenceAttribute();
-
-        oP13nData.items.forEach(function(oItem){delete oItem.sortPosition;});
-
-        return oP13nData;
-    };
+		return oP13nData;
+	};
 
 	return SortController;
 

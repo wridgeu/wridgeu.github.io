@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,15 +35,16 @@ sap.ui.define([], function () {
 		// '*' or '*/$ref'
 		sStarPath = sStar + "(?:/\\$ref)?",
 		// a path (ABNF rules expandPath, selectPath, ...)
-		sPath = sNamedPath + "|" + sStarPath,
+		sPathExpression = sNamedPath + "|" + sStarPath,
 		// The pattern for a token with ID "VALUE"
-		// All other characters in expressions (constants of type double/date/time/GUID), '/' as
-		// part of rootExpr or implicitVariableExpr, '+' may be %-encoded
-		sValue = '(?:[-+:./\\w"]|%2[bB])+',
+		// All other characters in expressions
+		// (constants of type double/date/time/dateTimeOffset/GUID), '/' as part of rootExpr or
+		// implicitVariableExpr, '+' and ':' may be %-encoded
+		sValueExpression = '(?:[-+:./\\w"]|%2[bB]|%3[aA])+',
 		// A Token: either an operator, a delimiter, a GUID (in aMatches[4]), a path (in
 		// aMatches[5]), a value (in aMatches[6]) or a system query option (in aMatches[7])
 		rToken = new RegExp("^(?:" + sOperators + "|" + sDelimiters + "|(" + sGuid + ")|("
-			+ sPath + ")|(" + sValue + ")|(" + sSystemQueryOption + "))"),
+			+ sPathExpression + ")|(" + sValueExpression + ")|(" + sSystemQueryOption + "))"),
 		// The two hex digits of a %-escape
 		rEscapeDigits = /^[0-9a-f]{2}$/i,
 		// The list of built-in functions
@@ -173,7 +174,7 @@ sap.ui.define([], function () {
 	 * @param {number} iLbp The "left binding power"
 	 */
 	function addInfixOperator(sId, iLbp) {
-		// Note: this function is executed at load time only!
+		// Note: this function is run at load time only!
 		mFilterParserSymbols[sId] = {
 			lbp : iLbp,
 			led : function (oToken, oLeft) {
@@ -192,7 +193,7 @@ sap.ui.define([], function () {
 	 * @param {string} sId The token ID
 	 */
 	function addLeafSymbol(sId) {
-		// Note: this function is executed at load time only!
+		// Note: this function is run at load time only!
 		mFilterParserSymbols[sId] = {
 			lbp : 0,
 			nud : function (oToken) {
@@ -461,11 +462,16 @@ sap.ui.define([], function () {
 	 * A parser that is able to parse system query strings. It focuses on $select and $expand, all
 	 * other options remain strings, even when embedded into an expand statement.
 	 *
+	 * @param {boolean} [bParseFilter]
+	 *   Whether to parse the value of "$filter" into a syntax tree, see
+	 *   {@link sap.ui.model.odata.v4.ODataUtils.parseFilter}
+	 *
 	 * @alias sap.ui.model.odata.v4.lib._SystemQueryOptionParser
 	 * @constructor
 	 */
-	function _SystemQueryOptionParser() {
+	function _SystemQueryOptionParser(bParseFilter) {
 		_Parser.apply(this, arguments);
+		this.oFilterParser = bParseFilter ? new _FilterParser() : undefined;
 	}
 
 	_SystemQueryOptionParser.prototype = Object.create(_Parser.prototype);
@@ -607,11 +613,18 @@ sap.ui.define([], function () {
 	 * @returns {object} An object with "$foo" as key and the parsed value of bar as value.
 	 */
 	_SystemQueryOptionParser.prototype.parseSystemQueryOption = function () {
-		var oToken = this.advance("OPTION");
+		const oToken = this.advance("OPTION");
 
 		switch (oToken.value) {
 			case "$expand":
 				return this.parseExpand();
+			case "$filter": {
+				const oRaw = this.parseAnythingWithBrackets(oToken);
+
+				return this.oFilterParser
+					? {$filter : this.oFilterParser.parse(oRaw.$filter)}
+					: oRaw;
+			}
 			case "$select":
 				return this.parseSelect();
 			default:
@@ -804,45 +817,12 @@ sap.ui.define([], function () {
 		},
 
 		/**
-		 * Parses a filter string to a syntax tree. In this tree
-		 * <ul>
-		 *   <li> paths are leafs with <code>id="PATH"</code> and the path in <code>value</code>
-		 *   <li> literals are leafs with <code>id="VALUE"</code> and the literal (as parsed) in
-		 *     <code>value</code>
-		 *   <li> operations are nodes with the operator in <code>id</code>, the operator incl.
-		 *     the surrounding required space in <code>value</code> and <code>left</code> and
-		 *     <code>right</code> containing syntax trees for the operands. <code>not</code> only
-		 *     uses <code>right</code>.
-		 *   <li> functions are nodes with <code>id="FUNCTION"</code>,the name in <code>value</code>
-		 *     and an array of <code>parameters</code>.
-		 * </ul>
-		 * If the type is known (especially for logical operators and functions), it is given in
-		 * <code>type</code>. If a function parameter may have different types (like Edm.Decimal or
-		 * Edm.Double in <code>round</code>), it has the property <code>ambiguous: true</code>.
-		 * <code>at</code> always contains the position where this token started (starting with 1).
-		 *
-		 * Example: <code>parseFilter("foo eq 'bar' and length(baz) ne 5")</code> results in
-		 * <pre>
-			{
-				id : "and", value : " and ", type : "Edm.Boolean", at : 14,
-				left : {
-					id : "eq", value : " eq ", type : "Edm.Boolean", at : 5,
-					left : {id : "PATH", value : "foo", at : 1},
-					right : {id : "VALUE", value : "'bar'", at : 8}
-				},
-				right : {
-					id : "ne", value : " ne ", type : "Edm.Boolean", at : 30,
-					left : {
-						id : "FUNCTION", value : "length", type : "Edm.Int32", at : 18,
-						parameters : [{id : "PATH", value : "baz", at : 25}]
-					},
-					right : {id : "VALUE", value : "5", at : 33}
-				}
-			}
-		 * </pre>
+		 * Parses a filter string to a syntax tree, see
+		 * {@link sap.ui.model.odata.v4.ODataUtils.parseFilter} for details.
 		 *
 		 * @param {string} sFilter The filter string
-		 * @returns {object} The syntax tree.
+		 * @returns {object} The syntax tree
+		 * @throws {SyntaxError} If there is a syntax error
 		 */
 		parseFilter : function (sFilter) {
 			return new _FilterParser().parse(sFilter);
@@ -860,48 +840,18 @@ sap.ui.define([], function () {
 		},
 
 		/**
-		 * Parses a system query option "$select" or "$expand" into an object representation.
-		 *
-		 * The value for "$select" is an array of strings.
-		 *
-		 * The value for "$expand" is an object with the path as key and the options as object. If
-		 * there are no options, the value for the path is <code>null</code>. Each option again
-		 * becomes a property with the option name as key and the option value as value.
-		 *
-		 * The value for all other options is simply the string passed to them.
-		 *
-		 * <b>Example:</b>
-		 *
-		 * <code>$expand=SO_2_BP,SO_2_SOITEM($expand=SOITEM_2_PRODUCT($expand=PRODUCT_2_BP
-		 * ;$select=ID,Name);$select=*;$count=true;$orderby=Name desc)</code>
-		 * is converted to
-		 * <pre>
-			{
-				"$expand" : {
-					"SO_2_BP" : null,
-					"SO_2_SOITEM" : {
-						"$count" : "true",
-						"$expand" : {
-							"SOITEM_2_PRODUCT" : {
-								"$expand" : {
-									"PRODUCT_2_BP" : null
-								},
-								"$select" : ["ID", "Name"]
-							}
-						},
-						"$orderby" : "Name desc",
-						"$select" : ["*"]
-					}
-				}
-			}
-		 * </pre>
+		 * Parses a system query option "$select" or "$expand" into an object representation, see
+		 * {@link sap.ui.model.odata.v4.ODataUtils.parseSystemQueryOption} for details.
 		 *
 		 * @param {string} sOption The option string
+		 * @param {boolean} [bParseFilter]
+		 *   Whether to parse the value of "$filter" into a syntax tree, see
+		 *   {@link sap.ui.model.odata.v4.ODataUtils.parseFilter}
 		 * @returns {object} The option value as object
-		 * @throws {SyntaxError} If the string could not be parsed
+		 * @throws {SyntaxError} If the string cannot be parsed
 		 */
-		parseSystemQueryOption : function (sOption) {
-			return new _SystemQueryOptionParser().parse(sOption);
+		parseSystemQueryOption : function (sOption, bParseFilter) {
+			return new _SystemQueryOptionParser(bParseFilter).parse(sOption);
 		},
 
 		// ABNF rule oDataIdentifier

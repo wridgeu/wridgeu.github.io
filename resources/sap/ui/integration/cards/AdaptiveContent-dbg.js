@@ -1,29 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-		"sap/ui/integration/library",
-		"sap/ui/core/library",
-		"sap/ui/dom/includeScript",
-		"sap/ui/integration/cards/BaseContent",
-		"sap/ui/integration/cards/adaptivecards/elements/hostConfig",
-		"sap/m/VBox",
-		"sap/ui/core/HTML",
-		"sap/ui/core/Core",
-		"sap/ui/model/json/JSONModel",
-		"sap/base/Log"
-	],
-	function (library, coreLibrary, includeScript, BaseContent, hostConfig,
-			VBox, HTML, Core, JSONModel, Log) {
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Lib",
+	"sap/ui/integration/library",
+	"sap/ui/dom/includeScript",
+	"sap/ui/integration/cards/BaseContent",
+	"sap/ui/integration/cards/adaptivecards/elements/hostConfig",
+	"sap/m/VBox",
+	"sap/ui/core/HTML",
+	"sap/ui/model/json/JSONModel",
+	"sap/base/Log"
+],
+	function(Localization, Library, library, includeScript, BaseContent, hostConfig, VBox, HTML, JSONModel, Log) {
 		"use strict";
 
 		// lazy dependencies, loaded on demand
 		var AdaptiveCards, ACData, Markdown, UI5InputText, UI5InputNumber, UI5InputChoiceSet, UI5InputTime, UI5InputDate, UI5InputToggle, ActionRender;
 
-		// shortcut for sap.ui.core.MessageType
-		var MessageType = coreLibrary.MessageType;
+		var CardMessageType = library.CardMessageType;
 
 		/**
 		 * Constructor for a new <code>AdaptiveContent</code>.
@@ -37,7 +35,7 @@ sap.ui.define([
 		 * @extends sap.ui.integration.cards.BaseContent
 		 *
 		 * @author SAP SE
-		 * @version 1.120.0
+		 * @version 1.152.0
 		 *
 		 * @constructor
 		 * @private
@@ -62,8 +60,6 @@ sap.ui.define([
 			BaseContent.prototype.init.apply(this, arguments);
 
 			this.awaitEvent("_adaptiveCardElementsReady");
-			//workaround until actions refactor
-			this.fireEvent("_actionContentReady"); // todo
 			this.setComponentsReady(false);
 			this._setupCardContent();
 		};
@@ -229,7 +225,7 @@ sap.ui.define([
 
 			this._doMSCardsOverwrites();
 			this._adjustHostConfig();
-			this._handleActions();
+			this._handleActions(); // TODO: fix propagation of whole Card-level actions to Adaptive Content
 			this._replaceElements();
 			this._isRtl();
 		};
@@ -259,7 +255,7 @@ sap.ui.define([
 		 */
 		AdaptiveContent.prototype._isRtl = function () {
 			this.adaptiveCardInstance.isRtl = function () {
-				return Core.getConfiguration().getRTL();
+				return Localization.getRTL();
 			};
 		};
 
@@ -300,10 +296,10 @@ sap.ui.define([
 		};
 
 		AdaptiveContent.prototype.onActionSubmitEnd = function (oResponse, oError) {
-			var oResourceBundle = Core.getLibraryResourceBundle("sap.ui.integration"),
+			var oResourceBundle = Library.getResourceBundleFor("sap.ui.integration"),
 				sMessage = oError ? oResourceBundle.getText("CARDS_ADAPTIVE_ACTION_SUBMIT_ERROR") :
 					oResourceBundle.getText("CARDS_ADAPTIVE_ACTION_SUBMIT_SUCCESS"),
-				sMessageType = oError ? MessageType.Error : MessageType.Success;
+				sMessageType = oError ? CardMessageType.Error : CardMessageType.Success;
 
 			this.showMessage(sMessage, sMessageType);
 
@@ -463,7 +459,7 @@ sap.ui.define([
 				// Thе timeout is needed to delay the check if UI5 WebComponents gets loaded from elsewhere.
 				// This detection relies on the assumption that there's the full bundle and the ui5-button is present.
 				setTimeout(function(){
-					if (window.customElements.get("ui5-button")) {
+					if (window.customElements.get("ui5-button-ac")) {
 						resolve();
 						return;
 					}

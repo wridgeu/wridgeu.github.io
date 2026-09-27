@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 sap.ui.define([
@@ -34,7 +34,8 @@ sap.ui.define([
 	const oWritableConfig = BaseConfig.getWritableInstance();
 	const mSettings = {};
 	let mChanges;
-	let aLegacyDateCalendarCustomizing;
+	let aCustomIslamicCalendarData;
+	let bInitialized = false;
 
 	const M_ABAP_DATE_FORMAT_PATTERN = {
 		"" : {pattern: null},
@@ -131,7 +132,8 @@ sap.ui.define([
 	const Formatting = {
 		/**
 		 * The <code>change</code> event is fired, when the configuration options are changed.
-		 * For the event parameters please refer to {@link module:sap/base/i18n/Formatting$ChangeEvent}.
+		 * For the event parameters please refer to {@link module:sap/base/i18n/Formatting$ChangeEvent
+		 * Formatting$ChangeEvent}.
 		 *
 		 * @name module:sap/base/i18n/Formatting.change
 		 * @event
@@ -151,9 +153,9 @@ sap.ui.define([
 		 * <li><code>languageTag</code></li>
 		 * </ul>
 		 * </li>
-		 * <li>{@link module:sap/base/i18n/Formatting.setLegacyDateCalendarCustomizing Formatting.setLegacyDateCalendarCustomizing}:
+		 * <li>{@link module:sap/base/i18n/Formatting.setCustomIslamicCalendarData Formatting.setCustomIslamicCalendarData}:
 		 * <ul>
-		 * <li><code>legacyDateCalendarCustomizing</code></li>
+		 * <li><code>customIslamicCalendarData</code></li>
 		 * </ul>
 		 * </li>
 		 * <li>{@link module:sap/base/i18n/Formatting.setCalendarWeekNumbering Formatting.setCalendarWeekNumbering}:
@@ -332,7 +334,7 @@ sap.ui.define([
 		 * for restrictions.
 		 *
 		 * @param {string|module:sap/base/i18n/LanguageTag|null} vLanguageTag the new BCP47 compliant language tag;
-		 *   case doesn't matter and underscores can be used instead of dashes to separate
+		 *   case doesn't matter and underscores can be used instead of hyphens to separate
 		 *   components (compatibility with Java Locale IDs)
 		 * @throws {TypeError} When <code>sLanguageTag</code> is given, but is not a valid BCP47 language
 		 *   tag or Java locale identifier
@@ -361,52 +363,65 @@ sap.ui.define([
 		_set: _set,
 
 		/**
-		 * Retrieves the custom units.
-		 * These custom units are set by {@link #setCustomUnits} and {@link #addCustomUnits}
-		 * @returns {object} custom units object
-		 * @see {@link module:sap/base/i18n/Formatting.setCustomUnits}
-		 * @see {@link module:sap/base/i18n/Formatting.addCustomUnits}
-		 * @private
-		 * @since 1.116.0
+		 * Definition of a custom unit.
+		 *
+		 * @typedef {object} module:sap/base/i18n/Formatting.CustomUnit
+		 * @property {string} displayName
+		 *   The unit's display name
+		 * @property {string} ["unitPattern-count-zero"]
+		 *   The unit pattern for the plural form "zero"; <code>{0}</code> in the pattern is replaced by the number
+		 * @property {string} ["unitPattern-count-one"]
+		 *   The unit pattern for the plural form "one"; <code>{0}</code> in the pattern is replaced by the number
+		 * @property {string} ["unitPattern-count-two"]
+		 *   The unit pattern for the plural form "two"; <code>{0}</code> in the pattern is replaced by the number
+		 * @property {string} ["unitPattern-count-few"]
+		 *   The unit pattern for the plural form "few"; <code>{0}</code> in the pattern is replaced by the number
+		 * @property {string} ["unitPattern-count-many"]
+		 *   The unit pattern for the plural form "many"; <code>{0}</code> in the pattern is replaced by the number
+		 * @property {string} "unitPattern-count-other"
+		 *   The unit pattern for all other numbers which do not match the plural forms of the other given patterns;
+		 *   <code>{0}</code> in the pattern is replaced by the number
+		 * @public
+		 * @see {@link sap.ui.core.LocaleData#getPluralCategories}
+		 */
+
+		/**
+		 * Gets the custom units that have been set via {@link #.addCustomUnits Formatting.addCustomUnits} or
+		 * {@link #.setCustomUnits Formatting.setCustomUnits}.
+		 *
+		 * @returns {Object<string,module:sap/base/i18n/Formatting.CustomUnit>|undefined}
+		 *   A map with the unit code as key and a custom unit definition containing a display name and different unit
+		 *   patterns as value; or <code>undefined</code> if there are no custom units
+		 *
+		 * @public
+		 * @example <caption>A simple custom type "BAG" for which the value <code>1</code> is formatted as "1 bag", for
+		 *   example in locale 'en', while <code>2</code> is formatted as "2 bags"</caption>
+		 * {
+		 *   "BAG": {
+		 *     "displayName": "Bag",
+		 *     "unitPattern-count-one": "{0} bag",
+		 *     "unitPattern-count-other": "{0} bags"
+		 *   }
+		 * }
+		 * @since 1.123
 		 */
 		getCustomUnits() {
 			return mSettings["units"]?.["short"];
 		},
 
 		/**
-		 * Sets custom units which can be used to do Unit Formatting.
+		 * Replaces existing custom units by the given custom units.
 		 *
-		 * The custom unit object consists of:
-		 * * a custom unit key which can then be referenced to use this unit.
-		 * * <code>displayName</code> which represents the name of the unit.
-		 * * <code>unitPattern-count-&lt;pluralName&gt;</code> which represents the plural category of the locale for the given value.
-		 * The plural category is defined within the locale, e.g. in the 'en' locale:
-		 * <code>unitPattern-count-one</code> for <code>1</code>,
-		 * <code>unitPattern-count-zero</code> for <code>0</code>,
-		 * <code>unitPattern-count-other</code> for all the res
-		 * To retrieve all plural categories defined for a locale use <code>sap.ui.core.LocaleData.prototype.getPluralCategories</code>.
+		 * <b>Note:</b> Setting custom units affects all applications running with the current UI5 core instance.
 		 *
-		 * A Sample custom unit definition could look like this:
-		 * <code>
-		 * {
-		 *  "BAG": {
-		 *      "displayName": "Bag",
-		 *		"unitPattern-count-one": "{0} bag",
-		 *		"unitPattern-count-other": "{0} bags"
-		 *  }
-		 * }
-		 * </code>
-		 * In the above snippet:
-		 * * <code>"BAG"</code> represent the unit key which is used to reference it.
-		 * * <code>"unitPattern-count-one"</code> represent the unit pattern for the form "one", e.g. the number <code>1</code> in the 'en' locale.
-		 * * <code>"unitPattern-count-other"</code> represent the unit pattern for all other numbers which do not
-		 *   match the plural forms of the previous patterns.
-		 * * In the patterns <code>{0}</code> is replaced by the number
+		 * @param {Object<string,module:sap/base/i18n/Formatting.CustomUnit>} [mUnits]
+		 *   A map with the unit code as key and a custom unit definition as value; <code>mUnits</code> replaces the
+		 *   current custom units; if not given, all custom units are deleted; see
+		 *   {@link #.getCustomUnits Formatting.getCustomUnits} for an example
 		 *
-		 * E.g. In locale 'en' value <code>1</code> would result in <code>1 Bag</code>, while <code>2</code> would result in <code>2 Bags</code>
-		 * @param {object} mUnits custom unit object which replaces the current custom unit definition. Call with <code>null</code> to delete custom units.
-		 * @private
-		 * @since 1.116.0
+		 * @public
+		 * @see {@link module:sap/base/i18n/Formatting.addCustomUnits Formatting.addCustomUnits}
+		 * @since 1.123
 		 */
 		setCustomUnits(mUnits) {
 			// add custom units, or remove the existing ones if none are given
@@ -421,14 +436,17 @@ sap.ui.define([
 
 		/**
 		 * Adds custom units.
-		 * Similar to {@link #setCustomUnits} but instead of setting the custom units, it will add additional ones.
-		 * @param {object} mUnits custom unit object which replaces the current custom unit definition. Call with <code>null</code> to delete custom units.
-		 * @see {@link module:sap/base/i18n/Formatting.setCustomUnits}
-		 * @private
-		 * @since 1.116.0
+		 *
+		 * <b>Note:</b> Adding custom units affects all applications running with the current UI5 core instance.
+		 *
+		 * @param {Object<string,module:sap/base/i18n/Formatting.CustomUnit>} mUnits
+		 *   A map with the unit code as key and a custom unit definition as value; already existing custom units are
+		 *   replaced, new ones are added; see {@link #.getCustomUnits Formatting.getCustomUnits} for an example
+		 *
+		 * @public
+		 * @since 1.123
 		 */
 		addCustomUnits(mUnits) {
-			// add custom units, or remove the existing ones if none are given
 			const mExistingUnits = Formatting.getCustomUnits();
 			if (mExistingUnits){
 				mUnits = extend({}, mExistingUnits, mUnits);
@@ -461,7 +479,7 @@ sap.ui.define([
 
 		/**
 		 * Adds unit mappings.
-		 * Similar to {@link #setUnitMappings} but instead of setting the unit mappings, it will add additional ones.
+		 * Similar to {@link .setUnitMappings} but instead of setting the unit mappings, it will add additional ones.
 		 * @param {object} mUnitMappings unit mappings
 		 * @see {@link module:sap/base/i18n/Formatting.setUnitMappings}
 		 * @private
@@ -478,7 +496,7 @@ sap.ui.define([
 
 		/**
 		 * Retrieves the unit mappings.
-		 * These unit mappings are set by {@link #setUnitMappings} and {@link #addUnitMappings}
+		 * These unit mappings are set by {@link .setUnitMappings} and {@link .addUnitMappings}
 		 * @private
 		 * @returns {object} unit mapping object
 		 * @see {@link module:sap/base/i18n/Formatting.setUnitMappings}
@@ -508,11 +526,11 @@ sap.ui.define([
 		 *
 		 * If a pattern is defined, it will be preferred over patterns derived from the current locale.
 		 *
-		 * See class {@link sap.ui.core.format.DateFormat} for details about the pattern syntax.
+		 * See class {@link sap.ui.core.format.DateFormat DateFormat} for details about the pattern syntax.
 		 *
 		 * After changing the date pattern, the framework tries to update localization
-		 * specific parts of the UI. See the documentation of {@link module:sap/base/i18n/Localization.setLanguage Localization.setLanguage()}
-		 * for details and restrictions.
+		 * specific parts of the UI. See the documentation of {@link module:sap/base/i18n/Localization.setLanguage
+		 * Localization.setLanguage()} for details and restrictions.
 		 *
 		 * @param {"short"|"medium"|"long"|"full"} sStyle must be one of short, medium, long or full.
 		 * @param {string} sPattern the format pattern to be used in LDML syntax.
@@ -543,7 +561,7 @@ sap.ui.define([
 		 *
 		 * If a pattern is defined, it will be preferred over patterns derived from the current locale.
 		 *
-		 * See class {@link sap.ui.core.format.DateFormat} for details about the pattern syntax.
+		 * See class {@link sap.ui.core.format.DateFormat DateFormat} for details about the pattern syntax.
 		 *
 		 * After changing the time pattern, the framework tries to update localization
 		 * specific parts of the UI. See the documentation of
@@ -588,7 +606,7 @@ sap.ui.define([
 		 *
 		 * If a symbol is defined, it will be preferred over symbols derived from the current locale.
 		 *
-		 * See class {@link sap.ui.core.format.NumberFormat} for details about the symbols.
+		 * See class {@link sap.ui.core.format.NumberFormat NumberFormat} for details about the symbols.
 		 *
 		 * After changing the number symbol, the framework tries to update localization
 		 * specific parts of the UI. See the documentation of
@@ -606,58 +624,67 @@ sap.ui.define([
 		},
 
 		/**
-		 * Retrieves the custom currencies.
-		 * E.g.
-		 * <code>
-		 * {
-		 *  "KWD": {"digits": 3},
-		 *  "TND" : {"digits": 3}
-		 * }
-		 * </code>
-		 * @returns {object} the mapping between custom currencies and its digits
+		 * Definition of a custom currency.
+		 *
+		 * @typedef {object} module:sap/base/i18n/Formatting.CustomCurrency
+		 * @property {int} digits
+		 *   The number of decimal digits to be used for the currency
 		 * @public
+		 */
+
+		/**
+		 * Gets the custom currencies that have been set via
+		 * {@link #.addCustomCurrencies Formatting.addCustomCurrencies} or
+		 * {@link #.setCustomCurrencies Formatting.setCustomCurrencies}.
+		 * There is a special currency code named "DEFAULT" that is optional. If it is set it is used for all
+		 * currencies not contained in the list, otherwise currency digits as defined by the CLDR are used as a
+		 * fallback.
+		 *
+		 * @returns {Object<string,module:sap/base/i18n/Formatting.CustomCurrency>|undefined}
+		 *   A map with the currency code as key and a custom currency definition containing the number of decimals as
+		 *   value; or <code>undefined</code> if there are no custom currencies
+		 *
+		 * @public
+	 	 * @example <caption>A simple example for custom currencies that uses CLDR data but overrides single
+		 *   currencies</caption>
+		 * {
+		 *   "EUR3": {"digits": 3}
+		 *   "MYD": {"digits": 4}
+		 * }
+		 *
+	 	 * @example <caption>A simple example for custom currencies that overrides all currency information from the
+		 *   CLDR</caption>
+		 * {
+		 *   "DEFAULT": {"digits": 2},
+		 *   "ADP": {"digits": 0},
+		 *   ...
+		 *   "EUR3": {"digits": 3}
+		 *   "MYD": {"digits": 4},
+		 *   ...
+		 *   "ZWD": {"digits": 0}
+		 * }
 		 * @since 1.120
-		 * @see {@link module:sap/base/i18n/Formatting.setCustomCurrencies}
-		 * @see {@link module:sap/base/i18n/Formatting.addCustomCurrencies}
 		 */
 		getCustomCurrencies() {
 			return mSettings["currency"];
 		},
 
 		/**
-		 * Sets custom currencies and replaces existing entries.
+		 * Replaces existing custom currencies by the given custom currencies. There is a special currency code named
+		 * "DEFAULT" that is optional. In case it is set, it is used for all currencies not contained in the list,
+		 * otherwise currency digits as defined by the CLDR are used as a fallback.
 		 *
-		 * There is a special currency code named "DEFAULT" that is optional.
-		 * In case it is set it will be used for all currencies not contained
-		 * in the list, otherwise currency digits as defined by the CLDR will
-		 * be used as a fallback.
+		 * <b>Note:</b> Setting custom units affects all applications running with the current UI5 core instance.
 		 *
-		 * Example:
-		 * To use CLDR, but override single currencies
-		 * <code>
-		 * {
-		 *  "KWD": {"digits": 3},
-		 *  "TND" : {"digits": 3}
-		 * }
-		 * </code>
+		 * @param {Object<string,module:sap/base/i18n/Formatting.CustomCurrency>} [mCurrencies]
+		 *   A map with the currency code as key and a custom currency definition as value;  the custom currency code
+		 *   must contain at least one non-digit character, so that the currency part can be distinguished from the
+		 *   amount part; <code>mCurrencies</code> replaces the current custom currencies; if not given, all custom
+		 *   currencies are deleted; see {@link #.getCustomCurrencies Formatting.getCustomCurrencies} for an example
 		 *
-		 * To replace the CLDR currency digits completely
-		 * <code>
-		 * {
-		 *   "DEFAULT": {"digits": 2},
-		 *   "ADP": {"digits": 0},
-		 *   ...
-		 *   "XPF": {"digits": 0}
-		 * }
-		 * </code>
-		 *
-		 * Note: To unset the custom currencies: call with <code>undefined</code>
-		 * Custom currencies must not only consist of digits but contain at least one non-digit character, e.g. "a",
-		 * so that the measure part can be distinguished from the number part.
 		 * @public
+		 * @see {@link module:sap/base/i18n/Formatting.addCustomCurrencies Formatting.addCustomCurrencies}
 		 * @since 1.120
-		 * @param {object} mCurrencies currency map which is set
-		 * @see {@link module:sap/base/i18n/Formatting.addCustomCurrencies}
 		 */
 		setCustomCurrencies(mCurrencies) {
 			check(typeof mCurrencies === "object" || mCurrencies == null, "mCurrencyDigits must be an object");
@@ -669,22 +696,22 @@ sap.ui.define([
 		},
 
 		/**
-		 * Adds custom currencies to the existing entries.
-		 * E.g.
-		 * <code>
-		 * {
-		 *  "KWD": {"digits": 3},
-		 *  "TND" : {"digits": 3}
-		 * }
-		 * </code>
+		 * Adds custom currencies. There is a special currency code named "DEFAULT" that is optional. In case it is set
+		 * it is used for all currencies not contained in the list, otherwise currency digits as defined by the CLDR are
+		 * used as a fallback.
+		 *
+		 * <b>Note:</b> Adding custom currencies affects all applications running with the current UI5 core instance.
+
+		 * @param {Object<string,module:sap/base/i18n/Formatting.CustomCurrency>} [mCurrencies]
+		 *   A map with the currency code as key and a custom currency definition as value; already existing custom
+		 *   currencies are replaced, new ones are added; the custom currency code must contain at least one non-digit
+		 *   character, so that the currency part can be distinguished from the amount part; see
+		 *   {@link #.getCustomCurrencies Formatting.getCustomCurrencies} for an example
 		 *
 		 * @public
 		 * @since 1.120
-		 * @param {object} mCurrencies adds to the currency map
-		 * @see {@link module:sap/base/i18n/Formatting.setCustomCurrencies}
 		 */
 		addCustomCurrencies(mCurrencies) {
-			// add custom units, or remove the existing ones if none are given
 			const mExistingCurrencies = Formatting.getCustomCurrencies();
 			if (mExistingCurrencies){
 				mCurrencies = extend({}, mExistingCurrencies, mCurrencies);
@@ -744,7 +771,7 @@ sap.ui.define([
 			check(M_ABAP_DATE_FORMAT_PATTERN.hasOwnProperty(sFormatId), "sFormatId must be one of ['1','2','3','4','5','6','7','8','9','A','B','C'] or empty");
 			const bFireEvent = !mChanges;
 			const sOldFormat = Formatting.getABAPDateFormat();
-			if (sOldFormat !== sFormatId) {
+			if (sOldFormat !== sFormatId || !bInitialized) {
 				mChanges ??= {};
 				oWritableConfig.set("sapUiABAPDateFormat", sFormatId);
 				mChanges.ABAPDateFormat = sFormatId;
@@ -804,7 +831,7 @@ sap.ui.define([
 			check(M_ABAP_TIME_FORMAT_PATTERN.hasOwnProperty(sFormatId), "sFormatId must be one of ['0','1','2','3','4'] or empty");
 			const bFireEvent = !mChanges;
 			const sOldFormat = Formatting.getABAPTimeFormat();
-			if (sOldFormat !== sFormatId) {
+			if (sOldFormat !== sFormatId || !bInitialized) {
 				mChanges ??= {};
 				oWritableConfig.set("sapUiABAPTimeFormat", sFormatId);
 				mChanges.ABAPTimeFormat = sFormatId;
@@ -864,7 +891,7 @@ sap.ui.define([
 			check(M_ABAP_NUMBER_FORMAT_SYMBOLS.hasOwnProperty(sFormatId), "sFormatId must be one of [' ','X','Y'] or empty");
 			const bFireEvent = !mChanges;
 			const sOldFormat = Formatting.getABAPNumberFormat();
-			if (sOldFormat !== sFormatId) {
+			if (sOldFormat !== sFormatId || !bInitialized) {
 				mChanges ??= {};
 				oWritableConfig.set("sapUiABAPNumberFormat", sFormatId);
 				mChanges.ABAPNumberFormat = sFormatId;
@@ -877,34 +904,50 @@ sap.ui.define([
 		},
 
 		/**
+		 *
+		 * Customizing data for the support of Islamic calendar.
+		 * Represents one row of data from Table TISLCAL.
+		 *
+		 * @typedef {object} module:sap/base/i18n/Formatting.CustomIslamicCalendarData
+		 *
+		 * @property {"A"|"B"} dateFormat The date format. Column DATFM in TISLCAL.
+		 * @property {string} islamicMonthStart The Islamic date in format: 'yyyyMMdd'. Column ISLMONTHSTART in TISLCAL.
+		 * @property {string} gregDate The corresponding Gregorian date format: 'yyyyMMdd'. Column GREGDATE in TISLCAL.
+		 *
+		 * @public
+		 */
+
+		/**
 		 * Allows to specify the customizing data for Islamic calendar support
 		 *
-		 * @param {object[]} aMappings contains the customizing data for the support of Islamic calendar.
-		 * @param {string} aMappings[].dateFormat The date format
-		 * @param {string} aMappings[].islamicMonthStart The Islamic date
-		 * @param {string} aMappings[].gregDate The corresponding Gregorian date
+		 * See: {@link module:sap/base/i18n/Formatting.CustomIslamicCalendarData}
+		 *
+		 * @param {module:sap/base/i18n/Formatting.CustomIslamicCalendarData[]} aCustomCalendarData Contains the customizing data for the support of Islamic calendar.
+		 * One JSON object in the array represents one row of data from Table TISLCAL
 		 * @public
 		 * @since 1.120
 		 */
-		setLegacyDateCalendarCustomizing(aMappings) {
-			check(Array.isArray(aMappings), "aMappings must be an Array");
+		setCustomIslamicCalendarData(aCustomCalendarData) {
+			check(Array.isArray(aCustomCalendarData), "aCustomCalendarData must be an Array");
 			const bFireEvent = !mChanges;
 			mChanges ??= {};
-			aLegacyDateCalendarCustomizing = mChanges.legacyDateCalendarCustomizing = aMappings.slice();
+			aCustomIslamicCalendarData = mChanges.customIslamicCalendarData = aCustomCalendarData.slice();
 			if (bFireEvent) {
 				fireChange();
 			}
 		},
 
 		/**
-		 * Returns the currently set customizing data for Islamic calendar support
+		 * Returns the currently set customizing data for Islamic calendar support.
 		 *
-		 * @returns {object[]|undefined} Returns an array contains the customizing data. Each element in the array has properties: dateFormat, islamicMonthStart, gregDate. For details, please see {@link #setLegacyDateCalendarCustomizing}
+		 * See: {@link module:sap/base/i18n/Formatting.CustomIslamicCalendarData}
+		 *
+		 * @returns {module:sap/base/i18n/Formatting.CustomIslamicCalendarData[]|undefined} Returns an array that contains the customizing data. Each element in the array has properties: dateFormat, islamicMonthStart, gregDate. For details, please see {@link #.setCustomIslamicCalendarData}
 		 * @public
 		 * @since 1.120
 		 */
-		getLegacyDateCalendarCustomizing() {
-			return aLegacyDateCalendarCustomizing?.slice() ?? undefined;
+		getCustomIslamicCalendarData() {
+			return aCustomIslamicCalendarData?.slice() ?? undefined;
 		},
 
 		/**
@@ -915,8 +958,8 @@ sap.ui.define([
 		 * When set to <code>false</code> the placement of the currency code is done dynamically, depending on the
 		 * configured locale using data provided by the Unicode Common Locale Data Repository (CLDR).
 		 *
-		 * Each currency instance ({@link sap.ui.core.format.NumberFormat.getCurrencyInstance}) will be created
-		 * with this setting unless overwritten on instance level.
+		 * Each currency instance ({@link sap.ui.core.format.NumberFormat.getCurrencyInstance
+		 * NumberFormat.getCurrencyInstance}) will be created with this setting unless overwritten on instance level.
 		 *
 		 * @param {boolean} bTrailingCurrencyCode Whether currency codes shall always be placed after the numeric value
 		 * @public
@@ -947,7 +990,7 @@ sap.ui.define([
 		 * Returns a live object with the current settings
 		 * TODO this method is part of the facade to be accessible from LocaleData, but it shouldn't be
 		 *
-		 * @returns {mSettings} The custom LocaleData settings object
+		 * @returns {object} The custom LocaleData settings object
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 * @since 1.116.0
@@ -958,7 +1001,8 @@ sap.ui.define([
 
 		/**
 		 * Returns the calendar week numbering algorithm used to determine the first day of the week
-		 * and the first calendar week of the year, see {@link module:sap/base/i18n/data/CalendarWeekNumbering}.
+		 * and the first calendar week of the year, see {@link module:sap/base/i18n/date/CalendarWeekNumbering
+		 * CalendarWeekNumbering}.
 		 *
 		 * @returns {module:sap/base/i18n/date/CalendarWeekNumbering} The calendar week numbering algorithm
 		 *
@@ -983,13 +1027,14 @@ sap.ui.define([
 
 		/**
 		 * Sets the calendar week numbering algorithm which is used to determine the first day of the week
-		 * and the first calendar week of the year, see {@link module:sap/base/i18n/date/CalendarWeekNumbering}.
+		 * and the first calendar week of the year, see {@link module:sap/base/i18n/date/CalendarWeekNumbering
+		 * CalendarWeekNumbering}.
 		 *
 		 * @param {module:sap/base/i18n/date/CalendarWeekNumbering} sCalendarWeekNumbering
 		 *   The calendar week numbering algorithm
 		 * @throws {TypeError}
 		 *   If <code>sCalendarWeekNumbering</code> is not a valid calendar week numbering algorithm,
-		 *   defined in {@link module:sap/base/i18n/date/CalendarWeekNumbering}
+		 *   defined in {@link module:sap/base/i18n/date/CalendarWeekNumbering CalendarWeekNumbering}
 		 *
 		 * @public
 		 * @since 1.120
@@ -1109,6 +1154,7 @@ sap.ui.define([
 		if (sABAPTimeFormat !== undefined) {
 			Formatting.setABAPTimeFormat(sABAPTimeFormat);
 		}
+		bInitialized = true;
 	}
 
 	init();

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -82,7 +82,7 @@ sap.ui.define([
 	 * @param {Element[]} aItemDomRefs Array of DOM references representing the items for the navigation
 	 * @param {boolean} [bNotInTabChain=false] Whether the selected element should be in the tab chain or not
 	 *
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 * @alias sap.ui.core.delegate.ItemNavigation
 	 * @public
 	 */
@@ -568,7 +568,7 @@ sap.ui.define([
 					}
 				}
 				if (iIndex != iOldIndex) {
-					this.focusItem(iIndex, oEvent);
+					this.focusItem(iIndex, oEvent, bPreventScroll);
 				}
 			}
 			return;
@@ -789,7 +789,8 @@ sap.ui.define([
 	 * @private
 	 */
 	ItemNavigation.prototype.onsapfocusleave = function(oEvent) {
-		if (!oEvent.relatedControlId || !this.oDomRef || !this.oDomRef.contains(Element.getElementById(oEvent.relatedControlId).getFocusDomRef())) {
+		const oOldDomRef = oEvent.relatedControlId && Element.getElementById(oEvent.relatedControlId)?.getFocusDomRef();
+		if (!oOldDomRef || !this.oDomRef || !this.oDomRef.contains(oOldDomRef)) {
 
 			// entirely leaving the control handled by this ItemNavigation instance
 			var iIndex;
@@ -817,7 +818,7 @@ sap.ui.define([
 					}
 				}
 
-				if (!oEvent.relatedControlId || oParentDomRef.contains(Element.getElementById(oEvent.relatedControlId).getFocusDomRef())) {
+				if (!oOldDomRef || oParentDomRef.contains(oOldDomRef)) {
 					jQuery(this.aItemDomRefs[this.iFocusedIndex]).attr("tabindex", -1);
 				}
 			}

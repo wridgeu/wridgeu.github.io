@@ -1,26 +1,30 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.layout.form.FormLayout.
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/core/Element',
+	'sap/ui/core/library',
 	'sap/ui/layout/library',
 	'./FormLayoutRenderer',
 	'./FormHelper',
+	'./FormTitleUtil',
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/thirdparty/jquery',
-	"sap/ui/core/Configuration",
 	// jQuery custom selectors ":sapFocusable"
 	'sap/ui/dom/jquery/Selectors'
-], function(Control, Element, library, FormLayoutRenderer, FormHelper, Parameters, jQuery, Configuration) {
+], function(Localization, Control, Element, coreLibrary, library, FormLayoutRenderer, FormHelper, FormTitleUtil, Parameters, jQuery) {
 	"use strict";
 
 	// shortcut for sap.ui.layout.BackgroundDesign
 	var BackgroundDesign = library.BackgroundDesign;
+
+	const TitleLevel = coreLibrary.TitleLevel;
 
 	/**
 	 * Constructor for a new sap.ui.layout.form.FormLayout.
@@ -37,7 +41,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -69,8 +73,10 @@ sap.ui.define([
 
 		this._oInitPromise = FormHelper.init();
 
-		this._sFormTitleSize = "H4"; // to have default as Theme parameter could be loaded async.
-		this._sFormSubTitleSize = "H5";
+		this._sFormTitleLevel = TitleLevel.H4; // to have default as Theme parameter could be loaded async.
+		this._sFormSubTitleLevel = TitleLevel.H5;
+		this._sFormTitleStyle = TitleLevel.Auto; // as default use the same style like level
+		this._sFormSubTitleStyle = TitleLevel.Auto;
 
 	};
 
@@ -153,7 +159,7 @@ sap.ui.define([
 	FormLayout.prototype.onsapright = function(oEvent){
 
 		if (FormHelper.isArrowKeySupported()) { // no async call needed here
-			var bRtl = Configuration.getRTL();
+			var bRtl = Localization.getRTL();
 
 			if (!bRtl) {
 				this.navigateForward(oEvent);
@@ -167,7 +173,7 @@ sap.ui.define([
 	FormLayout.prototype.onsapleft = function(oEvent){
 
 		if (FormHelper.isArrowKeySupported()) { // no async call needed here
-			var bRtl = Configuration.getRTL();
+			var bRtl = Localization.getRTL();
 
 			if (!bRtl) {
 				this.navigateBack(oEvent);
@@ -993,7 +999,8 @@ sap.ui.define([
 
 		// read theme parameters to get current header sizes
 		var oSizes = Parameters.get({
-			name: ['sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize', 'sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize'],
+			name: ['sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize', 'sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize',
+				'sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleStyle', 'sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleStyle'],
 			callback: this.applyTitleSizes.bind(this)
 		});
 		if (oSizes && oSizes.hasOwnProperty('sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize')) { // sync case
@@ -1012,15 +1019,77 @@ sap.ui.define([
 	 */
 	FormLayout.prototype.applyTitleSizes = function(oSizes, bSync) {
 
-		if (oSizes && (this._sFormTitleSize !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize"] ||
-				this._sFormSubTitleSize !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize"])) {
-			this._sFormTitleSize = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize"];
-			this._sFormSubTitleSize = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize"];
+		if (oSizes && (this._sFormTitleLevel !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize"] ||
+				this._sFormSubTitleLevel !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize"] ||
+				this._sFormTitleStyle !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleStyle"] ||
+				this._sFormSubTitleStyle !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleStyle"])) {
+			this._sFormTitleLevel = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize"];
+			this._sFormSubTitleLevel = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize"];
+			this._sFormTitleStyle = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleStyle"];
+			this._sFormSubTitleStyle = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleStyle"];
 
 			if (!bSync) {
 				this.invalidate(); // re-render
 			}
 		}
+
+		// apply level on Title for rendering.
+		FormTitleUtil.applyTitleLevels.call(this);
+
+	};
+
+	/**
+	 * Checks if the <code>Form</code> contains <code>FormContainers</code> that have a <code>Title</code>, <code>Toolbar</code> or <code>AriaLabelledBy</code>.
+	 *
+	 * This is used to determine the role for screenreader support
+	 *
+	 * @param {sap.ui.layout.form.Form} oForm Form
+	 * @return {boolean} <code>true</code> if there is a container with own label
+	 * @private
+	 * @since: 1.126.0
+	 */
+	FormLayout.prototype.hasLabelledContainers = function(oForm) {
+
+		const aContainers = oForm.getFormContainers();
+		let bResult = false;
+
+		for (let i = 0; i < aContainers.length; i++) {
+			if (this.isContainerLabelled(aContainers[i])) {
+				bResult = true;
+				break;
+			}
+		}
+
+		return bResult;
+
+	};
+
+	/**
+	 * Checks if the <code>FormContainer</code> has a <code>Title</code>, <code>Toolbar</code> or <code>AriaLabelledBy</code>.
+	 *
+	 * This is used to determine the role for screenreader support
+	 *
+	 * @param {sap.ui.layout.form.FormContainer} oContainer FormContainer
+	 * @return {boolean} <code>true</code> if the <code>FormContainer</code> is labelled
+	 * @private
+	 * @since: 1.126.0
+	 */
+	FormLayout.prototype.isContainerLabelled = function(oContainer) {
+
+		return !!oContainer.getTitle() || !!oContainer.getToolbar() || oContainer.getAriaLabelledBy().length > 0 || oContainer.getExpandable();
+
+	};
+
+	/**
+	 * Defines if the rendering of the layout depends on the <code>editable</code> property.
+	 *
+	 * @return {boolean} <code>true</code> if the switching <code>editable</code> must trigger re-rendering
+	 * @private
+	 * @since: 1.135.0
+	 */
+	FormLayout.prototype.invalidateEditableChange = function() {
+
+		return false;
 
 	};
 

@@ -1,13 +1,13 @@
 /*!
 
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
 // Provides an abstraction for list bindings
-sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/util/array/diff'],
-	function(Binding, Filter, FilterType, Sorter, diff) {
+sap.ui.define(['./AggregationBinding', './Binding', './Filter', './FilterType', './Sorter', 'sap/base/util/array/diff'],
+	function(asAggregationBinding, Binding, Filter, FilterType, Sorter, diff) {
 	"use strict";
 
 
@@ -25,10 +25,11 @@ sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/ut
 	 *   Binding path for this binding; a relative path will be resolved relative to a given context
 	 * @param {sap.ui.model.Context} oContext
 	 *   Context to be used to resolve a relative path
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters]
-	 *   Initial sort order (can be either a sorter or an array of sorters)
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters]
-	 *   Predefined filter/s (can be either a filter or an array of filters)
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters used initially; call {@link #sort} to replace them
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call {@link #filter} to
+	 *   replace them
 	 * @param {object} [mParameters]
 	 *   Additional, implementation-specific parameters that should be used by the new list binding;
 	 *   this base class doesn't define any parameters, check the API reference for the concrete
@@ -39,11 +40,14 @@ sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/ut
 	 * @public
 	 * @alias sap.ui.model.ListBinding
 	 * @extends sap.ui.model.Binding
+	 * @mixes sap.ui.model.AggregationBinding
+	 * @borrows sap.ui.model.AggregationBinding#computeApplicationFilters as #computeApplicationFilters
 	 */
 	var ListBinding = Binding.extend("sap.ui.model.ListBinding", /** @lends sap.ui.model.ListBinding.prototype */ {
 
 		constructor : function(oModel, sPath, oContext, aSorters, aFilters, mParameters){
 			Binding.call(this, oModel, sPath, oContext, mParameters);
+			asAggregationBinding.call(this); // initialize mixin members
 
 			// the binding's sorters
 			this.aSorters = makeArray(aSorters, Sorter);
@@ -72,6 +76,8 @@ sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/ut
 		}
 
 	});
+
+	asAggregationBinding(ListBinding.prototype); // add mixin methods
 
 	function makeArray(a, FNClass) {
 		if ( Array.isArray(a) ) {
@@ -156,11 +162,14 @@ sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/ut
 	 * Please use either the automatic grouping of filters (where applicable) or explicit
 	 * AND/OR filters, as a mixture of both is not supported.
 	 *
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters
-	 *   Single filter object or an array of filter objects
-	 * @param {sap.ui.model.FilterType} [sFilterType=undefined]
-	 *   Type of the filter which should be adjusted; if no type is given, the behavior depends on
-	 *   the model implementation
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to use; in case of type {@link sap.ui.model.FilterType.Application} this replaces the filters given
+	 *   in {@link sap.ui.model.Model#bindList}; a falsy value is treated as an empty array and thus removes all filters
+	 *   of the specified type
+	 * @param {sap.ui.model.FilterType} [sFilterType]
+	 *   The type of filter to replace. If no type is specified, the behavior depends on the model implementation.
+	 *   Since 1.146.0, you can use <code>sap.ui.model.FilterType.ApplicationBound</code> to replace bound application
+	 *   filters if the model implementation supports it.
 	 * @return {this}
 	 *   Returns <code>this</code> to facilitate method chaining
 	 *
@@ -184,8 +193,9 @@ sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/ut
 	 *
 	 * @function
 	 * @name sap.ui.model.ListBinding.prototype.sort
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} aSorters
-	 *   The Sorter object or an array of sorters which defines the sort order
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters to use; they replace the sorters given in {@link sap.ui.model.Model#bindList}; a falsy value is
+	 *   treated as an empty array and thus removes all sorters
 	 * @return {this}
 	 *   Returns <code>this</code> to facilitate method chaining
 	 * @public
@@ -536,9 +546,11 @@ sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/ut
 	ListBinding.prototype.getFilters = function (sFilterType) {
 		switch (sFilterType) {
 			case FilterType.Application:
-				return this.aApplicationFilters && this.aApplicationFilters.slice() || [];
+				return this.aApplicationFilters.filter((oFilter) => !oFilter.isBound());
+			case FilterType.ApplicationBound:
+				return this.aApplicationFilters.filter((oFilter) => oFilter.isBound());
 			case FilterType.Control:
-				return this.aFilters && this.aFilters.slice() || [];
+				return this.aFilters.slice();
 			default:
 				throw new Error("Invalid FilterType: " + sFilterType);
 		}
@@ -627,6 +639,25 @@ sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/ut
 	 *
 	 * @protected
 	 */
+
+	/**
+	 * Returns whether more contexts for the given range can be expected than those in <code>aContexts</code>.
+	 *
+	 * @param {sap.ui.model.Context[]} aContexts - The context list
+	 * @param {number} iStart - The start index of the range
+	 * @param {number} iLength - The range length
+	 * @returns {boolean} Whether more contexts can be expected
+	 *
+	 * @private
+	 */
+	ListBinding.prototype._isExpectingMoreContexts = function (aContexts, iStart, iLength) {
+		if (aContexts.includes(undefined)) { // Note: aContexts may be sparse
+			return true;
+		}
+
+		return aContexts.length < iLength
+			&& (!this.isLengthFinal() || iStart + aContexts.length < this.getLength());
+	};
 
 	return ListBinding;
 });

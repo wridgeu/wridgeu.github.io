@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -205,7 +205,7 @@ function(jQuery,
 		};
 		this.addWithParam = function(s, o) {
 			for (var n in o) {
-				var reg = new RegExp("\{" + n + "\}","g");
+				var reg = new RegExp("\\{" + n + "\\}","g");
 				s = s.replace(reg,o[n]);
 			}
 			that.add(s);
@@ -444,7 +444,7 @@ function(jQuery,
 			return;
 		}
 		if (this._oRenderParent && oDomRef) {
-			this._oRenderParent.innerHTML = "";
+			this._oRenderParent.replaceChildren();
 		}
 		this._oRenderParent = oDomRef || this._oRenderParent;
 		if (this._oRootObject) {

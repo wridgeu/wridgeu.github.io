@@ -27,6 +27,11 @@
 	min-width: 2rem;
 }
 
+
+.sapMMultiInput .sapMTokenizerHeightMargin {
+  margin: 0;
+}
+
 /* handle min-width calculation */
 .sapMMultiInput.sapMMultiInputHasTokens {
 	.sapMTokenizer {
@@ -94,6 +99,13 @@
 		&.sapMInputBaseReadonly .sapMInputBaseContentWrapper {
 			min-width: @_InputBase_Control_Tokens_ReadOnly_MinWidth_Compact;
 		}
+	}
+
+	.sapMMultiInput.sapMInputBaseReadonly.sapMInputBaseReadonly:not(.sapMInputBaseDisabled) .sapMInputBaseContentWrapper.sapMInputBaseContentWrapper::before {
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
 	}
 }
 

@@ -1,17 +1,27 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 sap.ui.define([
+	"sap/m/library",
+	'sap/ui/core/library',
 	"sap/m/ObjectStatus",
 	"sap/m/ObjectStatusRenderer"
 ], function (
+	library,
+	coreLibrary,
 	MObjectStatus,
 	MObjectStatusRenderer
 ) {
 	"use strict";
+
+	// shortcut for sap.m.EmptyIndicatorMode
+	var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
+	// shortcuts for sap.ui.core.ValueState
+	var ValueState = coreLibrary.ValueState;
 
 	/**
 	 * Constructor for a new ObjectStatus.
@@ -24,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.m.ObjectStatus
 	 *
 	 * @author SAP SE
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @private
@@ -35,19 +45,57 @@ sap.ui.define([
 		metadata: {
 			library: "sap.ui.integration",
 			properties: {
-				showStateIcon: { type: "boolean", defaultValue: false }
+				showStateIcon: { type: "boolean", defaultValue: false },
+				customIcon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : null}
 			}
 		},
 		renderer: MObjectStatusRenderer
 	});
 
+	ObjectStatus.prototype._isEmpty = function() {
+		return this.getEmptyIndicatorMode() === EmptyIndicatorMode.Off &&
+			this._hasNoValue();
+	};
+
+	ObjectStatus.prototype._shouldRenderEmptyIndicator = function() {
+		return this.getEmptyIndicatorMode() === EmptyIndicatorMode.On &&
+			this._hasNoValue();
+	};
+
+	ObjectStatus.prototype._hasNoValue = function() {
+		return !this.getText() &&
+			(!this.getShowStateIcon() || (this.getShowStateIcon() && this.getState() === ValueState.None && !this.getIcon()));
+	};
+
 	ObjectStatus.prototype.onBeforeRendering = function () {
-		if (this.getShowStateIcon()) {
-			if (!this.getIcon()) {
-				this.addStyleClass("sapMObjStatusShowIcon");
-			} else {
-				this.addStyleClass("sapMObjStatusShowCustomIcon");
+		this.addStyleClass("sapUiIntObjStatus");
+
+		if (!this.getShowStateIcon()) {
+			return;
+		}
+
+		const sCustomIcon = this.getCustomIcon();
+		if (sCustomIcon) {
+			this.setIcon(sCustomIcon);
+		} else {
+			let sStateIcon = "";
+
+			switch (this.getState()) {
+				case ValueState.Success:
+					sStateIcon = "sap-icon://sys-enter-2";
+					break;
+				case ValueState.Error:
+					sStateIcon = "sap-icon://error";
+					break;
+				case ValueState.Warning:
+					sStateIcon = "sap-icon://warning";
+					break;
+				case ValueState.Information:
+					sStateIcon = "sap-icon://information";
+					break;
 			}
+
+			this.setIcon(sStateIcon);
 		}
 	};
 

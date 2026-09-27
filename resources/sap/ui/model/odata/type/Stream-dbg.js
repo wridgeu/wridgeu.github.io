@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,18 +39,18 @@ sap.ui.define([
 	 * Constructor for an OData primitive type <code>Edm.Stream</code>.
 	 *
 	 * @param {object} [oFormatOptions]
-	 *   Must be <code>undefined</code>
+	 *   Must be <code>undefined</code> or <code>null</code>
 	 * @param {object} [oConstraints]
 	 *   constraints; they are only stored for documentation purpose, since no validation can occur
 	 * @param {boolean} [oConstraints.nullable=true]
 	 *   if <code>true</code>, the server accepts the value <code>null</code>
 	 * @throws {Error}
-	 *   If format options are given or if the constraints are invalid
+	 *   If format options is not <code>undefined</code> or <code>null</code> or if the constraints are invalid
 	 *
 	 * @alias sap.ui.model.odata.type.Stream
 	 * @author SAP SE
 	 * @class This class represents the OData V4 primitive type {@link
-	 *   http://docs.oasis-open.org/odata/odata/v4.0/errata02/os/complete/part3-csdl/odata-v4.0-errata02-os-part3-csdl-complete.html#_The_edm:Documentation_Element
+	 *   https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338
 	 *   <code>Edm.Stream</code>}. The values for stream properties do not appear in the entity
 	 *   payload. Instead, the values are read or written through URLs.
 	 *
@@ -60,12 +60,12 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 * @public
 	 * @since 1.51.0
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 */
 	var Stream = ODataType.extend("sap.ui.model.odata.type.Stream", {
 			constructor : function (oFormatOptions, oConstraints) {
 				ODataType.apply(this, arguments);
-				if (oFormatOptions !== undefined) {
+				if (oFormatOptions !== undefined && oFormatOptions !== null) {
 					throw new Error("Unsupported arguments");
 				}
 				setConstraints(this, oConstraints);
@@ -102,7 +102,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.Stream"}
 	 *   The type's name
 	 *
 	 * @public

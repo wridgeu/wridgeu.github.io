@@ -1,18 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.DateTypeRange.
-sap.ui.define(['./DateRange', './library'],
-	function(DateRange, library) {
+sap.ui.define([
+	'./DateRange',
+	'./library',
+	'sap/ui/core/library'
+],
+function(
+	DateRange,
+	library,
+	coreLibrary
+) {
 	"use strict";
-
-
 
 	// shortcut for sap.ui.unified.CalendarDayType
 	var CalendarDayType = library.CalendarDayType;
+
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 
 
@@ -25,7 +34,7 @@ sap.ui.define(['./DateRange', './library'],
 	 * @class
 	 * Date range with calendar day type information. Used to visualize special days in the Calendar.
 	 * @extends sap.ui.unified.DateRange
-	 * @version 1.120.0
+	 * @version 1.152.0
 	 *
 	 * @constructor
 	 * @public
@@ -41,11 +50,10 @@ sap.ui.define(['./DateRange', './library'],
 			 * Type of the date range.
 			 */
 			type : {type : "sap.ui.unified.CalendarDayType", group : "Appearance", defaultValue : CalendarDayType.Type01},
+
 			/**
-			 * Applies secondary <code>CalendarDayType</code> combined with the <code>CalendarDayType</code> type chosen.
-			 * Allows <code>specialDates</code> to be also a <code>NonWorkingDay</code>.
-			 * The secondary day type can only be used for <code>NonWorkingDay</code> or <code>None</code> calendar day types.
-			 * In other cases it will not be visible.
+			 * Applies additional <code>sap.ui.unified.CalendarDayType</code>, with which <code>sap.ui.unified.CalendarDayType.NonWorking</code>
+			 * or <code>sap.ui.unified.CalendarDayType.Working</code> types could be represented as well.
 			 * @since 1.81.0
 			 */
 			secondaryType : {type : "sap.ui.unified.CalendarDayType", group : "Appearance", defaultValue : CalendarDayType.None},
@@ -55,7 +63,19 @@ sap.ui.define(['./DateRange', './library'],
 			 * If set, this color will override the default background color defined in <code>Calendar</code> <code>specialDates</code> aggregation
 			 * @since 1.76.0
 			 */
-			color : {type : "sap.ui.core.CSSColor", group : "Appearance", defaultValue : null}
+			color : {type : "sap.ui.core.CSSColor", group : "Appearance", defaultValue : null},
+
+			/**
+			 * Defines the value of the <code>aria-haspopup</code> attribute of the day cell.
+			 *
+			 * <b>Note:</b> Use this property only when the cell is related to a popover/popup.
+			 * The value should be equal to the main/root role of the popup.
+			 *
+			 * <b>Note:</b> Setting <code>type</code> to <code>sap.ui.unified.CalendarDayType.None</code>
+			 * together with this property allows adding the attribute without any visual marking.
+			 * @since 1.152.0
+			 */
+			ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None}
 		}
 	}});
 
