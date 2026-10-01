@@ -8,7 +8,7 @@ import shell from "highlight.js/lib/languages/shell";
 import bash from "highlight.js/lib/languages/bash";
 import json from "highlight.js/lib/languages/json";
 import plaintext from "highlight.js/lib/languages/plaintext";
-import { WIKI_RAW_URL } from "./githubService";
+import { WIKI_PAGE_URL, WIKI_RAW_URL } from "./githubService";
 
 // Register only the languages in use; 'plaintext' is the fallback.
 hljs.registerLanguage("javascript", js);
@@ -40,8 +40,13 @@ const renderer = {
 		const image = token.text.trim().slice(2, -2);
 		return `<img class="wikiImage" src="${WIKI_RAW_URL}${image}">`;
 	},
-	// open links in a new tab so the SPA stays put; the stock renderer escapes href/title
+	// wiki pages become in-app routes, anything else (incl. wiki sub-paths like /_history) opens in a
+	// new tab so the SPA stays put; the stock renderer escapes href/title
 	link(this: RendererThis, token: Tokens.Link) {
+		const page = token.href.startsWith(WIKI_PAGE_URL) ? token.href.slice(WIKI_PAGE_URL.length).split(/[#?]/)[0] : "";
+		if (page && !page.includes("/")) {
+			return Renderer.prototype.link.call(this, { ...token, href: `#/wiki/${page}` });
+		}
 		return Renderer.prototype.link.call(this, token).replace("<a ", '<a target="_blank" rel="noopener noreferrer" ');
 	},
 };

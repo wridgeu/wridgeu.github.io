@@ -15,8 +15,18 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
     }
     return finalizer(false, result);
   }
-  const WIKI_PAGE_URL = ___util_githubService["WIKI_PAGE_URL"];
   const getSelectedContent = ___util_githubService["getSelectedContent"];
+  function _catch(body, recover) {
+    try {
+      var result = body();
+    } catch (e) {
+      return recover(e);
+    }
+    if (result && result.then) {
+      return result.then(void 0, recover);
+    }
+    return result;
+  }
   const getWikiIndex = ___util_githubService["getWikiIndex"];
   const getContentEditLink = ___util_githubService["getContentEditLink"];
   const markdownService = ___util_markdownService["markdownService"];
@@ -62,12 +72,27 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
       BaseController.prototype.onNavBack.call(this);
     },
     /**
-     * Event-handler for route matched
+     * Event-handler for route matched; `#/wiki/<page>` opens that page
      */
-    _onRouteMatched: function _onRouteMatched() {
+    _onRouteMatched: function _onRouteMatched(event) {
       try {
         const _this = this;
-        return Promise.resolve(_this._initializeSidebar()).then(function () {});
+        function _temp3() {
+          const _temp = function () {
+            if (_this._page) {
+              return Promise.resolve(_this._showPage(_this._page)).then(function () {});
+            }
+          }();
+          if (_temp && _temp.then) return _temp.then(function () {});
+        }
+        _this._page = event.getParameter("arguments").page;
+        // the sidebar is the route table: a deep link waits for it, and fails with it
+        const _temp2 = function () {
+          if (!_this._viewStateModel.getProperty("/pages").length) {
+            return Promise.resolve(_this._initializeSidebar()).then(function () {});
+          }
+        }();
+        return Promise.resolve(_temp2 && _temp2.then ? _temp2.then(_temp3) : _temp3(_temp2));
       } catch (e) {
         return Promise.reject(e);
       }
@@ -79,12 +104,12 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
       try {
         const _this2 = this;
         _this2._viewStateModel.setProperty("/busy", true);
-        const _temp = _finallyRethrows(function () {
+        const _temp4 = _finallyRethrows(function () {
           return Promise.resolve(getWikiIndex()).then(function (wikiIndex) {
-            // read real links, so anchors, titles and autolinks need no special casing
+            // read the rendered links, which markdownService already turned into wiki routes
             const sidebar = new DOMParser().parseFromString(markdownService.parse(wikiIndex), "text/html");
-            const pages = [...sidebar.querySelectorAll(`a[href^="${WIKI_PAGE_URL}"]`)].map(link => ({
-              name: decodeURIComponent(link.href.slice(WIKI_PAGE_URL.length).split(/[#?]/)[0])
+            const pages = [...sidebar.querySelectorAll('a[href^="#/wiki/"]')].map(link => ({
+              name: decodeURIComponent(link.getAttribute("href").slice("#/wiki/".length))
             }));
             _this2._viewStateModel.setProperty("/pages", pages);
           });
@@ -93,7 +118,7 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
           if (_wasThrown) throw _result;
           return _result;
         });
-        return Promise.resolve(_temp && _temp.then ? _temp.then(function () {}) : void 0);
+        return Promise.resolve(_temp4 && _temp4.then ? _temp4.then(function () {}) : void 0);
       } catch (e) {
         return Promise.reject(e);
       }
@@ -103,7 +128,15 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
      */
     onSidebarSelection: function _onSidebarSelection(event) {
       const name = event.getSource().getBindingContext("viewState").getProperty("name");
-      void this._showPage(name);
+      if (name === this._page) {
+        // unchanged hash fires no route match, e.g. re-tapping on phone after stepping back
+        void this._showPage(name);
+        return;
+      }
+      // replace, so the back button leaves the wiki instead of walking every page read
+      this.navTo("RouteWiki", {
+        page: name
+      }, undefined, true);
     },
     _showPage: function _showPage(sMarkdownFileName) {
       try {
@@ -112,15 +145,19 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
         const token = ++_this3._selectionToken;
         _this3._viewStateModel.setProperty("/busy", true);
         return Promise.resolve(_finallyRethrows(function () {
-          return Promise.resolve(getSelectedContent(sMarkdownFileName)).then(function (markdownPage) {
-            const parsedMarkdown = markdownService.parse(markdownPage);
+          function _temp7() {
             if (token !== _this3._selectionToken) {
               return;
             }
+            if (markdown === undefined) {
+              // keep the hash, so the URL still shows what was asked for
+              void _this3.getRouter().getTargets().display("TargetNotFound");
+              return;
+            }
             _this3._wikiContentModel.setData({
-              markdown: parsedMarkdown,
+              markdown,
               title: sMarkdownFileName,
-              edit: getContentEditLink(sMarkdownFileName)
+              edit
             });
 
             //improve UX by always starting at the top when opening up new content & jumping to new pane
@@ -129,7 +166,27 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
               _this3.byId("wikiSplit").toDetail(markdownSection.getId(), "show");
             }
             markdownSection.scrollTo(0, 0);
+          }
+          const pages = _this3._viewStateModel.getProperty("/pages");
+          let markdown;
+          let edit = "";
+          const _temp6 = _catch(function () {
+            function _temp5(content) {
+              if (content !== undefined) {
+                markdown = markdownService.parse(content);
+                edit = getContentEditLink(sMarkdownFileName);
+              }
+            }
+            const _pages$some = pages.some(p => p.name === sMarkdownFileName);
+            // only pages the sidebar lists are routable; anything else never reaches GitHub
+            return _pages$some ? Promise.resolve(getSelectedContent(sMarkdownFileName)).then(_temp5) : _temp5(undefined);
+          }, function () {
+            // the i18n model loads async, so the bundle may still be a promise
+            return Promise.resolve(_this3.getOwnerComponent().getModel("i18n").getResourceBundle()).then(function (bundle) {
+              markdown = `<p>${bundle.getText("wikiPageLoadError")}</p>`;
+            });
           });
+          return _temp6 && _temp6.then ? _temp6.then(_temp7) : _temp7(_temp6);
         }, function (_wasThrown2, _result2) {
           if (token === _this3._selectionToken) {
             _this3._viewStateModel.setProperty("/busy", false);

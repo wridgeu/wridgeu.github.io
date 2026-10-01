@@ -3,7 +3,7 @@ sap.ui.define([], function () {
 
   /**
    * Fetch the markdown content
-   * @returns {Promise<string>} content of markdown file
+   * @returns {Promise<string | undefined>} content of markdown file, undefined if the page does not exist
    */
   const getSelectedContent = function (requestedContent) {
     try {
@@ -11,6 +11,12 @@ sap.ui.define([], function () {
       const spaced = requestedContent.replace(/[-*?]/g, " ");
       return Promise.resolve(fetch(`${WIKI_RAW_URL}${encodeURIComponent(spaced)}.md`)).then(function (response) {
         function _temp2() {
+          if (response.status === 404) {
+            return undefined;
+          }
+          if (!response.ok) {
+            throw new Error(`Wiki page "${requestedContent}" responded with ${response.status}`);
+          }
           return response.text();
         }
         const _temp = function () {

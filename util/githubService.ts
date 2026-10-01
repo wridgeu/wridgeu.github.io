@@ -3,14 +3,20 @@ const WIKI_PAGE_URL = "https://github.com/wridgeu/wridgeu.github.io/wiki/";
 
 /**
  * Fetch the markdown content
- * @returns {Promise<string>} content of markdown file
+ * @returns {Promise<string | undefined>} content of markdown file, undefined if the page does not exist
  */
-async function getSelectedContent(requestedContent: string): Promise<string> {
+async function getSelectedContent(requestedContent: string): Promise<string | undefined> {
 	// pushed pages are stored with spaces, pages created in the web editor with hyphens
 	const spaced = requestedContent.replace(/[-*?]/g, " ");
 	let response = await fetch(`${WIKI_RAW_URL}${encodeURIComponent(spaced)}.md`);
 	if (response.status === 404 && spaced !== requestedContent) {
 		response = await fetch(`${WIKI_RAW_URL}${encodeURIComponent(requestedContent)}.md`);
+	}
+	if (response.status === 404) {
+		return undefined;
+	}
+	if (!response.ok) {
+		throw new Error(`Wiki page "${requestedContent}" responded with ${response.status}`);
 	}
 	return response.text();
 }

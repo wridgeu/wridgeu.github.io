@@ -15,6 +15,7 @@ sap.ui.define(["sapmarco/projectpages/thirdparty/marked", "sapmarco/projectpages
   const bash = _interopRequireDefault(__bash);
   const json = _interopRequireDefault(__json);
   const plaintext = _interopRequireDefault(__plaintext);
+  const WIKI_PAGE_URL = ___githubService["WIKI_PAGE_URL"];
   const WIKI_RAW_URL = ___githubService["WIKI_RAW_URL"]; // Register only the languages in use; 'plaintext' is the fallback.
   hljs.registerLanguage("javascript", js);
   hljs.registerLanguage("xml", xml);
@@ -43,8 +44,16 @@ sap.ui.define(["sapmarco/projectpages/thirdparty/marked", "sapmarco/projectpages
       const image = token.text.trim().slice(2, -2);
       return `<img class="wikiImage" src="${WIKI_RAW_URL}${image}">`;
     },
-    // open links in a new tab so the SPA stays put; the stock renderer escapes href/title
+    // wiki pages become in-app routes, anything else (incl. wiki sub-paths like /_history) opens in a
+    // new tab so the SPA stays put; the stock renderer escapes href/title
     link(token) {
+      const page = token.href.startsWith(WIKI_PAGE_URL) ? token.href.slice(WIKI_PAGE_URL.length).split(/[#?]/)[0] : "";
+      if (page && !page.includes("/")) {
+        return Renderer.prototype.link.call(this, {
+          ...token,
+          href: `#/wiki/${page}`
+        });
+      }
       return Renderer.prototype.link.call(this, token).replace("<a ", '<a target="_blank" rel="noopener noreferrer" ');
     }
   };

@@ -1,0 +1,11 @@
+<mvc:View controllerName="sapmarco.projectpages.controller.Base" displayBlock="true" xmlns="sap.m" xmlns:mvc="sap.ui.core.mvc">
+	<Page id="notFoundPage" showNavButton="true" navButtonPress=".onNavBack" title="{i18n>notFoundTitle}" titleAlignment="Center" navButtonTooltip="{i18n>navBackTooltip}">
+		<content>
+			<IllustratedMessage illustrationType="sapIllus-PageNotFound" title="{i18n>notFoundTitle}" description="{i18n>notFoundDescription}" enableVerticalResponsiveness="true">
+				<additionalContent>
+					<Button type="Emphasized" text="{i18n>notFoundHomeButton}" press=".navTo('RouteMain')" />
+				</additionalContent>
+			</IllustratedMessage>
+		</content>
+	</Page>
+</mvc:View>

@@ -107,7 +107,12 @@
 				"viewType": "XML",
 				"path": "sapmarco.projectpages.view",
 				"controlId": "app",
-				"controlAggregation": "pages"
+				"controlAggregation": "pages",
+				"bypassed": {
+					"target": [
+						"TargetNotFound"
+					]
+				}
 			},
 			"routes": [
 				{
@@ -119,7 +124,7 @@
 				},
 				{
 					"name": "RouteWiki",
-					"pattern": "wiki",
+					"pattern": "wiki/:page:",
 					"target": [
 						"TargetWiki"
 					]
@@ -150,6 +155,12 @@
 					"id": "UI5Con",
 					"level": 2,
 					"name": "UI5Con"
+				},
+				"TargetNotFound": {
+					"viewType": "XML",
+					"id": "NotFound",
+					"level": 2,
+					"name": "NotFound"
 				}
 			}
 		},
