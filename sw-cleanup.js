@@ -1,0 +1,2 @@
+const legacyCache=/^(app|[A-Z]+)-\d+\.\d+\.\d+$/;self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(e=>Promise.all(e.filter(e=>legacyCache.test(e)).map(e=>caches.delete(e)))))});
+//# sourceMappingURL=sw-cleanup.js.map
