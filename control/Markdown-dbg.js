@@ -1,4 +1,4 @@
-sap.ui.define(["sap/ui/core/Control", "sap/ui/core/RenderManager", "sap/m/Button", "sap/m/library", "sap/ui/dom/includeStylesheet", "sapmarco/projectpages/thirdparty/dompurify"], function (Control, RenderManager, Button, sap_m_library, includeStylesheet, __DOMPurify) {
+sap.ui.define(["sap/ui/core/Control", "sap/m/Button", "sap/m/library", "sap/ui/dom/includeStylesheet", "sapmarco/projectpages/thirdparty/dompurify"], function (Control, Button, sap_m_library, includeStylesheet, __DOMPurify) {
   "use strict";
 
   function _interopRequireDefault(obj) {
@@ -9,28 +9,57 @@ sap.ui.define(["sap/ui/core/Control", "sap/ui/core/RenderManager", "sap/m/Button
   includeStylesheet(sap.ui.require.toUrl("sapmarco/projectpages/control/Markdown.css"), "sapmarco-projectpages-control-Markdown");
 
   /**
-   * Renders pre-converted markdown HTML, sanitized with DOMPurify unless
-   * {@link #getSanitize sanitize} is off, and adds a copy button to each `<pre>`.
+   * Renders pre-converted markdown HTML, sanitized with DOMPurify, and renders
+   * a copy button next to each `<pre>`.
    *
    * @namespace sapmarco.projectpages.control
    */
   const Markdown = Control.extend("sapmarco.projectpages.control.Markdown", {
-    constructor: function constructor() {
-      Control.prototype.constructor.apply(this, arguments);
-      this._revertTimers = new Map();
-    },
     renderer: {
       apiVersion: 4,
       render(rm, control) {
-        const content = control.getContent();
+        // absent when the clipboard is unavailable
+        const buttons = control.getAggregation("_copyButtons") ?? [];
+        let next = 0;
+        // Plain HTML goes out as is; only the path down to each <pre> is written
+        // element by element, so the copy button can sit next to it.
+        const renderNode = node => {
+          if (node.nodeName === "PRE") {
+            rm.openStart("div").class("wikiCodeBlock").openEnd();
+            rm.unsafeHtml(node.outerHTML);
+            if (buttons[next]) {
+              rm.renderControl(buttons[next++]);
+            }
+            rm.close("div");
+          } else if (node instanceof Element && node.querySelector("pre")) {
+            rm.openStart(node.localName);
+            for (const {
+              name,
+              value
+            } of node.attributes) {
+              // rm.attr rejects names like xml:lang, which DOMPurify allows
+              if (name !== "class" && name !== "style" && /^[a-z_][\w-]*$/.test(name)) {
+                rm.attr(name, value);
+              }
+            }
+            node.classList.forEach(name => rm.class(name));
+            const style = node.style;
+            for (let i = 0; i < style.length; i++) {
+              rm.style(style[i], style.getPropertyValue(style[i]));
+            }
+            rm.openEnd();
+            node.childNodes.forEach(renderNode);
+            rm.close(node.localName);
+          } else if (node instanceof Element) {
+            rm.unsafeHtml(node.outerHTML);
+          } else if (node.nodeType === Node.TEXT_NODE) {
+            rm.text(node.textContent);
+          }
+        };
         rm.openStart("div", control);
         rm.class("wikiMarkdown");
         rm.openEnd();
-        rm.unsafeHtml(control.getSanitize() ?
-        // keep the service's new-tab links; they carry rel="noopener noreferrer"
-        DOMPurify.sanitize(content, {
-          ADD_ATTR: ["target"]
-        }) : content);
+        control._fragment.childNodes.forEach(renderNode);
         rm.close("div");
       }
     },
@@ -39,10 +68,6 @@ sap.ui.define(["sap/ui/core/Control", "sap/ui/core/RenderManager", "sap/m/Button
         content: {
           type: "string",
           defaultValue: ""
-        },
-        sanitize: {
-          type: "boolean",
-          defaultValue: true
         },
         copyCodeTooltip: {
           type: "string",
@@ -62,46 +87,44 @@ sap.ui.define(["sap/ui/core/Control", "sap/ui/core/RenderManager", "sap/m/Button
         }
       }
     },
+    constructor: function _constructor(id, settings) {
+      Control.prototype.constructor.call(this, id, settings);
+      this._revertTimers = new Map();
+    },
     onBeforeRendering: function _onBeforeRendering() {
       this._clearRevertTimers();
       this.destroyAggregation("_copyButtons", true);
-    },
-    onAfterRendering: function _onAfterRendering() {
-      const dom = this.getDomRef();
+
+      // keep the service's new-tab links; they carry rel="noopener noreferrer"
+      this._fragment = DOMPurify.sanitize(this.getContent(), {
+        ADD_ATTR: ["target"],
+        RETURN_DOM_FRAGMENT: true
+      });
+
       // Clipboard API is only available in secure contexts.
-      if (!dom || !navigator.clipboard?.writeText) {
+      if (!navigator.clipboard?.writeText) {
         return;
       }
       const copyLabel = this.getCopyCodeTooltip();
       const copiedLabel = this.getCopyCodeCopiedText();
-
-      // Not placeAt: that creates a UIArea per button and leaks one per re-render.
-      // @ts-expect-error constructor is typed protected, but it replaces the
-      // deprecated Core#createRenderManager.
-      const rm = new RenderManager();
-      dom.querySelectorAll("pre").forEach((pre, index) => {
-        const wrapper = document.createElement("div");
-        wrapper.className = "wikiCodeBlock";
-        pre.parentNode.insertBefore(wrapper, pre);
-        wrapper.appendChild(pre);
+      // a nested <pre> goes out inside its parent's outerHTML, so it gets no button
+      this._fragment.querySelectorAll("pre:not(pre pre)").forEach((pre, index) => {
+        // drop the trailing newline marked appends to every code block
+        const code = (pre.querySelector("code") ?? pre).textContent.replace(/\n$/, "");
         const button = new Button(`${this.getId()}-copy-${index}`, {
           icon: "sap-icon://copy",
           type: ButtonType.Transparent,
           tooltip: copyLabel
         });
         button.addStyleClass("wikiCopyButton");
-        button.attachPress(() => this._copyCode(pre, button, copyLabel, copiedLabel));
+        button.attachPress(() => this._copyCode(code, button, copyLabel, copiedLabel));
         this.addAggregation("_copyButtons", button, true);
-        rm.render(button, wrapper);
       });
-      rm.destroy();
     },
     exit: function _exit() {
       this._clearRevertTimers();
     },
-    _copyCode: function _copyCode(pre, button, copyLabel, copiedLabel) {
-      // drop the trailing newline marked appends to every code block
-      const code = (pre.querySelector("code")?.textContent ?? pre.textContent ?? "").replace(/\n$/, "");
+    _copyCode: function _copyCode(code, button, copyLabel, copiedLabel) {
       void navigator.clipboard.writeText(code).then(() => {
         // a re-render may have destroyed the button meanwhile
         if (button.isDestroyed()) {

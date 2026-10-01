@@ -50,8 +50,4 @@ export default class VersionDialog extends BaseObject {
 	public onCloseDialog(oEvt: Event): void {
 		((oEvt.getSource() as Control).getParent() as Dialog).close();
 	}
-
-	onExit() {
-		delete this._view;
-	}
 }

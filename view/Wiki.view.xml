@@ -4,24 +4,26 @@
     xmlns:mvc="sap.ui.core.mvc"
     xmlns:control="sapmarco.projectpages.control"
 	core:require="{ sapMLib: 'sap/m/library' }">
-    <Page id="wikiPage" busy="{viewState>/busy}" showHeader="true" showNavButton="true" navButtonPress=".onNavBack" title="{convertedmarkdown>/title}" titleAlignment="Center" navButtonTooltip="{i18n>navButtonBackTooltip}">
+    <Page id="wikiPage" busy="{viewState>/busy}" showHeader="true" showNavButton="true" navButtonPress=".onNavBack" title="{convertedmarkdown>/title}" titleAlignment="Center" navButtonTooltip="{i18n>navBackTooltip}">
         <headerContent>
-            <Button visible="{= ${convertedmarkdown>/edit} ? true : false }" icon="sap-icon://edit" iconFirst="false" tooltip="{i18n>sourceTooltipEdit}" text="{i18n>sourceEdit}" press="sapMLib.URLHelper.redirect( ${convertedmarkdown>/edit}, true)"  />
+            <Button visible="{= ${convertedmarkdown>/edit} ? true : false }" icon="sap-icon://edit" iconFirst="false" tooltip="{i18n>wikiEditTooltip}" text="{i18n>wikiEditButton}" press="sapMLib.URLHelper.redirect( ${convertedmarkdown>/edit}, true)"  />
 
         </headerContent>
         <content>
             <SplitContainer id="wikiSplit" mode="StretchCompressMode">
                 <masterPages>
-                    <Page id="sidebarPage" titleAlignment="Center" title="{i18n>sidebar}">
+                    <Page id="sidebarPage" titleAlignment="Center" title="{i18n>wikiSidebarTitle}">
                         <content>
-                            <List class="sidebar" id="sidebar" />
+                            <List class="sidebar" id="sidebar" items="{viewState>/pages}">
+                                <ActionListItem text="{viewState>name}" press=".onSidebarSelection" />
+                            </List>
                         </content>
                     </Page>
                 </masterPages>
                 <detailPages>
                     <Page id="markdownSection" showHeader="false">
                         <content>
-                            <control:Markdown content="{convertedmarkdown>/markdown}" copyCodeTooltip="{i18n>wikiCopyCode}" copyCodeCopiedText="{i18n>wikiCopyCodeDone}" />
+                            <control:Markdown class="container" content="{convertedmarkdown>/markdown}" copyCodeTooltip="{i18n>wikiCopyCode}" copyCodeCopiedText="{i18n>wikiCopyCodeDone}" />
                         </content>
                     </Page>
                 </detailPages>
@@ -29,7 +31,7 @@
         </content>
         <footer>
             <Toolbar id="footerToolbar" design="Solid">
-                <core:Icon src="sap-icon://lightbulb" class="size2" press=".onThemeSwap" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}"/>
+                <core:Icon src="sap-icon://lightbulb" class="size2" press=".onThemeSwap" tooltip="{i18n>themeToggleTooltip}"/>
                 <ToolbarSpacer/>
                 <Text class="footerText" text="{i18n>footerText}">
                     <layoutData>
@@ -37,7 +39,7 @@
                     </layoutData>
                 </Text>
                 <ToolbarSpacer/>
-                <Button icon="sap-icon://action" iconFirst="false" tooltip="{i18n>sourceTooltip}" text="{i18n>source}" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu/wridgeu.github.io/wiki', true)"  />
+                <Button icon="sap-icon://action" iconFirst="false" tooltip="{i18n>wikiSourceTooltip}" text="{i18n>wikiSourceButton}" press="sapMLib.URLHelper.redirect('https://github.com/wridgeu/wridgeu.github.io/wiki', true)"  />
             </Toolbar>
         </footer>
     </Page>

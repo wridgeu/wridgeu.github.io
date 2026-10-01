@@ -1,4 +1,4 @@
-sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.controller", "sap/m/ActionListItem", "sap/ui/model/json/JSONModel", "sap/ui/Device"], function (___util_githubService, ___util_markdownService, __BaseController, ActionListItem, JSONModel, Device) {
+sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.controller", "sap/ui/model/json/JSONModel", "sap/ui/Device"], function (___util_githubService, ___util_markdownService, __BaseController, JSONModel, Device) {
   "use strict";
 
   function _interopRequireDefault(obj) {
@@ -15,6 +15,7 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
     }
     return finalizer(false, result);
   }
+  const WIKI_PAGE_URL = ___util_githubService["WIKI_PAGE_URL"];
   const getSelectedContent = ___util_githubService["getSelectedContent"];
   const getWikiIndex = ___util_githubService["getWikiIndex"];
   const getContentEditLink = ___util_githubService["getContentEditLink"];
@@ -37,10 +38,11 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
       });
       this.getView().setModel(this._wikiContentModel, "convertedmarkdown");
       this._viewStateModel = new JSONModel({
-        busy: false
+        busy: false,
+        pages: []
       });
       this.getView().setModel(this._viewStateModel, "viewState");
-      this.getRouter().getRoute("RouteWiki").attachMatched(this._onRouteMatched.bind(this), this);
+      this.getRouter().getRoute("RouteWiki").attachMatched(this._onRouteMatched, this);
     },
     /**
      * Event-handler for theme toggle
@@ -78,19 +80,13 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
         const _this2 = this;
         _this2._viewStateModel.setProperty("/busy", true);
         const _temp = _finallyRethrows(function () {
-          //get sidebar from actual github-wiki
           return Promise.resolve(getWikiIndex()).then(function (wikiIndex) {
-            //parse markdown to html
-            const parsedMarkdown = markdownService.parse(wikiIndex);
-            const matches = [...parsedMarkdown.matchAll(/\wiki\/(.*?)"/g)];
-            // the view is cached, so re-entering the route would append duplicates
-            _this2.byId("sidebar").destroyItems();
-            matches.forEach(element => {
-              _this2.byId("sidebar").addItem(new ActionListItem({
-                text: `${element[1]}`,
-                press: _this2.onSidebarSelection.bind(_this2, element[1], _this2._wikiContentModel, Device.system.phone)
-              }));
-            });
+            // read real links, so anchors, titles and autolinks need no special casing
+            const sidebar = new DOMParser().parseFromString(markdownService.parse(wikiIndex), "text/html");
+            const pages = [...sidebar.querySelectorAll(`a[href^="${WIKI_PAGE_URL}"]`)].map(link => ({
+              name: decodeURIComponent(link.href.slice(WIKI_PAGE_URL.length).split(/[#?]/)[0])
+            }));
+            _this2._viewStateModel.setProperty("/pages", pages);
           });
         }, function (_wasThrown, _result) {
           _this2._viewStateModel.setProperty("/busy", false);
@@ -103,47 +99,47 @@ sap.ui.define(["../util/githubService", "../util/markdownService", "./Base.contr
       }
     },
     /**
-     * @param  {string} sMarkdownFileName name of markdown file
+     * Event-handler for sidebar item press
      */
-    onSidebarSelection: function _onSidebarSelection(sMarkdownFileName, jsonModel, isOpenedOnPhone) {
-      const _this3 = this;
-      // a later tap supersedes this one; see the token checks below
-      const token = ++this._selectionToken;
-      // fix eslint issue in press event handler of ActionListItem:
-      // see: https://stackoverflow.com/a/63488201
-      // also: https://typescript-eslint.io/rules/no-floating-promises/
-      void function () {
-        try {
-          _this3._viewStateModel.setProperty("/busy", true);
-          return Promise.resolve(_finallyRethrows(function () {
-            //get markdown page and encode - to %20
-            return Promise.resolve(getSelectedContent(sMarkdownFileName)).then(function (markdownPage) {
-              const editLink = getContentEditLink(sMarkdownFileName);
-              const parsedMarkdown = markdownService.parse(markdownPage);
-              if (token !== _this3._selectionToken) {
-                return;
-              }
-              jsonModel.setData({
-                markdown: `<div class="container">${parsedMarkdown}</div>`,
-                title: sMarkdownFileName,
-                edit: editLink
-              });
-
-              //improve UX by always starting at the top when opening up new content & jumping to new pane
-              if (isOpenedOnPhone) _this3.byId("wikiSplit").toDetail(_this3.byId("markdownSection").getId(), "show");
-              if (_this3.byId("markdownSection")) _this3.byId("markdownSection").scrollTo(0, 0);
-            });
-          }, function (_wasThrown2, _result2) {
-            if (token === _this3._selectionToken) {
-              _this3._viewStateModel.setProperty("/busy", false);
+    onSidebarSelection: function _onSidebarSelection(event) {
+      const name = event.getSource().getBindingContext("viewState").getProperty("name");
+      void this._showPage(name);
+    },
+    _showPage: function _showPage(sMarkdownFileName) {
+      try {
+        const _this3 = this;
+        // a later tap supersedes this one; see the token checks below
+        const token = ++_this3._selectionToken;
+        _this3._viewStateModel.setProperty("/busy", true);
+        return Promise.resolve(_finallyRethrows(function () {
+          return Promise.resolve(getSelectedContent(sMarkdownFileName)).then(function (markdownPage) {
+            const parsedMarkdown = markdownService.parse(markdownPage);
+            if (token !== _this3._selectionToken) {
+              return;
             }
-            if (_wasThrown2) throw _result2;
-            return _result2;
-          }));
-        } catch (e) {
-          return Promise.reject(e);
-        }
-      }();
+            _this3._wikiContentModel.setData({
+              markdown: parsedMarkdown,
+              title: sMarkdownFileName,
+              edit: getContentEditLink(sMarkdownFileName)
+            });
+
+            //improve UX by always starting at the top when opening up new content & jumping to new pane
+            const markdownSection = _this3.byId("markdownSection");
+            if (Device.system.phone) {
+              _this3.byId("wikiSplit").toDetail(markdownSection.getId(), "show");
+            }
+            markdownSection.scrollTo(0, 0);
+          });
+        }, function (_wasThrown2, _result2) {
+          if (token === _this3._selectionToken) {
+            _this3._viewStateModel.setProperty("/busy", false);
+          }
+          if (_wasThrown2) throw _result2;
+          return _result2;
+        }));
+      } catch (e) {
+        return Promise.reject(e);
+      }
     }
   });
   return WikiController;

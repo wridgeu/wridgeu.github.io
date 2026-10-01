@@ -41,9 +41,6 @@ sap.ui.define(["sap/ui/core/Fragment", "sap/ui/core/syncStyleClass", "sap/ui/mod
     },
     onCloseDialog: function _onCloseDialog(oEvt) {
       oEvt.getSource().getParent().close();
-    },
-    onExit: function _onExit() {
-      delete this._view;
     }
   });
   return VersionDialog;

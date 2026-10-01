@@ -8,6 +8,7 @@ import shell from "highlight.js/lib/languages/shell";
 import bash from "highlight.js/lib/languages/bash";
 import json from "highlight.js/lib/languages/json";
 import plaintext from "highlight.js/lib/languages/plaintext";
+import { WIKI_RAW_URL } from "./githubService";
 
 // Register only the languages in use; 'plaintext' is the fallback.
 hljs.registerLanguage("javascript", js);
@@ -37,8 +38,7 @@ const renderer = {
 			return false;
 		}
 		const image = token.text.trim().slice(2, -2);
-		const imagePath = `https://raw.githubusercontent.com/wiki/wridgeu/wridgeu.github.io/${image}`;
-		return `<img class="wikiImage" src="${imagePath}">`;
+		return `<img class="wikiImage" src="${WIKI_RAW_URL}${image}">`;
 	},
 	// open links in a new tab so the SPA stays put; the stock renderer escapes href/title
 	link(this: RendererThis, token: Tokens.Link) {

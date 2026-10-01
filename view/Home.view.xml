@@ -25,14 +25,14 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<FlexBox class="setMiddle" width="100%">
-							<Text class="text" text="{i18n>introText}" />
+							<Text class="text" text="{i18n>homeIntroText}" />
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow class="setMiddle" id="cVRow">
 					<l:BlockLayoutCell>
 						<FlexBox width="100%">
-							<Text class="text" text="{i18n>mainText}" />
+							<Text class="text" text="{i18n>homeAboutText}" />
 						</FlexBox>
 					</l:BlockLayoutCell>
 					<l:BlockLayoutCell>
@@ -65,8 +65,8 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<FlexBox class="sapUiLargeMarginTop setMiddle" width="100%" direction="Column" alignItems="Center">
-							<Text class="title" text="{i18n>sectionSkills}" />
-							<Text text="{i18n>roughOverview}" />
+							<Text class="title" text="{i18n>homeSkillsTitle}" />
+							<Text text="{i18n>homeSkillsSubtitle}" />
 						</FlexBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
@@ -82,15 +82,15 @@
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<HBox justifyContent="Center">
-							<Text class="title" text="{i18n>misc}" />
+							<Text class="title" text="{i18n>homeMiscTitle}" />
 						</HBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
 				<l:BlockLayoutRow>
 					<l:BlockLayoutCell>
 						<HBox justifyContent="Center">
-							<GenericTile class="tile-text-color tile-image-position sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>wikiButtonHeader}" press=".onWiki" subheader="{i18n>wikiButtonSubtitle}" backgroundImage="./resources/img/webp/library.webp"></GenericTile>
-							<GenericTile class="sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>ui5ConButtonHeader}" press=".onUI5con" subheader="{i18n>ui5ConButtonSubtitle}" backgroundImage="./resources/img/webp/UI5con-Black.webp"></GenericTile>
+							<GenericTile class="tile-text-color tile-image-position sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>homeWikiTileHeader}" press=".onWiki" subheader="{i18n>homeWikiTileSubheader}" backgroundImage="./resources/img/webp/library.webp"></GenericTile>
+							<GenericTile class="sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout" header="{i18n>homeUI5ConTileHeader}" press=".onUI5con" subheader="{i18n>homeUI5ConTileSubheader}" backgroundImage="./resources/img/webp/UI5con-Black.webp"></GenericTile>
 						</HBox>
 					</l:BlockLayoutCell>
 				</l:BlockLayoutRow>
@@ -98,7 +98,7 @@
 		</content>
 		<footer>
 			<Toolbar id="footerToolbar" design="Solid">
-				<core:Icon src="sap-icon://lightbulb" class="size2" press=".toggleTheme" alt="Toggle Theme" tooltip="{i18n>themeToggleTooltip}" />
+				<core:Icon src="sap-icon://lightbulb" class="size2" press=".toggleTheme" tooltip="{i18n>themeToggleTooltip}" />
 				<ToolbarSpacer />
 				<Text class="footerText" text="{i18n>footerText}">
 					<layoutData>
@@ -106,7 +106,7 @@
 					</layoutData>
 				</Text>
 				<ToolbarSpacer />
-				<core:Icon src="sap-icon://sap-ui5" class="size2" press=".onUI5IconPress" alt="UI5 Version" tooltip="{i18n>versionInfoTooltip}" />
+				<core:Icon src="sap-icon://sap-ui5" class="size2" press=".onUI5IconPress" tooltip="{i18n>homeVersionTooltip}" />
 			</Toolbar>
 		</footer>
 	</Page>

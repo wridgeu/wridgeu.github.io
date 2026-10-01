@@ -4,14 +4,12 @@
 		"id": "sapmarco.projectpages",
 		"type": "application",
 		"i18n": {
-			"bundleUrl": "i18n/i18n.properties",
+			"bundleName": "sapmarco.projectpages.i18n.i18n",
 			"supportedLocales": [
-				"",
-				"de",
-				"de-DE",
 				"en",
-				"en-US"
-			]
+				"de"
+			],
+			"fallbackLocale": "en"
 		},
 		"applicationVersion": {
 			"version": "1.25.1"
@@ -80,8 +78,8 @@
 				"settings": {
 					"bundleName": "sapmarco.projectpages.i18n.i18n",
 					"supportedLocales": [
-						"de",
-						"en"
+						"en",
+						"de"
 					],
 					"fallbackLocale": "en",
 					"async": true

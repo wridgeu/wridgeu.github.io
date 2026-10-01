@@ -1,4 +1,4 @@
-sap.ui.define(["sapmarco/projectpages/thirdparty/marked", "sapmarco/projectpages/thirdparty/marked-highlight", "sapmarco/projectpages/thirdparty/highlight.js/lib/core", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/javascript", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/xml", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/css", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/shell", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/bash", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/json", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/plaintext"], function (__marked, __marked_highlight, __hljs, __js, __xml, __css, __shell, __bash, __json, __plaintext) {
+sap.ui.define(["sapmarco/projectpages/thirdparty/marked", "sapmarco/projectpages/thirdparty/marked-highlight", "sapmarco/projectpages/thirdparty/highlight.js/lib/core", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/javascript", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/xml", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/css", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/shell", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/bash", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/json", "sapmarco/projectpages/thirdparty/highlight.js/lib/languages/plaintext", "./githubService"], function (__marked, __marked_highlight, __hljs, __js, __xml, __css, __shell, __bash, __json, __plaintext, ___githubService) {
   "use strict";
 
   function _interopRequireDefault(obj) {
@@ -14,7 +14,8 @@ sap.ui.define(["sapmarco/projectpages/thirdparty/marked", "sapmarco/projectpages
   const shell = _interopRequireDefault(__shell);
   const bash = _interopRequireDefault(__bash);
   const json = _interopRequireDefault(__json);
-  const plaintext = _interopRequireDefault(__plaintext); // Register only the languages in use; 'plaintext' is the fallback.
+  const plaintext = _interopRequireDefault(__plaintext);
+  const WIKI_RAW_URL = ___githubService["WIKI_RAW_URL"]; // Register only the languages in use; 'plaintext' is the fallback.
   hljs.registerLanguage("javascript", js);
   hljs.registerLanguage("xml", xml);
   hljs.registerLanguage("css", css);
@@ -40,8 +41,7 @@ sap.ui.define(["sapmarco/projectpages/thirdparty/marked", "sapmarco/projectpages
         return false;
       }
       const image = token.text.trim().slice(2, -2);
-      const imagePath = `https://raw.githubusercontent.com/wiki/wridgeu/wridgeu.github.io/${image}`;
-      return `<img class="wikiImage" src="${imagePath}">`;
+      return `<img class="wikiImage" src="${WIKI_RAW_URL}${image}">`;
     },
     // open links in a new tab so the SPA stays put; the stock renderer escapes href/title
     link(token) {
